@@ -13,9 +13,9 @@ import (
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/pfcec"
 	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
@@ -536,17 +536,17 @@ func addrToKey(addr pfcutil.Address, params *chaincfg.Params) ([addrKeySize]byte
 	switch addr := addr.(type) {
 	case *pfcutil.AddressPubKeyHash:
 		switch addr.DSA(params) {
-		case chainec.ECTypeSecp256k1:
+		case pfcec.STEcdsaSecp256k1:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHash
 			copy(result[1:], addr.Hash160()[:])
 			return result, nil
-		case chainec.ECTypeEdwards:
+		case pfcec.STEd25519:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHashEdwards
 			copy(result[1:], addr.Hash160()[:])
 			return result, nil
-		case chainec.ECTypeSecSchnorr:
+		case pfcec.STSchnorrSecp256k1:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHashSchnorr
 			copy(result[1:], addr.Hash160()[:])

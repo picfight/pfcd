@@ -3,13 +3,11 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson_test
+package pfcjson
 
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestChainSvrCustomResults ensures any results that have custom marshalling
@@ -25,7 +23,7 @@ func TestChainSvrCustomResults(t *testing.T) {
 	}{
 		{
 			name: "custom vin marshal with coinbase",
-			result: &pfcjson.Vin{
+			result: &Vin{
 				Coinbase: "021234",
 				Sequence: 4294967295,
 			},
@@ -33,11 +31,11 @@ func TestChainSvrCustomResults(t *testing.T) {
 		},
 		{
 			name: "custom vin marshal without coinbase",
-			result: &pfcjson.Vin{
+			result: &Vin{
 				Txid: "123",
 				Vout: 1,
 				Tree: 0,
-				ScriptSig: &pfcjson.ScriptSig{
+				ScriptSig: &ScriptSig{
 					Asm: "0",
 					Hex: "00",
 				},
@@ -47,7 +45,7 @@ func TestChainSvrCustomResults(t *testing.T) {
 		},
 		{
 			name: "custom vinprevout marshal with coinbase",
-			result: &pfcjson.VinPrevOut{
+			result: &VinPrevOut{
 				Coinbase: "021234",
 				Sequence: 4294967295,
 			},
@@ -55,14 +53,14 @@ func TestChainSvrCustomResults(t *testing.T) {
 		},
 		{
 			name: "custom vinprevout marshal without coinbase",
-			result: &pfcjson.VinPrevOut{
+			result: &VinPrevOut{
 				Txid: "123",
 				Vout: 1,
-				ScriptSig: &pfcjson.ScriptSig{
+				ScriptSig: &ScriptSig{
 					Asm: "0",
 					Hex: "00",
 				},
-				PrevOut: &pfcjson.PrevOut{
+				PrevOut: &PrevOut{
 					Addresses: []string{"addr1"},
 					Value:     0,
 				},

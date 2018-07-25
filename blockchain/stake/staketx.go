@@ -16,8 +16,8 @@ import (
 	"math/big"
 
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/pfcec"
 	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
@@ -374,7 +374,7 @@ func AddrFromSStxPkScrCommitment(pkScript []byte,
 		addr, err = pfcutil.NewAddressScriptHashFromHash(hashBytes, params)
 	} else {
 		addr, err = pfcutil.NewAddressPubKeyHash(hashBytes, params,
-			chainec.ECTypeSecp256k1)
+			pfcec.STEcdsaSecp256k1)
 	}
 
 	return addr, err
@@ -624,9 +624,7 @@ func CalculateRewards(amounts []int64, amountTicket int64,
 		amountBig.Rsh(amountBig, 32)
 
 		// make int64
-		amountFinal := int64(amountBig.Uint64())
-
-		outputsAmounts[idx] = amountFinal
+		outputsAmounts[idx] = amountBig.Int64()
 	}
 
 	return outputsAmounts

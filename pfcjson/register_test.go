@@ -3,14 +3,12 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson_test
+package pfcjson
 
 import (
 	"reflect"
 	"sort"
 	"testing"
-
-	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestUsageFlagStringer tests the stringized output for the UsageFlag type.
@@ -18,22 +16,21 @@ func TestUsageFlagStringer(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		in   pfcjson.UsageFlag
+		in   UsageFlag
 		want string
 	}{
 		{0, "0x0"},
-		{pfcjson.UFWalletOnly, "UFWalletOnly"},
-		{pfcjson.UFWebsocketOnly, "UFWebsocketOnly"},
-		{pfcjson.UFNotification, "UFNotification"},
-		{pfcjson.UFWalletOnly | pfcjson.UFWebsocketOnly,
-			"UFWalletOnly|UFWebsocketOnly"},
-		{pfcjson.UFWalletOnly | pfcjson.UFWebsocketOnly | (1 << 31),
+		{UFWalletOnly, "UFWalletOnly"},
+		{UFWebsocketOnly, "UFWebsocketOnly"},
+		{UFNotification, "UFNotification"},
+		{UFWalletOnly | UFWebsocketOnly, "UFWalletOnly|UFWebsocketOnly"},
+		{UFWalletOnly | UFWebsocketOnly | (1 << 31),
 			"UFWalletOnly|UFWebsocketOnly|0x80000000"},
 	}
 
 	// Detect additional usage flags that don't have the stringer added.
 	numUsageFlags := 0
-	highestUsageFlagBit := pfcjson.TstHighestUsageFlagBit
+	highestUsageFlagBit := highestUsageFlagBit
 	for highestUsageFlagBit > 1 {
 		numUsageFlags++
 		highestUsageFlagBit >>= 1
@@ -63,8 +60,8 @@ func TestRegisterCmdErrors(t *testing.T) {
 		name    string
 		method  string
 		cmdFunc func() interface{}
-		flags   pfcjson.UsageFlag
-		err     pfcjson.Error
+		flags   UsageFlag
+		err     Error
 	}{
 		{
 			name:   "duplicate method",
@@ -72,7 +69,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 			cmdFunc: func() interface{} {
 				return struct{}{}
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrDuplicateMethod},
+			err: Error{Code: ErrDuplicateMethod},
 		},
 		{
 			name:   "invalid usage flags",
@@ -80,8 +77,8 @@ func TestRegisterCmdErrors(t *testing.T) {
 			cmdFunc: func() interface{} {
 				return 0
 			},
-			flags: pfcjson.TstHighestUsageFlagBit,
-			err:   pfcjson.Error{Code: pfcjson.ErrInvalidUsageFlags},
+			flags: highestUsageFlagBit,
+			err:   Error{Code: ErrInvalidUsageFlags},
 		},
 		{
 			name:   "invalid type",
@@ -89,7 +86,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 			cmdFunc: func() interface{} {
 				return 0
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrInvalidType},
+			err: Error{Code: ErrInvalidType},
 		},
 		{
 			name:   "invalid type 2",
@@ -97,7 +94,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 			cmdFunc: func() interface{} {
 				return &[]string{}
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrInvalidType},
+			err: Error{Code: ErrInvalidType},
 		},
 		{
 			name:   "embedded field",
@@ -106,7 +103,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ int }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrEmbeddedType},
+			err: Error{Code: ErrEmbeddedType},
 		},
 		{
 			name:   "unexported field",
@@ -115,7 +112,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ a int }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrUnexportedField},
+			err: Error{Code: ErrUnexportedField},
 		},
 		{
 			name:   "unsupported field type 1",
@@ -124,7 +121,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ A **int }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrUnsupportedFieldType},
+			err: Error{Code: ErrUnsupportedFieldType},
 		},
 		{
 			name:   "unsupported field type 2",
@@ -133,7 +130,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ A chan int }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrUnsupportedFieldType},
+			err: Error{Code: ErrUnsupportedFieldType},
 		},
 		{
 			name:   "unsupported field type 3",
@@ -142,7 +139,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ A complex64 }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrUnsupportedFieldType},
+			err: Error{Code: ErrUnsupportedFieldType},
 		},
 		{
 			name:   "unsupported field type 4",
@@ -151,7 +148,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ A complex128 }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrUnsupportedFieldType},
+			err: Error{Code: ErrUnsupportedFieldType},
 		},
 		{
 			name:   "unsupported field type 5",
@@ -160,7 +157,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ A func() }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrUnsupportedFieldType},
+			err: Error{Code: ErrUnsupportedFieldType},
 		},
 		{
 			name:   "unsupported field type 6",
@@ -169,7 +166,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				type test struct{ A interface{} }
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrUnsupportedFieldType},
+			err: Error{Code: ErrUnsupportedFieldType},
 		},
 		{
 			name:   "required after optional",
@@ -181,7 +178,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				}
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrNonOptionalField},
+			err: Error{Code: ErrNonOptionalField},
 		},
 		{
 			name:   "non-optional with default",
@@ -192,7 +189,7 @@ func TestRegisterCmdErrors(t *testing.T) {
 				}
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrNonOptionalDefault},
+			err: Error{Code: ErrNonOptionalDefault},
 		},
 		{
 			name:   "mismatched default",
@@ -203,20 +200,20 @@ func TestRegisterCmdErrors(t *testing.T) {
 				}
 				return (*test)(nil)
 			},
-			err: pfcjson.Error{Code: pfcjson.ErrMismatchedDefault},
+			err: Error{Code: ErrMismatchedDefault},
 		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		err := pfcjson.RegisterCmd(test.method, test.cmdFunc(),
+		err := RegisterCmd(test.method, test.cmdFunc(),
 			test.flags)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
 			t.Errorf("Test #%d (%s) wrong error - got %T, "+
 				"want %T", i, test.name, err, test.err)
 			continue
 		}
-		gotErrorCode := err.(pfcjson.Error).Code
+		gotErrorCode := err.(Error).Code
 		if gotErrorCode != test.err.Code {
 			t.Errorf("Test #%d (%s) mismatched error code - got "+
 				"%v, want %v", i, test.name, gotErrorCode,
@@ -240,7 +237,7 @@ func TestMustRegisterCmdPanic(t *testing.T) {
 	}()
 
 	// Intentionally try to register an invalid type to force a panic.
-	pfcjson.MustRegisterCmd("panicme", 0, 0)
+	MustRegisterCmd("panicme", 0, 0)
 }
 
 // TestRegisteredCmdMethods tests the RegisteredCmdMethods function ensure it
@@ -249,7 +246,7 @@ func TestRegisteredCmdMethods(t *testing.T) {
 	t.Parallel()
 
 	// Ensure the registered methods are returned.
-	methods := pfcjson.RegisteredCmdMethods()
+	methods := RegisteredCmdMethods()
 	if len(methods) == 0 {
 		t.Fatal("RegisteredCmdMethods: no methods")
 	}

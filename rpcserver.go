@@ -39,9 +39,9 @@ import (
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/certgen"
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/pfcec/secp256k1"
 	"github.com/picfight/pfcd/pfcjson"
 	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/mempool"
@@ -648,8 +648,17 @@ func handleCreateRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan 
 				"or stake")
 		}
 
+		prevOutV := wire.NullValueIn
+		if input.Amount > 0 {
+			amt, err := pfcutil.NewAmount(input.Amount)
+			if err != nil {
+				return nil, rpcInvalidError(err.Error())
+			}
+			prevOutV = int64(amt)
+		}
+
 		prevOut := wire.NewOutPoint(txHash, input.Vout, input.Tree)
-		txIn := wire.NewTxIn(prevOut, []byte{})
+		txIn := wire.NewTxIn(prevOut, prevOutV, []byte{})
 		if c.LockTime != nil && *c.LockTime != 0 {
 			txIn.Sequence = wire.MaxTxInSequenceNum - 1
 		}
@@ -759,7 +768,7 @@ func handleCreateRawSStx(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 		}
 
 		prevOut := wire.NewOutPoint(txHash, input.Vout, input.Tree)
-		txIn := wire.NewTxIn(prevOut, []byte{})
+		txIn := wire.NewTxIn(prevOut, wire.NullValueIn, []byte{})
 		mtx.AddTxIn(txIn)
 	}
 
@@ -985,7 +994,7 @@ func handleCreateRawSSGenTx(s *rpcServer, cmd interface{}, closeChan <-chan stru
 
 	stakeBaseOutPoint := wire.NewOutPoint(&chainhash.Hash{},
 		uint32(0xFFFFFFFF), int8(0x01))
-	txInStakeBase := wire.NewTxIn(stakeBaseOutPoint, []byte{})
+	txInStakeBase := wire.NewTxIn(stakeBaseOutPoint, stakeVoteSubsidy, []byte{})
 	mtx.AddTxIn(txInStakeBase)
 
 	for _, input := range c.Inputs {
@@ -1003,8 +1012,17 @@ func handleCreateRawSSGenTx(s *rpcServer, cmd interface{}, closeChan <-chan stru
 				"TxTreeStake type")
 		}
 
+		prevOutV := wire.NullValueIn
+		if input.Amount > 0 {
+			amt, err := pfcutil.NewAmount(input.Amount)
+			if err != nil {
+				return nil, rpcInvalidError(err.Error())
+			}
+			prevOutV = int64(amt)
+		}
+
 		prevOut := wire.NewOutPoint(txHash, input.Vout, input.Tree)
-		txIn := wire.NewTxIn(prevOut, []byte{})
+		txIn := wire.NewTxIn(prevOut, prevOutV, []byte{})
 		mtx.AddTxIn(txIn)
 	}
 
@@ -1144,8 +1162,17 @@ func handleCreateRawSSRtx(s *rpcServer, cmd interface{}, closeChan <-chan struct
 				"TxTreeStake type")
 		}
 
+		prevOutV := wire.NullValueIn
+		if input.Amount > 0 {
+			amt, err := pfcutil.NewAmount(input.Amount)
+			if err != nil {
+				return nil, rpcInvalidError(err.Error())
+			}
+			prevOutV = int64(amt)
+		}
+
 		prevOut := wire.NewOutPoint(txHash, input.Vout, input.Tree)
-		txIn := wire.NewTxIn(prevOut, []byte{})
+		txIn := wire.NewTxIn(prevOut, prevOutV, []byte{})
 		mtx.AddTxIn(txIn)
 	}
 
@@ -1522,17 +1549,14 @@ func handleEstimateStakeDiff(s *rpcServer, cmd interface{}, closeChan <-chan str
 	nextAdjustment := ((bestHeight / activeNetParams.StakeDiffWindowSize) +
 		1) * activeNetParams.StakeDiffWindowSize
 	totalTickets := 0
-	err = s.server.db.View(func(dbTx database.Tx) error {
-		for i := lastAdjustment; i <= bestHeight; i++ {
-			bh, err := blockchain.DBFetchHeaderByHeight(dbTx, i)
-			if err != nil {
-				return err
-			}
-			totalTickets += int(bh.FreshStake)
+	for i := lastAdjustment; i <= bestHeight; i++ {
+		bh, err := chain.HeaderByHeight(i)
+		if err != nil {
+			return nil, rpcInternalError(err.Error(), "Could not "+
+				"estimate next stake difficulty")
 		}
-
-		return nil
-	})
+		totalTickets += int(bh.FreshStake)
+	}
 	blocksSince := float64(bestHeight - lastAdjustment + 1)
 	remaining := float64(nextAdjustment - bestHeight - 1)
 	averagePerBlock := float64(totalTickets) / blocksSince
@@ -1920,7 +1944,7 @@ func handleGetBlock(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (i
 	if err != nil {
 		return nil, rpcDecodeHexError(c.Hash)
 	}
-	blk, err := s.server.blockManager.chain.FetchBlockByHash(hash)
+	blk, err := s.server.blockManager.chain.BlockByHash(hash)
 	if err != nil {
 		return nil, &pfcjson.RPCError{
 			Code:    pfcjson.ErrRPCBlockNotFound,
@@ -1942,14 +1966,11 @@ func handleGetBlock(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (i
 
 	best := s.chain.BestSnapshot()
 
-	// See if this block is an orphan and adjust Confirmations accordingly.
-	onMainChain, _ := s.chain.MainChainHasBlock(hash)
-
 	// Get next block hash unless there are none.
 	var nextHashString string
 	blockHeader := &blk.MsgBlock().Header
 	confirmations := int64(-1)
-	if onMainChain {
+	if s.chain.MainChainHasBlock(hash) {
 		if int64(blockHeader.Height) < best.Height {
 			nextHash, err := s.chain.BlockHashByHeight(int64(blockHeader.Height + 1))
 			if err != nil {
@@ -2093,14 +2114,11 @@ func handleGetBlockHeader(s *rpcServer, cmd interface{}, closeChan <-chan struct
 
 	best := s.chain.BestSnapshot()
 
-	// See if this block is an orphan and adjust Confirmations accordingly.
-	onMainChain, _ := s.chain.MainChainHasBlock(hash)
-
 	// Get next block hash unless there are none.
 	var nextHashString string
 	confirmations := int64(-1)
 	height := int64(blockHeader.Height)
-	if onMainChain {
+	if s.chain.MainChainHasBlock(hash) {
 		if height < best.Height {
 			nextHash, err := s.chain.BlockHashByHeight(height + 1)
 			if err != nil {
@@ -3801,7 +3819,7 @@ func handleGetVoteInfo(s *rpcServer, cmd interface{}, closeChan <-chan struct{})
 	result.Agendas = make([]pfcjson.Agenda, 0, len(vi.Agendas))
 	for _, agenda := range vi.Agendas {
 		a := pfcjson.Agenda{
-			Id:          agenda.Vote.Id,
+			ID:          agenda.Vote.Id,
 			Description: agenda.Vote.Description,
 			Mask:        agenda.Vote.Mask,
 			Choices: make([]pfcjson.Choice, 0,
@@ -3813,7 +3831,7 @@ func handleGetVoteInfo(s *rpcServer, cmd interface{}, closeChan <-chan struct{})
 		// Handle choices.
 		for _, choice := range agenda.Vote.Choices {
 			c := pfcjson.Choice{
-				Id:          choice.Id,
+				ID:          choice.Id,
 				Description: choice.Description,
 				Bits:        choice.Bits,
 				IsAbstain:   choice.IsAbstain,
@@ -5054,16 +5072,7 @@ func handleSendRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan st
 	//
 	// Note that votes are only valid for a specific block and are time
 	// sensitive, so they should not be added to the rebroadcast logic.
-	//
-	// TODO: Ideally ticket purchases and revocations could be added to the
-	// rebroadcast logic as well, however, they would need to be removed under
-	// certain circumstances such as when the stake difficulty interval changes
-	// and if a revocation is for a ticket that was missed, but then becomes
-	// live again due to a reorg.  All stake transactions are ignored here since
-	// there is no clean infrastructure in place currently to handle those
-	// removals and perpetually broadcasting transactions which are no longer
-	// valid is not desirable.
-	if txType := stake.DetermineTxType(msgtx); txType == stake.TxTypeRegular {
+	if txType := stake.DetermineTxType(msgtx); txType != stake.TxTypeSSGen {
 		iv := wire.NewInvVect(wire.InvTypeTx, tx.Hash())
 		s.server.AddRebroadcastInventory(iv, tx)
 	}
@@ -5716,7 +5725,7 @@ func handleVerifyMessage(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 	wire.WriteVarString(&buf, 0, "PicFight Signed Message:\n")
 	wire.WriteVarString(&buf, 0, c.Message)
 	expectedMessageHash := chainhash.HashB(buf.Bytes())
-	pk, wasCompressed, err := chainec.Secp256k1.RecoverCompact(sig,
+	pk, wasCompressed, err := secp256k1.RecoverCompact(sig,
 		expectedMessageHash)
 	if err != nil {
 		// Mirror Bitcoin Core behavior, which treats error in

@@ -22,6 +22,7 @@ import (
 	"github.com/picfight/pfcd/addrmgr"
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/indexers"
+	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/connmgr"
@@ -82,6 +83,10 @@ type broadcastInventoryAdd relayMsg
 // broadcastInventoryDel is a type used to declare that the InvVect it contains
 // needs to be removed from the rebroadcast map
 type broadcastInventoryDel *wire.InvVect
+
+// broadcastPruneInventory is a type used to declare that rebroadcast
+// inventory entries need to be filtered and removed where necessary
+type broadcastPruneInventory struct{}
 
 // relayMsg packages an inventory vector along with the newly discovered
 // inventory so the relay has access to that information.
@@ -844,8 +849,7 @@ func (sp *serverPeer) OnGetCFilter(p *peer.Peer, msg *wire.MsgGetCFilter) {
 	// block was disconnected, or this has always been a sidechain block) build
 	// the filter on the spot.
 	if len(filterBytes) == 0 {
-		block, err := sp.server.blockManager.chain.FetchBlockByHash(
-			&msg.BlockHash)
+		block, err := sp.server.blockManager.chain.BlockByHash(&msg.BlockHash)
 		if err != nil {
 			peerLog.Errorf("OnGetCFilter: failed to fetch non-mainchain "+
 				"block %v: %v", &msg.BlockHash, err)
@@ -1018,6 +1022,7 @@ func (sp *serverPeer) OnAddr(p *peer.Peer, msg *wire.MsgAddr) {
 		return
 	}
 
+	now := time.Now()
 	for _, na := range msg.AddrList {
 		// Don't add more address if we're disconnecting.
 		if !p.Connected() {
@@ -1027,7 +1032,6 @@ func (sp *serverPeer) OnAddr(p *peer.Peer, msg *wire.MsgAddr) {
 		// Set the timestamp to 5 days ago if it's more than 24 hours
 		// in the future so this address is one of the first to be
 		// removed when space is needed.
-		now := time.Now()
 		if na.Timestamp.After(now.Add(time.Minute * 10)) {
 			na.Timestamp = now.Add(-1 * time.Hour * 24 * 5)
 		}
@@ -1096,6 +1100,17 @@ func (s *server) RemoveRebroadcastInventory(iv *wire.InvVect) {
 	s.modifyRebroadcastInv <- broadcastInventoryDel(iv)
 }
 
+// PruneRebroadcastInventory filters and removes rebroadcast inventory entries
+// where necessary.
+func (s *server) PruneRebroadcastInventory() {
+	// Ignore if shutting down.
+	if atomic.LoadInt32(&s.shutdown) != 0 {
+		return
+	}
+
+	s.modifyRebroadcastInv <- broadcastPruneInventory{}
+}
+
 // AnnounceNewTransactions generates and relays inventory vectors and notifies
 // both websocket and getblocktemplate long poll clients of the passed
 // transactions.  This function should be called whenever new transactions
@@ -1154,7 +1169,7 @@ func (s *server) pushTxMsg(sp *serverPeer, hash *chainhash.Hash, doneChan chan<-
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (s *server) pushBlockMsg(sp *serverPeer, hash *chainhash.Hash, doneChan chan<- struct{}, waitChan <-chan struct{}) error {
-	block, err := sp.server.blockManager.chain.FetchBlockByHash(hash)
+	block, err := sp.server.blockManager.chain.BlockByHash(hash)
 	if err != nil {
 		peerLog.Tracef("Unable to fetch requested block hash %v: %v",
 			hash, err)
@@ -1911,8 +1926,10 @@ func (s *server) rebroadcastHandler() {
 out:
 	for {
 		select {
+
 		case riv := <-s.modifyRebroadcastInv:
 			switch msg := riv.(type) {
+
 			// Incoming InvVects are added to our map of RPC txs.
 			case broadcastInventoryAdd:
 				pendingInvs[*msg.invVect] = msg.data
@@ -1922,6 +1939,59 @@ out:
 			case broadcastInventoryDel:
 				if _, ok := pendingInvs[*msg]; ok {
 					delete(pendingInvs, *msg)
+				}
+
+			case broadcastPruneInventory:
+				best := s.blockManager.chain.BestSnapshot()
+				nextStakeDiff, err :=
+					s.blockManager.chain.CalcNextRequiredStakeDifficulty()
+				if err != nil {
+					srvrLog.Errorf("Failed to get next stake difficulty: %v",
+						err)
+					break
+				}
+
+				for iv, data := range pendingInvs {
+					tx, ok := data.(*pfcutil.Tx)
+					if !ok {
+						continue
+					}
+
+					txType := stake.DetermineTxType(tx.MsgTx())
+
+					// Remove the ticket rebroadcast if the amount not equal to
+					// the current stake difficulty.
+					if txType == stake.TxTypeSStx &&
+						tx.MsgTx().TxOut[0].Value != nextStakeDiff {
+						delete(pendingInvs, iv)
+						srvrLog.Debugf("Pending ticket purchase broadcast "+
+							"inventory for tx %v removed. Ticket value not "+
+							"equal to stake difficulty.", tx.Hash())
+						continue
+					}
+
+					// Remove the ticket rebroadcast if it has already expired.
+					if txType == stake.TxTypeSStx &&
+						blockchain.IsExpired(tx, best.Height) {
+						delete(pendingInvs, iv)
+						srvrLog.Debugf("Pending ticket purchase broadcast "+
+							"inventory for tx %v removed. Transaction "+
+							"expired.", tx.Hash())
+						continue
+					}
+
+					// Remove the revocation rebroadcast if the associated
+					// ticket has been revived.
+					if txType == stake.TxTypeSSRtx {
+						refSStxHash := tx.MsgTx().TxIn[0].PreviousOutPoint.Hash
+						if !s.blockManager.chain.CheckLiveTicket(refSStxHash) {
+							delete(pendingInvs, iv)
+							srvrLog.Debugf("Pending revocation broadcast "+
+								"inventory for tx %v removed. "+
+								"Associated ticket was revived.", tx.Hash())
+							continue
+						}
+					}
 				}
 			}
 

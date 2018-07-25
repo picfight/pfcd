@@ -16,7 +16,6 @@ import (
 
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/pfcec/secp256k1"
 	"github.com/picfight/pfcd/pfcutil"
@@ -200,7 +199,7 @@ type poolHarness struct {
 	//
 	// payAddr is the p2sh address for the signing key and is used for the
 	// payment address throughout the tests.
-	signKey     chainec.PrivateKey
+	signKey     *secp256k1.PrivateKey
 	payAddr     pfcutil.Address
 	payScript   []byte
 	chainParams *chaincfg.Params

@@ -3,7 +3,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson_test
+package pfcjson
 
 import (
 	"bytes"
@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestWalletSvrCmds tests all of the wallet server commands marshal and
@@ -33,14 +31,14 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "addmultisigaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("addmultisigaddress", 2, []string{"031234", "035678"})
+				return NewCmd("addmultisigaddress", 2, []string{"031234", "035678"})
 			},
 			staticCmd: func() interface{} {
 				keys := []string{"031234", "035678"}
-				return pfcjson.NewAddMultisigAddressCmd(2, keys, nil)
+				return NewAddMultisigAddressCmd(2, keys, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"addmultisigaddress","params":[2,["031234","035678"]],"id":1}`,
-			unmarshalled: &pfcjson.AddMultisigAddressCmd{
+			unmarshalled: &AddMultisigAddressCmd{
 				NRequired: 2,
 				Keys:      []string{"031234", "035678"},
 				Account:   nil,
@@ -49,30 +47,30 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "addmultisigaddress optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("addmultisigaddress", 2, []string{"031234", "035678"}, "test")
+				return NewCmd("addmultisigaddress", 2, []string{"031234", "035678"}, "test")
 			},
 			staticCmd: func() interface{} {
 				keys := []string{"031234", "035678"}
-				return pfcjson.NewAddMultisigAddressCmd(2, keys, pfcjson.String("test"))
+				return NewAddMultisigAddressCmd(2, keys, String("test"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"addmultisigaddress","params":[2,["031234","035678"],"test"],"id":1}`,
-			unmarshalled: &pfcjson.AddMultisigAddressCmd{
+			unmarshalled: &AddMultisigAddressCmd{
 				NRequired: 2,
 				Keys:      []string{"031234", "035678"},
-				Account:   pfcjson.String("test"),
+				Account:   String("test"),
 			},
 		},
 		{
 			name: "createmultisig",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("createmultisig", 2, []string{"031234", "035678"})
+				return NewCmd("createmultisig", 2, []string{"031234", "035678"})
 			},
 			staticCmd: func() interface{} {
 				keys := []string{"031234", "035678"}
-				return pfcjson.NewCreateMultisigCmd(2, keys)
+				return NewCreateMultisigCmd(2, keys)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"createmultisig","params":[2,["031234","035678"]],"id":1}`,
-			unmarshalled: &pfcjson.CreateMultisigCmd{
+			unmarshalled: &CreateMultisigCmd{
 				NRequired: 2,
 				Keys:      []string{"031234", "035678"},
 			},
@@ -80,146 +78,146 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "createnewaccount",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("createnewaccount", "acct")
+				return NewCmd("createnewaccount", "acct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewCreateNewAccountCmd("acct")
+				return NewCreateNewAccountCmd("acct")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"createnewaccount","params":["acct"],"id":1}`,
-			unmarshalled: &pfcjson.CreateNewAccountCmd{
+			unmarshalled: &CreateNewAccountCmd{
 				Account: "acct",
 			},
 		},
 		{
 			name: "dumpprivkey",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("dumpprivkey", "1Address")
+				return NewCmd("dumpprivkey", "1Address")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewDumpPrivKeyCmd("1Address")
+				return NewDumpPrivKeyCmd("1Address")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"dumpprivkey","params":["1Address"],"id":1}`,
-			unmarshalled: &pfcjson.DumpPrivKeyCmd{
+			unmarshalled: &DumpPrivKeyCmd{
 				Address: "1Address",
 			},
 		},
 		{
 			name: "estimatefee",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("estimatefee", 6)
+				return NewCmd("estimatefee", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewEstimateFeeCmd(6)
+				return NewEstimateFeeCmd(6)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"estimatefee","params":[6],"id":1}`,
-			unmarshalled: &pfcjson.EstimateFeeCmd{
+			unmarshalled: &EstimateFeeCmd{
 				NumBlocks: 6,
 			},
 		},
 		{
 			name: "estimatepriority",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("estimatepriority", 6)
+				return NewCmd("estimatepriority", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewEstimatePriorityCmd(6)
+				return NewEstimatePriorityCmd(6)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"estimatepriority","params":[6],"id":1}`,
-			unmarshalled: &pfcjson.EstimatePriorityCmd{
+			unmarshalled: &EstimatePriorityCmd{
 				NumBlocks: 6,
 			},
 		},
 		{
 			name: "getaccount",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getaccount", "1Address")
+				return NewCmd("getaccount", "1Address")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetAccountCmd("1Address")
+				return NewGetAccountCmd("1Address")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getaccount","params":["1Address"],"id":1}`,
-			unmarshalled: &pfcjson.GetAccountCmd{
+			unmarshalled: &GetAccountCmd{
 				Address: "1Address",
 			},
 		},
 		{
 			name: "getaccountaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getaccountaddress", "acct")
+				return NewCmd("getaccountaddress", "acct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetAccountAddressCmd("acct")
+				return NewGetAccountAddressCmd("acct")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getaccountaddress","params":["acct"],"id":1}`,
-			unmarshalled: &pfcjson.GetAccountAddressCmd{
+			unmarshalled: &GetAccountAddressCmd{
 				Account: "acct",
 			},
 		},
 		{
 			name: "getaddressesbyaccount",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getaddressesbyaccount", "acct")
+				return NewCmd("getaddressesbyaccount", "acct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetAddressesByAccountCmd("acct")
+				return NewGetAddressesByAccountCmd("acct")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getaddressesbyaccount","params":["acct"],"id":1}`,
-			unmarshalled: &pfcjson.GetAddressesByAccountCmd{
+			unmarshalled: &GetAddressesByAccountCmd{
 				Account: "acct",
 			},
 		},
 		{
 			name: "getbalance",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getbalance")
+				return NewCmd("getbalance")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetBalanceCmd(nil, nil)
+				return NewGetBalanceCmd(nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getbalance","params":[],"id":1}`,
-			unmarshalled: &pfcjson.GetBalanceCmd{
+			unmarshalled: &GetBalanceCmd{
 				Account: nil,
-				MinConf: pfcjson.Int(1),
+				MinConf: Int(1),
 			},
 		},
 		{
 			name: "getbalance optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getbalance", "acct")
+				return NewCmd("getbalance", "acct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetBalanceCmd(pfcjson.String("acct"), nil)
+				return NewGetBalanceCmd(String("acct"), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getbalance","params":["acct"],"id":1}`,
-			unmarshalled: &pfcjson.GetBalanceCmd{
-				Account: pfcjson.String("acct"),
-				MinConf: pfcjson.Int(1),
+			unmarshalled: &GetBalanceCmd{
+				Account: String("acct"),
+				MinConf: Int(1),
 			},
 		},
 		{
 			name: "getbalance optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getbalance", "acct", 6)
+				return NewCmd("getbalance", "acct", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetBalanceCmd(pfcjson.String("acct"), pfcjson.Int(6))
+				return NewGetBalanceCmd(String("acct"), Int(6))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getbalance","params":["acct",6],"id":1}`,
-			unmarshalled: &pfcjson.GetBalanceCmd{
-				Account: pfcjson.String("acct"),
-				MinConf: pfcjson.Int(6),
+			unmarshalled: &GetBalanceCmd{
+				Account: String("acct"),
+				MinConf: Int(6),
 			},
 		},
 		{
 			name: "getnewaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getnewaddress")
+				return NewCmd("getnewaddress")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetNewAddressCmd(nil, nil)
+				return NewGetNewAddressCmd(nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getnewaddress","params":[],"id":1}`,
-			unmarshalled: &pfcjson.GetNewAddressCmd{
+			unmarshalled: &GetNewAddressCmd{
 				Account:   nil,
 				GapPolicy: nil,
 			},
@@ -227,645 +225,645 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "getnewaddress optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getnewaddress", "acct", "ignore")
+				return NewCmd("getnewaddress", "acct", "ignore")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetNewAddressCmd(pfcjson.String("acct"), pfcjson.String("ignore"))
+				return NewGetNewAddressCmd(String("acct"), String("ignore"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getnewaddress","params":["acct","ignore"],"id":1}`,
-			unmarshalled: &pfcjson.GetNewAddressCmd{
-				Account:   pfcjson.String("acct"),
-				GapPolicy: pfcjson.String("ignore"),
+			unmarshalled: &GetNewAddressCmd{
+				Account:   String("acct"),
+				GapPolicy: String("ignore"),
 			},
 		},
 		{
 			name: "getrawchangeaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getrawchangeaddress")
+				return NewCmd("getrawchangeaddress")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetRawChangeAddressCmd(nil)
+				return NewGetRawChangeAddressCmd(nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getrawchangeaddress","params":[],"id":1}`,
-			unmarshalled: &pfcjson.GetRawChangeAddressCmd{
+			unmarshalled: &GetRawChangeAddressCmd{
 				Account: nil,
 			},
 		},
 		{
 			name: "getrawchangeaddress optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getrawchangeaddress", "acct")
+				return NewCmd("getrawchangeaddress", "acct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetRawChangeAddressCmd(pfcjson.String("acct"))
+				return NewGetRawChangeAddressCmd(String("acct"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getrawchangeaddress","params":["acct"],"id":1}`,
-			unmarshalled: &pfcjson.GetRawChangeAddressCmd{
-				Account: pfcjson.String("acct"),
+			unmarshalled: &GetRawChangeAddressCmd{
+				Account: String("acct"),
 			},
 		},
 		{
 			name: "getreceivedbyaccount",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getreceivedbyaccount", "acct")
+				return NewCmd("getreceivedbyaccount", "acct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetReceivedByAccountCmd("acct", nil)
+				return NewGetReceivedByAccountCmd("acct", nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getreceivedbyaccount","params":["acct"],"id":1}`,
-			unmarshalled: &pfcjson.GetReceivedByAccountCmd{
+			unmarshalled: &GetReceivedByAccountCmd{
 				Account: "acct",
-				MinConf: pfcjson.Int(1),
+				MinConf: Int(1),
 			},
 		},
 		{
 			name: "getreceivedbyaccount optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getreceivedbyaccount", "acct", 6)
+				return NewCmd("getreceivedbyaccount", "acct", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetReceivedByAccountCmd("acct", pfcjson.Int(6))
+				return NewGetReceivedByAccountCmd("acct", Int(6))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getreceivedbyaccount","params":["acct",6],"id":1}`,
-			unmarshalled: &pfcjson.GetReceivedByAccountCmd{
+			unmarshalled: &GetReceivedByAccountCmd{
 				Account: "acct",
-				MinConf: pfcjson.Int(6),
+				MinConf: Int(6),
 			},
 		},
 		{
 			name: "getreceivedbyaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getreceivedbyaddress", "1Address")
+				return NewCmd("getreceivedbyaddress", "1Address")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetReceivedByAddressCmd("1Address", nil)
+				return NewGetReceivedByAddressCmd("1Address", nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getreceivedbyaddress","params":["1Address"],"id":1}`,
-			unmarshalled: &pfcjson.GetReceivedByAddressCmd{
+			unmarshalled: &GetReceivedByAddressCmd{
 				Address: "1Address",
-				MinConf: pfcjson.Int(1),
+				MinConf: Int(1),
 			},
 		},
 		{
 			name: "getreceivedbyaddress optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("getreceivedbyaddress", "1Address", 6)
+				return NewCmd("getreceivedbyaddress", "1Address", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetReceivedByAddressCmd("1Address", pfcjson.Int(6))
+				return NewGetReceivedByAddressCmd("1Address", Int(6))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getreceivedbyaddress","params":["1Address",6],"id":1}`,
-			unmarshalled: &pfcjson.GetReceivedByAddressCmd{
+			unmarshalled: &GetReceivedByAddressCmd{
 				Address: "1Address",
-				MinConf: pfcjson.Int(6),
+				MinConf: Int(6),
 			},
 		},
 		{
 			name: "gettransaction",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("gettransaction", "123")
+				return NewCmd("gettransaction", "123")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetTransactionCmd("123", nil)
+				return NewGetTransactionCmd("123", nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"gettransaction","params":["123"],"id":1}`,
-			unmarshalled: &pfcjson.GetTransactionCmd{
+			unmarshalled: &GetTransactionCmd{
 				Txid:             "123",
-				IncludeWatchOnly: pfcjson.Bool(false),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "gettransaction optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("gettransaction", "123", true)
+				return NewCmd("gettransaction", "123", true)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewGetTransactionCmd("123", pfcjson.Bool(true))
+				return NewGetTransactionCmd("123", Bool(true))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"gettransaction","params":["123",true],"id":1}`,
-			unmarshalled: &pfcjson.GetTransactionCmd{
+			unmarshalled: &GetTransactionCmd{
 				Txid:             "123",
-				IncludeWatchOnly: pfcjson.Bool(true),
+				IncludeWatchOnly: Bool(true),
 			},
 		},
 		{
 			name: "importaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importaddress", "1Address")
+				return NewCmd("importaddress", "1Address")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportAddressCmd("1Address", nil)
+				return NewImportAddressCmd("1Address", nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importaddress","params":["1Address"],"id":1}`,
-			unmarshalled: &pfcjson.ImportAddressCmd{
+			unmarshalled: &ImportAddressCmd{
 				Address: "1Address",
-				Rescan:  pfcjson.Bool(true),
+				Rescan:  Bool(true),
 			},
 		},
 		{
 			name: "importaddress optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importaddress", "1Address", false)
+				return NewCmd("importaddress", "1Address", false)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportAddressCmd("1Address", pfcjson.Bool(false))
+				return NewImportAddressCmd("1Address", Bool(false))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importaddress","params":["1Address",false],"id":1}`,
-			unmarshalled: &pfcjson.ImportAddressCmd{
+			unmarshalled: &ImportAddressCmd{
 				Address: "1Address",
-				Rescan:  pfcjson.Bool(false),
+				Rescan:  Bool(false),
 			},
 		},
 		{
 			name: "importprivkey",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importprivkey", "abc")
+				return NewCmd("importprivkey", "abc")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportPrivKeyCmd("abc", nil, nil, nil)
+				return NewImportPrivKeyCmd("abc", nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importprivkey","params":["abc"],"id":1}`,
-			unmarshalled: &pfcjson.ImportPrivKeyCmd{
+			unmarshalled: &ImportPrivKeyCmd{
 				PrivKey: "abc",
 				Label:   nil,
-				Rescan:  pfcjson.Bool(true),
+				Rescan:  Bool(true),
 			},
 		},
 		{
 			name: "importprivkey optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importprivkey", "abc", "label")
+				return NewCmd("importprivkey", "abc", "label")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportPrivKeyCmd("abc", pfcjson.String("label"), nil, nil)
+				return NewImportPrivKeyCmd("abc", String("label"), nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importprivkey","params":["abc","label"],"id":1}`,
-			unmarshalled: &pfcjson.ImportPrivKeyCmd{
+			unmarshalled: &ImportPrivKeyCmd{
 				PrivKey: "abc",
-				Label:   pfcjson.String("label"),
-				Rescan:  pfcjson.Bool(true),
+				Label:   String("label"),
+				Rescan:  Bool(true),
 			},
 		},
 		{
 			name: "importprivkey optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importprivkey", "abc", "label", false)
+				return NewCmd("importprivkey", "abc", "label", false)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportPrivKeyCmd("abc", pfcjson.String("label"), pfcjson.Bool(false), nil)
+				return NewImportPrivKeyCmd("abc", String("label"), Bool(false), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importprivkey","params":["abc","label",false],"id":1}`,
-			unmarshalled: &pfcjson.ImportPrivKeyCmd{
+			unmarshalled: &ImportPrivKeyCmd{
 				PrivKey: "abc",
-				Label:   pfcjson.String("label"),
-				Rescan:  pfcjson.Bool(false),
+				Label:   String("label"),
+				Rescan:  Bool(false),
 			},
 		},
 		{
 			name: "importprivkey optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importprivkey", "abc", "label", false, 12345)
+				return NewCmd("importprivkey", "abc", "label", false, 12345)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportPrivKeyCmd("abc", pfcjson.String("label"), pfcjson.Bool(false), pfcjson.Int(12345))
+				return NewImportPrivKeyCmd("abc", String("label"), Bool(false), Int(12345))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importprivkey","params":["abc","label",false,12345],"id":1}`,
-			unmarshalled: &pfcjson.ImportPrivKeyCmd{
+			unmarshalled: &ImportPrivKeyCmd{
 				PrivKey:  "abc",
-				Label:    pfcjson.String("label"),
-				Rescan:   pfcjson.Bool(false),
-				ScanFrom: pfcjson.Int(12345),
+				Label:    String("label"),
+				Rescan:   Bool(false),
+				ScanFrom: Int(12345),
 			},
 		},
 		{
 			name: "importpubkey",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importpubkey", "031234")
+				return NewCmd("importpubkey", "031234")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportPubKeyCmd("031234", nil)
+				return NewImportPubKeyCmd("031234", nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importpubkey","params":["031234"],"id":1}`,
-			unmarshalled: &pfcjson.ImportPubKeyCmd{
+			unmarshalled: &ImportPubKeyCmd{
 				PubKey: "031234",
-				Rescan: pfcjson.Bool(true),
+				Rescan: Bool(true),
 			},
 		},
 		{
 			name: "importpubkey optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("importpubkey", "031234", false)
+				return NewCmd("importpubkey", "031234", false)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewImportPubKeyCmd("031234", pfcjson.Bool(false))
+				return NewImportPubKeyCmd("031234", Bool(false))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"importpubkey","params":["031234",false],"id":1}`,
-			unmarshalled: &pfcjson.ImportPubKeyCmd{
+			unmarshalled: &ImportPubKeyCmd{
 				PubKey: "031234",
-				Rescan: pfcjson.Bool(false),
+				Rescan: Bool(false),
 			},
 		},
 		{
 			name: "keypoolrefill",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("keypoolrefill")
+				return NewCmd("keypoolrefill")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewKeyPoolRefillCmd(nil)
+				return NewKeyPoolRefillCmd(nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"keypoolrefill","params":[],"id":1}`,
-			unmarshalled: &pfcjson.KeyPoolRefillCmd{
-				NewSize: pfcjson.Uint(100),
+			unmarshalled: &KeyPoolRefillCmd{
+				NewSize: Uint(100),
 			},
 		},
 		{
 			name: "keypoolrefill optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("keypoolrefill", 200)
+				return NewCmd("keypoolrefill", 200)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewKeyPoolRefillCmd(pfcjson.Uint(200))
+				return NewKeyPoolRefillCmd(Uint(200))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"keypoolrefill","params":[200],"id":1}`,
-			unmarshalled: &pfcjson.KeyPoolRefillCmd{
-				NewSize: pfcjson.Uint(200),
+			unmarshalled: &KeyPoolRefillCmd{
+				NewSize: Uint(200),
 			},
 		},
 		{
 			name: "listaccounts",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listaccounts")
+				return NewCmd("listaccounts")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListAccountsCmd(nil)
+				return NewListAccountsCmd(nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listaccounts","params":[],"id":1}`,
-			unmarshalled: &pfcjson.ListAccountsCmd{
-				MinConf: pfcjson.Int(1),
+			unmarshalled: &ListAccountsCmd{
+				MinConf: Int(1),
 			},
 		},
 		{
 			name: "listaccounts optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listaccounts", 6)
+				return NewCmd("listaccounts", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListAccountsCmd(pfcjson.Int(6))
+				return NewListAccountsCmd(Int(6))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listaccounts","params":[6],"id":1}`,
-			unmarshalled: &pfcjson.ListAccountsCmd{
-				MinConf: pfcjson.Int(6),
+			unmarshalled: &ListAccountsCmd{
+				MinConf: Int(6),
 			},
 		},
 		{
 			name: "listlockunspent",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listlockunspent")
+				return NewCmd("listlockunspent")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListLockUnspentCmd()
+				return NewListLockUnspentCmd()
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"listlockunspent","params":[],"id":1}`,
-			unmarshalled: &pfcjson.ListLockUnspentCmd{},
+			unmarshalled: &ListLockUnspentCmd{},
 		},
 		{
 			name: "listreceivedbyaccount",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaccount")
+				return NewCmd("listreceivedbyaccount")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAccountCmd(nil, nil, nil)
+				return NewListReceivedByAccountCmd(nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaccount","params":[],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAccountCmd{
-				MinConf:          pfcjson.Int(1),
-				IncludeEmpty:     pfcjson.Bool(false),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAccountCmd{
+				MinConf:          Int(1),
+				IncludeEmpty:     Bool(false),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listreceivedbyaccount optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaccount", 6)
+				return NewCmd("listreceivedbyaccount", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAccountCmd(pfcjson.Int(6), nil, nil)
+				return NewListReceivedByAccountCmd(Int(6), nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaccount","params":[6],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAccountCmd{
-				MinConf:          pfcjson.Int(6),
-				IncludeEmpty:     pfcjson.Bool(false),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAccountCmd{
+				MinConf:          Int(6),
+				IncludeEmpty:     Bool(false),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listreceivedbyaccount optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaccount", 6, true)
+				return NewCmd("listreceivedbyaccount", 6, true)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAccountCmd(pfcjson.Int(6), pfcjson.Bool(true), nil)
+				return NewListReceivedByAccountCmd(Int(6), Bool(true), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaccount","params":[6,true],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAccountCmd{
-				MinConf:          pfcjson.Int(6),
-				IncludeEmpty:     pfcjson.Bool(true),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAccountCmd{
+				MinConf:          Int(6),
+				IncludeEmpty:     Bool(true),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listreceivedbyaccount optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaccount", 6, true, false)
+				return NewCmd("listreceivedbyaccount", 6, true, false)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAccountCmd(pfcjson.Int(6), pfcjson.Bool(true), pfcjson.Bool(false))
+				return NewListReceivedByAccountCmd(Int(6), Bool(true), Bool(false))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaccount","params":[6,true,false],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAccountCmd{
-				MinConf:          pfcjson.Int(6),
-				IncludeEmpty:     pfcjson.Bool(true),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAccountCmd{
+				MinConf:          Int(6),
+				IncludeEmpty:     Bool(true),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listreceivedbyaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaddress")
+				return NewCmd("listreceivedbyaddress")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAddressCmd(nil, nil, nil)
+				return NewListReceivedByAddressCmd(nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaddress","params":[],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAddressCmd{
-				MinConf:          pfcjson.Int(1),
-				IncludeEmpty:     pfcjson.Bool(false),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAddressCmd{
+				MinConf:          Int(1),
+				IncludeEmpty:     Bool(false),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listreceivedbyaddress optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaddress", 6)
+				return NewCmd("listreceivedbyaddress", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAddressCmd(pfcjson.Int(6), nil, nil)
+				return NewListReceivedByAddressCmd(Int(6), nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaddress","params":[6],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAddressCmd{
-				MinConf:          pfcjson.Int(6),
-				IncludeEmpty:     pfcjson.Bool(false),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAddressCmd{
+				MinConf:          Int(6),
+				IncludeEmpty:     Bool(false),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listreceivedbyaddress optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaddress", 6, true)
+				return NewCmd("listreceivedbyaddress", 6, true)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAddressCmd(pfcjson.Int(6), pfcjson.Bool(true), nil)
+				return NewListReceivedByAddressCmd(Int(6), Bool(true), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaddress","params":[6,true],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAddressCmd{
-				MinConf:          pfcjson.Int(6),
-				IncludeEmpty:     pfcjson.Bool(true),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAddressCmd{
+				MinConf:          Int(6),
+				IncludeEmpty:     Bool(true),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listreceivedbyaddress optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listreceivedbyaddress", 6, true, false)
+				return NewCmd("listreceivedbyaddress", 6, true, false)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListReceivedByAddressCmd(pfcjson.Int(6), pfcjson.Bool(true), pfcjson.Bool(false))
+				return NewListReceivedByAddressCmd(Int(6), Bool(true), Bool(false))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listreceivedbyaddress","params":[6,true,false],"id":1}`,
-			unmarshalled: &pfcjson.ListReceivedByAddressCmd{
-				MinConf:          pfcjson.Int(6),
-				IncludeEmpty:     pfcjson.Bool(true),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListReceivedByAddressCmd{
+				MinConf:          Int(6),
+				IncludeEmpty:     Bool(true),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listsinceblock",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listsinceblock")
+				return NewCmd("listsinceblock")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListSinceBlockCmd(nil, nil, nil)
+				return NewListSinceBlockCmd(nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listsinceblock","params":[],"id":1}`,
-			unmarshalled: &pfcjson.ListSinceBlockCmd{
+			unmarshalled: &ListSinceBlockCmd{
 				BlockHash:           nil,
-				TargetConfirmations: pfcjson.Int(1),
-				IncludeWatchOnly:    pfcjson.Bool(false),
+				TargetConfirmations: Int(1),
+				IncludeWatchOnly:    Bool(false),
 			},
 		},
 		{
 			name: "listsinceblock optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listsinceblock", "123")
+				return NewCmd("listsinceblock", "123")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListSinceBlockCmd(pfcjson.String("123"), nil, nil)
+				return NewListSinceBlockCmd(String("123"), nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listsinceblock","params":["123"],"id":1}`,
-			unmarshalled: &pfcjson.ListSinceBlockCmd{
-				BlockHash:           pfcjson.String("123"),
-				TargetConfirmations: pfcjson.Int(1),
-				IncludeWatchOnly:    pfcjson.Bool(false),
+			unmarshalled: &ListSinceBlockCmd{
+				BlockHash:           String("123"),
+				TargetConfirmations: Int(1),
+				IncludeWatchOnly:    Bool(false),
 			},
 		},
 		{
 			name: "listsinceblock optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listsinceblock", "123", 6)
+				return NewCmd("listsinceblock", "123", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListSinceBlockCmd(pfcjson.String("123"), pfcjson.Int(6), nil)
+				return NewListSinceBlockCmd(String("123"), Int(6), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listsinceblock","params":["123",6],"id":1}`,
-			unmarshalled: &pfcjson.ListSinceBlockCmd{
-				BlockHash:           pfcjson.String("123"),
-				TargetConfirmations: pfcjson.Int(6),
-				IncludeWatchOnly:    pfcjson.Bool(false),
+			unmarshalled: &ListSinceBlockCmd{
+				BlockHash:           String("123"),
+				TargetConfirmations: Int(6),
+				IncludeWatchOnly:    Bool(false),
 			},
 		},
 		{
 			name: "listsinceblock optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listsinceblock", "123", 6, true)
+				return NewCmd("listsinceblock", "123", 6, true)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListSinceBlockCmd(pfcjson.String("123"), pfcjson.Int(6), pfcjson.Bool(true))
+				return NewListSinceBlockCmd(String("123"), Int(6), Bool(true))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listsinceblock","params":["123",6,true],"id":1}`,
-			unmarshalled: &pfcjson.ListSinceBlockCmd{
-				BlockHash:           pfcjson.String("123"),
-				TargetConfirmations: pfcjson.Int(6),
-				IncludeWatchOnly:    pfcjson.Bool(true),
+			unmarshalled: &ListSinceBlockCmd{
+				BlockHash:           String("123"),
+				TargetConfirmations: Int(6),
+				IncludeWatchOnly:    Bool(true),
 			},
 		},
 		{
 			name: "listtransactions",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listtransactions")
+				return NewCmd("listtransactions")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListTransactionsCmd(nil, nil, nil, nil)
+				return NewListTransactionsCmd(nil, nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listtransactions","params":[],"id":1}`,
-			unmarshalled: &pfcjson.ListTransactionsCmd{
+			unmarshalled: &ListTransactionsCmd{
 				Account:          nil,
-				Count:            pfcjson.Int(10),
-				From:             pfcjson.Int(0),
-				IncludeWatchOnly: pfcjson.Bool(false),
+				Count:            Int(10),
+				From:             Int(0),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listtransactions optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listtransactions", "acct")
+				return NewCmd("listtransactions", "acct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListTransactionsCmd(pfcjson.String("acct"), nil, nil, nil)
+				return NewListTransactionsCmd(String("acct"), nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listtransactions","params":["acct"],"id":1}`,
-			unmarshalled: &pfcjson.ListTransactionsCmd{
-				Account:          pfcjson.String("acct"),
-				Count:            pfcjson.Int(10),
-				From:             pfcjson.Int(0),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListTransactionsCmd{
+				Account:          String("acct"),
+				Count:            Int(10),
+				From:             Int(0),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listtransactions optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listtransactions", "acct", 20)
+				return NewCmd("listtransactions", "acct", 20)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListTransactionsCmd(pfcjson.String("acct"), pfcjson.Int(20), nil, nil)
+				return NewListTransactionsCmd(String("acct"), Int(20), nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listtransactions","params":["acct",20],"id":1}`,
-			unmarshalled: &pfcjson.ListTransactionsCmd{
-				Account:          pfcjson.String("acct"),
-				Count:            pfcjson.Int(20),
-				From:             pfcjson.Int(0),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListTransactionsCmd{
+				Account:          String("acct"),
+				Count:            Int(20),
+				From:             Int(0),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listtransactions optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listtransactions", "acct", 20, 1)
+				return NewCmd("listtransactions", "acct", 20, 1)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListTransactionsCmd(pfcjson.String("acct"), pfcjson.Int(20),
-					pfcjson.Int(1), nil)
+				return NewListTransactionsCmd(String("acct"), Int(20),
+					Int(1), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listtransactions","params":["acct",20,1],"id":1}`,
-			unmarshalled: &pfcjson.ListTransactionsCmd{
-				Account:          pfcjson.String("acct"),
-				Count:            pfcjson.Int(20),
-				From:             pfcjson.Int(1),
-				IncludeWatchOnly: pfcjson.Bool(false),
+			unmarshalled: &ListTransactionsCmd{
+				Account:          String("acct"),
+				Count:            Int(20),
+				From:             Int(1),
+				IncludeWatchOnly: Bool(false),
 			},
 		},
 		{
 			name: "listtransactions optional4",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listtransactions", "acct", 20, 1, true)
+				return NewCmd("listtransactions", "acct", 20, 1, true)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListTransactionsCmd(pfcjson.String("acct"), pfcjson.Int(20),
-					pfcjson.Int(1), pfcjson.Bool(true))
+				return NewListTransactionsCmd(String("acct"), Int(20),
+					Int(1), Bool(true))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listtransactions","params":["acct",20,1,true],"id":1}`,
-			unmarshalled: &pfcjson.ListTransactionsCmd{
-				Account:          pfcjson.String("acct"),
-				Count:            pfcjson.Int(20),
-				From:             pfcjson.Int(1),
-				IncludeWatchOnly: pfcjson.Bool(true),
+			unmarshalled: &ListTransactionsCmd{
+				Account:          String("acct"),
+				Count:            Int(20),
+				From:             Int(1),
+				IncludeWatchOnly: Bool(true),
 			},
 		},
 		{
 			name: "listunspent",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listunspent")
+				return NewCmd("listunspent")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListUnspentCmd(nil, nil, nil)
+				return NewListUnspentCmd(nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listunspent","params":[],"id":1}`,
-			unmarshalled: &pfcjson.ListUnspentCmd{
-				MinConf:   pfcjson.Int(1),
-				MaxConf:   pfcjson.Int(9999999),
+			unmarshalled: &ListUnspentCmd{
+				MinConf:   Int(1),
+				MaxConf:   Int(9999999),
 				Addresses: nil,
 			},
 		},
 		{
 			name: "listunspent optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listunspent", 6)
+				return NewCmd("listunspent", 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListUnspentCmd(pfcjson.Int(6), nil, nil)
+				return NewListUnspentCmd(Int(6), nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listunspent","params":[6],"id":1}`,
-			unmarshalled: &pfcjson.ListUnspentCmd{
-				MinConf:   pfcjson.Int(6),
-				MaxConf:   pfcjson.Int(9999999),
+			unmarshalled: &ListUnspentCmd{
+				MinConf:   Int(6),
+				MaxConf:   Int(9999999),
 				Addresses: nil,
 			},
 		},
 		{
 			name: "listunspent optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listunspent", 6, 100)
+				return NewCmd("listunspent", 6, 100)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListUnspentCmd(pfcjson.Int(6), pfcjson.Int(100), nil)
+				return NewListUnspentCmd(Int(6), Int(100), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listunspent","params":[6,100],"id":1}`,
-			unmarshalled: &pfcjson.ListUnspentCmd{
-				MinConf:   pfcjson.Int(6),
-				MaxConf:   pfcjson.Int(100),
+			unmarshalled: &ListUnspentCmd{
+				MinConf:   Int(6),
+				MaxConf:   Int(100),
 				Addresses: nil,
 			},
 		},
 		{
 			name: "listunspent optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("listunspent", 6, 100, []string{"1Address", "1Address2"})
+				return NewCmd("listunspent", 6, 100, []string{"1Address", "1Address2"})
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewListUnspentCmd(pfcjson.Int(6), pfcjson.Int(100),
+				return NewListUnspentCmd(Int(6), Int(100),
 					&[]string{"1Address", "1Address2"})
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listunspent","params":[6,100,["1Address","1Address2"]],"id":1}`,
-			unmarshalled: &pfcjson.ListUnspentCmd{
-				MinConf:   pfcjson.Int(6),
-				MaxConf:   pfcjson.Int(100),
+			unmarshalled: &ListUnspentCmd{
+				MinConf:   Int(6),
+				MaxConf:   Int(100),
 				Addresses: &[]string{"1Address", "1Address2"},
 			},
 		},
 		{
 			name: "lockunspent",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("lockunspent", true, `[{"txid":"123","vout":1}]`)
+				return NewCmd("lockunspent", true, `[{"txid":"123","vout":1}]`)
 			},
 			staticCmd: func() interface{} {
-				txInputs := []pfcjson.TransactionInput{
+				txInputs := []TransactionInput{
 					{Txid: "123", Vout: 1},
 				}
-				return pfcjson.NewLockUnspentCmd(true, txInputs)
+				return NewLockUnspentCmd(true, txInputs)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"lockunspent","params":[true,[{"txid":"123","vout":1,"tree":0}]],"id":1}`,
-			unmarshalled: &pfcjson.LockUnspentCmd{
+			unmarshalled: &LockUnspentCmd{
 				Unlock: true,
-				Transactions: []pfcjson.TransactionInput{
+				Transactions: []TransactionInput{
 					{Txid: "123", Vout: 1},
 				},
 			},
@@ -873,13 +871,13 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "renameaccount",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("renameaccount", "oldacct", "newacct")
+				return NewCmd("renameaccount", "oldacct", "newacct")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewRenameAccountCmd("oldacct", "newacct")
+				return NewRenameAccountCmd("oldacct", "newacct")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"renameaccount","params":["oldacct","newacct"],"id":1}`,
-			unmarshalled: &pfcjson.RenameAccountCmd{
+			unmarshalled: &RenameAccountCmd{
 				OldAccount: "oldacct",
 				NewAccount: "newacct",
 			},
@@ -887,17 +885,17 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "sendfrom",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendfrom", "from", "1Address", 0.5)
+				return NewCmd("sendfrom", "from", "1Address", 0.5)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSendFromCmd("from", "1Address", 0.5, nil, nil, nil)
+				return NewSendFromCmd("from", "1Address", 0.5, nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendfrom","params":["from","1Address",0.5],"id":1}`,
-			unmarshalled: &pfcjson.SendFromCmd{
+			unmarshalled: &SendFromCmd{
 				FromAccount: "from",
 				ToAddress:   "1Address",
 				Amount:      0.5,
-				MinConf:     pfcjson.Int(1),
+				MinConf:     Int(1),
 				Comment:     nil,
 				CommentTo:   nil,
 			},
@@ -905,17 +903,17 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "sendfrom optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendfrom", "from", "1Address", 0.5, 6)
+				return NewCmd("sendfrom", "from", "1Address", 0.5, 6)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSendFromCmd("from", "1Address", 0.5, pfcjson.Int(6), nil, nil)
+				return NewSendFromCmd("from", "1Address", 0.5, Int(6), nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendfrom","params":["from","1Address",0.5,6],"id":1}`,
-			unmarshalled: &pfcjson.SendFromCmd{
+			unmarshalled: &SendFromCmd{
 				FromAccount: "from",
 				ToAddress:   "1Address",
 				Amount:      0.5,
-				MinConf:     pfcjson.Int(6),
+				MinConf:     Int(6),
 				Comment:     nil,
 				CommentTo:   nil,
 			},
@@ -923,102 +921,102 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "sendfrom optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendfrom", "from", "1Address", 0.5, 6, "comment")
+				return NewCmd("sendfrom", "from", "1Address", 0.5, 6, "comment")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSendFromCmd("from", "1Address", 0.5, pfcjson.Int(6),
-					pfcjson.String("comment"), nil)
+				return NewSendFromCmd("from", "1Address", 0.5, Int(6),
+					String("comment"), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendfrom","params":["from","1Address",0.5,6,"comment"],"id":1}`,
-			unmarshalled: &pfcjson.SendFromCmd{
+			unmarshalled: &SendFromCmd{
 				FromAccount: "from",
 				ToAddress:   "1Address",
 				Amount:      0.5,
-				MinConf:     pfcjson.Int(6),
-				Comment:     pfcjson.String("comment"),
+				MinConf:     Int(6),
+				Comment:     String("comment"),
 				CommentTo:   nil,
 			},
 		},
 		{
 			name: "sendfrom optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendfrom", "from", "1Address", 0.5, 6, "comment", "commentto")
+				return NewCmd("sendfrom", "from", "1Address", 0.5, 6, "comment", "commentto")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSendFromCmd("from", "1Address", 0.5, pfcjson.Int(6),
-					pfcjson.String("comment"), pfcjson.String("commentto"))
+				return NewSendFromCmd("from", "1Address", 0.5, Int(6),
+					String("comment"), String("commentto"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendfrom","params":["from","1Address",0.5,6,"comment","commentto"],"id":1}`,
-			unmarshalled: &pfcjson.SendFromCmd{
+			unmarshalled: &SendFromCmd{
 				FromAccount: "from",
 				ToAddress:   "1Address",
 				Amount:      0.5,
-				MinConf:     pfcjson.Int(6),
-				Comment:     pfcjson.String("comment"),
-				CommentTo:   pfcjson.String("commentto"),
+				MinConf:     Int(6),
+				Comment:     String("comment"),
+				CommentTo:   String("commentto"),
 			},
 		},
 		{
 			name: "sendmany",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendmany", "from", `{"1Address":0.5}`)
+				return NewCmd("sendmany", "from", `{"1Address":0.5}`)
 			},
 			staticCmd: func() interface{} {
 				amounts := map[string]float64{"1Address": 0.5}
-				return pfcjson.NewSendManyCmd("from", amounts, nil, nil)
+				return NewSendManyCmd("from", amounts, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendmany","params":["from",{"1Address":0.5}],"id":1}`,
-			unmarshalled: &pfcjson.SendManyCmd{
+			unmarshalled: &SendManyCmd{
 				FromAccount: "from",
 				Amounts:     map[string]float64{"1Address": 0.5},
-				MinConf:     pfcjson.Int(1),
+				MinConf:     Int(1),
 				Comment:     nil,
 			},
 		},
 		{
 			name: "sendmany optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendmany", "from", `{"1Address":0.5}`, 6)
+				return NewCmd("sendmany", "from", `{"1Address":0.5}`, 6)
 			},
 			staticCmd: func() interface{} {
 				amounts := map[string]float64{"1Address": 0.5}
-				return pfcjson.NewSendManyCmd("from", amounts, pfcjson.Int(6), nil)
+				return NewSendManyCmd("from", amounts, Int(6), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendmany","params":["from",{"1Address":0.5},6],"id":1}`,
-			unmarshalled: &pfcjson.SendManyCmd{
+			unmarshalled: &SendManyCmd{
 				FromAccount: "from",
 				Amounts:     map[string]float64{"1Address": 0.5},
-				MinConf:     pfcjson.Int(6),
+				MinConf:     Int(6),
 				Comment:     nil,
 			},
 		},
 		{
 			name: "sendmany optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendmany", "from", `{"1Address":0.5}`, 6, "comment")
+				return NewCmd("sendmany", "from", `{"1Address":0.5}`, 6, "comment")
 			},
 			staticCmd: func() interface{} {
 				amounts := map[string]float64{"1Address": 0.5}
-				return pfcjson.NewSendManyCmd("from", amounts, pfcjson.Int(6), pfcjson.String("comment"))
+				return NewSendManyCmd("from", amounts, Int(6), String("comment"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendmany","params":["from",{"1Address":0.5},6,"comment"],"id":1}`,
-			unmarshalled: &pfcjson.SendManyCmd{
+			unmarshalled: &SendManyCmd{
 				FromAccount: "from",
 				Amounts:     map[string]float64{"1Address": 0.5},
-				MinConf:     pfcjson.Int(6),
-				Comment:     pfcjson.String("comment"),
+				MinConf:     Int(6),
+				Comment:     String("comment"),
 			},
 		},
 		{
 			name: "sendtoaddress",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendtoaddress", "1Address", 0.5)
+				return NewCmd("sendtoaddress", "1Address", 0.5)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSendToAddressCmd("1Address", 0.5, nil, nil)
+				return NewSendToAddressCmd("1Address", 0.5, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendtoaddress","params":["1Address",0.5],"id":1}`,
-			unmarshalled: &pfcjson.SendToAddressCmd{
+			unmarshalled: &SendToAddressCmd{
 				Address:   "1Address",
 				Amount:    0.5,
 				Comment:   nil,
@@ -1028,43 +1026,43 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "sendtoaddress optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sendtoaddress", "1Address", 0.5, "comment", "commentto")
+				return NewCmd("sendtoaddress", "1Address", 0.5, "comment", "commentto")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSendToAddressCmd("1Address", 0.5, pfcjson.String("comment"),
-					pfcjson.String("commentto"))
+				return NewSendToAddressCmd("1Address", 0.5, String("comment"),
+					String("commentto"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sendtoaddress","params":["1Address",0.5,"comment","commentto"],"id":1}`,
-			unmarshalled: &pfcjson.SendToAddressCmd{
+			unmarshalled: &SendToAddressCmd{
 				Address:   "1Address",
 				Amount:    0.5,
-				Comment:   pfcjson.String("comment"),
-				CommentTo: pfcjson.String("commentto"),
+				Comment:   String("comment"),
+				CommentTo: String("commentto"),
 			},
 		},
 		{
 			name: "settxfee",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("settxfee", 0.0001)
+				return NewCmd("settxfee", 0.0001)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSetTxFeeCmd(0.0001)
+				return NewSetTxFeeCmd(0.0001)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"settxfee","params":[0.0001],"id":1}`,
-			unmarshalled: &pfcjson.SetTxFeeCmd{
+			unmarshalled: &SetTxFeeCmd{
 				Amount: 0.0001,
 			},
 		},
 		{
 			name: "signmessage",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("signmessage", "1Address", "message")
+				return NewCmd("signmessage", "1Address", "message")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSignMessageCmd("1Address", "message")
+				return NewSignMessageCmd("1Address", "message")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"signmessage","params":["1Address","message"],"id":1}`,
-			unmarshalled: &pfcjson.SignMessageCmd{
+			unmarshalled: &SignMessageCmd{
 				Address: "1Address",
 				Message: "message",
 			},
@@ -1072,26 +1070,26 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "signrawtransaction",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("signrawtransaction", "001122")
+				return NewCmd("signrawtransaction", "001122")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSignRawTransactionCmd("001122", nil, nil, nil)
+				return NewSignRawTransactionCmd("001122", nil, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"signrawtransaction","params":["001122"],"id":1}`,
-			unmarshalled: &pfcjson.SignRawTransactionCmd{
+			unmarshalled: &SignRawTransactionCmd{
 				RawTx:    "001122",
 				Inputs:   nil,
 				PrivKeys: nil,
-				Flags:    pfcjson.String("ALL"),
+				Flags:    String("ALL"),
 			},
 		},
 		{
 			name: "signrawtransaction optional1",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("signrawtransaction", "001122", `[{"txid":"123","vout":1,"tree":0,"scriptPubKey":"00","redeemScript":"01"}]`)
+				return NewCmd("signrawtransaction", "001122", `[{"txid":"123","vout":1,"tree":0,"scriptPubKey":"00","redeemScript":"01"}]`)
 			},
 			staticCmd: func() interface{} {
-				txInputs := []pfcjson.RawTxInput{
+				txInputs := []RawTxInput{
 					{
 						Txid:         "123",
 						Vout:         1,
@@ -1100,12 +1098,12 @@ func TestWalletSvrCmds(t *testing.T) {
 					},
 				}
 
-				return pfcjson.NewSignRawTransactionCmd("001122", &txInputs, nil, nil)
+				return NewSignRawTransactionCmd("001122", &txInputs, nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"signrawtransaction","params":["001122",[{"txid":"123","vout":1,"tree":0,"scriptPubKey":"00","redeemScript":"01"}]],"id":1}`,
-			unmarshalled: &pfcjson.SignRawTransactionCmd{
+			unmarshalled: &SignRawTransactionCmd{
 				RawTx: "001122",
-				Inputs: &[]pfcjson.RawTxInput{
+				Inputs: &[]RawTxInput{
 					{
 						Txid:         "123",
 						Vout:         1,
@@ -1114,58 +1112,58 @@ func TestWalletSvrCmds(t *testing.T) {
 					},
 				},
 				PrivKeys: nil,
-				Flags:    pfcjson.String("ALL"),
+				Flags:    String("ALL"),
 			},
 		},
 		{
 			name: "signrawtransaction optional2",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("signrawtransaction", "001122", `[]`, `["abc"]`)
+				return NewCmd("signrawtransaction", "001122", `[]`, `["abc"]`)
 			},
 			staticCmd: func() interface{} {
-				txInputs := []pfcjson.RawTxInput{}
+				txInputs := []RawTxInput{}
 				privKeys := []string{"abc"}
-				return pfcjson.NewSignRawTransactionCmd("001122", &txInputs, &privKeys, nil)
+				return NewSignRawTransactionCmd("001122", &txInputs, &privKeys, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"signrawtransaction","params":["001122",[],["abc"]],"id":1}`,
-			unmarshalled: &pfcjson.SignRawTransactionCmd{
+			unmarshalled: &SignRawTransactionCmd{
 				RawTx:    "001122",
-				Inputs:   &[]pfcjson.RawTxInput{},
+				Inputs:   &[]RawTxInput{},
 				PrivKeys: &[]string{"abc"},
-				Flags:    pfcjson.String("ALL"),
+				Flags:    String("ALL"),
 			},
 		},
 		{
 			name: "signrawtransaction optional3",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("signrawtransaction", "001122", `[]`, `[]`, "ALL")
+				return NewCmd("signrawtransaction", "001122", `[]`, `[]`, "ALL")
 			},
 			staticCmd: func() interface{} {
-				txInputs := []pfcjson.RawTxInput{}
+				txInputs := []RawTxInput{}
 				privKeys := []string{}
-				return pfcjson.NewSignRawTransactionCmd("001122", &txInputs, &privKeys,
-					pfcjson.String("ALL"))
+				return NewSignRawTransactionCmd("001122", &txInputs, &privKeys,
+					String("ALL"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"signrawtransaction","params":["001122",[],[],"ALL"],"id":1}`,
-			unmarshalled: &pfcjson.SignRawTransactionCmd{
+			unmarshalled: &SignRawTransactionCmd{
 				RawTx:    "001122",
-				Inputs:   &[]pfcjson.RawTxInput{},
+				Inputs:   &[]RawTxInput{},
 				PrivKeys: &[]string{},
-				Flags:    pfcjson.String("ALL"),
+				Flags:    String("ALL"),
 			},
 		},
 		{
 			name: "sweepaccount - optionals provided",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sweepaccount", "default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu", 6, 0.05)
+				return NewCmd("sweepaccount", "default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu", 6, 0.05)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSweepAccountCmd("default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu",
+				return NewSweepAccountCmd("default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu",
 					func(i uint32) *uint32 { return &i }(6),
 					func(i float64) *float64 { return &i }(0.05))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sweepaccount","params":["default","DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu",6,0.05],"id":1}`,
-			unmarshalled: &pfcjson.SweepAccountCmd{
+			unmarshalled: &SweepAccountCmd{
 				SourceAccount:         "default",
 				DestinationAddress:    "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu",
 				RequiredConfirmations: func(i uint32) *uint32 { return &i }(6),
@@ -1175,13 +1173,13 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "sweepaccount - optionals omitted",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("sweepaccount", "default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu")
+				return NewCmd("sweepaccount", "default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewSweepAccountCmd("default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu", nil, nil)
+				return NewSweepAccountCmd("default", "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu", nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"sweepaccount","params":["default","DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu"],"id":1}`,
-			unmarshalled: &pfcjson.SweepAccountCmd{
+			unmarshalled: &SweepAccountCmd{
 				SourceAccount:      "default",
 				DestinationAddress: "DsUZxxoHJSty8DCfwfartwTYbuhmVct7tJu",
 			},
@@ -1189,13 +1187,13 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "verifyseed",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("verifyseed", "abc")
+				return NewCmd("verifyseed", "abc")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewVerifySeedCmd("abc", nil)
+				return NewVerifySeedCmd("abc", nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"verifyseed","params":["abc"],"id":1}`,
-			unmarshalled: &pfcjson.VerifySeedCmd{
+			unmarshalled: &VerifySeedCmd{
 				Seed:    "abc",
 				Account: nil,
 			},
@@ -1203,39 +1201,39 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "verifyseed optional",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("verifyseed", "abc", 5)
+				return NewCmd("verifyseed", "abc", 5)
 			},
 			staticCmd: func() interface{} {
-				account := pfcjson.Uint32(5)
-				return pfcjson.NewVerifySeedCmd("abc", account)
+				account := Uint32(5)
+				return NewVerifySeedCmd("abc", account)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"verifyseed","params":["abc",5],"id":1}`,
-			unmarshalled: &pfcjson.VerifySeedCmd{
+			unmarshalled: &VerifySeedCmd{
 				Seed:    "abc",
-				Account: pfcjson.Uint32(5),
+				Account: Uint32(5),
 			},
 		},
 		{
 			name: "walletlock",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("walletlock")
+				return NewCmd("walletlock")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewWalletLockCmd()
+				return NewWalletLockCmd()
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"walletlock","params":[],"id":1}`,
-			unmarshalled: &pfcjson.WalletLockCmd{},
+			unmarshalled: &WalletLockCmd{},
 		},
 		{
 			name: "walletpassphrase",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("walletpassphrase", "pass", 60)
+				return NewCmd("walletpassphrase", "pass", 60)
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewWalletPassphraseCmd("pass", 60)
+				return NewWalletPassphraseCmd("pass", 60)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"walletpassphrase","params":["pass",60],"id":1}`,
-			unmarshalled: &pfcjson.WalletPassphraseCmd{
+			unmarshalled: &WalletPassphraseCmd{
 				Passphrase: "pass",
 				Timeout:    60,
 			},
@@ -1243,13 +1241,13 @@ func TestWalletSvrCmds(t *testing.T) {
 		{
 			name: "walletpassphrasechange",
 			newCmd: func() (interface{}, error) {
-				return pfcjson.NewCmd("walletpassphrasechange", "old", "new")
+				return NewCmd("walletpassphrasechange", "old", "new")
 			},
 			staticCmd: func() interface{} {
-				return pfcjson.NewWalletPassphraseChangeCmd("old", "new")
+				return NewWalletPassphraseChangeCmd("old", "new")
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"walletpassphrasechange","params":["old","new"],"id":1}`,
-			unmarshalled: &pfcjson.WalletPassphraseChangeCmd{
+			unmarshalled: &WalletPassphraseChangeCmd{
 				OldPassphrase: "old",
 				NewPassphrase: "new",
 			},
@@ -1260,7 +1258,7 @@ func TestWalletSvrCmds(t *testing.T) {
 	for i, test := range tests {
 		// Marshal the command as created by the new static command
 		// creation function.
-		marshalled, err := pfcjson.MarshalCmd("1.0", testID, test.staticCmd())
+		marshalled, err := MarshalCmd("1.0", testID, test.staticCmd())
 		if err != nil {
 			t.Errorf("MarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -1284,7 +1282,7 @@ func TestWalletSvrCmds(t *testing.T) {
 
 		// Marshal the command as created by the generic new command
 		// creation function.
-		marshalled, err = pfcjson.MarshalCmd("1.0", testID, cmd)
+		marshalled, err = MarshalCmd("1.0", testID, cmd)
 		if err != nil {
 			t.Errorf("MarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -1298,7 +1296,7 @@ func TestWalletSvrCmds(t *testing.T) {
 			continue
 		}
 
-		var request pfcjson.Request
+		var request Request
 		if err := json.Unmarshal(marshalled, &request); err != nil {
 			t.Errorf("Test #%d (%s) unexpected error while "+
 				"unmarshalling JSON-RPC request: %v", i,
@@ -1306,7 +1304,7 @@ func TestWalletSvrCmds(t *testing.T) {
 			continue
 		}
 
-		cmd, err = pfcjson.UnmarshalCmd(&request)
+		cmd, err = UnmarshalCmd(&request)
 		if err != nil {
 			t.Errorf("UnmarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)

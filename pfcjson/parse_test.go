@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson_test
+package pfcjson
 
 import (
 	"bytes"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcjson"
 )
 
 func decodeHash(reversedHash string) chainhash.Hash {
@@ -48,7 +47,7 @@ func TestEncodeConcatenatedHashes(t *testing.T) {
 		concatRef := concatenatedHashes[:j*hashLen]
 
 		// Encode to string
-		concatenated := pfcjson.EncodeConcatenatedHashes(hashSlice[:j])
+		concatenated := EncodeConcatenatedHashes(hashSlice[:j])
 		// Verify output
 		if concatenated != concatRef {
 			t.Fatalf("EncodeConcatenatedHashes failed (%v!=%v)",
@@ -69,7 +68,7 @@ func TestDecodeConcatenatedHashes(t *testing.T) {
 		concatenatedHashBytes = append(concatenatedHashBytes, h[:]...)
 	}
 	concatenatedHashes := hex.EncodeToString(concatenatedHashBytes)
-	decodedHashes, err := pfcjson.DecodeConcatenatedHashes(concatenatedHashes)
+	decodedHashes, err := DecodeConcatenatedHashes(concatenatedHashes)
 	if err != nil {
 		t.Fatalf("Decode failed: %v", err)
 	}
@@ -91,7 +90,7 @@ func TestEncodeConcatenatedVoteBits(t *testing.T) {
 		{Bits: 0x1223, ExtendedBits: []byte{0x01, 0x02, 0x03, 0x04}},
 		{Bits: 0xaaaa, ExtendedBits: []byte{0x01, 0x02, 0x03, 0x04, 0x05}},
 	}
-	encodedResults, err := pfcjson.EncodeConcatenatedVoteBits(testVbs)
+	encodedResults, err := EncodeConcatenatedVoteBits(testVbs)
 	if err != nil {
 		t.Fatalf("Encode failed: %v", err)
 	}
@@ -115,7 +114,7 @@ func TestEncodeConcatenatedVoteBits(t *testing.T) {
 	testVbs = []stake.VoteBits{
 		{Bits: 0, ExtendedBits: bytes.Repeat([]byte{0x00}, 74)},
 	}
-	_, err = pfcjson.EncodeConcatenatedVoteBits(testVbs)
+	_, err = EncodeConcatenatedVoteBits(testVbs)
 	if err == nil {
 		t.Fatalf("expected too long error")
 	}
@@ -138,7 +137,7 @@ func TestDecodeConcatenatedVoteBits(t *testing.T) {
 	}
 
 	decodedSlice, err :=
-		pfcjson.DecodeConcatenatedVoteBits(encodedBytesStr)
+		DecodeConcatenatedVoteBits(encodedBytesStr)
 	if err != nil {
 		t.Fatalf("unexpected error decoding votebits: %v", err.Error())
 	}
@@ -158,7 +157,7 @@ func TestDecodeConcatenatedVoteBits(t *testing.T) {
 	}
 	encodedBytesStr = hex.EncodeToString(encodedBytes)
 
-	_, err = pfcjson.DecodeConcatenatedVoteBits(encodedBytesStr)
+	_, err = DecodeConcatenatedVoteBits(encodedBytesStr)
 	if err == nil {
 		t.Fatalf("expected short read error")
 	}
@@ -173,7 +172,7 @@ func TestDecodeConcatenatedVoteBits(t *testing.T) {
 	}
 	encodedBytesStr = hex.EncodeToString(encodedBytes)
 
-	_, err = pfcjson.DecodeConcatenatedVoteBits(encodedBytesStr)
+	_, err = DecodeConcatenatedVoteBits(encodedBytesStr)
 	if err == nil {
 		t.Fatalf("expected corruption error")
 	}
@@ -188,7 +187,7 @@ func TestDecodeConcatenatedVoteBits(t *testing.T) {
 	}
 	encodedBytesStr = hex.EncodeToString(encodedBytes)
 
-	_, err = pfcjson.DecodeConcatenatedVoteBits(encodedBytesStr)
+	_, err = DecodeConcatenatedVoteBits(encodedBytesStr)
 	if err == nil {
 		t.Fatalf("expected corruption error")
 	}
@@ -197,40 +196,40 @@ func TestDecodeConcatenatedVoteBits(t *testing.T) {
 func TestInvalidDecodeConcatenatedHashes(t *testing.T) {
 	testStrings := []struct {
 		str string
-		err pfcjson.RPCError
+		err RPCError
 	}{
 		{
 			// length of 1
 			"0",
-			pfcjson.RPCError{
-				Code: pfcjson.ErrRPCInvalidParameter,
+			RPCError{
+				Code: ErrRPCInvalidParameter,
 			},
 		}, {
 			// not hex
 			"ffffgfffffffffffffffffffffffffff" +
 				"ffffffffffffffffffffffffffffffff",
-			pfcjson.RPCError{
-				Code: pfcjson.ErrRPCDecodeHexString,
+			RPCError{
+				Code: ErrRPCDecodeHexString,
 			},
 		}, {
 			// invalid length
 			"298e5cc3d985bfe811edd4396b86d2de66b0cef4" +
 				"2b21d980096b86d2de96b86d2",
-			pfcjson.RPCError{
-				Code: pfcjson.ErrRPCInvalidParameter,
+			RPCError{
+				Code: ErrRPCInvalidParameter,
 			},
 		},
 	}
 	for _, str := range testStrings {
-		_, err := pfcjson.DecodeConcatenatedHashes(str.str)
+		_, err := DecodeConcatenatedHashes(str.str)
 		if err == nil {
 			t.Fatalf("DecodeConcatenatedHashes passed on '%s' "+
 				"when it should have failed", str.str)
 		}
-		rpcError, ok := err.(*pfcjson.RPCError)
+		rpcError, ok := err.(*RPCError)
 		if !ok {
 			t.Fatalf("DecodeConcatenatedHashes error is not "+
-				"expected type *pfcjson.RPCError: %T", err)
+				"expected type *RPCError: %T", err)
 		}
 		if rpcError.Code != str.err.Code {
 			t.Fatalf("DecodeConcatenatedHashes returned "+

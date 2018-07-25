@@ -2286,11 +2286,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 // any flags required as the result of any agendas that have passed and become
 // active.
 func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.ScriptFlags, error) {
-	scriptFlags := txscript.ScriptBip16 |
-		txscript.ScriptVerifyDERSignatures |
-		txscript.ScriptVerifyStrictEncoding |
-		txscript.ScriptVerifyMinimalData |
-		txscript.ScriptVerifyCleanStack |
+	scriptFlags := txscript.ScriptVerifyCleanStack |
 		txscript.ScriptVerifyCheckLockTimeVerify
 
 	// Enable enforcement of OP_CSV and OP_SHA256 if the stake vote
@@ -2330,13 +2326,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 	// allowed a block that is no longer valid.  However, since the
 	// implementation only currently uses memory for the side chain blocks,
 	// it isn't currently necessary.
-
-	// The coinbase for the Genesis block is not spendable, so just return
-	// an error now.
-	if node.hash.IsEqual(b.chainParams.GenesisHash) {
-		str := "the coinbase for the genesis block is not spendable"
-		return ruleError(ErrMissingTxOut, str)
-	}
 
 	// Ensure the view is for the node being checked.
 	parentHash := &block.MsgBlock().Header.PrevBlock
@@ -2568,7 +2557,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 
 	// The block template must build off the current tip of the main chain
 	// or its parent.
-	tip := b.bestNode
+	tip := b.bestChain.Tip()
 	var prevNode *blockNode
 	parentHash := block.MsgBlock().Header.PrevBlock
 	if parentHash == tip.hash {
@@ -2609,7 +2598,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 	if prevNode.hash == tip.hash {
 		// Grab the parent block since it is required throughout the block
 		// connection process.
-		parent, err := b.fetchMainChainBlockByHash(&prevNode.hash)
+		parent, err := b.fetchMainChainBlockByNode(prevNode)
 		if err != nil {
 			return ruleError(ErrMissingParent, err.Error())
 		}
@@ -2638,7 +2627,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 		block := nextBlockToDetach
 		if block == nil {
 			var err error
-			block, err = b.fetchMainChainBlockByHash(&n.hash)
+			block, err = b.fetchMainChainBlockByNode(n)
 			if err != nil {
 				return err
 			}
@@ -2649,7 +2638,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 				block.Hash())
 		}
 
-		parent, err := b.fetchMainChainBlockByHash(&n.parent.hash)
+		parent, err := b.fetchMainChainBlockByNode(n.parent)
 		if err != nil {
 			return err
 		}
@@ -2680,7 +2669,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 	if attachNodes.Len() == 0 {
 		// Grab the parent block since it is required throughout the block
 		// connection process.
-		parent, err := b.fetchMainChainBlockByHash(&prevNode.hash)
+		parent, err := b.fetchMainChainBlockByNode(prevNode)
 		if err != nil {
 			return ruleError(ErrMissingParent, err.Error())
 		}
@@ -2697,14 +2686,14 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 		// attached or the previous one that was attached for subsequent blocks
 		// to optimize.
 		n := e.Value.(*blockNode)
-		block, err := b.fetchBlockByHash(&n.hash)
+		block, err := b.fetchBlockByNode(n)
 		if err != nil {
 			return err
 		}
 		parent := prevAttachBlock
 		if parent == nil {
 			var err error
-			parent, err = b.fetchMainChainBlockByHash(&n.parent.hash)
+			parent, err = b.fetchMainChainBlockByNode(n.parent)
 			if err != nil {
 				return err
 			}
@@ -2726,7 +2715,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 
 	// Grab the parent block since it is required throughout the block
 	// connection process.
-	parent, err := b.fetchBlockByHash(&prevNode.hash)
+	parent, err := b.fetchBlockByNode(prevNode)
 	if err != nil {
 		return ruleError(ErrMissingParent, err.Error())
 	}

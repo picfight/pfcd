@@ -21,8 +21,8 @@ import (
 
 	"github.com/decred/base58"
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/pfcec"
 	"github.com/picfight/pfcd/pfcec/secp256k1"
 	"github.com/picfight/pfcd/pfcutil"
 )
@@ -359,7 +359,7 @@ func (k *ExtendedKey) ECPrivKey() (*secp256k1.PrivateKey, error) {
 // address for the passed network.
 func (k *ExtendedKey) Address(net *chaincfg.Params) (*pfcutil.AddressPubKeyHash, error) {
 	pkHash := pfcutil.Hash160(k.pubKeyBytes())
-	return pfcutil.NewAddressPubKeyHash(pkHash, net, chainec.ECTypeSecp256k1)
+	return pfcutil.NewAddressPubKeyHash(pkHash, net, pfcec.STEcdsaSecp256k1)
 }
 
 // paddedAppend appends the src byte slice to dst, returning the new slice.

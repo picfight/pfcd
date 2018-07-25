@@ -15,8 +15,8 @@ import (
 
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/chaingen"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/pfcec"
 	"github.com/picfight/pfcd/pfcec/secp256k1"
 	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
@@ -857,7 +857,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 			p2shTaxAddr := addrs[0].(*pfcutil.AddressScriptHash)
 			p2pkhTaxAddr, err := pfcutil.NewAddressPubKeyHash(
 				p2shTaxAddr.Hash160()[:], g.Params(),
-				chainec.ECTypeSecp256k1)
+				pfcec.STEcdsaSecp256k1)
 			if err != nil {
 				panic(err)
 			}
@@ -1165,7 +1165,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//                 \-> bv5(9)
 	g.SetTip("bsl5")
 	g.NextBlock("bv5", outs[9], ticketOuts[9], func(b *wire.MsgBlock) {
-		b.Header.FreshStake -= 1
+		b.Header.FreshStake--
 	})
 	rejected(blockchain.ErrFreshStakeMismatch)
 
@@ -1396,7 +1396,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//                 \-> bsd0(9)
 	g.SetTip("bsl5")
 	g.NextBlock("bsd0", outs[9], ticketOuts[9], func(b *wire.MsgBlock) {
-		b.STransactions[5].TxOut[0].Value -= 1
+		b.STransactions[5].TxOut[0].Value--
 	})
 	rejected(blockchain.ErrNotEnoughStake)
 
@@ -1845,7 +1845,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.SetTip("brs3")
 	g.NextBlock("bmf11", outs[15], ticketOuts[15], func(b *wire.MsgBlock) {
 		// Set an invalid POW limit.
-		b.Header.Bits -= 1
+		b.Header.Bits--
 	})
 	rejected(blockchain.ErrUnexpectedDifficulty)
 

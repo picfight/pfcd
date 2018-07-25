@@ -161,7 +161,8 @@ var TestNet2Params = Params{
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
-	HDCoinType: 11,
+	SLIP0044CoinType: 1,  // SLIP0044, Testnet (all coins)
+	LegacyCoinType:   11, // for backwards compatibility
 
 	// PicFight PoS parameters
 	MinimumStakeDiff:        20000000, // 0.2 Coin

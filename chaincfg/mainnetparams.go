@@ -191,7 +191,8 @@ var MainNetParams = Params{
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
-	HDCoinType: 20,
+	SLIP0044CoinType: 42, // SLIP0044, PicFight
+	LegacyCoinType:   20, // for backwards compatibility
 
 	// PicFight PoS parameters
 	MinimumStakeDiff:        1 * 1e8, // 2 Coin

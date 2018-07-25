@@ -41,6 +41,6 @@ cmd/findcheckpoint/findcheckpoint
 cmd/gencerts/gencerts
 cmd/promptsecret/promptsecret
 
-debug
+\.idea/
 
-debug\.test
+\.vscode/

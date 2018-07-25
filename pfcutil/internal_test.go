@@ -15,6 +15,7 @@ package pfcutil
 import (
 	"github.com/decred/base58"
 	"github.com/picfight/pfcd/chaincfg/chainec"
+	"github.com/picfight/pfcd/pfcec/secp256k1"
 
 	"golang.org/x/crypto/ripemd160"
 )
@@ -58,7 +59,7 @@ func TstAddressScriptHash(hash [ripemd160.Size]byte,
 func TstAddressPubKey(serializedPubKey []byte, pubKeyFormat PubKeyFormat,
 	netID [2]byte) *AddressSecpPubKey {
 
-	pubKey, _ := chainec.Secp256k1.ParsePubKey(serializedPubKey)
+	pubKey, _ := secp256k1.ParsePubKey(serializedPubKey)
 	return &AddressSecpPubKey{
 		pubKeyFormat: pubKeyFormat,
 		pubKey:       chainec.PublicKey(pubKey),

@@ -13,8 +13,8 @@ pfcd maintains the entire past transactional ledger of PicFight and allows
 about PicFight please see the
 [project documentation](https://docs.picfight.org/#overview).
 
-Note: To send or receive funds and join Proof-of-Stake mining, you will also need
-[pfcwallet](https://github.com/picfight/pfcwallet).
+Note: To send or receive funds and join Proof-of-Stake mining, you will also 
+need [pfcwallet](https://github.com/picfight/pfcwallet).
 
 This project is currently under active development and is in a Beta state.  It
 is extremely stable and has been in production use since February 2016.
@@ -80,9 +80,58 @@ go install . ./cmd/...
 ```
 
 For more information about PicFight and how to set up your software please go to
-our docs page at [docs.picfight.org](https://docs.picfight.org/getting-started/beginner-guide/).
+our docs page at
+[docs.picfight.org](https://docs.picfight.org/getting-started/beginner-guide/).
 
 ## Docker
+
+### Running pfcd
+
+You can run a picfight node from inside a docker container.  To build the image
+yourself, use the following command:
+
+```
+docker build -t picfight/pfcd .
+```
+
+Or you can create an alpine based image (requires Docker 17.05 or higher):
+
+```
+docker build -t picfight/pfcd:alpine -f Dockerfile.alpine .
+```
+
+You can then run the image using:
+
+```
+docker run picfight/pfcd
+```
+
+You may wish to use an external volume to customise your config and persist the
+data in an external volume:
+
+```
+docker run --rm -v /home/user/pfcdata:/root/.pfcd/data picfight/pfcd
+```
+
+For a minimal image, you can use the picfight/pfcd:alpine tag.  This is typically
+a more secure option while also being a much smaller image.
+
+You can run pfcctl from inside the image.  For example, run an image (mounting
+your data from externally) with:
+
+```
+docker run --rm -ti --name=pfcd-1 -v /home/user/.pfcd:/root/.pfcd \
+  picfight/pfcd:alpine
+```
+
+And then run pfcctl commands against it.  For example:
+
+```
+docker exec -ti pfcd-1 pfcctl getbestblock
+```
+
+
+### Running Tests
 
 All tests and linters may be run in a docker container using the script
 `run_tests.sh`.  This script defaults to using the current supported version of

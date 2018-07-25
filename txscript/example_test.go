@@ -12,6 +12,8 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/pfcec"
+	"github.com/picfight/pfcd/pfcec/secp256k1"
 	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
@@ -90,10 +92,10 @@ func ExampleSignTxOutput() {
 		fmt.Println(err)
 		return
 	}
-	privKey, pubKey := chainec.Secp256k1.PrivKeyFromBytes(privKeyBytes)
+	privKey, pubKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
 	pubKeyHash := pfcutil.Hash160(pubKey.SerializeCompressed())
 	addr, err := pfcutil.NewAddressPubKeyHash(pubKeyHash,
-		&chaincfg.MainNetParams, chainec.ECTypeSecp256k1)
+		&chaincfg.MainNetParams, pfcec.STEcdsaSecp256k1)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -104,7 +106,7 @@ func ExampleSignTxOutput() {
 	// contains a single output that pays to address in the amount of 1 PFC.
 	originTx := wire.NewMsgTx()
 	prevOut := wire.NewOutPoint(&chainhash.Hash{}, ^uint32(0), wire.TxTreeRegular)
-	txIn := wire.NewTxIn(prevOut, []byte{txscript.OP_0, txscript.OP_0})
+	txIn := wire.NewTxIn(prevOut, 100000000, []byte{txscript.OP_0, txscript.OP_0})
 	originTx.AddTxIn(txIn)
 	pkScript, err := txscript.PayToAddrScript(addr)
 	if err != nil {
@@ -122,7 +124,7 @@ func ExampleSignTxOutput() {
 	// signature script at this point since it hasn't been created or signed
 	// yet, hence nil is provided for it.
 	prevOut = wire.NewOutPoint(&originTxHash, 0, wire.TxTreeRegular)
-	txIn = wire.NewTxIn(prevOut, nil)
+	txIn = wire.NewTxIn(prevOut, 100000000, nil)
 	redeemTx.AddTxIn(txIn)
 
 	// Ordinarily this would contain that actual destination of the funds,
@@ -155,7 +157,7 @@ func ExampleSignTxOutput() {
 	sigScript, err := txscript.SignTxOutput(&chaincfg.MainNetParams,
 		redeemTx, 0, originTx.TxOut[0].PkScript, txscript.SigHashAll,
 		txscript.KeyClosure(lookupKey), nil, nil,
-		chainec.ECTypeSecp256k1)
+		pfcec.STEcdsaSecp256k1)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -164,8 +166,8 @@ func ExampleSignTxOutput() {
 
 	// Prove that the transaction has been validly signed by executing the
 	// script pair.
-	flags := txscript.ScriptBip16 | txscript.ScriptVerifyDERSignatures |
-		txscript.ScriptDiscourageUpgradableNops
+
+	flags := txscript.ScriptDiscourageUpgradableNops
 	vm, err := txscript.NewEngine(originTx.TxOut[0].PkScript, redeemTx, 0,
 		flags, 0, nil)
 	if err != nil {

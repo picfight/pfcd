@@ -3,13 +3,11 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson_test
+package pfcjson
 
 import (
 	"reflect"
 	"testing"
-
-	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestHelpers tests the various helper functions which create pointers to
@@ -25,7 +23,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "bool",
 			f: func() interface{} {
-				return pfcjson.Bool(true)
+				return Bool(true)
 			},
 			expected: func() interface{} {
 				val := true
@@ -35,7 +33,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "int",
 			f: func() interface{} {
-				return pfcjson.Int(5)
+				return Int(5)
 			},
 			expected: func() interface{} {
 				val := int(5)
@@ -45,7 +43,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "uint",
 			f: func() interface{} {
-				return pfcjson.Uint(5)
+				return Uint(5)
 			},
 			expected: func() interface{} {
 				val := uint(5)
@@ -55,7 +53,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "int32",
 			f: func() interface{} {
-				return pfcjson.Int32(5)
+				return Int32(5)
 			},
 			expected: func() interface{} {
 				val := int32(5)
@@ -65,7 +63,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "uint32",
 			f: func() interface{} {
-				return pfcjson.Uint32(5)
+				return Uint32(5)
 			},
 			expected: func() interface{} {
 				val := uint32(5)
@@ -75,7 +73,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "int64",
 			f: func() interface{} {
-				return pfcjson.Int64(5)
+				return Int64(5)
 			},
 			expected: func() interface{} {
 				val := int64(5)
@@ -85,7 +83,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "uint64",
 			f: func() interface{} {
-				return pfcjson.Uint64(5)
+				return Uint64(5)
 			},
 			expected: func() interface{} {
 				val := uint64(5)
@@ -95,7 +93,7 @@ func TestHelpers(t *testing.T) {
 		{
 			name: "string",
 			f: func() interface{} {
-				return pfcjson.String("abc")
+				return String("abc")
 			},
 			expected: func() interface{} {
 				val := "abc"
