@@ -1,0 +1,13 @@
+[Unit]
+Description=PicFight Full Node
+
+[Service]
+Type=simple
+User=pfcd
+Group=pfcd
+WorkingDirectory=/var/pfcd
+ExecStart=/opt/picfight/bin/pfcd --appdata=/var/pfcd
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
