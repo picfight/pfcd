@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcd/picfight"
 )
 
 // TestNet2Params defines the network parameters for the test currency network.
@@ -26,7 +27,7 @@ var TestNet2Params = Params{
 	GenesisBlock:             &testNet2GenesisBlock,
 	GenesisHash:              &testNet2GenesisHash,
 	PowLimit:                 testNetPowLimit,
-	PowLimitBits:             bigToCompact(testNetPowLimit),
+	PowLimitBits:             picfight.BigToCompact(testNetPowLimit),
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,

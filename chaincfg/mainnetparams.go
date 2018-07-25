@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcd/picfight"
 )
 
 const blockTime = 30 // 30 seconds
@@ -27,7 +28,7 @@ var MainNetParams = Params{
 	GenesisBlock:             &genesisBlock,
 	GenesisHash:              &genesisHash,
 	PowLimit:                 mainPowLimit,
-	PowLimitBits:             bigToCompact(mainPowLimit),
+	PowLimitBits:             picfight.BigToCompact(mainPowLimit),
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        false,
