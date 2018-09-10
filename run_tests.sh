@@ -84,22 +84,22 @@ if [ -f ~/.cache/$DOCKER_IMAGE_TAG.tar ]; then
 	fi
 else
 	# pull and save image to cache 
-	docker pull picfight/$DOCKER_IMAGE_TAG
+	docker pull decred/$DOCKER_IMAGE_TAG
 	if [ $? != 0 ]; then
 		echo 'docker pull failed'
 		exit 1
 	fi
-	docker save picfight/$DOCKER_IMAGE_TAG > ~/.cache/$DOCKER_IMAGE_TAG.tar
+	docker save decred/$DOCKER_IMAGE_TAG > ~/.cache/$DOCKER_IMAGE_TAG.tar
 	if [ $? != 0 ]; then
 		echo 'docker save failed'
 		exit 1
 	fi
 fi
 
-docker run --rm -it -v $(pwd):/src picfight/$DOCKER_IMAGE_TAG /bin/bash -c "\
+docker run --rm -it -v $(pwd):/src decred/$DOCKER_IMAGE_TAG /bin/bash -c "\
   rsync -ra --filter=':- .gitignore'  \
-  /src/ /go/src/github.com/picfight/$REPO/ && \
-  cd github.com/picfight/$REPO/ && \
+  /src/ /go/src/github.com/decred/$REPO/ && \
+  cd github.com/decred/$REPO/ && \
   bash run_tests.sh local"
 if [ $? != 0 ]; then
 	echo 'docker run failed'

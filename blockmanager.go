@@ -1065,7 +1065,6 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 		// When the block is not an orphan, log information about it and
 		// update the chain state.
 		b.progressLogger.logBlockHeight(bmsg.block)
-		r := b.server.rpcServer
 
 		onMainChain := !isOrphan && forkLen == 0
 		if onMainChain {
@@ -1099,18 +1098,21 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 				bmgrLog.Warnf("Failed to get next stake difficulty "+
 					"calculation: %v", err)
 			}
-			if r != nil && err == nil {
-				// Update registered websocket clients on the
-				// current stake difficulty.
-				r.ntfnMgr.NotifyStakeDifficulty(
-					&StakeDifficultyNtfnData{
-						best.Hash,
-						best.Height,
-						nextStakeDiff,
-					})
+			if err == nil {
+				r := b.server.rpcServer
+				if r != nil {
+					// Update registered websocket clients on the
+					// current stake difficulty.
+					r.ntfnMgr.NotifyStakeDifficulty(
+						&StakeDifficultyNtfnData{
+							best.Hash,
+							best.Height,
+							nextStakeDiff,
+						})
+				}
 				b.server.txMemPool.PruneStakeTx(nextStakeDiff,
 					best.Height)
-				b.server.txMemPool.PruneExpiredTx(best.Height)
+				b.server.txMemPool.PruneExpiredTx()
 			}
 
 			winningTickets, poolSize, finalState, err :=
@@ -1664,17 +1666,19 @@ out:
 						bmgrLog.Warnf("Failed to get next stake difficulty "+
 							"calculation: %v", err)
 					}
-					r := b.server.rpcServer
-					if r != nil && errSDiff == nil {
-						r.ntfnMgr.NotifyStakeDifficulty(
-							&StakeDifficultyNtfnData{
-								best.Hash,
-								best.Height,
-								nextStakeDiff,
-							})
+					if errSDiff == nil {
+						r := b.server.rpcServer
+						if r != nil {
+							r.ntfnMgr.NotifyStakeDifficulty(
+								&StakeDifficultyNtfnData{
+									best.Hash,
+									best.Height,
+									nextStakeDiff,
+								})
+						}
 						b.server.txMemPool.PruneStakeTx(nextStakeDiff,
 							best.Height)
-						b.server.txMemPool.PruneExpiredTx(best.Height)
+						b.server.txMemPool.PruneExpiredTx()
 					}
 
 					missedTickets, err := b.chain.MissedTickets()
@@ -1747,12 +1751,10 @@ out:
 									nextStakeDiff,
 								})
 						}
+						b.server.txMemPool.PruneStakeTx(nextStakeDiff,
+							best.Height)
+						b.server.txMemPool.PruneExpiredTx()
 					}
-
-					b.server.txMemPool.PruneStakeTx(nextStakeDiff,
-						best.Height)
-					b.server.txMemPool.PruneExpiredTx(
-						best.Height)
 
 					missedTickets, err := b.chain.MissedTickets()
 					if err != nil {
@@ -1980,16 +1982,16 @@ func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		for _, tx := range parentBlock.Transactions()[1:] {
 			b.server.txMemPool.RemoveTransaction(tx, false)
 			b.server.txMemPool.RemoveDoubleSpends(tx)
-			b.server.txMemPool.RemoveOrphan(tx.Hash())
-			acceptedTxs := b.server.txMemPool.ProcessOrphans(tx.Hash())
+			b.server.txMemPool.RemoveOrphan(tx)
+			acceptedTxs := b.server.txMemPool.ProcessOrphans(tx)
 			b.server.AnnounceNewTransactions(acceptedTxs)
 		}
 
 		for _, stx := range block.STransactions()[0:] {
 			b.server.txMemPool.RemoveTransaction(stx, false)
 			b.server.txMemPool.RemoveDoubleSpends(stx)
-			b.server.txMemPool.RemoveOrphan(stx.Hash())
-			acceptedTxs := b.server.txMemPool.ProcessOrphans(stx.Hash())
+			b.server.txMemPool.RemoveOrphan(stx)
+			acceptedTxs := b.server.txMemPool.ProcessOrphans(stx)
 			b.server.AnnounceNewTransactions(acceptedTxs)
 		}
 
@@ -2067,8 +2069,8 @@ func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			for _, tx := range parentBlock.Transactions()[1:] {
 				b.server.txMemPool.RemoveTransaction(tx, false)
 				b.server.txMemPool.RemoveDoubleSpends(tx)
-				b.server.txMemPool.RemoveOrphan(tx.Hash())
-				b.server.txMemPool.ProcessOrphans(tx.Hash())
+				b.server.txMemPool.RemoveOrphan(tx)
+				b.server.txMemPool.ProcessOrphans(tx)
 			}
 		}
 
