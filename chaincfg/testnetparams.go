@@ -14,10 +14,10 @@ import (
 
 // TestNet3Params defines the network parameters for the test currency network.
 // This network is sometimes simply called "testnet".
-// This is the second public iteration of testnet.
-var TestNet2Params = Params{
-	Name:        "testnet2",
-	Net:         wire.TestNet2,
+// This is the third public iteration of testnet.
+var TestNet3Params = Params{
+	Name:        "testnet3",
+	Net:         wire.TestNet3,
 	DefaultPort: "19708",
 	DNSSeeds: []DNSSeed{
 		{"testnet-seed.picfight.org", true},
