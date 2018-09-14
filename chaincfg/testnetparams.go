@@ -24,12 +24,12 @@ var TestNet3Params = Params{
 	},
 
 	// Chain parameters
-	GenesisBlock:             &testNet2GenesisBlock,
-	GenesisHash:              &testNet2GenesisHash,
+	GenesisBlock:             &testNet3GenesisBlock,
+	GenesisHash:              &testNet3GenesisHash,
 	PowLimit:                 testNetPowLimit,
 	PowLimitBits:             picfight.BigToCompact(testNetPowLimit),
-	ReduceMinDifficulty:      false,
-	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
+	ReduceMinDifficulty:      true,
+	MinDiffReductionTime:     time.Minute * 10, // ~99.3% chance to be mined before reduction
 	GenerateSupported:        true,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
@@ -114,8 +114,8 @@ var TestNet3Params = Params{
 	StakeMajorityDivisor:    4,
 
 	// PicFight organization related parameters.
-	// Organization address is TccTkqj8wFqrUemmHMRSx8SYEueQYLmuuFk
-	OrganizationPkScript:        hexDecode("4fa6cbd0dbe5ec407fe4c8ad374e667771fa0d44"),
+	// Organization address is TcrypGAcGCRVXrES7hWqVZb5oLJKCZEtoL1.
+	OrganizationPkScript:        hexDecode("a914d585cd7426d25b4ea5faf1e6987aacfeda3db94287"),
 	OrganizationPkScriptVersion: 0,
-	BlockOneLedger:              BlockOneLedgerTestNet2,
+	BlockOneLedger:              BlockOneLedgerTestNet3,
 }
