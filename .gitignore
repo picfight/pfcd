@@ -40,5 +40,4 @@ cmd/pfcctl/pfcctl
 cmd/findcheckpoint/findcheckpoint
 cmd/gencerts/gencerts
 cmd/promptsecret/promptsecret
-
 \.idea/
