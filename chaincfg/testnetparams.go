@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
+// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -12,7 +12,7 @@ import (
 	"github.com/picfight/pfcd/picfight"
 )
 
-// TestNet2Params defines the network parameters for the test currency network.
+// TestNet3Params defines the network parameters for the test currency network.
 // This network is sometimes simply called "testnet".
 // This is the second public iteration of testnet.
 var TestNet2Params = Params{
@@ -50,21 +50,7 @@ var TestNet2Params = Params{
 	BlockTaxProportion:       1,
 
 	// Checkpoints ordered from oldest to newest.
-	Checkpoints: []Checkpoint{
-		{12500, newHashFromStr("000000000046db2b18647632bac76577e418a5cdd8508a2f1cd82a6b30c3e854")},
-		{25000, newHashFromStr("0000000000970b7f74178ba6bc3426cd2a65ab854c04e92f542567843f5612a2")},
-		{37500, newHashFromStr("0000000000e5f9b3eb57259439694d3f12cd3b485cca54089fe3d4cc5c7c3e51")},
-		{50000, newHashFromStr("0000000005bcc5dd36ba08523d32a3a581f1ef7376929f5b89757d1c9ced4154")},
-		{62500, newHashFromStr("0000000003c0223971c732c49f019f449b494fdb822b67eb178fa4cf5d3b16ef")},
-		{80000, newHashFromStr("0000000004239806fb02243757c0cd04f2103ad2c20d2afbdf21fafbd114ef60")},
-		{97500, newHashFromStr("0000000003e41de65086786c253d2bf5259419cc15d1c1382b3d7bd69dcf7d45")},
-		{110000, newHashFromStr("0000000003913d67af849f3dded4dd17038d366ff5c418be56f193ea574acf63")},
-		{122500, newHashFromStr("0000000005db46602bc7146c87cd396db74696819c6685f0c61e9194e6278b07")},
-		{140000, newHashFromStr("00000000015736a13fb25ef414947a8a7a4359ef5a00e3a03d6089f38f16f2de")},
-		{157500, newHashFromStr("00000000052684525a3fedd619247b148eaa3ac38ab45781a1571099fd6036cf")},
-		{175000, newHashFromStr("0000000000320a623fcc6453986ef13423f455ddf0f788ad1f2bda43858ccb8d")},
-		{249802, newHashFromStr("0000000000153386623d86ce70cc9372fa000ac3b999eff11b9fc7a3ca0d072a")},
-	},
+	Checkpoints: []Checkpoint{},
 
 	// Consensus rule change deployments.
 	//
@@ -74,64 +60,6 @@ var TestNet2Params = Params{
 	RuleChangeActivationMultiplier: 3,    // 75%
 	RuleChangeActivationDivisor:    4,
 	RuleChangeActivationInterval:   5040, // 1 week
-	Deployments: map[uint32][]ConsensusDeployment{
-		5: {{
-			Vote: Vote{
-				Id:          VoteIDSDiffAlgorithm,
-				Description: "Change stake difficulty algorithm as defined in DCP0001",
-				Mask:        0x0006, // Bits 1 and 2
-				Choices: []Choice{{
-					Id:          "abstain",
-					Description: "abstain voting for change",
-					Bits:        0x0000,
-					IsAbstain:   true,
-					IsNo:        false,
-				}, {
-					Id:          "no",
-					Description: "keep the existing algorithm",
-					Bits:        0x0002, // Bit 1
-					IsAbstain:   false,
-					IsNo:        true,
-				}, {
-					Id:          "yes",
-					Description: "change to the new algorithm",
-					Bits:        0x0004, // Bit 2
-					IsAbstain:   false,
-					IsNo:        false,
-				}},
-			},
-			StartTime:  1493164800, // Apr 26th, 2017
-			ExpireTime: 1524700800, // Apr 26th, 2018
-		}},
-		6: {{
-			Vote: Vote{
-				Id:          VoteIDLNFeatures,
-				Description: "Enable features defined in DCP0002 and DCP0003 necessary to support Lightning Network (LN)",
-				Mask:        0x0006, // Bits 1 and 2
-				Choices: []Choice{{
-					Id:          "abstain",
-					Description: "abstain voting for change",
-					Bits:        0x0000,
-					IsAbstain:   true,
-					IsNo:        false,
-				}, {
-					Id:          "no",
-					Description: "keep the existing consensus rules",
-					Bits:        0x0002, // Bit 1
-					IsAbstain:   false,
-					IsNo:        true,
-				}, {
-					Id:          "yes",
-					Description: "change to the new consensus rules",
-					Bits:        0x0004, // Bit 2
-					IsAbstain:   false,
-					IsNo:        false,
-				}},
-			},
-			StartTime:  1505260800, // Sep 13th, 2017
-			ExpireTime: 1536796800, // Sep 13th, 2018
-		}},
-	},
 
 	// Enforce current block version once majority of the network has
 	// upgraded.
