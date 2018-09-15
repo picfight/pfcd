@@ -10,11 +10,11 @@ import (
 	"os"
 	"path/filepath"
 
+	flags "github.com/jessevdk/go-flags"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/database"
 	_ "github.com/picfight/pfcd/database/ffldb"
 	"github.com/picfight/pfcd/pfcutil"
-	flags "github.com/jessevdk/go-flags"
 )
 
 const (

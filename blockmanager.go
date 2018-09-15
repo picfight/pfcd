@@ -21,8 +21,8 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/mempool"
+	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
 )
 

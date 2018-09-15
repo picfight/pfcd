@@ -27,12 +27,12 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/connmgr"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/gcs"
 	"github.com/picfight/pfcd/gcs/blockcf"
 	"github.com/picfight/pfcd/mempool"
 	"github.com/picfight/pfcd/mining"
 	"github.com/picfight/pfcd/peer"
+	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
 )

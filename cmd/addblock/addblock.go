@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/decred/slog"
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/indexers"
 	"github.com/picfight/pfcd/database"
 	"github.com/picfight/pfcd/limits"
-	"github.com/decred/slog"
 )
 
 const (

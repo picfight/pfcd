@@ -35,20 +35,20 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/jrick/bitset"
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/certgen"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/mempool"
+	"github.com/picfight/pfcd/mining"
 	"github.com/picfight/pfcd/pfcec/secp256k1"
 	"github.com/picfight/pfcd/pfcjson"
 	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/mempool"
-	"github.com/picfight/pfcd/mining"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
-	"github.com/jrick/bitset"
 )
 
 // API version constants

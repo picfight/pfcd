@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/decred/slog"
+	"github.com/picfight/pfcd/pfcutil"
 )
 
 // blockProgressLogger provides periodic logging for other services in order

@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/picfight/pfcd/certgen"
 	flags "github.com/jessevdk/go-flags"
+	"github.com/picfight/pfcd/certgen"
 )
 
 type config struct {

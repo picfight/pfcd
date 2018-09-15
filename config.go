@@ -22,14 +22,14 @@ import (
 	"time"
 
 	"github.com/btcsuite/go-socks/socks"
+	"github.com/decred/slog"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/picfight/pfcd/connmgr"
 	"github.com/picfight/pfcd/database"
 	_ "github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/mempool"
+	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/sampleconfig"
-	"github.com/decred/slog"
-	flags "github.com/jessevdk/go-flags"
 )
 
 const (
