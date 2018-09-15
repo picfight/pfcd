@@ -12,11 +12,9 @@ var BlockOneLedgerMainNet = []*TokenPayout{
 }
 
 // BlockOneLedgerTestNet3 is the block one output ledger for testnet version 3.
-var BlockOneLedgerTestNet3 = []*TokenPayout{
-}
+var BlockOneLedgerTestNet3 = []*TokenPayout{}
 
 // BlockOneLedgerSimNet is the block one output ledger for the simulation
 // network. See under "PicFight organization related parameters" in params.go
 // for information on how to spend these outputs.
-var BlockOneLedgerSimNet = []*TokenPayout{
-}
+var BlockOneLedgerSimNet = []*TokenPayout{}

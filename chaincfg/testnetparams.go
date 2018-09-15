@@ -76,13 +76,13 @@ var TestNet3Params = Params{
 	AcceptNonStdTxs: true,
 
 	// Address encoding magics
-	NetworkAddressPrefix: "T",
-	PubKeyAddrID:         [2]byte{0x28, 0xf7}, // starts with Tk
-	PubKeyHashAddrID:     [2]byte{0x0f, 0x21}, // starts with Ts
-	PKHEdwardsAddrID:     [2]byte{0x0f, 0x01}, // starts with Te
-	PKHSchnorrAddrID:     [2]byte{0x0e, 0xe3}, // starts with TS
-	ScriptHashAddrID:     [2]byte{0x0e, 0xfc}, // starts with Tc
-	PrivateKeyID:         [2]byte{0x23, 0x0e}, // starts with Pt
+	NetworkAddressPrefix: "R",
+	PubKeyAddrID:         [2]byte{0x0d, 0xef}, // starts with Rk
+	PubKeyHashAddrID:     [2]byte{0xc9, 0x57}, // starts with Rs
+	PKHEdwardsAddrID:     [2]byte{0xc7, 0x86}, // starts with Re
+	PKHSchnorrAddrID:     [2]byte{0xc5, 0xd9}, // starts with RS
+	ScriptHashAddrID:     [2]byte{0xc7, 0x3f}, // starts with Rc
+	PrivateKeyID:         [2]byte{0x0c, 0xdd}, // starts with Pr
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x35, 0x83, 0x97}, // starts with tprv
