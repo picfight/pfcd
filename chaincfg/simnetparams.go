@@ -165,12 +165,12 @@ var SimNetParams = Params{
 
 	// Address encoding magics
 	NetworkAddressPrefix: "E",
-	PubKeyAddrID:         [2]byte{0x07, 0xbd}, // starts with Ek
-	PubKeyHashAddrID:     [2]byte{0x70, 0x42}, // starts with Es
-	PKHEdwardsAddrID:     [2]byte{0x6e, 0x72}, // starts with Ee
-	PKHSchnorrAddrID:     [2]byte{0x6c, 0xc5}, // starts with ES
-	ScriptHashAddrID:     [2]byte{0x6e, 0x2a}, // starts with Ec
-	PrivateKeyID:         [2]byte{0x0c, 0xc0}, // starts with Pe
+	PubKeyAddrID:         [2]byte{0x15, 0x0c}, // starts with Ek
+	PubKeyHashAddrID:     [2]byte{0x07, 0xcf}, // starts with Es
+	PKHEdwardsAddrID:     [2]byte{0x07, 0xae}, // starts with Ee
+	PKHSchnorrAddrID:     [2]byte{0x07, 0x90}, // starts with ES
+	ScriptHashAddrID:     [2]byte{0x07, 0xa9}, // starts with Ec
+	PrivateKeyID:         [2]byte{0x22, 0xac}, // starts with Pe
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with sprv

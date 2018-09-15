@@ -180,12 +180,12 @@ var MainNetParams = Params{
 
 	// Address encoding magics
 	NetworkAddressPrefix: "J",
-	PubKeyAddrID:         [2]byte{0x09, 0xfe}, // starts with Jk
-	PubKeyHashAddrID:     [2]byte{0x90, 0xa7}, // starts with Js
-	PKHEdwardsAddrID:     [2]byte{0x8e, 0xd6}, // starts with Je
-	PKHSchnorrAddrID:     [2]byte{0x8d, 0x29}, // starts with JS
-	ScriptHashAddrID:     [2]byte{0x8e, 0x8f}, // starts with Jc
-	PrivateKeyID:         [2]byte{0x0c, 0xcc}, // starts with Pj
+	PubKeyAddrID:         [2]byte{0x1b, 0x2d}, // starts with Jk
+	PubKeyHashAddrID:     [2]byte{0x0a, 0x0f}, // starts with Js
+	PKHEdwardsAddrID:     [2]byte{0x09, 0xef}, // starts with Je
+	PKHSchnorrAddrID:     [2]byte{0x09, 0xd1}, // starts with JS
+	ScriptHashAddrID:     [2]byte{0x09, 0xea}, // starts with Jc
+	PrivateKeyID:         [2]byte{0x22, 0xce}, // starts with Pj
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x02, 0xfd, 0xa4, 0xe8}, // starts with dprv
