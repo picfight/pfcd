@@ -46,9 +46,10 @@ var MainNetParams = Params{
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 6144,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
-	BlockTaxProportion:       1,
+	WorkRewardProportion:     30, // 30%
+	StakeRewardProportion:    30, // 30%
+	BlockArtTaxProportion:    30, // 30%
+	BlockDevTaxProportion:    10, // 10%
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
@@ -217,8 +218,12 @@ var MainNetParams = Params{
 	StakeMajorityDivisor:    4,
 
 	// PicFight organization related parameters
-	// Organization address is Dcur2mcGjmENx4DhNqDctW5wJCVyT3Qeqkx
-	OrganizationPkScript:        hexDecode("a914f5916158e3e2c4551c1796708db8367207ed13bb87"),
-	OrganizationPkScriptVersion: 0,
-	BlockOneLedger:              BlockOneLedgerMainNet,
+	// Organization address is ?
+	OrganizationDevelopersPkScript:        hexDecode(""),
+	OrganizationDevelopersPkScriptVersion: 0,
+
+	OrganizationArtistsPkScript:        hexDecode(""),
+	OrganizationArtistsPkScriptVersion: 0,
+
+	BlockOneLedger: BlockOneLedgerMainNet,
 }

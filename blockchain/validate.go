@@ -2213,9 +2213,9 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		} else {
 			subsidyWork := CalcBlockWorkSubsidy(subsidyCache,
 				node.height, node.voters, b.chainParams)
-			subsidyTax := CalcBlockTaxSubsidy(subsidyCache,
+			dev, art := CalcBlockTaxSubsidy(subsidyCache,
 				node.height, node.voters, b.chainParams)
-			expAtomOut = subsidyWork + subsidyTax + totalFees
+			expAtomOut = subsidyWork + dev + art + totalFees
 		}
 
 		// AmountIn for the input should be equal to the subsidy.

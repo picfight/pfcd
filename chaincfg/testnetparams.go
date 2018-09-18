@@ -45,9 +45,10 @@ var TestNet3Params = Params{
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 2048,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
-	BlockTaxProportion:       1,
+	WorkRewardProportion:     30, // 30%
+	StakeRewardProportion:    30, // 30%
+	BlockArtTaxProportion:    30, // 30%
+	BlockDevTaxProportion:    10, // 10%
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},
@@ -114,8 +115,11 @@ var TestNet3Params = Params{
 	StakeMajorityDivisor:    4,
 
 	// PicFight organization related parameters.
-	// Organization address is TcrypGAcGCRVXrES7hWqVZb5oLJKCZEtoL1.
-	OrganizationPkScript:        hexDecode("a914d585cd7426d25b4ea5faf1e6987aacfeda3db94287"),
-	OrganizationPkScriptVersion: 0,
-	BlockOneLedger:              BlockOneLedgerTestNet3,
+	// Organization address is ?
+	OrganizationDevelopersPkScript:        hexDecode(""),
+	OrganizationDevelopersPkScriptVersion: 0,
+
+	OrganizationArtistsPkScript:        hexDecode(""),
+	OrganizationArtistsPkScriptVersion: 0,
+	BlockOneLedger:                     BlockOneLedgerTestNet3,
 }

@@ -538,16 +538,20 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		nextBlockHeight,
 		voters,
 		activeNetParams.Params)
-	tax := blockchain.CalcBlockTaxSubsidy(subsidyCache,
+	devTax, artTax := blockchain.CalcBlockTaxSubsidy(subsidyCache,
 		nextBlockHeight,
 		voters,
 		activeNetParams.Params)
 
 	// Tax output.
-	if params.BlockTaxProportion > 0 {
+	if (params.BlockDevTaxProportion > 0) && (params.BlockArtTaxProportion > 0) {
 		tx.AddTxOut(&wire.TxOut{
-			Value:    tax,
-			PkScript: params.OrganizationPkScript,
+			Value:    devTax,
+			PkScript: params.OrganizationDevelopersPkScript,
+		})
+		tx.AddTxOut(&wire.TxOut{
+			Value:    artTax,
+			PkScript: params.OrganizationArtistsPkScript,
 		})
 	} else {
 		// Tax disabled.
@@ -557,7 +561,11 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 			return nil, err
 		}
 		tx.AddTxOut(&wire.TxOut{
-			Value:    tax,
+			Value:    devTax,
+			PkScript: trueScript,
+		})
+		tx.AddTxOut(&wire.TxOut{
+			Value:    artTax,
 			PkScript: trueScript,
 		})
 	}
@@ -567,7 +575,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		PkScript: opReturnPkScript,
 	})
 	// ValueIn.
-	tx.TxIn[0].ValueIn = subsidy + tax
+	tx.TxIn[0].ValueIn = subsidy + devTax + artTax
 
 	// Create the script to pay to the provided payment address if one was
 	// specified.  Otherwise create a script that allows the coinbase to be

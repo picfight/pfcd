@@ -464,15 +464,15 @@ type gbtWorkState struct {
 	prevHash      *chainhash.Hash
 	minTimestamp  time.Time
 	template      *BlockTemplate
-	notifyMap     map[chainhash.Hash]map[int64]chan struct{}
-	timeSource    blockchain.MedianTimeSource
+	notifyMap map[chainhash.Hash]map[int64]chan struct{}
+	timeSource blockchain.MedianTimeSource
 }
 
 // newGbtWorkState returns a new instance of a gbtWorkState with all internal
 // fields initialized and ready to use.
 func newGbtWorkState(timeSource blockchain.MedianTimeSource) *gbtWorkState {
 	return &gbtWorkState{
-		notifyMap:  make(map[chainhash.Hash]map[int64]chan struct{}),
+		notifyMap: make(map[chainhash.Hash]map[int64]chan struct{}),
 		timeSource: timeSource,
 	}
 }
@@ -2172,7 +2172,7 @@ func handleGetBlockSubsidy(s *rpcServer, cmd interface{}, closeChan <-chan struc
 		return nil, rpcInternalError("empty subsidy cache", "")
 	}
 
-	dev := blockchain.CalcBlockTaxSubsidy(cache, height, voters,
+	dev, art := blockchain.CalcBlockTaxSubsidy(cache, height, voters,
 		s.server.chainParams)
 	pos := blockchain.CalcStakeVoteSubsidy(cache, height,
 		s.server.chainParams) * int64(voters)
@@ -2181,10 +2181,11 @@ func handleGetBlockSubsidy(s *rpcServer, cmd interface{}, closeChan <-chan struc
 	total := dev + pos + pow
 
 	rep := pfcjson.GetBlockSubsidyResult{
-		Developer: dev,
-		PoS:       pos,
-		PoW:       pow,
-		Total:     total,
+		Dev:   dev,
+		PoA:   art,
+		PoS:   pos,
+		PoW:   pow,
+		Total: total,
 	}
 
 	return rep, nil
@@ -2359,7 +2360,7 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 	if template == nil || state.prevHash == nil ||
 		!state.prevHash.IsEqual(latestHash) ||
 		(state.lastTxUpdate != lastTxUpdate &&
-			time.Now().After(state.lastGenerated.Add(time.Second*
+			time.Now().After(state.lastGenerated.Add(time.Second *
 				gbtRegenerateSeconds))) {
 
 		// Reset the previous best hash the block template was generated
@@ -2383,7 +2384,7 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 		blkTemplate, err := NewBlockTemplate(s.policy, s.server, payAddr)
 		if err != nil {
 			return rpcInternalError("Failed to create new block "+
-				"template: "+err.Error(), "")
+				"template: "+ err.Error(), "")
 		}
 		if blkTemplate == nil {
 			return rpcInternalError("Failed to create new block "+
@@ -2770,7 +2771,7 @@ func handleGetBlockTemplateLongPoll(s *rpcServer, longPollID string, useCoinbase
 	case <-closeChan:
 		return nil, ErrClientQuit
 
-	// Wait until signal received to send the reply.
+		// Wait until signal received to send the reply.
 	case <-longPollChan:
 		// Fallthrough
 	}
@@ -3631,7 +3632,7 @@ func handleGetStakeDifficulty(s *rpcServer, cmd interface{}, closeChan <-chan st
 	nextSdiff, err := s.server.blockManager.CalcNextRequiredStakeDifficulty()
 	if err != nil {
 		return nil, rpcInternalError("Could not calculate next stake "+
-			"difficulty "+err.Error(), "")
+			"difficulty "+ err.Error(), "")
 	}
 	nextSdiffAmount := pfcutil.Amount(nextSdiff)
 
@@ -4292,7 +4293,7 @@ func handleGetWorkSubmission(s *rpcServer, hexData string) (interface{}, error) 
 		// so return that error as an internal error.
 		if _, ok := err.(blockchain.RuleError); !ok {
 			return false, rpcInternalError("Unexpected error "+
-				"while checking proof of work: "+err.Error(),
+				"while checking proof of work: "+ err.Error(),
 				"")
 		}
 
@@ -4310,7 +4311,7 @@ func handleGetWorkSubmission(s *rpcServer, hexData string) (interface{}, error) 
 		// so return that error as an internal error.
 		if _, ok := err.(blockchain.RuleError); !ok {
 			return false, rpcInternalError("Unexpected error "+
-				"while processing block: "+err.Error(), "")
+				"while processing block: "+ err.Error(), "")
 		}
 
 		rpcsLog.Infof("Block submitted via getwork rejected: %v", err)
@@ -4455,7 +4456,7 @@ func handlePing(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (inter
 	nonce, err := wire.RandomUint64()
 	if err != nil {
 		return nil, rpcInternalError("Not sending ping - failed to "+
-			"generate nonce: "+err.Error(), "")
+			"generate nonce: "+ err.Error(), "")
 	}
 	s.server.BroadcastMessage(wire.NewMsgPing(nonce))
 
@@ -4474,7 +4475,7 @@ func handleRebroadcastMissed(s *rpcServer, cmd interface{}, closeChan <-chan str
 	stakeDiff, err := s.server.blockManager.CalcNextRequiredStakeDifficulty()
 	if err != nil {
 		return nil, rpcInternalError("Could not calculate next stake "+
-			"difficulty "+err.Error(), "")
+			"difficulty "+ err.Error(), "")
 	}
 
 	missedTicketsNtfn := &blockchain.TicketNotificationsData{
@@ -4505,7 +4506,7 @@ func handleRebroadcastWinners(s *rpcServer, cmd interface{}, closeChan <-chan st
 			s.server.blockManager.chain.LotteryDataForBlock(&blocks[i])
 		if err != nil {
 			return nil, rpcInternalError("Lottery data for block "+
-				"failed: "+err.Error(), "")
+				"failed: "+ err.Error(), "")
 		}
 		ntfnData := &WinningTicketsNtfnData{
 			BlockHash:   blocks[i],
@@ -6145,7 +6146,7 @@ func (s *rpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request, isAdmin 
 	if err != nil {
 		rpcsLog.Warnf("Failed to hijack HTTP connection: %v", err)
 		errCode := http.StatusInternalServerError
-		http.Error(w, strconv.Itoa(errCode)+" "+
+		http.Error(w, strconv.Itoa(errCode) + " "+
 			err.Error(), errCode)
 		return
 	}
@@ -6448,7 +6449,7 @@ func newRPCServer(listenAddrs []string, policy *mining.Policy, s *server) (*rpcS
 		gbtWorkState:           newGbtWorkState(s.timeSource),
 		helpCacher:             newHelpCacher(),
 		requestProcessShutdown: make(chan struct{}),
-		quit: make(chan int),
+		quit:                   make(chan int),
 	}
 	if cfg.RPCUser != "" && cfg.RPCPass != "" {
 		login := cfg.RPCUser + ":" + cfg.RPCPass

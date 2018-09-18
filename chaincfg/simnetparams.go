@@ -47,9 +47,10 @@ var SimNetParams = Params{
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 128,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
-	BlockTaxProportion:       1,
+	WorkRewardProportion:     30, // 30%
+	StakeRewardProportion:    30, // 30%
+	BlockArtTaxProportion:    30, // 30%
+	BlockDevTaxProportion:    10, // 10%
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
@@ -231,7 +232,11 @@ var SimNetParams = Params{
 	//   SkQkfkHZeBbMW8129tZ3KspEh1XBFC1btbkgzs6cjSyPbrgxzsKqk
 	//
 	// Organization address is ScuQxvveKGfpG1ypt6u27F99Anf7EW3cqhq
-	OrganizationPkScript:        hexDecode("a914cbb08d6ca783b533b2c7d24a51fbca92d937bf9987"),
-	OrganizationPkScriptVersion: 0,
-	BlockOneLedger:              BlockOneLedgerSimNet,
+	// Organization address is ?
+	OrganizationDevelopersPkScript:        hexDecode(""),
+	OrganizationDevelopersPkScriptVersion: 0,
+
+	OrganizationArtistsPkScript:        hexDecode(""),
+	OrganizationArtistsPkScriptVersion: 0,
+	BlockOneLedger:                     BlockOneLedgerSimNet,
 }

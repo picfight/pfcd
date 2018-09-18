@@ -131,10 +131,11 @@ type GetBlockHeaderVerboseResult struct {
 // GetBlockSubsidyResult models the data returned from the getblocksubsidy
 // command.
 type GetBlockSubsidyResult struct {
-	Developer int64 `json:"developer"`
-	PoS       int64 `json:"pos"`
-	PoW       int64 `json:"pow"`
-	Total     int64 `json:"total"`
+	Dev   int64 `json:"dev"`
+	PoA   int64 `json:"poa"`
+	PoS   int64 `json:"pos"`
+	PoW   int64 `json:"pow"`
+	Total int64 `json:"total"`
 }
 
 // GetBlockTemplateResultTx models the transactions field of the

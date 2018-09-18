@@ -323,11 +323,12 @@ type Params struct {
 	// casting stake votes (collectively, per block).
 	StakeRewardProportion uint16
 
-	// BlockTaxProportion is the inverse of the percentage of funds for each
+	// BlockDevTaxProportion and BlockArtTaxProportion are the inverse of the percentage of funds for each
 	// block to allocate to the developer organization.
 	// e.g. 10% --> 10 (or 1 / (1/10))
 	// Special case: disable taxes with a value of 0
-	BlockTaxProportion uint16
+	BlockDevTaxProportion uint16
+	BlockArtTaxProportion uint16
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints []Checkpoint
@@ -466,8 +467,10 @@ type Params struct {
 	// multisignature address.  OrganizationPkScriptVersion is the version
 	// of the output script.  Until PoS hardforking is implemented, this
 	// version must always match for a block to validate.
-	OrganizationPkScript        []byte
-	OrganizationPkScriptVersion uint16
+	OrganizationDevelopersPkScript        []byte
+	OrganizationDevelopersPkScriptVersion uint16
+	OrganizationArtistsPkScript           []byte
+	OrganizationArtistsPkScriptVersion    uint16
 
 	// BlockOneLedger specifies the list of payouts in the coinbase of
 	// block height 1. If there are no payouts to be given, set this
@@ -637,7 +640,10 @@ func (p *Params) BlockOneSubsidy() int64 {
 // TotalSubsidyProportions is the sum of WorkReward, StakeReward, and BlockTax
 // proportions.
 func (p *Params) TotalSubsidyProportions() uint16 {
-	return p.WorkRewardProportion + p.StakeRewardProportion + p.BlockTaxProportion
+	return p.WorkRewardProportion +
+		p.StakeRewardProportion +
+		p.BlockDevTaxProportion +
+		p.BlockArtTaxProportion
 }
 
 // LatestCheckpointHeight is the height of the latest checkpoint block in the
