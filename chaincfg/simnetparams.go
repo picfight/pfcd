@@ -43,7 +43,7 @@ var SimNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              50000000000,
+	BaseSubsidy:              1 * 1e8, // 1 Coin
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 128,

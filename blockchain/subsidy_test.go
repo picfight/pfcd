@@ -40,10 +40,13 @@ func TestBlockSubsidy(t *testing.T) {
 				mainnet) * int64(mainnet.TicketsPerBlock)
 			dev, art := CalcBlockTaxSubsidy(subsidyCache, height,
 				mainnet.TicketsPerBlock, mainnet)
-			if (i > 1000000) {
+			if (i > 60*24*356*5) { // 5Yrs
 				break
 			}
-			totalSubsidy += ((work + stake + dev + art) * numBlocks)
+
+			inc := (work + stake + dev + art)
+			add := inc * numBlocks
+			totalSubsidy += add
 
 			// First reduction internal, subtract the stake subsidy for
 			// blocks before the staking system is enabled.

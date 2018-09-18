@@ -41,7 +41,7 @@ var TestNet3Params = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              2500000000, // 25 Coin
+	BaseSubsidy:              1 * 1e8, // 1 Coin
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 2048,
