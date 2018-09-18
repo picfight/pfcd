@@ -22,6 +22,8 @@ var MainNetParams = Params{
 	DefaultPort: "9708",
 	DNSSeeds: []DNSSeed{
 		{"mainnet-seed.picfight.org", true},
+		{"mainnet-seed.eu-1.picfight.org", true},
+		{"mainnet-seed.us-1.picfight.org", true},
 	},
 
 	// Chain parameters
