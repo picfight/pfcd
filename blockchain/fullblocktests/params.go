@@ -287,10 +287,10 @@ var simNetParams = &chaincfg.Params{
 
 	// PicFight organization related parameters
 	// Organization address is ?
-	OrganizationDevelopersPkScript:        fromHex("?"),
+	OrganizationDevelopersPkScript:        fromHex(""),
 	OrganizationDevelopersPkScriptVersion: 0,
 
-	OrganizationArtistsPkScript:        fromHex("?"),
+	OrganizationArtistsPkScript:        fromHex(""),
 	OrganizationArtistsPkScriptVersion: 0,
 	BlockOneLedger: []*chaincfg.TokenPayout{
 		{Address: "Sshw6S86G2bV6W32cbc7EhtFy8f93rU6pae", Amount: 100000 * 1e8},

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/picfight/pfcd/chaincfg"
+	"fmt"
 )
 
 func TestBlockSubsidy(t *testing.T) {
@@ -21,6 +22,8 @@ func TestBlockSubsidy(t *testing.T) {
 		if i == 0 || i == 1 {
 			continue
 		}
+		fmt.Printf("block %d", i)
+		fmt.Println()
 
 		if i%mainnet.SubsidyReductionInterval == 0 {
 			numBlocks := mainnet.SubsidyReductionInterval
@@ -37,7 +40,7 @@ func TestBlockSubsidy(t *testing.T) {
 				mainnet) * int64(mainnet.TicketsPerBlock)
 			dev, art := CalcBlockTaxSubsidy(subsidyCache, height,
 				mainnet.TicketsPerBlock, mainnet)
-			if (work + stake + dev + art) == 0 {
+			if (i > 1000000) {
 				break
 			}
 			totalSubsidy += ((work + stake + dev + art) * numBlocks)

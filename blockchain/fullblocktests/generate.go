@@ -852,7 +852,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		func(b *wire.MsgBlock) {
 			taxOutput := b.Transactions[0].TxOut[0]
 			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
-				g.Params().OrganizationPkScriptVersion,
+				g.Params().OrganizationArtistsPkScriptVersion,
 				taxOutput.PkScript, g.Params())
 			p2shTaxAddr := addrs[0].(*pfcutil.AddressScriptHash)
 			p2pkhTaxAddr, err := pfcutil.NewAddressPubKeyHash(
