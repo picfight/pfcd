@@ -76,9 +76,9 @@ var genesisBlock = wire.MsgBlock{
 		PrevBlock:    chainhash.Hash{},
 		MerkleRoot:   genesisMerkleRoot,
 		StakeRoot:    chainhash.Hash{},
-		Timestamp:    time.Unix(1454954400, 0), // Mon, 08 Feb 2016 18:00:00 GMT
-		Bits:         0x1b01ffff,               // Difficulty 32767
-		SBits:        2 * 1e8,                  // 2 Coin
+		Timestamp:    time.Unix(0, 0),
+		Bits:         0x0,
+		SBits:        0,
 		Nonce:        0x00000000,
 		StakeVersion: 0,
 	},
@@ -144,9 +144,9 @@ var testNet3GenesisBlock = wire.MsgBlock{
 		Version:      6,
 		PrevBlock:    chainhash.Hash{},
 		MerkleRoot:   genesisCoinbaseTx.TxHash(),
-		Timestamp:    time.Unix(1533513600, 0), // 2018-08-06 00:00:00 +0000 UTC
-		Bits:         0x1e00ffff,               // Difficulty 1 [000000ffff000000000000000000000000000000000000000000000000000000]
-		SBits:        20000000,
+		Timestamp:    time.Unix(0, 0),
+		Bits:         0x0,
+		SBits:        0,
 		Nonce:        0x18aea41a,
 		StakeVersion: 6,
 	},
@@ -231,9 +231,9 @@ var simNetGenesisBlock = wire.MsgBlock{
 		Voters:       0,
 		FreshStake:   0,
 		Revocations:  0,
-		Timestamp:    time.Unix(1401292357, 0), // 2009-01-08 20:54:25 -0600 CST
+		Timestamp:    time.Unix(0, 0),
 		PoolSize:     0,
-		Bits:         0x207fffff, // 545259519 [7fffff0000000000000000000000000000000000000000000000000000000000]
+		Bits:         0x0,
 		SBits:        0,
 		Nonce:        0,
 		StakeVersion: 0,
