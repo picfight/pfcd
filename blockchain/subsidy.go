@@ -111,8 +111,6 @@ func CalcStakeVoteSubsidy(subsidyCache *SubsidyCache, height int64, params *chai
 
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
-//
-// Safe for concurrent access.
 func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *chaincfg.Params) (dev, art int64) {
 	if params.BlockDevTaxProportion == 0 || params.BlockArtTaxProportion == 0 {
 		return 0, 0
