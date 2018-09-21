@@ -24,16 +24,16 @@ var (
 	bigOne = big.NewInt(1)
 
 	// mainPowLimit is the highest proof of work value a PicFight block can
-	// have for the main network.  It is the value 2^224 - 1.
-	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
+	// have for the main network.  It is the value 2^(256-32) - 1 = 2^(256-8*4) - 1 = 2^224 - 1
+	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*4), bigOne)
 
 	// testNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the test network.  It is the value 2^232 - 1.
-	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 232), bigOne)
+	// can have for the test network.  It is the value 2^(256-24) - 1 = 2^(256-8*3) - 1 = 2^232 - 1
+	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*3), bigOne)
 
 	// simNetPowLimit is the highest proof of work value a PicFight block
 	// can have for the simulation test network.  It is the value 2^255 - 1.
-	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-1), bigOne)
 
 	VoteBitsNotFound = fmt.Errorf("vote bits not found")
 )
