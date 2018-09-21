@@ -26,7 +26,7 @@ var TestNet3Params = Params{
 	GenesisBlock:             &testNet3GenesisBlock,
 	GenesisHash:              &testNet3GenesisHash,
 	PowLimit:                 testNetPowLimit,
-	PowLimitBits:             picfight.BigToCompact(testNetPowLimit),
+	PowLimitBits:             0x1e00ffff,
 	ReduceMinDifficulty:      true,
 	MinDiffReductionTime:     time.Minute * 10, // ~99.3% chance to be mined before reduction
 	GenerateSupported:        true,
