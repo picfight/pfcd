@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/picfight/pfcd/chaincfg"
-	"fmt"
 )
 
 func TestBlockSubsidy(t *testing.T) {
@@ -22,8 +21,6 @@ func TestBlockSubsidy(t *testing.T) {
 		if i == 0 || i == 1 {
 			continue
 		}
-		fmt.Printf("block %d", i)
-		fmt.Println()
 
 		if i%mainnet.SubsidyReductionInterval == 0 {
 			numBlocks := mainnet.SubsidyReductionInterval

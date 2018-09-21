@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/wire"
-	"github.com/picfight/pfcd/picfight"
 )
 
 // TestNet3Params defines the network parameters for the test currency network.

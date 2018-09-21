@@ -9,11 +9,7 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/wire"
-	"github.com/picfight/pfcd/picfight"
 )
-
-const blockTime = 30 // 30 seconds
-const extentionParameter = 5 * 60 / blockTime
 
 // MainNetParams defines the network parameters for the main PicFight network.
 var MainNetParams = Params{
