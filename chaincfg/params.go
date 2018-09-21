@@ -16,25 +16,7 @@ import (
 	"github.com/picfight/pfcd/wire"
 )
 
-// These variables are the chain proof-of-work limit parameters for each default
-// network.
 var (
-	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
-	// the overhead of creating it multiple times.
-	bigOne = big.NewInt(1)
-
-	// mainPowLimit is the highest proof of work value a PicFight block can
-	// have for the main network.  It is the value 2^224 - 1.
-	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-2*8), bigOne)
-
-	// testNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the test network.  It is the value 2^232 - 1.
-	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-2*8), bigOne)
-
-	// simNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the simulation test network.  It is the value 2^255 - 1.
-	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
-
 	VoteBitsNotFound = fmt.Errorf("vote bits not found")
 )
 
@@ -295,25 +277,9 @@ type Params struct {
 	RetargetAdjustmentFactor int64
 
 	// Subsidy parameters.
-	//
-	// Subsidy calculation for exponential reductions:
-	// 0 for i in range (0, height / SubsidyReductionInterval):
-	// 1     subsidy *= MulSubsidy
-	// 2     subsidy /= DivSubsidy
-	//
-	// Caveat: Don't overflow the int64 register!!
 
 	// BaseSubsidy is the starting subsidy amount for mined blocks.
 	BaseSubsidy int64
-
-	// Subsidy reduction multiplier.
-	MulSubsidy int64
-
-	// Subsidy reduction divisor.
-	DivSubsidy int64
-
-	// SubsidyReductionInterval is the reduction interval in blocks.
-	SubsidyReductionInterval int64
 
 	// WorkRewardProportion is the comparative amount of the subsidy given for
 	// creating a block.
