@@ -24,8 +24,8 @@ var (
 	bigOne = big.NewInt(1)
 
 	// mainPowLimit is the highest proof of work value a PicFight block can
-	// have for the main network.  It is the value 2^(256-32) - 1 = 2^(256-8*4) - 1 = 2^224 - 1
-	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*4), bigOne)
+	// have for the main network.  It is the value 2^(256-24) - 1 = 2^(256-8*3) - 1 = 2^232 - 1
+	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*3), bigOne)
 
 	// testNetPowLimit is the highest proof of work value a PicFight block
 	// can have for the test network.  It is the value 2^(256-24) - 1 = 2^(256-8*3) - 1 = 2^232 - 1
