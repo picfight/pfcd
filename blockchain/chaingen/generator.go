@@ -958,8 +958,8 @@ func (g *Generator) CalcNextReqStakeDifficulty(prevBlock *wire.MsgBlock) int64 {
 		// factor) in order to help weight the ticket pool size versus
 		// tickets per block.  Also, ensure the skewed pool size is a
 		// minimum of 1.
-		skewedPoolSize := targetPoolSize + (windowPoolSize -
-			targetPoolSize) * int64(g.params.TicketPoolSizeWeight)
+		skewedPoolSize := targetPoolSize + (windowPoolSize-
+			targetPoolSize)*int64(g.params.TicketPoolSizeWeight)
 		if skewedPoolSize <= 0 {
 			skewedPoolSize = 1
 		}
