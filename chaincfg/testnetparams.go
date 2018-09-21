@@ -32,11 +32,11 @@ var TestNet3Params = Params{
 	GenerateSupported:        true,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Minute * 2,
+	TargetTimePerBlock:       time.Second * 10, //
 	WorkDiffAlpha:            1,
 	WorkDiffWindowSize:       144,
 	WorkDiffWindows:          20,
-	TargetTimespan:           time.Minute * 2 * 144, // TimePerBlock * WindowSize
+	TargetTimespan:           time.Second * 10 * 144, // BlockTime * WindowSize
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
