@@ -41,9 +41,7 @@ var MainNetParams = Params{
 
 	// Subsidy parameters.
 	BaseSubsidy:              1 * 1e8, // 1 Coin
-	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 6144,
+
 	WorkRewardProportion:     30, // 30%
 	StakeRewardProportion:    30, // 30%
 	BlockArtTaxProportion:    30, // 30%
