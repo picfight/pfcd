@@ -40,12 +40,11 @@ var MainNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              1 * 1e8, // 1 Coin
-
-	WorkRewardProportion:     30, // 30%
-	StakeRewardProportion:    30, // 30%
-	BlockArtTaxProportion:    30, // 30%
-	BlockDevTaxProportion:    10, // 10%
+	BaseSubsidy:           int64(1 * 1e8), // 1 coin
+	WorkRewardProportion:  30,             // 30%
+	StakeRewardProportion: 30,             // 30%
+	BlockArtTaxProportion: 30,             // 30%
+	BlockDevTaxProportion: 10,             // 10%
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
