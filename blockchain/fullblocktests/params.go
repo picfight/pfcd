@@ -121,22 +121,19 @@ var simNetParams = &chaincfg.Params{
 	GenerateSupported:        true,
 	MaximumBlockSizes:        []int{1000000, 1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Second,
+	TargetTimePerBlock:       time.Second * 1, //
 	WorkDiffAlpha:            1,
 	WorkDiffWindowSize:       8,
 	WorkDiffWindows:          4,
-	TargetTimespan:           time.Second * 8, // TimePerBlock * WindowSize
+	TargetTimespan:           time.Second * 1 * 8, // BlockTime * WindowSize
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              1 * 1e8, // 1 Coin
-	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 128,
-	WorkRewardProportion:     30, // 30%
-	StakeRewardProportion:    30, // 30%
-	BlockArtTaxProportion:    30, // 30%
-	BlockDevTaxProportion:    10, // 10%
+	BaseSubsidy:           int64(1 * 1e8), // 1 coin
+	WorkRewardProportion:  30,             // 30%
+	StakeRewardProportion: 30,             // 30%
+	BlockArtTaxProportion: 30,             // 30%
+	BlockDevTaxProportion: 10,             // 10%
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
@@ -251,13 +248,13 @@ var simNetParams = &chaincfg.Params{
 	AcceptNonStdTxs: true,
 
 	// Address encoding magics
-	NetworkAddressPrefix: "S",
-	PubKeyAddrID:         [2]byte{0x27, 0x6f}, // starts with Sk
-	PubKeyHashAddrID:     [2]byte{0x0e, 0x91}, // starts with Ss
-	PKHEdwardsAddrID:     [2]byte{0x0e, 0x71}, // starts with Se
-	PKHSchnorrAddrID:     [2]byte{0x0e, 0x53}, // starts with SS
-	ScriptHashAddrID:     [2]byte{0x0e, 0x6c}, // starts with Sc
-	PrivateKeyID:         [2]byte{0x23, 0x07}, // starts with Ps
+	NetworkAddressPrefix: "E",
+	PubKeyAddrID:         [2]byte{0x15, 0x0c}, // starts with Ek
+	PubKeyHashAddrID:     [2]byte{0x07, 0xcf}, // starts with Es
+	PKHEdwardsAddrID:     [2]byte{0x07, 0xae}, // starts with Ee
+	PKHSchnorrAddrID:     [2]byte{0x07, 0x90}, // starts with ES
+	ScriptHashAddrID:     [2]byte{0x07, 0xa9}, // starts with Ec
+	PrivateKeyID:         [2]byte{0x22, 0xac}, // starts with Pe
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with sprv
