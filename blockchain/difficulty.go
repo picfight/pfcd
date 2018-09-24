@@ -693,23 +693,7 @@ func estimateSupply(params *chaincfg.Params, height int64) int64 {
 	// reduction interval and multiplying it the number of blocks in the
 	// interval then adding the subsidy produced by number of blocks in the
 	// current interval.
-	supply := params.BlockOneSubsidy()
-	reductions := height / params.SubsidyReductionInterval
-	subsidy := params.BaseSubsidy
-	for i := int64(0); i < reductions; i++ {
-		supply += params.SubsidyReductionInterval * subsidy
-
-		subsidy *= params.MulSubsidy
-		subsidy /= params.DivSubsidy
-	}
-	supply += (1 + height%params.SubsidyReductionInterval) * subsidy
-
-	// Blocks 0 and 1 have special subsidy amounts that have already been
-	// added above, so remove what their subsidies would have normally been
-	// which were also added above.
-	supply -= params.BaseSubsidy * 2
-
-	return supply
+	return params.BlockOneSubsidy() + params.BaseSubsidy*(height-1)
 }
 
 // sumPurchasedTickets returns the sum of the number of tickets purchased in the

@@ -82,25 +82,7 @@ func TestEstimateSupply(t *testing.T) {
 	// The parameters used for the supply estimation.
 	params := &chaincfg.MainNetParams
 	baseSubsidy := params.BaseSubsidy
-	reduxInterval := params.SubsidyReductionInterval
 	blockOneSubsidy := params.BlockOneSubsidy()
-
-	// intervalSubsidy is a helper function to return the full block subsidy
-	// for the given reduction interval.
-	intervalSubsidy := func(interval int) int64 {
-		subsidy := baseSubsidy
-		for i := 0; i < interval; i++ {
-			subsidy *= params.MulSubsidy
-			subsidy /= params.DivSubsidy
-		}
-		return subsidy
-	}
-
-	// Useful calculations for the tests below.
-	intervalOneSubsidy := intervalSubsidy(1)
-	intervalTwoSubsidy := intervalSubsidy(2)
-	reduxIntervalMinusOneSupply := blockOneSubsidy + (baseSubsidy * (reduxInterval - 2))
-	reduxIntervalTwoMinusOneSupply := reduxIntervalMinusOneSupply + (intervalOneSubsidy * reduxInterval)
 
 	tests := []struct {
 		height   int64
@@ -111,12 +93,7 @@ func TestEstimateSupply(t *testing.T) {
 		{height: 1, expected: blockOneSubsidy},
 		{height: 2, expected: blockOneSubsidy + baseSubsidy},
 		{height: 3, expected: blockOneSubsidy + baseSubsidy*2},
-		{height: reduxInterval - 1, expected: reduxIntervalMinusOneSupply},
-		{height: reduxInterval, expected: reduxIntervalMinusOneSupply + intervalOneSubsidy},
-		{height: reduxInterval + 1, expected: reduxIntervalMinusOneSupply + intervalOneSubsidy*2},
-		{height: reduxInterval*2 - 1, expected: reduxIntervalTwoMinusOneSupply},
-		{height: reduxInterval * 2, expected: reduxIntervalTwoMinusOneSupply + intervalTwoSubsidy},
-		{height: reduxInterval*2 + 1, expected: reduxIntervalTwoMinusOneSupply + intervalTwoSubsidy*2},
+		{height: 1000 + 1, expected: blockOneSubsidy + baseSubsidy*1000},
 	}
 
 	for _, test := range tests {

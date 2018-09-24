@@ -288,12 +288,7 @@ func UniqueOpReturnScript() []byte {
 // good tests which exercise that code, so it wouldn't make sense to use the
 // same code to generate them.
 func (g *Generator) calcFullSubsidy(blockHeight uint32) pfcutil.Amount {
-	iterations := int64(blockHeight) / g.params.SubsidyReductionInterval
 	subsidy := g.params.BaseSubsidy
-	for i := int64(0); i < iterations; i++ {
-		subsidy *= g.params.MulSubsidy
-		subsidy /= g.params.DivSubsidy
-	}
 	return pfcutil.Amount(subsidy)
 }
 
