@@ -47,8 +47,7 @@ var MainNetParams = Params{
 	BlockDevTaxProportion: 10,             // 10%
 
 	// Checkpoints ordered from oldest to newest.
-	Checkpoints: []Checkpoint{
-	},
+	Checkpoints: []Checkpoint{},
 
 	// The miner confirmation window is defined as:
 	//   target proof of work timespan / target proof of work spacing
