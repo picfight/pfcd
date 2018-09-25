@@ -155,25 +155,6 @@ func (v *Vote) VoteIndex(vote uint16) int {
 	return -1
 }
 
-const (
-	// VoteIDMaxBlockSize is the vote ID for the the maximum block size
-	// increase agenda used for the hard fork demo.
-	VoteIDMaxBlockSize = "maxblocksize"
-
-	// VoteIDSDiffAlgorithm is the vote ID for the new stake difficulty
-	// algorithm (aka ticket price) agenda defined by DCP0001.
-	VoteIDSDiffAlgorithm = "sdiffalgorithm"
-
-	// VoteIDLNSupport is the vote ID for determining if the developers
-	// should work on integrating Lightning Network support.
-	VoteIDLNSupport = "lnsupport"
-
-	// VoteIDLNFeatures is the vote ID for the agenda that introduces
-	// features useful for the Lightning Network (among other uses) defined
-	// by DCP0002 and DCP0003.
-	VoteIDLNFeatures = "lnfeatures"
-)
-
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.  This is part of BIP0009.
 type ConsensusDeployment struct {
