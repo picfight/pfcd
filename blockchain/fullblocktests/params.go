@@ -27,11 +27,11 @@ func newHashFromStr(hexStr string) *chainhash.Hash {
 	return hash
 }
 
-// fromHex converts the passed hex string into a byte slice and will panic if
+// hexDecode converts the passed hex string into a byte slice and will panic if
 // there is an error.  This is only provided for the hard-coded constants so
 // errors in the source code can be detected. It will only (and must only) be
 // called for initialization purposes.
-func fromHex(s string) []byte {
+func hexDecode(s string) []byte {
 	r, err := hex.DecodeString(s)
 	if err != nil {
 		panic("invalid hex in source file: " + s)
@@ -76,7 +76,7 @@ var (
 					Hash:  chainhash.Hash{},
 					Index: 0xffffffff,
 				},
-				SignatureScript: fromHex("04ffff001d010445" +
+				SignatureScript: hexDecode("04ffff001d010445" +
 					"5468652054696d65732030332f4a616e2f" +
 					"32303039204368616e63656c6c6f72206f" +
 					"6e206272696e6b206f66207365636f6e64" +
@@ -85,7 +85,7 @@ var (
 			}},
 			TxOut: []*wire.TxOut{{
 				Value: 0,
-				PkScript: fromHex("4104678afdb0fe5548271967f1" +
+				PkScript: hexDecode("4104678afdb0fe5548271967f1" +
 					"a67130b7105cd6a828e03909a67962e0ea1f" +
 					"61deb649f6bc3f4cef38c4f35504e51ec138" +
 					"c4f35504e51ec112de5c384df7ba0b8d578a" +
