@@ -12,7 +12,6 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/wire"
 )
 
 var (
@@ -600,17 +599,6 @@ func (b *BlockChain) calcNextRequiredStakeDifficultyV2(curNode *blockNode) (int6
 		prevPoolSizeAll, curPoolSizeAll), nil
 }
 
-// sdiffAlgoDeploymentVersion returns the deployment vesion for the stake
-// difficulty algorithm change as defined in DCP0001 for the provided network.
-//
-// This function is safe for concurrent access.
-func sdiffAlgoDeploymentVersion(network wire.CurrencyNet) uint32 {
-	if network != wire.MainNet {
-		return 5
-	}
-	return 4
-}
-
 // calcNextRequiredStakeDifficulty calculates the required stake difficulty for
 // the block after the passed previous block node based on the active stake
 // difficulty retarget rules.
@@ -788,40 +776,13 @@ func (b *BlockChain) estimateNextStakeDifficultyV2(curNode *blockNode, newTicket
 // the max possible number of tickets that can be purchased in the remainder of
 // the interval.
 //
-// The stake difficulty algorithm is selected based on the active rules.
-//
 // This function differs from the exported EstimateNextStakeDifficulty in that
 // the exported version uses the current best chain as the block node while this
 // function accepts any block node.
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) estimateNextStakeDifficulty(curNode *blockNode, newTickets int64, useMaxTickets bool) (int64, error) {
-	// Consensus voting on the new stake difficulty algorithm is only
-	// enabled on mainnet, testnet v2, and simnet.
-	net := b.chainParams.Net
-	if net != wire.MainNet && net != wire.SimNet {
-		return b.calcNextRequiredStakeDifficultyV2(curNode)
-	}
-
-	// Use the new stake difficulty algorithm if the stake vote for the new
-	// algorithm agenda is active.
-	//
-	// NOTE: The choice field of the return threshold state is not examined
-	// here because there is only one possible choice that can be active
-	// for the agenda, which is yes, so there is no need to check it.
-	deploymentVersion := sdiffAlgoDeploymentVersion(net)
-	state, err := b.deploymentState(curNode, deploymentVersion,
-		chaincfg.VoteIDSDiffAlgorithm)
-	if err != nil {
-		return 0, err
-	}
-	if state.State == ThresholdActive {
-		return b.estimateNextStakeDifficultyV2(curNode, newTickets,
-			useMaxTickets)
-	}
-
-	// Use the old stake difficulty algorithm in any other case.
-	return b.estimateNextStakeDifficultyV1(curNode, newTickets,
+	return b.estimateNextStakeDifficultyV2(curNode, newTickets,
 		useMaxTickets)
 }
 
