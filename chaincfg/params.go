@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2015-2019 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,7 +8,6 @@ package chaincfg
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -24,18 +23,20 @@ var (
 	bigOne = big.NewInt(1)
 
 	// mainPowLimit is the highest proof of work value a PicFight block can
-	// have for the main network.  It is the value 2^(256-24) - 1 = 2^(256-8*3) - 1 = 2^232 - 1
-	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*3), bigOne)
+	// have for the main network.  It is the value 2^224 - 1.
+	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
 
 	// testNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the test network.  It is the value 2^(256-24) - 1 = 2^(256-8*3) - 1 = 2^232 - 1
-	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*3), bigOne)
+	// can have for the test network.  It is the value 2^232 - 1.
+	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 232), bigOne)
 
 	// simNetPowLimit is the highest proof of work value a PicFight block
 	// can have for the simulation test network.  It is the value 2^255 - 1.
-	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-1), bigOne)
+	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
-	VoteBitsNotFound = fmt.Errorf("vote bits not found")
+	// regNetPowLimit is the highest proof of work value a PicFight block
+	// can have for the regression test network.  It is the value 2^255 - 1.
+	regNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 )
 
 // SigHashOptimization is an optimization for verification of transactions that
@@ -154,6 +155,30 @@ func (v *Vote) VoteIndex(vote uint16) int {
 
 	return -1
 }
+
+const (
+	// VoteIDMaxBlockSize is the vote ID for the the maximum block size
+	// increase agenda used for the hard fork demo.
+	VoteIDMaxBlockSize = "maxblocksize"
+
+	// VoteIDSDiffAlgorithm is the vote ID for the new stake difficulty
+	// algorithm (aka ticket price) agenda defined by DCP0001.
+	VoteIDSDiffAlgorithm = "sdiffalgorithm"
+
+	// VoteIDLNSupport is the vote ID for determining if the developers
+	// should work on integrating Lightning Network support.
+	VoteIDLNSupport = "lnsupport"
+
+	// VoteIDLNFeatures is the vote ID for the agenda that introduces
+	// features useful for the Lightning Network (among other uses) defined
+	// by DCP0002 and DCP0003.
+	VoteIDLNFeatures = "lnfeatures"
+
+	// VoteIDFixLNSeqLocks is the vote ID for the agenda that corrects the
+	// sequence lock functionality needed for Lightning Network (among other
+	// uses) defined by DCP0004.
+	VoteIDFixLNSeqLocks = "fixlnseqlocks"
+)
 
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.  This is part of BIP0009.
@@ -276,9 +301,25 @@ type Params struct {
 	RetargetAdjustmentFactor int64
 
 	// Subsidy parameters.
+	//
+	// Subsidy calculation for exponential reductions:
+	// 0 for i in range (0, height / SubsidyReductionInterval):
+	// 1     subsidy *= MulSubsidy
+	// 2     subsidy /= DivSubsidy
+	//
+	// Caveat: Don't overflow the int64 register!!
 
 	// BaseSubsidy is the starting subsidy amount for mined blocks.
 	BaseSubsidy int64
+
+	// Subsidy reduction multiplier.
+	MulSubsidy int64
+
+	// Subsidy reduction divisor.
+	DivSubsidy int64
+
+	// SubsidyReductionInterval is the reduction interval in blocks.
+	SubsidyReductionInterval int64
 
 	// WorkRewardProportion is the comparative amount of the subsidy given for
 	// creating a block.
@@ -288,12 +329,11 @@ type Params struct {
 	// casting stake votes (collectively, per block).
 	StakeRewardProportion uint16
 
-	// BlockDevTaxProportion and BlockArtTaxProportion are the inverse of the percentage of funds for each
+	// BlockTaxProportion is the inverse of the percentage of funds for each
 	// block to allocate to the developer organization.
 	// e.g. 10% --> 10 (or 1 / (1/10))
 	// Special case: disable taxes with a value of 0
-	BlockDevTaxProportion uint16
-	BlockArtTaxProportion uint16
+	BlockTaxProportion uint16
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints []Checkpoint
@@ -432,10 +472,8 @@ type Params struct {
 	// multisignature address.  OrganizationPkScriptVersion is the version
 	// of the output script.  Until PoS hardforking is implemented, this
 	// version must always match for a block to validate.
-	OrganizationDevelopersPkScript        []byte
-	OrganizationDevelopersPkScriptVersion uint16
-	OrganizationArtistsPkScript           []byte
-	OrganizationArtistsPkScriptVersion    uint16
+	OrganizationPkScript        []byte
+	OrganizationPkScriptVersion uint16
 
 	// BlockOneLedger specifies the list of payouts in the coinbase of
 	// block height 1. If there are no payouts to be given, set this
@@ -605,10 +643,7 @@ func (p *Params) BlockOneSubsidy() int64 {
 // TotalSubsidyProportions is the sum of WorkReward, StakeReward, and BlockTax
 // proportions.
 func (p *Params) TotalSubsidyProportions() uint16 {
-	return p.WorkRewardProportion +
-		p.StakeRewardProportion +
-		p.BlockDevTaxProportion +
-		p.BlockArtTaxProportion
+	return p.WorkRewardProportion + p.StakeRewardProportion + p.BlockTaxProportion
 }
 
 // LatestCheckpointHeight is the height of the latest checkpoint block in the
@@ -625,4 +660,5 @@ func init() {
 	mustRegister(&MainNetParams)
 	mustRegister(&TestNet3Params)
 	mustRegister(&SimNetParams)
+	mustRegister(&RegNetParams)
 }

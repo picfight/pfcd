@@ -82,23 +82,36 @@ type GetBlockVerboseResult struct {
 	PoolSize      uint32        `json:"poolsize"`
 	Bits          string        `json:"bits"`
 	SBits         float64       `json:"sbits"`
-	Difficulty    float64       `json:"difficulty"`
 	ExtraData     string        `json:"extradata"`
 	StakeVersion  uint32        `json:"stakeversion"`
+	Difficulty    float64       `json:"difficulty"`
+	ChainWork     string        `json:"chainwork"`
 	PreviousHash  string        `json:"previousblockhash"`
 	NextHash      string        `json:"nextblockhash,omitempty"`
+}
+
+// AgendaInfo provides an overview of an agenda in a consensus deployment.
+type AgendaInfo struct {
+	Status     string `json:"status"`
+	Since      int64  `json:"since,omitempty"`
+	StartTime  uint64 `json:"starttime"`
+	ExpireTime uint64 `json:"expiretime"`
 }
 
 // GetBlockChainInfoResult models the data returned from the getblockchaininfo
 // command.
 type GetBlockChainInfoResult struct {
-	Chain                string  `json:"chain"`
-	Blocks               int32   `json:"blocks"`
-	Headers              int32   `json:"headers"`
-	BestBlockHash        string  `json:"bestblockhash"`
-	Difficulty           float64 `json:"difficulty"`
-	VerificationProgress float64 `json:"verificationprogress"`
-	ChainWork            string  `json:"chainwork"`
+	Chain                string                `json:"chain"`
+	Blocks               int64                 `json:"blocks"`
+	Headers              int64                 `json:"headers"`
+	SyncHeight           int64                 `json:"syncheight"`
+	BestBlockHash        string                `json:"bestblockhash"`
+	Difficulty           uint32                `json:"difficulty"`
+	VerificationProgress float64               `json:"verificationprogress"`
+	ChainWork            string                `json:"chainwork"`
+	InitialBlockDownload bool                  `json:"initialblockdownload"`
+	MaxBlockSize         int64                 `json:"maxblocksize"`
+	Deployments          map[string]AgendaInfo `json:"deployments"`
 }
 
 // GetBlockHeaderVerboseResult models the data from the getblockheader command when
@@ -108,7 +121,6 @@ type GetBlockHeaderVerboseResult struct {
 	Hash          string  `json:"hash"`
 	Confirmations int64   `json:"confirmations"`
 	Version       int32   `json:"version"`
-	PreviousHash  string  `json:"previousblockhash,omitempty"`
 	MerkleRoot    string  `json:"merkleroot"`
 	StakeRoot     string  `json:"stakeroot"`
 	VoteBits      uint16  `json:"votebits"`
@@ -123,19 +135,21 @@ type GetBlockHeaderVerboseResult struct {
 	Size          uint32  `json:"size"`
 	Time          int64   `json:"time"`
 	Nonce         uint32  `json:"nonce"`
+	ExtraData     string  `json:"extradata"`
 	StakeVersion  uint32  `json:"stakeversion"`
 	Difficulty    float64 `json:"difficulty"`
+	ChainWork     string  `json:"chainwork"`
+	PreviousHash  string  `json:"previousblockhash,omitempty"`
 	NextHash      string  `json:"nextblockhash,omitempty"`
 }
 
 // GetBlockSubsidyResult models the data returned from the getblocksubsidy
 // command.
 type GetBlockSubsidyResult struct {
-	Dev   int64 `json:"dev"`
-	PoA   int64 `json:"poa"`
-	PoS   int64 `json:"pos"`
-	PoW   int64 `json:"pow"`
-	Total int64 `json:"total"`
+	Developer int64 `json:"developer"`
+	PoS       int64 `json:"pos"`
+	PoW       int64 `json:"pow"`
+	Total     int64 `json:"total"`
 }
 
 // GetBlockTemplateResultTx models the transactions field of the
@@ -327,7 +341,7 @@ type TxRawResult struct {
 	Vin           []Vin  `json:"vin"`
 	Vout          []Vout `json:"vout"`
 	BlockHash     string `json:"blockhash,omitempty"`
-	BlockHeight   int64  `json:"blockheight"`
+	BlockHeight   int64  `json:"blockheight,omitempty"`
 	BlockIndex    uint32 `json:"blockindex,omitempty"`
 	Confirmations int64  `json:"confirmations,omitempty"`
 	Time          int64  `json:"time,omitempty"`
@@ -511,9 +525,12 @@ type SearchRawTransactionsResult struct {
 	Txid          string       `json:"txid"`
 	Version       int32        `json:"version"`
 	LockTime      uint32       `json:"locktime"`
+	Expiry        uint32       `json:"expiry"`
 	Vin           []VinPrevOut `json:"vin"`
 	Vout          []Vout       `json:"vout"`
 	BlockHash     string       `json:"blockhash,omitempty"`
+	BlockHeight   int64        `json:"blockheight,omitempty"`
+	BlockIndex    uint32       `json:"blockindex,omitempty"`
 	Confirmations uint64       `json:"confirmations,omitempty"`
 	Time          int64        `json:"time,omitempty"`
 	Blocktime     int64        `json:"blocktime,omitempty"`

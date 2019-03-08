@@ -113,12 +113,12 @@ var (
 // TestThresholdState ensures that the threshold state function progresses
 // through the states correctly.
 func TestThresholdState(t *testing.T) {
-	// Create chain params based on simnet params, but add a specific test
+	// Create chain params based on regnet params, but add a specific test
 	// dummy deployment and set the proof-of-work difficulty readjustment
 	// size to a really large number so that the test chain can be generated
 	// more quickly.
 	posVersion := uint32(4)
-	params := chaincfg.SimNetParams
+	params := chaincfg.RegNetParams
 	params.WorkDiffWindowSize = 200000
 	params.WorkDiffWindows = 1
 	params.TargetTimespan = params.TargetTimePerBlock *
@@ -189,7 +189,7 @@ func TestThresholdState(t *testing.T) {
 	// state and choice to match the provided values.
 	testThresholdState := func(id string, state ThresholdState, choice uint32) {
 		tipHash := g.Tip().BlockHash()
-		s, err := chain.ThresholdState(&tipHash, posVersion, id)
+		s, err := chain.NextThresholdState(&tipHash, posVersion, id)
 		if err != nil {
 			t.Fatalf("block %q (hash %s, height %d) unexpected "+
 				"error when retrieving threshold state: %v",

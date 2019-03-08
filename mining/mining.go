@@ -13,6 +13,12 @@ import (
 	"github.com/picfight/pfcd/pfcutil"
 )
 
+const (
+	// MinHighPriority is the minimum priority value that allows a
+	// transaction to be considered high priority.
+	MinHighPriority = pfcutil.AtomsPerCoin * 144.0 / 250
+)
+
 // TxDesc is a descriptor about a transaction in a transaction source along with
 // additional metadata.
 type TxDesc struct {
@@ -72,8 +78,9 @@ type TxSource interface {
 	// pool.
 	VotesForBlocks(hashes []chainhash.Hash) [][]VoteDesc
 
-	// IsTxTreeKnownInvalid returns whether or not the transaction tree of
-	// the provided hash is known to be invalid according to the votes
-	// currently in the memory pool.
-	IsTxTreeKnownInvalid(hash *chainhash.Hash) bool
+	// IsRegTxTreeKnownDisapproved returns whether or not the regular
+	// transaction tree of the block represented by the provided hash is
+	// known to be disapproved according to the votes currently in the
+	// source pool.
+	IsRegTxTreeKnownDisapproved(hash *chainhash.Hash) bool
 }

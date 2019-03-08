@@ -18,6 +18,7 @@ import (
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/connmgr"
 	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/fees"
 	"github.com/picfight/pfcd/mempool"
 	"github.com/picfight/pfcd/peer"
 	"github.com/picfight/pfcd/txscript"
@@ -55,12 +56,13 @@ var (
 
 	adxrLog = backendLog.Logger("ADXR")
 	amgrLog = backendLog.Logger("AMGR")
-	cmgrLog = backendLog.Logger("CMGR")
 	bcdbLog = backendLog.Logger("BCDB")
 	bmgrLog = backendLog.Logger("BMGR")
-	pfcdLog = backendLog.Logger("PFCD")
 	chanLog = backendLog.Logger("CHAN")
+	cmgrLog = backendLog.Logger("CMGR")
+	pfcdLog = backendLog.Logger("PFCD")
 	discLog = backendLog.Logger("DISC")
+	feesLog = backendLog.Logger("FEES")
 	indxLog = backendLog.Logger("INDX")
 	minrLog = backendLog.Logger("MINR")
 	peerLog = backendLog.Logger("PEER")
@@ -74,26 +76,28 @@ var (
 // Initialize package-global logger variables.
 func init() {
 	addrmgr.UseLogger(amgrLog)
+	blockchain.UseLogger(chanLog)
 	connmgr.UseLogger(cmgrLog)
 	database.UseLogger(bcdbLog)
-	blockchain.UseLogger(chanLog)
+	fees.UseLogger(feesLog)
 	indexers.UseLogger(indxLog)
-	peer.UseLogger(peerLog)
-	txscript.UseLogger(scrpLog)
-	stake.UseLogger(stkeLog)
 	mempool.UseLogger(txmpLog)
+	peer.UseLogger(peerLog)
+	stake.UseLogger(stkeLog)
+	txscript.UseLogger(scrpLog)
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
 var subsystemLoggers = map[string]slog.Logger{
 	"ADXR": adxrLog,
 	"AMGR": amgrLog,
-	"CMGR": cmgrLog,
 	"BCDB": bcdbLog,
 	"BMGR": bmgrLog,
-	"PFCD": pfcdLog,
 	"CHAN": chanLog,
+	"CMGR": cmgrLog,
+	"PFCD": pfcdLog,
 	"DISC": discLog,
+	"FEES": feesLog,
 	"INDX": indxLog,
 	"MINR": minrLog,
 	"PEER": peerLog,

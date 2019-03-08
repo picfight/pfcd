@@ -96,8 +96,10 @@ var (
 	}
 )
 
+// defaultParams returns net parameters modified to have a single known
+// deployment that is used throughout the various votebit tests.
 func defaultParams(vote chaincfg.Vote) chaincfg.Params {
-	params := chaincfg.SimNetParams
+	params := chaincfg.RegNetParams
 	params.Deployments = make(map[uint32][]chaincfg.ConsensusDeployment)
 	params.Deployments[posVersion] = []chaincfg.ConsensusDeployment{{
 		Vote: vote,
@@ -126,9 +128,9 @@ func TestNoQuorum(t *testing.T) {
 		bc.index.AddNode(node)
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
-	ts, err := bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err := bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(SVI): %v", err)
+		t.Fatalf("NextThresholdState(SVI): %v", err)
 	}
 	tse := ThresholdStateTuple{
 		State:  ThresholdDefined,
@@ -148,9 +150,9 @@ func TestNoQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(started): %v", err)
+		t.Fatalf("NextThresholdState(started): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdStarted,
@@ -179,9 +181,9 @@ func TestNoQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(quorum-1): %v", err)
+		t.Fatalf("NextThresholdState(quorum-1): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdStarted,
@@ -216,9 +218,9 @@ func TestNoQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(quorum 75%%-1): %v", err)
+		t.Fatalf("NextThresholdState(quorum 75%%-1): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdStarted,
@@ -253,9 +255,9 @@ func TestNoQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(quorum 75%%): %v", err)
+		t.Fatalf("NextThresholdState(quorum 75%%): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdFailed,
@@ -283,9 +285,9 @@ func TestYesQuorum(t *testing.T) {
 		bc.index.AddNode(node)
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
-	ts, err := bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err := bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(SVI): %v", err)
+		t.Fatalf("NextThresholdState(SVI): %v", err)
 	}
 	tse := ThresholdStateTuple{
 		State:  ThresholdDefined,
@@ -305,9 +307,9 @@ func TestYesQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(started): %v", err)
+		t.Fatalf("NextThresholdState(started): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdStarted,
@@ -336,9 +338,9 @@ func TestYesQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(quorum-1): %v", err)
+		t.Fatalf("NextThresholdState(quorum-1): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdStarted,
@@ -373,9 +375,9 @@ func TestYesQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(quorum 75%%-1): %v", err)
+		t.Fatalf("NextThresholdState(quorum 75%%-1): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdStarted,
@@ -410,9 +412,9 @@ func TestYesQuorum(t *testing.T) {
 		curTimestamp = curTimestamp.Add(time.Second)
 	}
 
-	ts, err = bc.ThresholdState(&node.hash, posVersion, pedro.Id)
+	ts, err = bc.NextThresholdState(&node.hash, posVersion, pedro.Id)
 	if err != nil {
-		t.Fatalf("ThresholdState(quorum 75%%): %v", err)
+		t.Fatalf("NextThresholdState(quorum 75%%): %v", err)
 	}
 	tse = ThresholdStateTuple{
 		State:  ThresholdLockedIn,
@@ -1482,10 +1484,10 @@ func TestVoting(t *testing.T) {
 				node.height, params.Deployments[4][0].StartTime,
 				node.timestamp, node.timestamp-
 					int64(params.Deployments[4][0].StartTime))
-			ts, err := bc.ThresholdState(&node.hash, posVersion,
+			ts, err := bc.NextThresholdState(&node.hash, posVersion,
 				test.vote.Id)
 			if err != nil {
-				t.Fatalf("ThresholdState(%v): %v", k, err)
+				t.Fatalf("NextThresholdState(%v): %v", k, err)
 			}
 			if ts != test.expectedState[k] {
 				t.Fatalf("%v.%v (%v) got state %+v wanted "+
@@ -1496,8 +1498,10 @@ func TestVoting(t *testing.T) {
 	}
 }
 
+// defaultParallelParams returns net parameters modified to have two known
+// deployments that are used throughout the parallel votebit tests.
 func defaultParallelParams() chaincfg.Params {
-	params := chaincfg.SimNetParams
+	params := chaincfg.RegNetParams
 	params.Deployments = make(map[uint32][]chaincfg.ConsensusDeployment)
 	params.Deployments[posVersion] = []chaincfg.ConsensusDeployment{
 		{
@@ -1645,10 +1649,10 @@ func TestParallelVoting(t *testing.T) {
 				curTimestamp = curTimestamp.Add(time.Second)
 			}
 			for i := range test.vote {
-				ts, err := bc.ThresholdState(&node.hash,
+				ts, err := bc.NextThresholdState(&node.hash,
 					posVersion, test.vote[i].Id)
 				if err != nil {
-					t.Fatalf("ThresholdState(%v): %v", k, err)
+					t.Fatalf("NextThresholdState(%v): %v", k, err)
 				}
 
 				if ts != test.expectedState[i][k] {

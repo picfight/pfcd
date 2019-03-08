@@ -227,6 +227,12 @@ type Config struct {
 	// form "major.minor.revision" e.g. "2.6.41".
 	UserAgentVersion string
 
+	// UserAgentComments specifies any additional comments to include the in
+	// user agent to advertise.  This is optional, so it may be nil.  If
+	// specified, the comments should only exist of characters from the
+	// semantic alphabet [a-zA-Z0-9-].
+	UserAgentComments []string
+
 	// ChainParams identifies which chain parameters the peer is associated
 	// with.  It is highly recommended to specify this field, however it can
 	// be omitted in which case the test network will be used.
@@ -941,11 +947,13 @@ func (p *Peer) handlePongMsg(msg *wire.MsgPong) {
 	// and overlapping pings will be ignored. It is unlikely to occur
 	// without large usage of the ping rpc call since we ping infrequently
 	// enough that if they overlap we would have timed out the peer.
+	p.statsMtx.Lock()
 	if p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
 		p.lastPingMicros = time.Since(p.lastPingTime).Nanoseconds()
 		p.lastPingMicros /= 1000 // convert to usec.
 		p.lastPingNonce = 0
 	}
+	p.statsMtx.Unlock()
 }
 
 // readMessage reads the next wire message from the peer with logging.
@@ -1716,6 +1724,33 @@ func (p *Peer) QueueInventory(invVect *wire.InvVect) {
 	p.outputInvChan <- invVect
 }
 
+// QueueInventoryImmediate adds the passed inventory to the send queue to be
+// sent immediately.  This should typically only be used for inventory that is
+// time sensitive such as new tip blocks or votes.  Normal inventory should be
+// announced via QueueInventory which instead trickles it to the peer in
+// batches.  Inventory that the peer is already known to have is ignored.
+//
+// This function is safe for concurrent access.
+func (p *Peer) QueueInventoryImmediate(invVect *wire.InvVect) {
+	// Don't announce the inventory if the peer is already known to have it.
+	if p.knownInventory.Exists(invVect) {
+		return
+	}
+
+	// Avoid risk of deadlock if goroutine already exited.  The goroutine
+	// we will be sending to hangs around until it knows for a fact that
+	// it is marked as disconnected and *then* it drains the channels.
+	if !p.Connected() {
+		return
+	}
+
+	// Generate and queue a single inv message with the inventory vector.
+	invMsg := wire.NewMsgInvSizeHint(1)
+	invMsg.AddInvVect(invVect)
+	p.AddKnownInventory(invVect)
+	p.outputQueue <- outMsg{msg: invMsg, doneChan: nil}
+}
+
 // Connected returns whether or not the peer is currently connected.
 //
 // This function is safe for concurrent access.
@@ -1869,7 +1904,8 @@ func (p *Peer) localVersionMsg() (*wire.MsgVersion, error) {
 
 	// Version message.
 	msg := wire.NewMsgVersion(ourNA, theirNA, nonce, int32(blockNum))
-	msg.AddUserAgent(p.cfg.UserAgentName, p.cfg.UserAgentVersion)
+	msg.AddUserAgent(p.cfg.UserAgentName, p.cfg.UserAgentVersion,
+		p.cfg.UserAgentComments...)
 
 	// Advertise local services.
 	msg.Services = p.cfg.Services

@@ -8,6 +8,7 @@ package blockchain
 import (
 	"bytes"
 	"fmt"
+	"sync"
 
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg"
@@ -24,6 +25,9 @@ const subsidyCacheInitWidth = 4
 // they're not constantly recalculated. The blockchain struct itself possesses a
 // pointer to a preinitialized SubsidyCache.
 type SubsidyCache struct {
+	subsidyCache     map[uint64]int64
+	subsidyCacheLock sync.RWMutex
+
 	params *chaincfg.Params
 }
 
@@ -31,9 +35,21 @@ type SubsidyCache struct {
 // precalculates the values of the subsidy that are most likely to be seen by
 // the client when it connects to the network.
 func NewSubsidyCache(height int64, params *chaincfg.Params) *SubsidyCache {
+	scm := make(map[uint64]int64)
 	sc := SubsidyCache{
-		params: params,
+		subsidyCache: scm,
+		params:       params,
 	}
+
+	iteration := uint64(height / params.SubsidyReductionInterval)
+	if iteration < subsidyCacheInitWidth {
+		return &sc
+	}
+
+	for i := iteration - 4; i <= iteration; i++ {
+		sc.CalcBlockSubsidy(int64(iteration) * params.SubsidyReductionInterval)
+	}
+
 	return &sc
 }
 
@@ -41,6 +57,13 @@ func NewSubsidyCache(height int64, params *chaincfg.Params) *SubsidyCache {
 // should have. This is mainly used for determining how much the coinbase for
 // newly generated blocks awards as well as validating the coinbase for blocks
 // has the expected value.
+//
+// Subsidy calculation for exponential reductions:
+// 0 for i in range (0, height / SubsidyReductionInterval):
+// 1     subsidy *= MulSubsidy
+// 2     subsidy /= DivSubsidy
+//
+// Safe for concurrent access.
 func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 	// Block height 1 subsidy is 'special' and used to
 	// distribute initial tokens, if any.
@@ -48,7 +71,51 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 		return s.params.BlockOneSubsidy()
 	}
 
-	return s.params.BaseSubsidy
+	iteration := uint64(height / s.params.SubsidyReductionInterval)
+
+	if iteration == 0 {
+		return s.params.BaseSubsidy
+	}
+
+	// First, check the cache.
+	s.subsidyCacheLock.RLock()
+	cachedValue, existsInCache := s.subsidyCache[iteration]
+	s.subsidyCacheLock.RUnlock()
+	if existsInCache {
+		return cachedValue
+	}
+
+	// Is the previous one in the cache? If so, calculate
+	// the subsidy from the previous known value and store
+	// it in the database and the cache.
+	s.subsidyCacheLock.RLock()
+	cachedValue, existsInCache = s.subsidyCache[iteration-1]
+	s.subsidyCacheLock.RUnlock()
+	if existsInCache {
+		cachedValue *= s.params.MulSubsidy
+		cachedValue /= s.params.DivSubsidy
+
+		s.subsidyCacheLock.Lock()
+		s.subsidyCache[iteration] = cachedValue
+		s.subsidyCacheLock.Unlock()
+
+		return cachedValue
+	}
+
+	// Calculate the subsidy from scratch and store in the
+	// cache. TODO If there's an older item in the cache,
+	// calculate it from that to save time.
+	subsidy := s.params.BaseSubsidy
+	for i := uint64(0); i < iteration; i++ {
+		subsidy *= s.params.MulSubsidy
+		subsidy /= s.params.DivSubsidy
+	}
+
+	s.subsidyCacheLock.Lock()
+	s.subsidyCache[iteration] = subsidy
+	s.subsidyCacheLock.Unlock()
+
+	return subsidy
 }
 
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
@@ -101,22 +168,19 @@ func CalcStakeVoteSubsidy(subsidyCache *SubsidyCache, height int64, params *chai
 
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
-func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *chaincfg.Params) (dev, art int64) {
-	if params.BlockDevTaxProportion == 0 || params.BlockArtTaxProportion == 0 {
-		return 0, 0
+//
+// Safe for concurrent access.
+func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *chaincfg.Params) int64 {
+	if params.BlockTaxProportion == 0 {
+		return 0
 	}
 
-	subsidyTotal := subsidyCache.CalcBlockSubsidy(height)
+	subsidy := subsidyCache.CalcBlockSubsidy(height)
 
-	proportionTaxDev := int64(params.BlockDevTaxProportion)
-	proportionTaxArt := int64(params.BlockArtTaxProportion)
+	proportionTax := int64(params.BlockTaxProportion)
 	proportions := int64(params.TotalSubsidyProportions())
-
-	subsidyDev := subsidyTotal * (proportionTaxDev)
-	subsidyDev /= proportions
-
-	subsidyArt := subsidyTotal * (proportionTaxArt)
-	subsidyArt /= proportions
+	subsidy *= proportionTax
+	subsidy /= proportions
 
 	// Assume all voters 'present' before stake voting is turned on.
 	if height < params.StakeValidationHeight {
@@ -125,16 +189,15 @@ func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16
 
 	// If there are no voters, subsidy is 0. The block will fail later anyway.
 	if voters == 0 && height >= params.StakeValidationHeight {
-		return 0, 0
+		return 0
 	}
 
 	// Adjust for the number of voters. This shouldn't ever overflow if you start
 	// with 50 * 10^8 Atoms and voters and potentialVoters are uint16.
 	potentialVoters := params.TicketsPerBlock
-	adjustedDev := (int64(voters) * subsidyDev) / int64(potentialVoters)
-	adjustedArt := (int64(voters) * subsidyArt) / int64(potentialVoters)
+	adjusted := (int64(voters) * subsidy) / int64(potentialVoters)
 
-	return adjustedDev, adjustedArt
+	return adjusted
 }
 
 // BlockOneCoinbasePaysTokens checks to see if the first block coinbase pays
@@ -226,7 +289,7 @@ func CoinbasePaysTax(subsidyCache *SubsidyCache, tx *pfcutil.Tx, height int64, v
 	}
 
 	// Tax is disabled.
-	if params.BlockDevTaxProportion == 0 || params.BlockArtTaxProportion == 0 {
+	if params.BlockTaxProportion == 0 {
 		return nil
 	}
 
@@ -234,57 +297,26 @@ func CoinbasePaysTax(subsidyCache *SubsidyCache, tx *pfcutil.Tx, height int64, v
 		errStr := fmt.Sprintf("invalid coinbase (no outputs)")
 		return ruleError(ErrNoTxOutputs, errStr)
 	}
-	{ // developers
-		outputID := 0
-		taxOutput := tx.MsgTx().TxOut[outputID]
-		if taxOutput.Version != params.OrganizationDevelopersPkScriptVersion {
-			return ruleError(ErrNoTax,
-				"coinbase tax output uses incorrect script version")
-		}
-		if !bytes.Equal(taxOutput.PkScript, params.OrganizationDevelopersPkScript) {
-			return ruleError(ErrNoTax,
-				"coinbase tax output script does not match the "+
-					"required script")
-		}
 
-		// Get the amount of subsidy that should have been paid out to
-		// the organization, then check it.
-		dev, _ := CalcBlockTaxSubsidy(subsidyCache, height, voters, params)
-		outputName := fmt.Sprintf("Developers[%v]", outputID)
-		if dev != taxOutput.Value {
-			errStr := fmt.Sprintf("amount in output %s has non matching org "+
-				"calculated amount; got %v, want %v",
-				outputName,
-				taxOutput.Value,
-				dev)
-			return ruleError(ErrNoTax, errStr)
-		}
+	taxOutput := tx.MsgTx().TxOut[0]
+	if taxOutput.Version != params.OrganizationPkScriptVersion {
+		return ruleError(ErrNoTax,
+			"coinbase tax output uses incorrect script version")
 	}
-	{ // artists
-		outputID := 1
-		taxOutput := tx.MsgTx().TxOut[outputID]
-		if taxOutput.Version != params.OrganizationArtistsPkScriptVersion {
-			return ruleError(ErrNoTax,
-				"coinbase tax output uses incorrect script version")
-		}
-		if !bytes.Equal(taxOutput.PkScript, params.OrganizationArtistsPkScript) {
-			return ruleError(ErrNoTax,
-				"coinbase tax output script does not match the "+
-					"required script")
-		}
+	if !bytes.Equal(taxOutput.PkScript, params.OrganizationPkScript) {
+		return ruleError(ErrNoTax,
+			"coinbase tax output script does not match the "+
+				"required script")
+	}
 
-		// Get the amount of subsidy that should have been paid out to
-		// the organization, then check it.
-		_, art := CalcBlockTaxSubsidy(subsidyCache, height, voters, params)
-		outputName := fmt.Sprintf("Artists[%v]", outputID)
-		if art != taxOutput.Value {
-			errStr := fmt.Sprintf("amount in output %s has non matching org "+
-				"calculated amount; got %v, want %v",
-				outputName,
-				taxOutput.Value,
-				art)
-			return ruleError(ErrNoTax, errStr)
-		}
+	// Get the amount of subsidy that should have been paid out to
+	// the organization, then check it.
+	orgSubsidy := CalcBlockTaxSubsidy(subsidyCache, height, voters, params)
+	if orgSubsidy != taxOutput.Value {
+		errStr := fmt.Sprintf("amount in output 0 has non matching org "+
+			"calculated amount; got %v, want %v", taxOutput.Value,
+			orgSubsidy)
+		return ruleError(ErrNoTax, errStr)
 	}
 
 	return nil

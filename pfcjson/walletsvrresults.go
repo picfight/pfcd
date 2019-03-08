@@ -47,6 +47,11 @@ type GetBestBlockResult struct {
 	Height int64  `json:"height"`
 }
 
+// GetContractHashResult models the data from the getcontracthash command.
+type GetContractHashResult struct {
+	ContractHash string `json:"contracthash"`
+}
+
 // GetMultisigOutInfoResult models the data returned from the getmultisigoutinfo
 // command.
 type GetMultisigOutInfoResult struct {
@@ -62,6 +67,12 @@ type GetMultisigOutInfoResult struct {
 	SpentBy      string   `json:"spentby"`
 	SpentByIndex uint32   `json:"spentbyindex"`
 	Amount       float64  `json:"amount"`
+}
+
+// GetPayToContractHashResult models the data returned from the getpaytocontracthash
+// command.
+type GetPayToContractHashResult struct {
+	Address string `json:"address"`
 }
 
 // GetStakeInfoResult models the data returned from the getstakeinfo
@@ -123,6 +134,8 @@ type GetTransactionResult struct {
 	TimeReceived    int64                         `json:"timereceived"`
 	Details         []GetTransactionDetailsResult `json:"details"`
 	Hex             string                        `json:"hex"`
+	Type            string                        `json:"type"`
+	TicketStatus    string                        `json:"ticketstatus,omitempty"`
 }
 
 // VoteChoice models the data for a vote choice in the getvotechoices result.
@@ -172,6 +185,44 @@ type ScriptInfo struct {
 // command.
 type ListScriptsResult struct {
 	Scripts []ScriptInfo `json:"scripts"`
+}
+
+// ListTicketsTransactionSummaryInput defines the type used in the listtickets JSON-RPC
+// result for the MyInputs field of Ticket and Spender command field.
+type ListTicketsTransactionSummaryInput struct {
+	Index           uint32  `json:"index"`
+	PreviousAccount string  `json:"previousaccount"`
+	PreviousAmount  float64 `json:"previousamount"`
+}
+
+// ListTicketsTransactionSummaryOutput defines the type used in the listtickets JSON-RPC
+// result for the MyOutputs field of Ticket and Spender command field.
+type ListTicketsTransactionSummaryOutput struct {
+	Index        uint32  `json:"index"`
+	Account      string  `json:"account"`
+	Internal     bool    `json:"internal"`
+	Amount       float64 `json:"amount"`
+	Address      string  `json:"address"`
+	OutputScript string  `json:"outputscript"`
+}
+
+// ListTicketsTransactionSummary defines the type used in the listtickets JSON-RPC
+// result for the Ticket and Spender command fields.
+type ListTicketsTransactionSummary struct {
+	Hash        string                                `json:"hash"`
+	Transaction string                                `json:"transaction"`
+	MyInputs    []ListTicketsTransactionSummaryInput  `json:"myinputs"`
+	MyOutputs   []ListTicketsTransactionSummaryOutput `json:"myoutputs"`
+	Fee         float64                               `json:"fee"`
+	Timestamp   int64                                 `json:"timestamp"`
+	Type        string                                `json:"type"`
+}
+
+// ListTicketsResult models the data from the listtickets command.
+type ListTicketsResult struct {
+	Ticket  *ListTicketsTransactionSummary `json:"ticket"`
+	Spender *ListTicketsTransactionSummary `json:"spender"`
+	Status  string                         `json:"status"`
 }
 
 // ListTransactionsTxType defines the type used in the listtransactions JSON-RPC

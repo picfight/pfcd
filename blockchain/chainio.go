@@ -24,7 +24,7 @@ import (
 const (
 	// currentDatabaseVersion indicates what the current database
 	// version is.
-	currentDatabaseVersion = 4
+	currentDatabaseVersion = 5
 
 	// currentBlockIndexVersion indicates what the current block index
 	// database version.
@@ -43,13 +43,6 @@ type errNotInMainChain string
 // Error implements the error interface.
 func (e errNotInMainChain) Error() string {
 	return string(e)
-}
-
-// isNotInMainChainErr returns whether or not the passed error is an
-// errNotInMainChain error.
-func isNotInMainChainErr(err error) bool {
-	_, ok := err.(errNotInMainChain)
-	return ok
 }
 
 // errDeserialize signifies that a problem was encountered when deserializing
@@ -653,9 +646,7 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*wire.MsgTx) ([]spen
 	// Calculate the total number of stxos.
 	var numStxos int
 	for _, tx := range txns {
-		txType := stake.DetermineTxType(tx)
-
-		if txType == stake.TxTypeSSGen {
+		if stake.IsSSGen(tx) {
 			numStxos++
 			continue
 		}
@@ -683,13 +674,13 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*wire.MsgTx) ([]spen
 	stxos := make([]spentTxOut, numStxos)
 	for txIdx := len(txns) - 1; txIdx > -1; txIdx-- {
 		tx := txns[txIdx]
-		txType := stake.DetermineTxType(tx)
+		isVote := stake.IsSSGen(tx)
 
 		// Loop backwards through all of the transaction inputs and read
 		// the associated stxo.
 		for txInIdx := len(tx.TxIn) - 1; txInIdx > -1; txInIdx-- {
-			// Skip stakebase.
-			if txInIdx == 0 && txType == stake.TxTypeSSGen {
+			// Skip stakebase since it has no input.
+			if isVote && txInIdx == 0 {
 				continue
 			}
 
@@ -767,19 +758,15 @@ func serializeSpendJournalEntry(stxos []spentTxOut) ([]byte, error) {
 // view MUST have the utxos referenced by all of the transactions available for
 // the passed block since that information is required to reconstruct the spent
 // txouts.
-func dbFetchSpendJournalEntry(dbTx database.Tx, block *pfcutil.Block, parent *pfcutil.Block) ([]spentTxOut, error) {
+func dbFetchSpendJournalEntry(dbTx database.Tx, block *pfcutil.Block) ([]spentTxOut, error) {
 	// Exclude the coinbase transaction since it can't spend anything.
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	serialized := spendBucket.Get(block.Hash()[:])
-
 	var blockTxns []*wire.MsgTx
-	if headerApprovesParent(&block.MsgBlock().Header) {
-		blockTxns = append(blockTxns, parent.MsgBlock().Transactions[1:]...)
-	}
 	blockTxns = append(blockTxns, block.MsgBlock().STransactions...)
-
+	blockTxns = append(blockTxns, block.MsgBlock().Transactions[1:]...)
 	if len(blockTxns) > 0 && len(serialized) == 0 {
-		return nil, AssertError("missing spend journal data")
+		panicf("missing spend journal data for %s", block.Hash())
 	}
 
 	stxos, err := deserializeSpendJournalEntry(serialized, blockTxns)
@@ -1464,7 +1451,8 @@ func (b *BlockChain) createChainState() error {
 	numTxns := uint64(len(genesisBlock.MsgBlock().Transactions))
 	blockSize := uint64(genesisBlock.MsgBlock().SerializeSize())
 	stateSnapshot := newBestState(node, blockSize, numTxns, numTxns,
-		time.Unix(node.timestamp, 0), 0)
+		time.Unix(node.timestamp, 0), 0, 0, b.chainParams.MinimumStakeDiff,
+		nil, nil, earlyFinalState)
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -1537,7 +1525,7 @@ func (b *BlockChain) createChainState() error {
 // initChainState attempts to load and initialize the chain state from the
 // database.  When the db does not yet contain any chain state, both it and the
 // chain state are initialized to the genesis block.
-func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
+func (b *BlockChain) initChainState() error {
 	// Update database versioning scheme if needed.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// No versioning upgrade is needed if the dbinfo bucket does not
@@ -1629,7 +1617,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 	}
 
 	// Upgrade the database as needed.
-	err = upgradeDB(b.db, b.chainParams, b.dbInfo, interrupt)
+	err = upgradeDB(b.db, b.chainParams, b.dbInfo, b.interrupt)
 	if err != nil {
 		return err
 	}
@@ -1723,20 +1711,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}
 		b.bestChain.SetTip(tip)
 
-		// Ensure all ancestors of the current best chain tip are marked as
-		// valid.  This is necessary due to older software versions not marking
-		// nodes before the final checkpoint as valid.
-		//
-		// Note that the nodes are not marked as modified here, so the database
-		// is not updated unless the node is otherwise modified and written back
-		// out a later point.  Ultimately, the nodes should be updated in the
-		// database accordingly as part of a database upgrade, however, since
-		// the nodes are all in memory, they can be updated very quickly here
-		// without requiring a database version bump.
-		for node := tip; node != nil; node = node.parent {
-			node.status |= statusValid
-		}
-
 		log.Debugf("Block index loaded in %v", time.Since(bidxStart))
 
 		// Exception for version 1 blockchains: skip loading the stake
@@ -1748,7 +1722,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if err != nil {
 				return err
 			}
-			tip.stakeUndoData = tip.stakeNode.UndoData()
 			tip.newTickets = tip.stakeNode.NewTickets()
 		}
 
@@ -1770,9 +1743,18 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		block := utilBlock.MsgBlock()
 		blockSize := uint64(block.SerializeSize())
 		numTxns := uint64(len(block.Transactions))
+
+		// Calculate the next stake difficulty.
+		nextStakeDiff, err := b.calcNextRequiredStakeDifficulty(tip)
+		if err != nil {
+			return err
+		}
+
 		b.stateSnapshot = newBestState(tip, blockSize, numTxns,
 			state.totalTxns, tip.CalcPastMedianTime(),
-			state.totalSubsidy)
+			state.totalSubsidy, uint32(tip.stakeNode.PoolSize()),
+			nextStakeDiff, tip.stakeNode.Winners(),
+			tip.stakeNode.MissedTickets(), tip.stakeNode.FinalState())
 
 		return nil
 	})

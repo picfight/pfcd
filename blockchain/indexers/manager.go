@@ -26,8 +26,9 @@ var (
 )
 
 // -----------------------------------------------------------------------------
-// The index manager tracks the current tip of each index by using a parent
-// bucket that contains an entry for index.
+// The index manager tracks the current tip and version of each index by using a
+// parent bucket that contains an entry for index and a separate entry for its
+// version.
 //
 // The serialized format for an index tip is:
 //
@@ -36,6 +37,13 @@ var (
 //   Field           Type             Size
 //   block hash      chainhash.Hash   chainhash.HashSize
 //   block height    uint32           4 bytes
+//
+// The serialized format for an index version is:
+//
+//   [<version>]
+//
+//   Field           Type             Size
+//   index version   uint32           4 bytes
 // -----------------------------------------------------------------------------
 
 // dbPutIndexerTip uses an existing database transaction to update or add the
@@ -66,6 +74,47 @@ func dbFetchIndexerTip(dbTx database.Tx, idxKey []byte) (*chainhash.Hash, int32,
 	copy(hash[:], serialized[:chainhash.HashSize])
 	height := int32(byteOrder.Uint32(serialized[chainhash.HashSize:]))
 	return &hash, height, nil
+}
+
+// indexVersionKey returns the key for an index which houses the current version
+// of the index.
+func indexVersionKey(idxKey []byte) []byte {
+	verKey := make([]byte, len(idxKey)+1)
+	verKey[0] = 'v'
+	copy(verKey[1:], idxKey)
+	return verKey
+}
+
+// dbPutIndexerVersion uses an existing database transaction to update the
+// version for the given index to the provided value.
+func dbPutIndexerVersion(dbTx database.Tx, idxKey []byte, version uint32) error {
+	serialized := make([]byte, 4)
+	byteOrder.PutUint32(serialized[0:4], version)
+
+	indexesBucket := dbTx.Metadata().Bucket(indexTipsBucketName)
+	return indexesBucket.Put(indexVersionKey(idxKey), serialized)
+}
+
+// dbFetchIndexerVersion uses an existing database transaction to retrieve the
+// version of the provided index.  It will return one if the version has not
+// previously been stored.
+func dbFetchIndexerVersion(dbTx database.Tx, idxKey []byte) (uint32, error) {
+	indexesBucket := dbTx.Metadata().Bucket(indexTipsBucketName)
+	serialized := indexesBucket.Get(indexVersionKey(idxKey))
+	if len(serialized) == 0 {
+		return 1, nil
+	}
+
+	if len(serialized) < 4 {
+		return 0, database.Error{
+			ErrorCode: database.ErrCorruption,
+			Description: fmt.Sprintf("unexpected end of data for "+
+				"index %q version", string(idxKey)),
+		}
+	}
+
+	version := byteOrder.Uint32(serialized)
+	return version, nil
 }
 
 // dbIndexConnectBlock adds all of the index entries associated with the
@@ -208,32 +257,107 @@ func (m *Manager) maybeFinishDrops(interrupt <-chan struct{}) error {
 
 // maybeCreateIndexes determines if each of the enabled indexes have already
 // been created and creates them if not.
-func (m *Manager) maybeCreateIndexes(dbTx database.Tx) error {
-	indexesBucket := dbTx.Metadata().Bucket(indexTipsBucketName)
-	for _, indexer := range m.enabledIndexes {
-		// Nothing to do if the index tip already exists.
-		idxKey := indexer.Key()
-		if indexesBucket.Get(idxKey) != nil {
-			continue
-		}
-
-		// The tip for the index does not exist, so create it and
-		// invoke the create callback for the index so it can perform
-		// any one-time initialization it requires.
-		if err := indexer.Create(dbTx); err != nil {
-			return err
-		}
-
-		// Set the tip for the index to values which represent an
-		// uninitialized index (the genesis block hash and height).
-		genesisBlockHash := m.params.GenesisBlock.BlockHash()
-		err := dbPutIndexerTip(dbTx, idxKey, &genesisBlockHash, 0)
+func (m *Manager) maybeCreateIndexes() error {
+	return m.db.Update(func(dbTx database.Tx) error {
+		// Create the bucket for the current tips as needed.
+		meta := dbTx.Metadata()
+		indexesBucket, err := meta.CreateBucketIfNotExists(indexTipsBucketName)
 		if err != nil {
 			return err
 		}
+
+		for _, indexer := range m.enabledIndexes {
+			// Nothing to do if the index tip already exists.
+			idxKey := indexer.Key()
+			if indexesBucket.Get(idxKey) != nil {
+				continue
+			}
+
+			// Store the index version.
+			err := dbPutIndexerVersion(dbTx, idxKey, indexer.Version())
+			if err != nil {
+				return err
+			}
+
+			// The tip for the index does not exist, so create it and
+			// invoke the create callback for the index so it can perform
+			// any one-time initialization it requires.
+			if err := indexer.Create(dbTx); err != nil {
+				return err
+			}
+
+			// Set the tip for the index to values which represent an
+			// uninitialized index (the genesis block hash and height).
+			genesisBlockHash := m.params.GenesisBlock.BlockHash()
+			err = dbPutIndexerTip(dbTx, idxKey, &genesisBlockHash, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+// upgradeIndexes determines if each of the enabled indexes need to be upgraded
+// and drops them when they do.
+func (m *Manager) upgradeIndexes(interrupt <-chan struct{}) error {
+	indexNeedsDrop := make([]bool, len(m.enabledIndexes))
+	err := m.db.View(func(dbTx database.Tx) error {
+		// None of the indexes needs to be updated if the index tips bucket
+		// hasn't been created yet.
+		indexesBucket := dbTx.Metadata().Bucket(indexTipsBucketName)
+		if indexesBucket == nil {
+			return nil
+		}
+
+		for i, indexer := range m.enabledIndexes {
+			idxKey := indexer.Key()
+			version, err := dbFetchIndexerVersion(dbTx, idxKey)
+			if err != nil {
+				return err
+			}
+
+			// Upgrade is not needed if the index hasn't been created yet.
+			if version < indexer.Version() {
+				indexNeedsDrop[i] = true
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
-	return nil
+	if interruptRequested(interrupt) {
+		return errInterruptRequested
+	}
+
+	// Drop any of the enabled indexes that have bumped their version.
+	for i, indexer := range m.enabledIndexes {
+		if !indexNeedsDrop[i] {
+			continue
+		}
+
+		log.Infof("Dropping %s due to new version", indexer.Name())
+
+		switch d := indexer.(type) {
+		case IndexDropper:
+			err := d.DropIndex(m.db, interrupt)
+			if err != nil {
+				return err
+			}
+		default:
+			err := dropIndex(m.db, indexer.Key(), indexer.Name())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Create the initial state for the indexes that were dropped as needed.
+	return m.maybeCreateIndexes()
 }
 
 // dbFetchBlockByHash uses an existing database transaction to retrieve the raw
@@ -270,17 +394,12 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	}
 
 	// Create the initial state for the indexes as needed.
-	err := m.db.Update(func(dbTx database.Tx) error {
-		// Create the bucket for the current tips as needed.
-		meta := dbTx.Metadata()
-		_, err := meta.CreateBucketIfNotExists(indexTipsBucketName)
-		if err != nil {
-			return err
-		}
+	if err := m.maybeCreateIndexes(); err != nil {
+		return err
+	}
 
-		return m.maybeCreateIndexes(dbTx)
-	})
-	if err != nil {
+	// Upgrade the indexes as needed.
+	if err := m.upgradeIndexes(interrupt); err != nil {
 		return err
 	}
 
@@ -295,6 +414,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// This is fairly unlikely, but it can happen if the chain is
 	// reorganized while the index is disabled.  This has to be done in
 	// reverse order because later indexes can depend on earlier ones.
+	var err error
 	var cachedBlock *pfcutil.Block
 	for i := len(m.enabledIndexes); i > 0; i-- {
 		indexer := m.enabledIndexes[i-1]
@@ -347,7 +467,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				var view *blockchain.UtxoViewpoint
 				if indexNeedsInputs(indexer) {
 					var err error
-					view, err = makeUtxoView(dbTx, block, parent,
+					view, err = makeUtxoView(dbTx, block,
 						interrupt)
 					if err != nil {
 						return err
@@ -487,8 +607,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				// index.
 				if view == nil && indexNeedsInputs(indexer) {
 					var errMakeView error
-					view, errMakeView = makeUtxoView(dbTx, block, parent,
-						interrupt)
+					view, errMakeView = makeUtxoView(dbTx, block, interrupt)
 					if errMakeView != nil {
 						return errMakeView
 					}
@@ -528,16 +647,16 @@ func indexNeedsInputs(index Indexer) bool {
 // loads it from the database.
 func dbFetchTx(dbTx database.Tx, hash *chainhash.Hash) (*wire.MsgTx, error) {
 	// Look up the location of the transaction.
-	blockRegion, err := dbFetchTxIndexEntry(dbTx, hash)
+	entry, err := dbFetchTxIndexEntry(dbTx, hash)
 	if err != nil {
 		return nil, err
 	}
-	if blockRegion == nil {
+	if entry == nil {
 		return nil, fmt.Errorf("transaction %v not found in the txindex", hash)
 	}
 
 	// Load the raw transaction bytes from the database.
-	txBytes, err := dbTx.FetchBlockRegion(blockRegion)
+	txBytes, err := dbTx.FetchBlockRegion(&entry.BlockRegion)
 	if err != nil {
 		return nil, err
 	}
@@ -557,74 +676,56 @@ func dbFetchTx(dbTx database.Tx, hash *chainhash.Hash) (*wire.MsgTx, error) {
 // transactions in the block.  This is sometimes needed when catching indexes up
 // because many of the txouts could actually already be spent however the
 // associated scripts are still required to index them.
-func makeUtxoView(dbTx database.Tx, block, parent *pfcutil.Block, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
+func makeUtxoView(dbTx database.Tx, block *pfcutil.Block, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
 	view := blockchain.NewUtxoViewpoint()
-	var parentRegularTxs []*pfcutil.Tx
-	if approvesParent(block) {
-		parentRegularTxs = parent.Transactions()
+	processTxns := func(txns []*pfcutil.Tx, regularTree bool) error {
+		for txIdx, tx := range txns {
+			// Coinbases do not reference any inputs.  Since the block is
+			// required to have already gone through full validation, it has
+			// already been proven on the first transaction in the block is a
+			// coinbase.
+			if regularTree && txIdx == 0 {
+				continue
+			}
+			msgTx := tx.MsgTx()
+			isVote := !regularTree && stake.IsSSGen(msgTx)
+
+			// Use the transaction index to load all of the referenced inputs
+			// and add their outputs to the view.
+			for txInIdx, txIn := range msgTx.TxIn {
+				// Ignore stakebase since it has no input.
+				if isVote && txInIdx == 0 {
+					continue
+				}
+
+				// Skip already fetched outputs.
+				originOut := &txIn.PreviousOutPoint
+				if view.LookupEntry(&originOut.Hash) != nil {
+					continue
+				}
+
+				originTx, err := dbFetchTx(dbTx, &originOut.Hash)
+				if err != nil {
+					return err
+				}
+
+				view.AddTxOuts(pfcutil.NewTx(originTx), int64(txIn.BlockHeight),
+					txIn.BlockIndex)
+			}
+
+			if interruptRequested(interrupt) {
+				return errInterruptRequested
+			}
+		}
+
+		return nil
 	}
-	for txIdx, tx := range parentRegularTxs {
-		// Coinbases do not reference any inputs.  Since the block is
-		// required to have already gone through full validation, it has
-		// already been proven on the first transaction in the block is
-		// a coinbase.
-		if txIdx == 0 {
-			continue
-		}
 
-		// Use the transaction index to load all of the referenced
-		// inputs and add their outputs to the view.
-		for _, txIn := range tx.MsgTx().TxIn {
-			// Skip already fetched outputs.
-			originOut := &txIn.PreviousOutPoint
-			if view.LookupEntry(&originOut.Hash) != nil {
-				continue
-			}
-
-			originTx, err := dbFetchTx(dbTx, &originOut.Hash)
-			if err != nil {
-				return nil, err
-			}
-
-			view.AddTxOuts(pfcutil.NewTx(originTx),
-				int64(wire.NullBlockHeight),
-				wire.NullBlockIndex)
-		}
-
-		if interruptRequested(interrupt) {
-			return nil, errInterruptRequested
-		}
+	if err := processTxns(block.STransactions(), false); err != nil {
+		return nil, err
 	}
-
-	for _, tx := range block.STransactions() {
-		msgTx := tx.MsgTx()
-		isSSGen := stake.IsSSGen(msgTx)
-
-		// Use the transaction index to load all of the referenced
-		// inputs and add their outputs to the view.
-		for i, txIn := range msgTx.TxIn {
-			// Skip stakebases.
-			if isSSGen && i == 0 {
-				continue
-			}
-
-			originOut := &txIn.PreviousOutPoint
-			if view.LookupEntry(&originOut.Hash) != nil {
-				continue
-			}
-
-			originTx, err := dbFetchTx(dbTx, &originOut.Hash)
-			if err != nil {
-				return nil, err
-			}
-
-			view.AddTxOuts(pfcutil.NewTx(originTx), int64(wire.NullBlockHeight),
-				wire.NullBlockIndex)
-		}
-
-		if interruptRequested(interrupt) {
-			return nil, errInterruptRequested
-		}
+	if err := processTxns(block.Transactions(), true); err != nil {
+		return nil, err
 	}
 
 	return view, nil
@@ -753,6 +854,11 @@ func dropIndexMetadata(db database.DB, idxKey []byte, idxName string) error {
 			return err
 		}
 
+		err = indexesBucket.Delete(indexVersionKey(idxKey))
+		if err != nil {
+			return err
+		}
+
 		return indexesBucket.Delete(indexDropKey(idxKey))
 	})
 }
@@ -795,8 +901,8 @@ func dropFlatIndex(db database.DB, idxKey []byte, idxName string, interrupt <-ch
 		return err
 	}
 
-	// Remove the index tip, index bucket, and in-progress drop flag now
-	// that all index entries have been removed.
+	// Remove the index tip, version, bucket, and in-progress drop flag now that
+	// all index entries have been removed.
 	err = dropIndexMetadata(db, idxKey, idxName)
 	if err != nil {
 		return err
@@ -831,8 +937,9 @@ func dropIndex(db database.DB, idxKey []byte, idxName string) error {
 		return err
 	}
 
-	// Remove the index tip, index bucket, and in-progress drop flag.  Removing
-	// the index bucket also recursively removes all values saved to the index.
+	// Remove the index tip, version, bucket, and in-progress drop flag.
+	// Removing the index bucket also recursively removes all values saved to
+	// the index.
 	err = dropIndexMetadata(db, idxKey, idxName)
 	if err != nil {
 		return err

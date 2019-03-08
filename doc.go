@@ -35,6 +35,8 @@ Application Options:
                             listen interfaces via --listen
       --listen=             Add an interface/port to listen for connections
                             (default all interfaces port: 9708, testnet: 19708)
+      --maxsameip=          Max number of connections with the same IP -- 0 to
+                            disable (default: 5)
       --maxpeers=           Max number of inbound and outbound peers (125)
       --nobanning           Disable banning of misbehaving peers
       --banduration=        How long to ban misbehaving peers.  Valid time units
@@ -74,6 +76,7 @@ Application Options:
                             credentials for each connection.
       --testnet             Use the test network
       --simnet              Use the simulation test network
+      --regnet              Use the regression test network
       --nocheckpoints       Disable built-in checkpoints.  Don't do this unless
                             you know what you're doing.
       --dbtype=             Database backend to use for the Block Chain (ffldb)
@@ -125,6 +128,9 @@ Application Options:
                             for the active network.
       --rejectnonstd        Reject non-standard transactions regardless of the
                             default settings for the active network.
+      --altdnsnames:        Specify additional dns names to use when
+                            generating the rpc server certificate
+                            [supports PFCD_ALT_DNSNAMES environment variable]
 
 Help Options:
   -h, --help           Show this help message

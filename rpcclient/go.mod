@@ -2,13 +2,12 @@ module github.com/picfight/pfcd/rpcclient
 
 require (
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd
-	github.com/picfight/pfcd/blockchain v1.0.1
-	github.com/picfight/pfcd/blockchain/stake v1.0.1
+	github.com/davecgh/go-spew v1.1.0
 	github.com/picfight/pfcd/chaincfg/chainhash v1.0.1
 	github.com/picfight/pfcd/pfcjson v1.0.0
 	github.com/picfight/pfcd/pfcutil v1.1.1
 	github.com/picfight/pfcd/gcs v1.0.1
-	github.com/picfight/pfcd/wire v1.1.0
+	github.com/picfight/pfcd/wire v1.2.0
 	github.com/decred/slog v1.0.0
 	github.com/gorilla/websocket v1.2.0
 )

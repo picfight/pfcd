@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/limits"
+	"github.com/picfight/pfcd/internal/limits"
+	"github.com/picfight/pfcd/internal/version"
 )
 
 var cfg *config
@@ -51,7 +52,8 @@ func pfcdMain(serverChan chan<- *server) error {
 	defer pfcdLog.Info("Shutdown complete")
 
 	// Show version and home dir at startup.
-	pfcdLog.Infof("Version %s (Go version %s)", version(), runtime.Version())
+	pfcdLog.Infof("Version %s (Go version %s %s/%s)", version.String(),
+		runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	pfcdLog.Infof("Home dir: %s", cfg.HomeDir)
 	if cfg.NoFileLogging {
 		pfcdLog.Info("File logging disabled")
@@ -178,7 +180,7 @@ func pfcdMain(serverChan chan<- *server) error {
 	// Create server and start it.
 	lifetimeNotifier.notifyStartupEvent(lifetimeEventP2PServer)
 	server, err := newServer(cfg.Listeners, db, activeNetParams.Params,
-		interrupt)
+		cfg.DataDir, interrupt)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
 		pfcdLog.Errorf("Unable to start server on %v: %v",

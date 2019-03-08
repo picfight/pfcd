@@ -33,7 +33,8 @@ const (
 	// statusDataStored indicates that the block's payload is stored on disk.
 	statusDataStored blockStatus = 1 << 0
 
-	// statusValid indicates that the block has been fully validated.
+	// statusValid indicates that the block has been fully validated.  It also
+	// means that all of its ancestors have also been validated.
 	statusValid blockStatus = 1 << 1
 
 	// statusValidateFailed indicates that the block has failed validation.
@@ -41,7 +42,7 @@ const (
 
 	// statusInvalidAncestor indicates that one of the ancestors of the block
 	// has failed validation, thus the block is also invalid.
-	statusInvalidAncestor = 1 << 3
+	statusInvalidAncestor blockStatus = 1 << 3
 )
 
 // HaveData returns whether the full block data is stored in the database.  This
@@ -120,7 +121,6 @@ type blockNode struct {
 	// evaluation of sidechains.
 	stakeNode      *stake.Node
 	newTickets     []chainhash.Hash
-	stakeUndoData  stake.UndoTicketDataSlice
 	ticketsVoted   []chainhash.Hash
 	ticketsRevoked []chainhash.Hash
 
@@ -226,7 +226,7 @@ func (node *blockNode) lotteryIV() chainhash.Hash {
 // node.
 //
 // This function is NOT safe for concurrent access.  It must only be called when
-// initially creating a node.
+// initially creating a node or when protected by the chain lock.
 func (node *blockNode) populateTicketInfo(spentTickets *stake.SpentTicketsInBlock) {
 	node.ticketsVoted = spentTickets.VotedTickets
 	node.ticketsRevoked = spentTickets.RevokedTickets
@@ -340,12 +340,14 @@ func newBlockIndex(db database.DB, chainParams *chaincfg.Params) *blockIndex {
 	}
 }
 
-// HaveBlock returns whether or not the block index contains the provided hash.
+// HaveBlock returns whether or not the block index contains the provided hash
+// and the block data is available.
 //
 // This function is safe for concurrent access.
 func (bi *blockIndex) HaveBlock(hash *chainhash.Hash) bool {
 	bi.RLock()
-	_, hasBlock := bi.index[*hash]
+	node := bi.index[*hash]
+	hasBlock := node != nil && node.status.HaveData()
 	bi.RUnlock()
 	return hasBlock
 }
@@ -444,8 +446,11 @@ func (bi *blockIndex) NodeStatus(node *blockNode) blockStatus {
 // This function is safe for concurrent access.
 func (bi *blockIndex) SetStatusFlags(node *blockNode, flags blockStatus) {
 	bi.Lock()
+	origStatus := node.status
 	node.status |= flags
-	bi.modified[node] = struct{}{}
+	if node.status != origStatus {
+		bi.modified[node] = struct{}{}
+	}
 	bi.Unlock()
 }
 
@@ -455,8 +460,11 @@ func (bi *blockIndex) SetStatusFlags(node *blockNode, flags blockStatus) {
 // This function is safe for concurrent access.
 func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
 	bi.Lock()
+	origStatus := node.status
 	node.status &^= flags
-	bi.modified[node] = struct{}{}
+	if node.status != origStatus {
+		bi.modified[node] = struct{}{}
+	}
 	bi.Unlock()
 }
 

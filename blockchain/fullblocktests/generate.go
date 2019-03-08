@@ -370,7 +370,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	// Create a generator instance initialized with the genesis block as the
 	// tip as well as some cached payment scripts to be used throughout the
 	// tests.
-	g, err := chaingen.MakeGenerator(simNetParams)
+	g, err := chaingen.MakeGenerator(regNetParams)
 	if err != nil {
 		return nil, err
 	}
@@ -783,7 +783,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	// Create a fork that double spends.
 	//
 	//   ... -> bf1(0) -> bf2(1) -> bf5(2) -> bf6(3)
-	//                                 \-> bf7(2) -> bf8(4)
+	//                          \-> bf7(2) -> bf8(4)
 	//                \-> bf3(1) -> bf4(2)
 	g.SetTip("bf5")
 	g.NextBlock("bf7", outs[2], ticketOuts[3])
@@ -852,7 +852,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		func(b *wire.MsgBlock) {
 			taxOutput := b.Transactions[0].TxOut[0]
 			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
-				g.Params().OrganizationArtistsPkScriptVersion,
+				g.Params().OrganizationPkScriptVersion,
 				taxOutput.PkScript, g.Params())
 			p2shTaxAddr := addrs[0].(*pfcutil.AddressScriptHash)
 			p2pkhTaxAddr, err := pfcutil.NewAddressPubKeyHash(
@@ -1344,7 +1344,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 			chaingen.PurchaseCommitmentScript(g.P2shOpTrueAddr(),
 				ticketPrice+ticketFee, 0, ticketPrice)
 	})
-	rejected(blockchain.ErrSStxCommitment)
+	rejected(blockchain.ErrTicketCommitment)
 
 	// Attempt to add block with a ticket purchase using output from
 	// disapproved block.
@@ -1459,7 +1459,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.NextBlock("bss3", outs[9], ticketOuts[9], func(b *wire.MsgBlock) {
 		b.STransactions[0].TxOut[2].PkScript[8] ^= 0x55
 	})
-	rejected(blockchain.ErrSSGenPayeeOuts)
+	rejected(blockchain.ErrMismatchedPayeeHash)
 
 	// Attempt to add a block with an incorrect vote payee output amount.
 	//
@@ -1469,7 +1469,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.NextBlock("bss4", outs[9], ticketOuts[9], func(b *wire.MsgBlock) {
 		b.STransactions[0].TxOut[2].Value++
 	})
-	rejected(blockchain.ErrSSGenPayeeOuts)
+	rejected(blockchain.ErrBadPayeeValue)
 
 	// ---------------------------------------------------------------------
 	// Multisig[Verify]/ChecksigVerifiy signature operation count tests.
@@ -2176,7 +2176,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		b.AddSTransaction(ticket)
 		b.Header.FreshStake++
 	})
-	rejected(blockchain.ErrRegTxInStakeTree)
+	rejected(blockchain.ErrRegTxCreateStakeOut)
 
 	// Create block with scripts that do not involve p2pkh or
 	// p2sh addresses for a ticket purchase.
@@ -2193,7 +2193,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		b.AddSTransaction(ticket)
 		b.Header.FreshStake++
 	})
-	rejected(blockchain.ErrRegTxInStakeTree)
+	rejected(blockchain.ErrRegTxCreateStakeOut)
 
 	// ---------------------------------------------------------------------
 	// Block header median time tests.
@@ -2708,7 +2708,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.NextBlock("bsc2", outs[19], ticketOuts[19],
 		replaceSpendScript(tooManySigOps))
 	g.AssertTipBlockSigOpsCount(maxBlockSigOps + 1)
-	rejected(blockchain.ErrTooManySigOps)
+	rejected(blockchain.ErrScriptMalformed)
 
 	// ---------------------------------------------------------------------
 	// Dead execution path tests.
@@ -2823,7 +2823,6 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	// ---------------------------------------------------------------------
 	// Revocation tests.
 	// ---------------------------------------------------------------------
-
 	// Create valid block that misses a vote.
 	//
 	//   ... -> bor7(23) -> brt1(24)
@@ -2852,7 +2851,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 			b.STransactions[10].TxOut[0])
 	})
 	g.AssertTipNumRevocations(1)
-	rejected(blockchain.ErrSSRtxPayeesMismatch)
+	rejected(blockchain.ErrBadNumPayees)
 
 	// Create block that has a revocation paying more than the original
 	// amount to the committed address.
@@ -2864,7 +2863,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		b.STransactions[10].TxOut[0].Value++
 	})
 	g.AssertTipNumRevocations(1)
-	rejected(blockchain.ErrSSRtxPayees)
+	rejected(blockchain.ErrBadPayeeValue)
 
 	// Create block that has a revocation using a corrupted pay-to-address
 	// script.
@@ -2876,7 +2875,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		b.STransactions[10].TxOut[0].PkScript[8] ^= 0x55
 	})
 	g.AssertTipNumRevocations(1)
-	rejected(blockchain.ErrSSRtxPayees)
+	rejected(blockchain.ErrMismatchedPayeeHash)
 
 	// Create block that has a revocation for a voted ticket.
 	//
@@ -2905,10 +2904,83 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 
 	// Create block that contains a revocation due to previous missed vote.
 	//
-	//   ... -> brt1(24) -> brtfinal(25)
+	//   ... -> brt1(24) -> brt7(25)
 	g.SetTip("brt1")
-	g.NextBlock("brtfinal", outs[25], ticketOuts[25])
+	g.NextBlock("brt7", outs[25], ticketOuts[25])
+	brt7Tx1Out := chaingen.MakeSpendableOut(g.Tip(), 1, 0)
 	g.AssertTipNumRevocations(1)
+	accepted()
+
+	// ---------------------------------------------------------------------
+	// Disapproval tests.
+	// ---------------------------------------------------------------------
+
+	// Create block that disapproves the regular transaction tree of the prev
+	// block and tries to spend a transaction from it.
+	//
+	//   ... -> brt7(25)
+	//                  \-> bdt1(26)
+	g.NextBlock("bdt1", &brt7Tx1Out, ticketOuts[26], func(b *wire.MsgBlock) {
+		b.Header.VoteBits &^= voteBitYes
+		for i := 0; i < 5; i++ {
+			g.ReplaceVoteBitsN(i, voteBitNo)(b)
+		}
+	})
+	g.AssertTipDisapprovesPrevious()
+	rejected(blockchain.ErrMissingTxOut)
+
+	// Create a couple of valid blocks for use in upcoming reorgs of
+	// disapproving blocks such that the first one spends an output from the
+	// regular transaction tree of a block that will be disapproved via a side
+	// chain.
+	//
+	//   ... -> brt7(25) -> bdt2(26) -> bdt3(27)
+	g.SetTip("brt7")
+	g.NextBlock("bdt2", &brt7Tx1Out, ticketOuts[26])
+	accepted()
+
+	g.NextBlock("bdt3", outs[27], ticketOuts[27])
+	accepted()
+
+	// Create a fork from brt7 that contains a couple of subsequent valid blocks
+	// that disapprove the regular transaction tree of the previous blocks and
+	// extend it to force a reorg to the chain that contains the disapproving
+	// blocks.
+	//
+	//   ... -> brt7(25) -> bdt2(26) -> bdt3(27)
+	//                  \-> bdt4(26) -> bdt5(27) -> bdt6(28)
+	g.SetTip("brt7")
+	g.NextBlock("bdt4", outs[26], ticketOuts[26], func(b *wire.MsgBlock) {
+		b.Header.VoteBits &^= voteBitYes
+		for i := 0; i < 5; i++ {
+			g.ReplaceVoteBitsN(i, voteBitNo)(b)
+		}
+	})
+	g.AssertTipDisapprovesPrevious()
+	acceptedToSideChainWithExpectedTip("bdt3")
+
+	g.NextBlock("bdt5", outs[27], ticketOuts[27], func(b *wire.MsgBlock) {
+		b.Header.VoteBits &^= voteBitYes
+		for i := 0; i < 5; i++ {
+			g.ReplaceVoteBitsN(i, voteBitNo)(b)
+		}
+	})
+	g.AssertTipDisapprovesPrevious()
+	acceptedToSideChainWithExpectedTip("bdt3")
+
+	g.NextBlock("bdt6", outs[28], ticketOuts[28])
+	accepted()
+
+	// Extend the original bdt3 fork in order to make the first chain longer and
+	// force a reorg that removes the disapproving blocks.
+	//
+	//   ... -> brt7(25) -> bdt2(26) -> bdt3(27) -> bdt7(28) -> bdt8(29)
+	//                  \-> bdt4(26) -> bdt5(27) -> bdt6(28)
+	g.SetTip("bdt3")
+	g.NextBlock("bdt7", outs[28], ticketOuts[28])
+	acceptedToSideChainWithExpectedTip("bdt6")
+
+	g.NextBlock("bdt8", outs[29], ticketOuts[29])
 	accepted()
 
 	// ---------------------------------------------------------------------
@@ -2921,9 +2993,9 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 
 	// Ensure the tip the re-org test builds on is the best chain tip.
 	//
-	//   ... -> brtfinal(25) -> ...
-	g.SetTip("brtfinal")
-	spendableOutOffset := int32(26) // Next spendable offset.
+	//   ... -> bdt8(29) -> ...
+	g.SetTip("bdt8")
+	spendableOutOffset := int32(30) // Next spendable offset.
 
 	// Collect all of the spendable coinbase outputs from the previous
 	// collection point up to the current tip.

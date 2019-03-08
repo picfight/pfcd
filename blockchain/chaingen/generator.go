@@ -171,7 +171,8 @@ type Generator struct {
 	liveTickets     []*stakeTicket
 	wonTickets      map[chainhash.Hash][]*stakeTicket
 	expiredTickets  []*stakeTicket
-	missedVotes     map[chainhash.Hash][]*stakeTicket
+	revokedTickets  map[chainhash.Hash][]*stakeTicket
+	missedVotes     map[chainhash.Hash]*stakeTicket
 }
 
 // MakeGenerator returns a generator instance initialized with the genesis block
@@ -202,7 +203,8 @@ func MakeGenerator(params *chaincfg.Params) (Generator, error) {
 		p2shOpTrueScript: p2shOpTrueScript,
 		originalParents:  make(map[chainhash.Hash]chainhash.Hash),
 		wonTickets:       make(map[chainhash.Hash][]*stakeTicket),
-		missedVotes:      make(map[chainhash.Hash][]*stakeTicket),
+		revokedTickets:   make(map[chainhash.Hash][]*stakeTicket),
+		missedVotes:      make(map[chainhash.Hash]*stakeTicket),
 	}, nil
 }
 
@@ -288,7 +290,12 @@ func UniqueOpReturnScript() []byte {
 // good tests which exercise that code, so it wouldn't make sense to use the
 // same code to generate them.
 func (g *Generator) calcFullSubsidy(blockHeight uint32) pfcutil.Amount {
+	iterations := int64(blockHeight) / g.params.SubsidyReductionInterval
 	subsidy := g.params.BaseSubsidy
+	for i := int64(0); i < iterations; i++ {
+		subsidy *= g.params.MulSubsidy
+		subsidy /= g.params.DivSubsidy
+	}
 	return pfcutil.Amount(subsidy)
 }
 
@@ -337,23 +344,17 @@ func (g *Generator) calcPoSSubsidy(heightVotedOn uint32) pfcutil.Amount {
 // using the blockchain code since the intent is to be able to generate known
 // good tests which exercise that code, so it wouldn't make sense to use the
 // same code to generate them.
-func (g *Generator) calcDevSubsidy(fullSubsidy pfcutil.Amount, blockHeight uint32, numVotes uint16) (dev, art pfcutil.Amount) {
+func (g *Generator) calcDevSubsidy(fullSubsidy pfcutil.Amount, blockHeight uint32, numVotes uint16) pfcutil.Amount {
+	devProportion := pfcutil.Amount(g.params.BlockTaxProportion)
 	totalProportions := pfcutil.Amount(g.params.TotalSubsidyProportions())
-
-	devProportion := pfcutil.Amount(g.params.BlockDevTaxProportion)
 	devSubsidy := (fullSubsidy * devProportion) / totalProportions
-
-	artProportion := pfcutil.Amount(g.params.BlockArtTaxProportion)
-	artSubsidy := (fullSubsidy * artProportion) / totalProportions
-
 	if int64(blockHeight) < g.params.StakeValidationHeight {
-		return devSubsidy, artSubsidy
+		return devSubsidy
 	}
 
 	// Reduce the subsidy according to the number of votes.
 	ticketsPerBlock := pfcutil.Amount(g.params.TicketsPerBlock)
-	return (devSubsidy * pfcutil.Amount(numVotes)) / ticketsPerBlock,
-		(artSubsidy * pfcutil.Amount(numVotes)) / ticketsPerBlock
+	return (devSubsidy * pfcutil.Amount(numVotes)) / ticketsPerBlock
 }
 
 // standardCoinbaseOpReturnScript returns a standard script suitable for use as
@@ -382,17 +383,12 @@ func standardCoinbaseOpReturnScript(blockHeight uint32) []byte {
 // - Second output is a standard provably prunable data-only coinbase output
 // - Third and subsequent outputs pay the pow subsidy portion to the generic
 //   OP_TRUE p2sh script hash
-func (g *Generator) addCoinbaseTxOutputs(tx *wire.MsgTx, blockHeight uint32, dev, art, powSubsidy pfcutil.Amount) {
+func (g *Generator) addCoinbaseTxOutputs(tx *wire.MsgTx, blockHeight uint32, devSubsidy, powSubsidy pfcutil.Amount) {
 	// First output is the developer subsidy.
 	tx.AddTxOut(&wire.TxOut{
-		Value:    int64(dev),
-		Version:  g.params.OrganizationDevelopersPkScriptVersion,
-		PkScript: g.params.OrganizationDevelopersPkScript,
-	})
-	tx.AddTxOut(&wire.TxOut{
-		Value:    int64(art),
-		Version:  g.params.OrganizationArtistsPkScriptVersion,
-		PkScript: g.params.OrganizationArtistsPkScript,
+		Value:    int64(devSubsidy),
+		Version:  g.params.OrganizationPkScriptVersion,
+		PkScript: g.params.OrganizationPkScript,
 	})
 
 	// Second output is a provably prunable data-only output that is used
@@ -423,7 +419,7 @@ func (g *Generator) CreateCoinbaseTx(blockHeight uint32, numVotes uint16) *wire.
 	// Calculate the subsidy proportions based on the block height and the
 	// number of votes the block will include.
 	fullSubsidy := g.calcFullSubsidy(blockHeight)
-	dev, art := g.calcDevSubsidy(fullSubsidy, blockHeight, numVotes)
+	devSubsidy := g.calcDevSubsidy(fullSubsidy, blockHeight, numVotes)
 	powSubsidy := g.calcPoWSubsidy(fullSubsidy, blockHeight, numVotes)
 
 	tx := wire.NewMsgTx()
@@ -433,13 +429,13 @@ func (g *Generator) CreateCoinbaseTx(blockHeight uint32, numVotes uint16) *wire.
 		PreviousOutPoint: *wire.NewOutPoint(&chainhash.Hash{},
 			wire.MaxPrevOutIndex, wire.TxTreeRegular),
 		Sequence:        wire.MaxTxInSequenceNum,
-		ValueIn:         int64(dev + art + powSubsidy),
+		ValueIn:         int64(devSubsidy + powSubsidy),
 		BlockHeight:     wire.NullBlockHeight,
 		BlockIndex:      wire.NullBlockIndex,
 		SignatureScript: coinbaseSigScript,
 	})
 
-	g.addCoinbaseTxOutputs(tx, blockHeight, dev, art, powSubsidy)
+	g.addCoinbaseTxOutputs(tx, blockHeight, devSubsidy, powSubsidy)
 
 	return tx
 }
@@ -1549,12 +1545,12 @@ func (g *Generator) ReplaceWithNVotes(numVotes uint16) func(*wire.MsgBlock) {
 		// subsidy is accounted for.
 		height := b.Header.Height
 		fullSubsidy := g.calcFullSubsidy(height)
-		dev, art := g.calcDevSubsidy(fullSubsidy, height, numVotes)
+		devSubsidy := g.calcDevSubsidy(fullSubsidy, height, numVotes)
 		powSubsidy := g.calcPoWSubsidy(fullSubsidy, height, numVotes)
 		cbTx := b.Transactions[0]
-		cbTx.TxIn[0].ValueIn = int64(dev + art + powSubsidy)
+		cbTx.TxIn[0].ValueIn = int64(devSubsidy + powSubsidy)
 		cbTx.TxOut = nil
-		g.addCoinbaseTxOutputs(cbTx, height, dev, art, powSubsidy)
+		g.addCoinbaseTxOutputs(cbTx, height, devSubsidy, powSubsidy)
 	}
 }
 
@@ -1777,9 +1773,35 @@ func (g *Generator) addMissedVotes(blockHash *chainhash.Hash, stakeTxns []*wire.
 
 	// Add the missed votes to the generator state so future blocks will
 	// generate revocations for them.
-	for _, missedVote := range missedVotes {
-		g.missedVotes[*blockHash] = append(g.missedVotes[*blockHash],
-			missedVote)
+	for ticketHash, missedVote := range missedVotes {
+		g.missedVotes[ticketHash] = missedVote
+	}
+}
+
+// connectRevocations updates the missed and revoked ticket data structs
+// according to the revocations in the passed block.
+func (g *Generator) connectRevocations(blockHash *chainhash.Hash, stakeTxns []*wire.MsgTx) {
+	for _, stx := range stakeTxns {
+		// Ignore all stake transactions that are not revocations.
+		if !isRevocationTx(stx) {
+			continue
+		}
+
+		// Ignore the revocation if it is not for a missed ticket.
+		ticketInput := stx.TxIn[0]
+		ticketHash := ticketInput.PreviousOutPoint.Hash
+		ticket, ok := g.missedVotes[ticketHash]
+		if !ok || ticket.blockHeight != ticketInput.BlockHeight ||
+			ticket.blockIndex != ticketInput.BlockIndex {
+
+			continue
+		}
+
+		// Remove the revoked ticket from the missed votes and add it to the
+		// list of tickets revoked by the block.
+		delete(g.missedVotes, ticketHash)
+		g.revokedTickets[*blockHash] = append(g.revokedTickets[*blockHash],
+			ticket)
 	}
 }
 
@@ -1806,6 +1828,9 @@ func (g *Generator) connectBlockTickets(b *wire.MsgBlock) {
 	// Keep track of any missed votes.
 	g.addMissedVotes(&blockHash, b.STransactions, winners)
 
+	// Keep track of revocations.
+	g.connectRevocations(&blockHash, b.STransactions)
+
 	// Extract the ticket purchases (sstx) from the block.
 	var purchases []*stakeTicket
 	blockHeight := g.blockHeight(blockHash)
@@ -1830,6 +1855,17 @@ func (g *Generator) disconnectBlockTickets(b *wire.MsgBlock) {
 	if b != g.tip {
 		panic(fmt.Sprintf("attempt to disconnect block %s that is not "+
 			"the current tip %s", blockHash, g.tip.BlockHash()))
+	}
+
+	// Move tickets revoked by the block back to the list of missed tickets.
+	for _, ticket := range g.revokedTickets[blockHash] {
+		g.missedVotes[ticket.tx.TxHash()] = ticket
+	}
+
+	// Remove any votes missed by the block.
+	winners := g.wonTickets[blockHash]
+	for _, ticket := range winners {
+		delete(g.missedVotes, ticket.tx.TxHash())
 	}
 
 	// Remove tickets created in the block from the immature ticket pool.
@@ -1884,11 +1920,8 @@ func (g *Generator) disconnectBlockTickets(b *wire.MsgBlock) {
 
 	// Add the winning tickets consumed by the block back to the live ticket
 	// pool.
-	g.liveTickets = append(g.liveTickets, g.wonTickets[blockHash]...)
+	g.liveTickets = append(g.liveTickets, winners...)
 	delete(g.wonTickets, blockHash)
-
-	// Remove any votes missed by the block.
-	delete(g.missedVotes, blockHash)
 
 	// Resort the ticket pool now that all live ticket pool manipulations
 	// are done.
@@ -2011,6 +2044,10 @@ func updateVoteCommitments(block *wire.MsgBlock) {
 //     - One OP_RETURN followed by the vote bits
 //     - One or more OP_SSGEN outputs with the payouts according to the original
 //       ticket commitments
+//   - Revocation transactions (ssrtx) as required according to any missed votes
+//     with the following outputs:
+//     - One or more OP_SSRTX outputs with the payouts according to the original
+//       ticket commitments
 //
 // Additionally, if one or more munge functions are specified, they will be
 // invoked with the block prior to solving it.  This provides callers with the
@@ -2075,28 +2112,25 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 		}
 
 		// Generate and add revocations for any missed tickets.
-		for _, missedVotes := range g.missedVotes {
-			for _, missedVote := range missedVotes {
-				revocationTx := g.createRevocationTxFromTicket(missedVote)
-				stakeTxns = append(stakeTxns, revocationTx)
-			}
+		for _, missedVote := range g.missedVotes {
+			revocationTx := g.createRevocationTxFromTicket(missedVote)
+			stakeTxns = append(stakeTxns, revocationTx)
 		}
 	}
 
-	// Create stake tickets for the ticket purchases (sstx), count the
-	// votes (ssgen) and ticket revocations (ssrtx),  and calculate the
-	// total PoW fees generated by the stake transactions.
+	// Count the ticket purchases (sstx), votes (ssgen,  and ticket revocations
+	// (ssrtx),  and calculate the total PoW fees generated by the stake
+	// transactions.
 	var numVotes uint16
 	var numTicketRevocations uint8
-	var ticketPurchases []*stakeTicket
+	var numTicketPurchases uint8
 	var stakeTreeFees pfcutil.Amount
-	for txIdx, tx := range stakeTxns {
+	for _, tx := range stakeTxns {
 		switch {
 		case isVoteTx(tx):
 			numVotes++
 		case isTicketPurchaseTx(tx):
-			ticket := &stakeTicket{tx, nextHeight, uint32(txIdx)}
-			ticketPurchases = append(ticketPurchases, ticket)
+			numTicketPurchases++
 		case isRevocationTx(tx):
 			numTicketRevocations++
 		}
@@ -2175,7 +2209,7 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 			VoteBits:     1,
 			FinalState:   finalState,
 			Voters:       numVotes,
-			FreshStake:   uint8(len(ticketPurchases)),
+			FreshStake:   numTicketPurchases,
 			Revocations:  numTicketRevocations,
 			PoolSize:     uint32(len(g.liveTickets)),
 			Bits:         g.CalcNextRequiredDifficulty(),
@@ -2226,6 +2260,17 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 			block.Header.Height))
 	}
 
+	// Create stake tickets for the ticket purchases (sstx) in the block.  This
+	// is done after the mungers to ensure all changes are accurately accounted
+	// for.
+	var ticketPurchases []*stakeTicket
+	for txIdx, tx := range block.STransactions {
+		if isTicketPurchaseTx(tx) {
+			ticket := &stakeTicket{tx, nextHeight, uint32(txIdx)}
+			ticketPurchases = append(ticketPurchases, ticket)
+		}
+	}
+
 	// Update generator state and return the block.
 	blockHash := block.BlockHash()
 	if block.Header.PrevBlock != prevHash {
@@ -2236,6 +2281,7 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 		g.originalParents[blockHash] = prevHash
 	}
 	g.addMissedVotes(&blockHash, block.STransactions, ticketWinners)
+	g.connectRevocations(&blockHash, block.STransactions)
 	g.connectLiveTickets(&blockHash, nextHeight, ticketWinners,
 		ticketPurchases)
 	g.blocks[blockHash] = &block
@@ -2549,5 +2595,14 @@ func (g *Generator) AssertTipNumRevocations(expected uint8) {
 		panic(fmt.Sprintf("number of revocations in block %q (height "+
 			"%d) is %d instead of expected %d", g.tipName,
 			g.tip.Header.Height, numRevocations, expected))
+	}
+}
+
+// AssertTipDisapprovesPrevious panics if the current tip block associated with
+// the generator does not disapprove the previous block.
+func (g *Generator) AssertTipDisapprovesPrevious() {
+	if g.tip.Header.VoteBits&voteBitYes == 1 {
+		panic(fmt.Sprintf("block %q (height %d) does not disapprove prev block",
+			g.tipName, g.tip.Header.Height))
 	}
 }

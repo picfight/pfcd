@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/picfight/pfcd/internal/version"
 	"github.com/picfight/pfcd/pfcjson"
 	"github.com/picfight/pfcd/pfcutil"
 
@@ -263,7 +264,7 @@ func loadConfig() (*config, []string, error) {
 	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
 	usageMessage := fmt.Sprintf("Use %s -h to show options", appName)
 	if preCfg.ShowVersion {
-		fmt.Println(appName, "version", version())
+		fmt.Println(appName, "version", version.String())
 		os.Exit(0)
 	}
 

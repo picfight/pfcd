@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The Decred developers
+// Copyright (c) 2016-2019 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package fullblocktests
 
 import (
 	"encoding/hex"
+	"math"
 	"math/big"
 	"time"
 
@@ -26,11 +27,11 @@ func newHashFromStr(hexStr string) *chainhash.Hash {
 	return hash
 }
 
-// hexDecode converts the passed hex string into a byte slice and will panic if
+// fromHex converts the passed hex string into a byte slice and will panic if
 // there is an error.  This is only provided for the hard-coded constants so
 // errors in the source code can be detected. It will only (and must only) be
 // called for initialization purposes.
-func hexDecode(s string) []byte {
+func fromHex(s string) []byte {
 	r, err := hex.DecodeString(s)
 	if err != nil {
 		panic("invalid hex in source file: " + s)
@@ -43,13 +44,13 @@ var (
 	// the overhead of creating it multiple times.
 	bigOne = big.NewInt(1)
 
-	// simNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the simulation test network.  It is the value 2^255 - 1.
-	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+	// regNetPowLimit is the highest proof of work value a PicFight block
+	// can have for the regression test network.  It is the value 2^255 - 1.
+	regNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
-	// simNetGenesisBlock defines the genesis block of the block chain which serves
-	// as the public transaction ledger for the simulation test network.
-	simNetGenesisBlock = wire.MsgBlock{
+	// regNetGenesisBlock defines the genesis block of the block chain which
+	// serves as the public transaction ledger for the regression test network.
+	regNetGenesisBlock = wire.MsgBlock{
 		Header: wire.BlockHeader{
 			Version:     1,
 			PrevBlock:   *newHashFromStr("0000000000000000000000000000000000000000000000000000000000000000"),
@@ -60,7 +61,7 @@ var (
 			Voters:      uint16(0x0000),
 			FreshStake:  uint8(0x00),
 			Revocations: uint8(0x00),
-			Timestamp:   time.Unix(1401292357, 0), // 2009-01-08 20:54:25 -0600 CST
+			Timestamp:   time.Unix(1538524800, 0), // 2018-10-03 00:00:00 +0000 UTC
 			PoolSize:    uint32(0),
 			Bits:        0x207fffff, // 545259519
 			SBits:       int64(0x0000000000000000),
@@ -75,20 +76,15 @@ var (
 					Hash:  chainhash.Hash{},
 					Index: 0xffffffff,
 				},
-				SignatureScript: hexDecode("04ffff001d010445" +
-					"5468652054696d65732030332f4a616e2f" +
-					"32303039204368616e63656c6c6f72206f" +
-					"6e206272696e6b206f66207365636f6e64" +
-					"206261696c6f757420666f72206261686b73"),
-				Sequence: 0xffffffff,
+				SignatureScript: fromHex("0000"),
+				Sequence:        0xffffffff,
+				BlockIndex:      0xffffffff,
+				ValueIn:         -1,
 			}},
 			TxOut: []*wire.TxOut{{
 				Value: 0,
-				PkScript: hexDecode("4104678afdb0fe5548271967f1" +
-					"a67130b7105cd6a828e03909a67962e0ea1f" +
-					"61deb649f6bc3f4cef38c4f35504e51ec138" +
-					"c4f35504e51ec112de5c384df7ba0b8d578a" +
-					"4c702b6bf11d5fac"),
+				PkScript: fromHex("801679e98561ada96caec2949a" +
+					"5d41c4cab3851eb740d951c10ecbcf265c1fd9"),
 			}},
 			LockTime: 0,
 			Expiry:   0,
@@ -97,47 +93,48 @@ var (
 	}
 )
 
-// simNetParams defines the network parameters for the simulation test PicFight
-// network.
+// regNetParams defines the network parameters for the regression test network.
 //
 // NOTE: The test generator intentionally does not use the existing definitions
 // in the chaincfg package since the intent is to be able to generate known
 // good tests which exercise that code.  Using the chaincfg parameters would
 // allow them to change without the tests failing as desired.
-var simNetParams = &chaincfg.Params{
-	Name:        "simnet",
-	Net:         wire.SimNet,
-	DefaultPort: "18555",
+var regNetParams = &chaincfg.Params{
+	Name:        "regnet",
+	Net:         wire.RegNet,
+	DefaultPort: "18655",
 	DNSSeeds:    nil, // NOTE: There must NOT be any seeds.
 
 	// Chain parameters
-	GenesisBlock:             &simNetGenesisBlock,
-	GenesisHash:              newHashFromStr("5bec7567af40504e0994db3b573c186fffcc4edefe096ff2e58d00523bd7e8a6"),
-	PowLimit:                 simNetPowLimit,
+	GenesisBlock:             &regNetGenesisBlock,
+	GenesisHash:              newHashFromStr("2ced94b4ae95bba344cfa043268732d230649c640f92dce2d9518823d3057cb0"),
+	PowLimit:                 regNetPowLimit,
 	PowLimitBits:             0x207fffff,
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
-	MaximumBlockSizes:        []int{1310720},
+	MaximumBlockSizes:        []int{1000000, 1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Second * 1, //
+	TargetTimePerBlock:       time.Second,
 	WorkDiffAlpha:            1,
 	WorkDiffWindowSize:       8,
 	WorkDiffWindows:          4,
-	TargetTimespan:           time.Second * 1 * 8, // BlockTime * WindowSize
+	TargetTimespan:           time.Second * 8, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:           int64(1 * 1e8), // 1 coin
-	WorkRewardProportion:  30,             // 30%
-	StakeRewardProportion: 30,             // 30%
-	BlockArtTaxProportion: 30,             // 30%
-	BlockDevTaxProportion: 10,             // 10%
+	BaseSubsidy:              50000000000,
+	MulSubsidy:               100,
+	DivSubsidy:               101,
+	SubsidyReductionInterval: 128,
+	WorkRewardProportion:     6,
+	StakeRewardProportion:    3,
+	BlockTaxProportion:       1,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
 
-	// BIP0009 consensus rule change deployments.
+	// Consensus rule change deployments.
 	//
 	// The miner confirmation window is defined as:
 	//   target proof of work timespan / target proof of work spacing
@@ -145,7 +142,120 @@ var simNetParams = &chaincfg.Params{
 	RuleChangeActivationMultiplier: 3,   // 75%
 	RuleChangeActivationDivisor:    4,
 	RuleChangeActivationInterval:   320, // 320 seconds
-	Deployments:                    map[uint32][]chaincfg.ConsensusDeployment{},
+	Deployments: map[uint32][]chaincfg.ConsensusDeployment{
+		4: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDMaxBlockSize,
+				Description: "Change maximum allowed block size from 1MiB to 1.25MB",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "reject changing max allowed block size",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "accept changing max allowed block size",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+		5: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDSDiffAlgorithm,
+				Description: "Change stake difficulty algorithm as defined in DCP0001",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "keep the existing algorithm",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "change to the new algorithm",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+		6: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDLNFeatures,
+				Description: "Enable features defined in DCP0002 and DCP0003 necessary to support Lightning Network (LN)",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "keep the existing consensus rules",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "change to the new consensus rules",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+		7: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDFixLNSeqLocks,
+				Description: "Modify sequence lock handling as defined in DCP0004",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "keep the existing consensus rules",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "change to the new consensus rules",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+	},
 
 	// Enforce current block version once majority of the network has
 	// upgraded.
@@ -162,50 +272,49 @@ var simNetParams = &chaincfg.Params{
 	AcceptNonStdTxs: true,
 
 	// Address encoding magics
-	NetworkAddressPrefix: "E",
-	PubKeyAddrID:         [2]byte{0x15, 0x0c}, // starts with Ek
-	PubKeyHashAddrID:     [2]byte{0x07, 0xcf}, // starts with Es
-	PKHEdwardsAddrID:     [2]byte{0x07, 0xae}, // starts with Ee
-	PKHSchnorrAddrID:     [2]byte{0x07, 0x90}, // starts with ES
-	ScriptHashAddrID:     [2]byte{0x07, 0xa9}, // starts with Ec
-	PrivateKeyID:         [2]byte{0x22, 0xac}, // starts with Pe
+	NetworkAddressPrefix: "R",
+	PubKeyAddrID:         [2]byte{0x25, 0xe5}, // starts with Rk
+	PubKeyHashAddrID:     [2]byte{0x0e, 0x00}, // starts with Rs
+	PKHEdwardsAddrID:     [2]byte{0x0d, 0xe0}, // starts with Re
+	PKHSchnorrAddrID:     [2]byte{0x0d, 0xc2}, // starts with RS
+	ScriptHashAddrID:     [2]byte{0x0d, 0xdb}, // starts with Rc
+	PrivateKeyID:         [2]byte{0x22, 0xfe}, // starts with Pr
 
 	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with sprv
-	HDPublicKeyID:  [4]byte{0x04, 0x20, 0xbd, 0x3d}, // starts with spub
+	HDPrivateKeyID: [4]byte{0xea, 0xb4, 0x04, 0x48}, // starts with rprv
+	HDPublicKeyID:  [4]byte{0xea, 0xb4, 0xf9, 0x87}, // starts with rpub
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
-	SLIP0044CoinType: 1,   // SLIP0044, Testnet (all coins)
-	LegacyCoinType:   115, // ASCII for s, for backwards compatibility
+	SLIP0044CoinType: 1, // SLIP0044, Testnet (all coins)
+	LegacyCoinType:   1,
 
 	// PicFight PoS parameters
-	MinimumStakeDiff:      20000,
-	TicketPoolSize:        64,
-	TicketsPerBlock:       5,
-	TicketMaturity:        16,
-	TicketExpiry:          384, // 6*TicketPoolSize
-	CoinbaseMaturity:      16,
-	SStxChangeMaturity:    1,
-	TicketPoolSizeWeight:  4,
-	StakeDiffAlpha:        1,
-	StakeDiffWindowSize:   8,
-	StakeDiffWindows:      8,
-	MaxFreshStakePerBlock: 20,            // 4*TicketsPerBlock
-	StakeEnabledHeight:    16 + 16,       // CoinbaseMaturity + TicketMaturity
-	StakeValidationHeight: 16 + (64 * 2), // CoinbaseMaturity + TicketPoolSize*2
-	StakeBaseSigScript:    []byte{0xde, 0xad, 0xbe, 0xef},
+	MinimumStakeDiff:        20000,
+	TicketPoolSize:          64,
+	TicketsPerBlock:         5,
+	TicketMaturity:          16,
+	TicketExpiry:            384, // 6*TicketPoolSize
+	CoinbaseMaturity:        16,
+	SStxChangeMaturity:      1,
+	TicketPoolSizeWeight:    4,
+	StakeDiffAlpha:          1,
+	StakeDiffWindowSize:     8,
+	StakeDiffWindows:        8,
+	StakeVersionInterval:    8 * 2 * 7,
+	MaxFreshStakePerBlock:   20,            // 4*TicketsPerBlock
+	StakeEnabledHeight:      16 + 16,       // CoinbaseMaturity + TicketMaturity
+	StakeValidationHeight:   16 + (64 * 2), // CoinbaseMaturity + TicketPoolSize*2
+	StakeBaseSigScript:      []byte{0x73, 0x57},
+	StakeMajorityMultiplier: 3,
+	StakeMajorityDivisor:    4,
 
 	// PicFight organization related parameters
-	// Organization address is ?
-	OrganizationDevelopersPkScript:        fromHex(""),
-	OrganizationDevelopersPkScriptVersion: 0,
-
-	OrganizationArtistsPkScript:        fromHex(""),
-	OrganizationArtistsPkScriptVersion: 0,
+	OrganizationPkScript:        fromHex("a9146913bcc838bd0087fb3f6b3c868423d5e300078d87"),
+	OrganizationPkScriptVersion: 0,
 	BlockOneLedger: []*chaincfg.TokenPayout{
-		{Address: "Sshw6S86G2bV6W32cbc7EhtFy8f93rU6pae", Amount: 100000 * 1e8},
-		{Address: "SsjXRK6Xz6CFuBt6PugBvrkdAa4xGbcZ18w", Amount: 100000 * 1e8},
-		{Address: "SsfXiYkYkCoo31CuVQw428N6wWKus2ZEw5X", Amount: 100000 * 1e8},
+		{Address: "RsKrWb7Vny1jnzL1sDLgKTAteh9RZcRr5g6", Amount: 100000 * 1e8},
+		{Address: "Rs8ca5cDALtsMVD4PV3xvFTC7dmuU1juvLv", Amount: 100000 * 1e8},
+		{Address: "RsHzbGt6YajuHpurtpqXXHz57LmYZK8w9tX", Amount: 100000 * 1e8},
 	},
 }

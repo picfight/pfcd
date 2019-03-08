@@ -27,6 +27,7 @@ import (
 	"github.com/picfight/pfcd/connmgr"
 	"github.com/picfight/pfcd/database"
 	_ "github.com/picfight/pfcd/database/ffldb"
+	"github.com/picfight/pfcd/internal/version"
 	"github.com/picfight/pfcd/mempool"
 	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/sampleconfig"
@@ -38,6 +39,7 @@ const (
 	defaultLogLevel              = "info"
 	defaultLogDirname            = "logs"
 	defaultLogFilename           = "pfcd.log"
+	defaultMaxSameIP             = 5
 	defaultMaxPeers              = 125
 	defaultBanDuration           = time.Hour * 24
 	defaultBanThreshold          = 100
@@ -69,6 +71,7 @@ var (
 	defaultRPCKeyFile  = filepath.Join(defaultHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultHomeDir, "rpc.cert")
 	defaultLogDir      = filepath.Join(defaultHomeDir, defaultLogDirname)
+	defaultAltDNSNames = []string(nil)
 )
 
 // runServiceCommand is only set to a real function on Windows.  It is used
@@ -98,6 +101,7 @@ type config struct {
 	ConnectPeers         []string      `long:"connect" description:"Connect only to the specified peers at startup"`
 	DisableListen        bool          `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
 	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 9708, testnet: 19708)"`
+	MaxSameIP            int           `long:"maxsameip" description:"Max number of connections with the same IP -- 0 to disable"`
 	MaxPeers             int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
 	DisableBanning       bool          `long:"nobanning" description:"Disable banning of misbehaving peers"`
 	BanDuration          time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
@@ -127,6 +131,7 @@ type config struct {
 	TorIsolation         bool          `long:"torisolation" description:"Enable Tor stream isolation by randomizing user credentials for each connection."`
 	TestNet              bool          `long:"testnet" description:"Use the test network"`
 	SimNet               bool          `long:"simnet" description:"Use the simulation test network"`
+	RegNet               bool          `long:"regnet" description:"Use the regression test network"`
 	DisableCheckpoints   bool          `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	DbType               string        `long:"dbtype" description:"Database backend to use for the Block Chain"`
 	Profile              string        `long:"profile" description:"Enable HTTP profiling on given [addr:]port -- NOTE port must be between 1024 and 65536"`
@@ -164,6 +169,7 @@ type config struct {
 	PipeRx               uint          `long:"piperx" description:"File descriptor of read end pipe to enable parent -> child process communication"`
 	PipeTx               uint          `long:"pipetx" description:"File descriptor of write end pipe to enable parent <- child process communication"`
 	LifetimeEvents       bool          `long:"lifetimeevents" description:"Send lifetime notifications over the TX pipe"`
+	AltDNSNames          []string      `long:"altdnsnames" description:"Specify additional dns names to use when generating the rpc server certificate" env:"PFCD_ALT_DNSNAMES" env-delim:","`
 	onionlookup          func(string) ([]net.IP, error)
 	lookup               func(string) ([]net.IP, error)
 	oniondial            func(string, string) (net.Conn, error)
@@ -430,6 +436,7 @@ func loadConfig() (*config, []string, error) {
 		HomeDir:              defaultHomeDir,
 		ConfigFile:           defaultConfigFile,
 		DebugLevel:           defaultLogLevel,
+		MaxSameIP:            defaultMaxSameIP,
 		MaxPeers:             defaultMaxPeers,
 		BanDuration:          defaultBanDuration,
 		BanThreshold:         defaultBanThreshold,
@@ -455,6 +462,7 @@ func loadConfig() (*config, []string, error) {
 		AllowOldVotes:        defaultAllowOldVotes,
 		NoExistsAddrIndex:    defaultNoExistsAddrIndex,
 		NoCFilters:           defaultNoCFilters,
+		AltDNSNames:          defaultAltDNSNames,
 	}
 
 	// Service options which are only added on Windows.
@@ -482,7 +490,8 @@ func loadConfig() (*config, []string, error) {
 	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
 	usageMessage := fmt.Sprintf("Use %s -h to show usage", appName)
 	if preCfg.ShowVersion {
-		fmt.Printf("%s version %s (Go version %s)\n", appName, version(), runtime.Version())
+		fmt.Printf("%s version %s (Go version %s %s/%s)\n", appName,
+			version.String(), runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
 	}
 
@@ -535,8 +544,8 @@ func loadConfig() (*config, []string, error) {
 
 	// Create a default config file when one does not exist and the user did
 	// not specify an override.
-	if !preCfg.SimNet && preCfg.ConfigFile == defaultConfigFile &&
-		!fileExists(preCfg.ConfigFile) {
+	if !(preCfg.SimNet || preCfg.RegNet) && preCfg.ConfigFile ==
+		defaultConfigFile && !fileExists(preCfg.ConfigFile) {
 
 		err := createDefaultConfigFile(preCfg.ConfigFile)
 		if err != nil {
@@ -548,7 +557,7 @@ func loadConfig() (*config, []string, error) {
 	// Load additional config from file.
 	var configFileError error
 	parser := newConfigParser(&cfg, &serviceOpts, flags.Default)
-	if !cfg.SimNet || preCfg.ConfigFile != defaultConfigFile {
+	if !(cfg.SimNet || cfg.RegNet) || preCfg.ConfigFile != defaultConfigFile {
 		err := flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
 		if err != nil {
 			if _, ok := err.(*os.PathError); !ok {
@@ -559,6 +568,11 @@ func loadConfig() (*config, []string, error) {
 			}
 			configFileError = err
 		}
+	}
+
+	// Don't add peers from the config file when in regression test mode.
+	if preCfg.RegNet && len(cfg.AddPeers) > 0 {
+		cfg.AddPeers = nil
 	}
 
 	// Parse command line options again to ensure they take precedence.
@@ -590,11 +604,9 @@ func loadConfig() (*config, []string, error) {
 		return nil, nil, err
 	}
 
-	// Multiple networks can't be selected simultaneously.
+	// Multiple networks can't be selected simultaneously.  Count number of
+	// network flags passed and assign active network params.
 	numNets := 0
-
-	// Count number of network flags passed; assign active network params
-	// while we're at it
 	if cfg.TestNet {
 		numNets++
 		activeNetParams = &testNet3Params
@@ -605,8 +617,12 @@ func loadConfig() (*config, []string, error) {
 		activeNetParams = &simNetParams
 		cfg.DisableDNSSeed = true
 	}
+	if cfg.RegNet {
+		numNets++
+		activeNetParams = &regNetParams
+	}
 	if numNets > 1 {
-		str := "%s: the testnet and simnet params can't be " +
+		str := "%s: the testnet, regnet, and simnet params can't be " +
 			"used together -- choose one of the three"
 		err := fmt.Errorf(str, funcName)
 		fmt.Fprintln(os.Stderr, err)

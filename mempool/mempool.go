@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
+// Copyright (c) 2015-2019 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -34,16 +34,19 @@ const (
 
 	// MinHighPriority is the minimum priority value that allows a
 	// transaction to be considered high priority.
-	MinHighPriority = pfcutil.AtomsPerCoin * 144.0 / 250
+	//
+	// Deprecated: Use mining.MinHighPriority
+	// TODO: Remove in next version update.
+	MinHighPriority = mining.MinHighPriority
 
 	// maxRelayFeeMultiplier is the factor that we disallow fees / kB above the
 	// minimum tx fee.  At the current default minimum relay fee of 0.0001
 	// PFC/kB, this results in a maximum allowed high fee of 1 PFC/kB.
 	maxRelayFeeMultiplier = 1e4
 
-	// maxSSGensDoubleSpends is the maximum number of SSGen double spends
-	// allowed in the pool.
-	maxSSGensDoubleSpends = 5
+	// maxVoteDoubleSpends is the maximum number of vote double spends allowed
+	// in the pool.
+	maxVoteDoubleSpends = 5
 
 	// heightDiffToPruneTicket is the number of blocks to pass by in terms
 	// of height before old tickets are pruned.
@@ -120,6 +123,16 @@ type Config struct {
 	// to use for indexing the unconfirmed transactions in the memory pool.
 	// This can be nil if the address index is not enabled.
 	ExistsAddrIndex *indexers.ExistsAddrIndex
+
+	// AddTxToFeeEstimation defines an optional function to be called whenever a
+	// new transaction is added to the mempool, which can be used to track fees
+	// for the purposes of smart fee estimation.
+	AddTxToFeeEstimation func(txHash *chainhash.Hash, fee, size int64, txType stake.TxType)
+
+	// RemoveTxFromFeeEstimation defines an optional function to be called
+	// whenever a transaction is removed from the mempool in order to track fee
+	// estimation.
+	RemoveTxFromFeeEstimation func(txHash *chainhash.Hash)
 }
 
 // Policy houses the policy (configuration parameters) which is used to
@@ -158,7 +171,7 @@ type Policy struct {
 	// of the max signature operations for a block.
 	MaxSigOpsPerTx int
 
-	// MinRelayTxFee defines the minimum transaction fee in BTC/kB to be
+	// MinRelayTxFee defines the minimum transaction fee in PFC/kB to be
 	// considered a non-zero fee.
 	MinRelayTxFee pfcutil.Amount
 
@@ -173,6 +186,13 @@ type Policy struct {
 	//
 	// This function must be safe for concurrent access.
 	StandardVerifyFlags func() (txscript.ScriptFlags, error)
+
+	// AcceptSequenceLocks defines the function to determine whether or not
+	// to accept transactions with sequence locks.  Typically this will be
+	// set depending on the result of the fix sequence locks agenda vote.
+	//
+	// This function must be safe for concurrent access.
+	AcceptSequenceLocks func() (bool, error)
 }
 
 // TxDesc is a descriptor containing a transaction in the mempool along with
@@ -301,13 +321,14 @@ var _ mining.TxSource = (*TxPool)(nil)
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) removeOrphan(tx *pfcutil.Tx, removeRedeemers bool) {
 	txHash := tx.Hash()
-	log.Tracef("Removing orphan transaction %v", txHash)
 
 	// Nothing to do if passed tx is not an orphan.
 	tx, exists := mp.orphans[*txHash]
 	if !exists {
 		return
 	}
+
+	log.Tracef("Removing orphan transaction %v", txHash)
 
 	// Remove the reference from the previous orphan index.
 	for _, txIn := range tx.MsgTx().TxIn {
@@ -584,6 +605,8 @@ func (mp *TxPool) removeTransaction(tx *pfcutil.Tx, removeRedeemers bool) {
 
 	// Remove the transaction if needed.
 	if txDesc, exists := mp.pool[*txHash]; exists {
+		log.Tracef("Removing transaction %v", txHash)
+
 		// Remove unconfirmed address index entries associated with the
 		// transaction if enabled.
 		if mp.cfg.AddrIndex != nil {
@@ -591,12 +614,17 @@ func (mp *TxPool) removeTransaction(tx *pfcutil.Tx, removeRedeemers bool) {
 		}
 
 		// Mark the referenced outpoints as unspent by the pool.
-
 		for _, txIn := range txDesc.Tx.MsgTx().TxIn {
 			delete(mp.outpoints, txIn.PreviousOutPoint)
 		}
 		delete(mp.pool, *txHash)
 		atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
+
+		// Inform associated fee estimator that the transaction has been removed
+		// from the mempool
+		if mp.cfg.RemoveTxFromFeeEstimation != nil {
+			mp.cfg.RemoveTxFromFeeEstimation(txHash)
+		}
 	}
 }
 
@@ -667,6 +695,13 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	if mp.cfg.ExistsAddrIndex != nil {
 		mp.cfg.ExistsAddrIndex.AddUnconfirmedTx(msgTx)
 	}
+
+	// Inform the associated fee estimator that a new transaction has been added
+	// to the mempool
+	if mp.cfg.AddTxToFeeEstimation != nil {
+		mp.cfg.AddTxToFeeEstimation(tx.Hash(), fee, int64(msgTx.SerializeSize()),
+			txType)
+	}
 }
 
 // checkPoolDoubleSpend checks whether or not the passed transaction is
@@ -693,23 +728,23 @@ func (mp *TxPool) checkPoolDoubleSpend(tx *pfcutil.Tx, txType stake.TxType) erro
 	return nil
 }
 
-// IsTxTreeKnownInvalid returns whether or not the transaction tree of the
-// provided hash is knwon to be invalid according to the votes currently in the
-// memory pool.
+// IsRegTxTreeKnownDisapproved returns whether or not the regular tree of the
+// block represented by the provided hash is known to be disapproved according
+// to the votes currently in the memory pool.
 //
 // The function is safe for concurrent access.
-func (mp *TxPool) IsTxTreeKnownInvalid(hash *chainhash.Hash) bool {
+func (mp *TxPool) IsRegTxTreeKnownDisapproved(hash *chainhash.Hash) bool {
 	mp.votesMtx.RLock()
 	vts := mp.votes[*hash]
 	mp.votesMtx.RUnlock()
 
 	// There are not possibly enough votes to tell if the regular transaction
-	// tree is valid or not, so assume it's valid.
+	// tree is approved or not, so assume it's valid.
 	if len(vts) <= int(mp.cfg.ChainParams.TicketsPerBlock/2) {
 		return false
 	}
 
-	// Otherwise, tally the votes and determine if it's valid or not.
+	// Otherwise, tally the votes and determine if it's approved or not.
 	var yes, no int
 	for _, vote := range vts {
 		if vote.ApprovesParent {
@@ -729,8 +764,8 @@ func (mp *TxPool) IsTxTreeKnownInvalid(hash *chainhash.Hash) bool {
 //
 // This function MUST be called with the mempool lock held (for reads).
 func (mp *TxPool) fetchInputUtxos(tx *pfcutil.Tx) (*blockchain.UtxoViewpoint, error) {
-	knownInvalid := mp.IsTxTreeKnownInvalid(mp.cfg.BestHash())
-	utxoView, err := mp.cfg.FetchUtxoView(tx, !knownInvalid)
+	knownDisapproved := mp.IsRegTxTreeKnownDisapproved(mp.cfg.BestHash())
+	utxoView, err := mp.cfg.FetchUtxoView(tx, !knownDisapproved)
 	if err != nil {
 		return nil, err
 	}
@@ -755,7 +790,7 @@ func (mp *TxPool) fetchInputUtxos(tx *pfcutil.Tx) (*blockchain.UtxoViewpoint, er
 // orphans.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) FetchTransaction(txHash *chainhash.Hash, includeRecentBlock bool) (*pfcutil.Tx, error) {
+func (mp *TxPool) FetchTransaction(txHash *chainhash.Hash) (*pfcutil.Tx, error) {
 	// Protect concurrent access.
 	mp.mtx.RLock()
 	txDesc, exists := mp.pool[*txHash]
@@ -763,22 +798,6 @@ func (mp *TxPool) FetchTransaction(txHash *chainhash.Hash, includeRecentBlock bo
 
 	if exists {
 		return txDesc.Tx, nil
-	}
-
-	// For PicFight, the latest block is considered "unconfirmed"
-	// for the regular transaction tree. Search that if the
-	// user indicates too, as well.
-	if includeRecentBlock {
-		bl, err := mp.cfg.BlockByHash(mp.cfg.BestHash())
-		if err != nil {
-			return nil, err
-		}
-
-		for _, tx := range bl.Transactions() {
-			if tx.Hash().IsEqual(txHash) {
-				return tx, nil
-			}
-		}
 	}
 
 	return nil, fmt.Errorf("transaction is not in the pool")
@@ -824,16 +843,6 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 		return nil, txRuleError(wire.RejectInvalid, str)
 	}
 
-	// Don't accept transactions with a lock time after the maximum int32
-	// value for now.  This is an artifact of older bitcoind clients which
-	// treated this field as an int32 and would treat anything larger
-	// incorrectly (as negative).
-	if msgTx.LockTime > math.MaxInt32 {
-		str := fmt.Sprintf("transaction %v has a lock time after "+
-			"2038 which is not accepted yet", txHash)
-		return nil, txRuleError(wire.RejectNonstandard, str)
-	}
-
 	// Get the current height of the main chain.  A standalone transaction
 	// will be mined into the next block at best, so its height is at least
 	// one more than the current height.
@@ -855,6 +864,51 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 		tx.SetTree(wire.TxTreeRegular)
 	} else {
 		tx.SetTree(wire.TxTreeStake)
+	}
+	isVote := txType == stake.TxTypeSSGen
+
+	// Choose whether or not to accept transactions with sequence locks enabled.
+	//
+	// Typically, this will be set based on the result of the fix sequence locks
+	// agenda vote.
+	acceptSeqLocks, err := mp.cfg.Policy.AcceptSequenceLocks()
+	if err != nil {
+		if cerr, ok := err.(blockchain.RuleError); ok {
+			return nil, chainRuleError(cerr)
+		}
+		return nil, err
+	}
+	if !acceptSeqLocks {
+		if msgTx.Version >= 2 && !isVote {
+			for _, txIn := range msgTx.TxIn {
+				sequenceNum := txIn.Sequence
+				if sequenceNum&wire.SequenceLockTimeDisabled != 0 {
+					continue
+				}
+
+				str := "violates sequence lock consensus bug"
+				return nil, txRuleError(wire.RejectInvalid, str)
+			}
+		}
+	}
+
+	// Reject votes before stake validation height.
+	stakeValidationHeight := mp.cfg.ChainParams.StakeValidationHeight
+	if isVote && nextBlockHeight < stakeValidationHeight {
+		str := fmt.Sprintf("votes are not valid until block height %d (next "+
+			"block height %d)", stakeValidationHeight, nextBlockHeight)
+		return nil, txRuleError(wire.RejectInvalid, str)
+	}
+
+	// Reject revocations before they can possibly be valid.  A vote must be
+	// missed for a revocation to be valid and votes are not allowed until stake
+	// validation height, so, a revocations can't possibly be valid until one
+	// block later.
+	isRevocation := txType == stake.TxTypeSSRtx
+	if isRevocation && nextBlockHeight < stakeValidationHeight+1 {
+		str := fmt.Sprintf("revocations are not valid until block height %d "+
+			"(next block height %d)", stakeValidationHeight+1, nextBlockHeight)
+		return nil, txRuleError(wire.RejectInvalid, str)
 	}
 
 	// Don't allow non-standard transactions if the mempool config forbids
@@ -880,7 +934,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 
 	// If the transaction is a ticket, ensure that it meets the next
 	// stake difficulty.
-	if txType == stake.TxTypeSStx {
+	isTicket := txType == stake.TxTypeSStx
+	if isTicket {
 		sDiff, err := mp.cfg.NextStakeDifficulty()
 		if err != nil {
 			// This is an unexpected error so don't turn it into a
@@ -896,60 +951,56 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 		}
 	}
 
-	// Handle stake transaction double spending exceptions.
-	if (txType == stake.TxTypeSSGen) || (txType == stake.TxTypeSSRtx) {
-		if txType == stake.TxTypeSSGen {
-			ssGenAlreadyFound := 0
-			for _, mpTx := range mp.pool {
-				if mpTx.Type == stake.TxTypeSSGen {
-					if mpTx.Tx.MsgTx().TxIn[1].PreviousOutPoint ==
-						msgTx.TxIn[1].PreviousOutPoint {
-						ssGenAlreadyFound++
-					}
-				}
-				if ssGenAlreadyFound > maxSSGensDoubleSpends {
-					str := fmt.Sprintf("transaction %v in the pool "+
-						"with more than %v ssgens",
-						msgTx.TxIn[1].PreviousOutPoint,
-						maxSSGensDoubleSpends)
-					return nil, txRuleError(wire.RejectDuplicate, str)
-				}
-			}
-		}
-
-		if txType == stake.TxTypeSSRtx {
-			for _, mpTx := range mp.pool {
-				if mpTx.Type == stake.TxTypeSSRtx {
-					if mpTx.Tx.MsgTx().TxIn[0].PreviousOutPoint ==
-						msgTx.TxIn[0].PreviousOutPoint {
-						str := fmt.Sprintf("transaction %v in the pool "+
-							" as a ssrtx. Only one ssrtx allowed.",
-							msgTx.TxIn[0].PreviousOutPoint)
-						return nil, txRuleError(wire.RejectDuplicate, str)
-					}
-				}
-			}
-		}
-	} else {
-		// The transaction may not use any of the same outputs as other
-		// transactions already in the pool as that would ultimately result in a
-		// double spend.  This check is intended to be quick and therefore only
-		// detects double spends within the transaction pool itself.  The
-		// transaction could still be double spending coins from the main chain
-		// at this point.  There is a more in-depth check that happens later
-		// after fetching the referenced transaction inputs from the main chain
-		// which examines the actual spend data and prevents double spends.
+	// Aside from a few exceptions for votes and revocations, the transaction
+	// may not use any of the same outputs as other transactions already in the
+	// pool as that would ultimately result in a double spend.  This check is
+	// intended to be quick and therefore only detects double spends within the
+	// transaction pool itself.  The transaction could still be double spending
+	// coins from the main chain at this point.  There is a more in-depth check
+	// that happens later after fetching the referenced transaction inputs from
+	// the main chain which examines the actual spend data and prevents double
+	// spends.
+	if !isVote && !isRevocation {
 		err = mp.checkPoolDoubleSpend(tx, txType)
 		if err != nil {
 			return nil, err
 		}
+	} else if isVote {
+		voteAlreadyFound := 0
+		for _, mpTx := range mp.pool {
+			if mpTx.Type == stake.TxTypeSSGen {
+				if mpTx.Tx.MsgTx().TxIn[1].PreviousOutPoint ==
+					msgTx.TxIn[1].PreviousOutPoint {
+					voteAlreadyFound++
+				}
+			}
+			if voteAlreadyFound > maxVoteDoubleSpends {
+				str := fmt.Sprintf("transaction %v in the pool with more than "+
+					"%v votes", msgTx.TxIn[1].PreviousOutPoint,
+					maxVoteDoubleSpends)
+				return nil, txRuleError(wire.RejectDuplicate, str)
+			}
+		}
+	} else if isRevocation {
+		for _, mpTx := range mp.pool {
+			if mpTx.Type == stake.TxTypeSSRtx {
+				if mpTx.Tx.MsgTx().TxIn[0].PreviousOutPoint ==
+					msgTx.TxIn[0].PreviousOutPoint {
+					str := fmt.Sprintf("transaction %v in the pool as a "+
+						"revocation. Only one revocation is allowed.",
+						msgTx.TxIn[0].PreviousOutPoint)
+					return nil, txRuleError(wire.RejectDuplicate, str)
+				}
+			}
+		}
 	}
 
 	// Votes that are on too old of blocks are rejected.
-	if txType == stake.TxTypeSSGen {
+	if isVote {
 		_, voteHeight := stake.SSGenBlockVotedOn(msgTx)
 		if (int64(voteHeight) < nextBlockHeight-maximumVoteAgeDelta) &&
 			!mp.cfg.Policy.AllowOldVotes {
+
 			str := fmt.Sprintf("transaction %v votes on old "+
 				"block height of %v which is before the "+
 				"current cutoff height of %v",
@@ -971,7 +1022,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 	}
 
 	// Don't allow the transaction if it exists in the main chain and is not
-	// not already fully spent.
+	// already fully spent.
 	txEntry := utxoView.LookupEntry(txHash)
 	if txEntry != nil && !txEntry.IsFullySpent() {
 		return nil, txRuleError(wire.RejectDuplicate,
@@ -982,7 +1033,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 	// Transaction is an orphan if any of the inputs don't exist.
 	var missingParents []*chainhash.Hash
 	for i, txIn := range msgTx.TxIn {
-		if i == 0 && txType == stake.TxTypeSSGen {
+		if i == 0 && isVote {
 			continue
 		}
 
@@ -1080,7 +1131,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 		return nil, err
 	}
 
-	numSigOps += blockchain.CountSigOps(tx, false, (txType == stake.TxTypeSSGen))
+	numSigOps += blockchain.CountSigOps(tx, false, isVote)
 	if numSigOps > mp.cfg.Policy.MaxSigOpsPerTx {
 		str := fmt.Sprintf("transaction %v has too many sigops: %d > %d",
 			txHash, numSigOps, mp.cfg.Policy.MaxSigOpsPerTx)
@@ -1124,10 +1175,10 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 
 		currentPriority := mining.CalcPriority(msgTx, utxoView,
 			nextBlockHeight)
-		if currentPriority <= MinHighPriority {
+		if currentPriority <= mining.MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
-				currentPriority, MinHighPriority)
+				currentPriority, mining.MinHighPriority)
 			return nil, txRuleError(wire.RejectInsufficientFee, str)
 		}
 	}
@@ -1161,7 +1212,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 	// also performed on regular transactions above, but fees lower than the
 	// miniumum may be allowed when there is sufficient priority, and these
 	// checks aren't desired for ticket purchases.
-	if txType == stake.TxTypeSStx {
+	if isTicket {
 		minTicketFee := calcMinRequiredTxRelayFee(serializedSize,
 			mp.cfg.Policy.MinRelayTxFee)
 		if txFee < minTicketFee {
@@ -1204,9 +1255,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 	// Add to transaction pool.
 	mp.addTransaction(utxoView, tx, txType, bestHeight, txFee)
 
-	// If it's an SSGen (vote), insert it into the list of
-	// votes.
-	if txType == stake.TxTypeSSGen {
+	// Keep track of vote separately.
+	if isVote {
 		mp.votesMtx.Lock()
 		err := mp.insertVote(tx)
 		mp.votesMtx.Unlock()

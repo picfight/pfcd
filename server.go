@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2015-2019 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -27,8 +28,10 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/connmgr"
 	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/fees"
 	"github.com/picfight/pfcd/gcs"
 	"github.com/picfight/pfcd/gcs/blockcf"
+	"github.com/picfight/pfcd/internal/version"
 	"github.com/picfight/pfcd/mempool"
 	"github.com/picfight/pfcd/mining"
 	"github.com/picfight/pfcd/peer"
@@ -66,7 +69,8 @@ var (
 
 	// userAgentVersion is the user agent version and is used to help
 	// identify ourselves to other peers.
-	userAgentVersion = fmt.Sprintf("%d.%d.%d", appMajor, appMinor, appPatch)
+	userAgentVersion = fmt.Sprintf("%d.%d.%d", version.Major, version.Minor,
+		version.Patch)
 )
 
 // broadcastMsg provides the ability to house a PicFight message to be broadcast
@@ -89,10 +93,13 @@ type broadcastInventoryDel *wire.InvVect
 type broadcastPruneInventory struct{}
 
 // relayMsg packages an inventory vector along with the newly discovered
-// inventory so the relay has access to that information.
+// inventory and a flag that determines if the relay should happen immediately
+// (it will be put into a trickle queue if false) so the relay has access to
+// that information.
 type relayMsg struct {
-	invVect *wire.InvVect
-	data    interface{}
+	invVect   *wire.InvVect
+	data      interface{}
+	immediate bool
 }
 
 // updatePeerHeightsMsg is a message sent from the blockmanager to the server
@@ -115,6 +122,27 @@ type peerState struct {
 	persistentPeers map[int32]*serverPeer
 	banned          map[string]time.Time
 	outboundGroups  map[string]int
+}
+
+// ConnectionsWithIP returns the number of connections with the given IP.
+func (ps *peerState) ConnectionsWithIP(ip net.IP) int {
+	var total int
+	for _, p := range ps.inboundPeers {
+		if ip.Equal(p.NA().IP) {
+			total++
+		}
+	}
+	for _, p := range ps.outboundPeers {
+		if ip.Equal(p.NA().IP) {
+			total++
+		}
+	}
+	for _, p := range ps.persistentPeers {
+		if ip.Equal(p.NA().IP) {
+			total++
+		}
+	}
+	return total
 }
 
 // Count returns the count of all known peers.
@@ -161,6 +189,7 @@ type server struct {
 	rpcServer            *rpcServer
 	blockManager         *blockManager
 	txMemPool            *mempool.TxPool
+	feeEstimator         *fees.Estimator
 	cpuMiner             *CPUMiner
 	modifyRebroadcastInv chan interface{}
 	newPeers             chan *serverPeer
@@ -489,10 +518,10 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *wire.MsgGetMiningState
 	// Access the block manager and get the list of best blocks to mine on.
 	bm := sp.server.blockManager
 	mp := sp.server.txMemPool
-	newest, height := bm.chainState.Best()
+	best := bm.chain.BestSnapshot()
 
 	// Send out blank mining states if it's early in the blockchain.
-	if height < activeNetParams.StakeValidationHeight-1 {
+	if best.Height < activeNetParams.StakeValidationHeight-1 {
 		err := sp.pushMiningStateMsg(0, nil, nil)
 		if err != nil {
 			peerLog.Warnf("unexpected error while pushing data for "+
@@ -507,7 +536,7 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *wire.MsgGetMiningState
 	children, err := bm.TipGeneration()
 	if err != nil {
 		peerLog.Warnf("failed to access block manager to get the generation "+
-			"for a mining state request (block: %v): %v", newest, err)
+			"for a mining state request (block: %v): %v", best.Hash, err)
 		return
 	}
 
@@ -515,7 +544,7 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *wire.MsgGetMiningState
 	// limit the list to the maximum number of allowed eligible block hashes
 	// per mining state message.  There is nothing to send when there are no
 	// eligible blocks.
-	blockHashes := SortParentsByVotes(mp, *newest, children,
+	blockHashes := SortParentsByVotes(mp, best.Hash, children,
 		bm.server.chainParams)
 	numBlocks := len(blockHashes)
 	if numBlocks == 0 {
@@ -540,7 +569,7 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *wire.MsgGetMiningState
 		voteHashes = append(voteHashes, vhsForBlock...)
 	}
 
-	err = sp.pushMiningStateMsg(uint32(height), blockHashes, voteHashes)
+	err = sp.pushMiningStateMsg(uint32(best.Height), blockHashes, voteHashes)
 	if err != nil {
 		peerLog.Warnf("unexpected error while pushing data for "+
 			"mining state request: %v", err.Error())
@@ -1122,7 +1151,7 @@ func (s *server) AnnounceNewTransactions(newTxs []*pfcutil.Tx) {
 	for _, tx := range newTxs {
 		// Generate the inventory vector and relay it.
 		iv := wire.NewInvVect(wire.InvTypeTx, tx.Hash())
-		s.RelayInventory(iv, tx)
+		s.RelayInventory(iv, tx, false)
 
 		if s.rpcServer != nil {
 			// Notify websocket clients about mempool transactions.
@@ -1145,7 +1174,7 @@ func (s *server) pushTxMsg(sp *serverPeer, hash *chainhash.Hash, doneChan chan<-
 	// Do not allow peers to request transactions already in a block
 	// but are unconfirmed, as they may be expensive. Restrict that
 	// to the authenticated RPC only.
-	tx, err := s.txMemPool.FetchTransaction(hash, false)
+	tx, err := s.txMemPool.FetchTransaction(hash)
 	if err != nil {
 		peerLog.Tracef("Unable to fetch tx %v from transaction "+
 			"pool: %v", hash, err)
@@ -1272,10 +1301,21 @@ func (s *server) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 		delete(state.banned, host)
 	}
 
-	// TODO: Check for max peers from a single IP.
+	// Limit max number of connections from a single IP.  However, allow
+	// whitelisted inbound peers and localhost connections regardless.
+	isInboundWhitelisted := sp.isWhitelisted && sp.Inbound()
+	peerIP := sp.NA().IP
+	if cfg.MaxSameIP > 0 && !isInboundWhitelisted && !peerIP.IsLoopback() &&
+		state.ConnectionsWithIP(peerIP)+1 > cfg.MaxSameIP {
+		srvrLog.Infof("Max connections with %s reached [%d] - "+
+			"disconnecting peer", sp, cfg.MaxSameIP)
+		sp.Disconnect()
+		return false
+	}
 
-	// Limit max number of total peers.
-	if state.Count() >= cfg.MaxPeers {
+	// Limit max number of total peers.  However, allow whitelisted inbound
+	// peers regardless.
+	if state.Count()+1 > cfg.MaxPeers && !isInboundWhitelisted {
 		srvrLog.Infof("Max peers reached [%d] - disconnecting peer %s",
 			cfg.MaxPeers, sp)
 		sp.Disconnect()
@@ -1387,10 +1427,16 @@ func (s *server) handleRelayInvMsg(state *peerState, msg relayMsg) {
 			}
 		}
 
-		// Queue the inventory to be relayed with the next batch.
-		// It will be ignored if the peer is already known to
-		// have the inventory.
-		sp.QueueInventory(msg.invVect)
+		// Either queue the inventory to be relayed immediately or with
+		// the next batch depending on the immediate flag.
+		//
+		// It will be ignored in either case if the peer is already
+		// known to have the inventory.
+		if msg.immediate {
+			sp.QueueInventoryImmediate(msg.invVect)
+		} else {
+			sp.QueueInventory(msg.invVect)
+		}
 	})
 }
 
@@ -1583,6 +1629,11 @@ func disconnectPeer(peerList map[int32]*serverPeer, compareFunc func(*serverPeer
 
 // newPeerConfig returns the configuration for the given serverPeer.
 func newPeerConfig(sp *serverPeer) *peer.Config {
+	var userAgentComments []string
+	if version.PreRelease != "" {
+		userAgentComments = append(userAgentComments, version.PreRelease)
+	}
+
 	return &peer.Config{
 		Listeners: peer.MessageListeners{
 			OnVersion:        sp.OnVersion,
@@ -1604,15 +1655,16 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			OnRead:           sp.OnRead,
 			OnWrite:          sp.OnWrite,
 		},
-		NewestBlock:      sp.newestBlock,
-		HostToNetAddress: sp.server.addrManager.HostToNetAddress,
-		Proxy:            cfg.Proxy,
-		UserAgentName:    userAgentName,
-		UserAgentVersion: userAgentVersion,
-		ChainParams:      sp.server.chainParams,
-		Services:         sp.server.services,
-		DisableRelayTx:   cfg.BlocksOnly,
-		ProtocolVersion:  maxProtocolVersion,
+		NewestBlock:       sp.newestBlock,
+		HostToNetAddress:  sp.server.addrManager.HostToNetAddress,
+		Proxy:             cfg.Proxy,
+		UserAgentName:     userAgentName,
+		UserAgentVersion:  userAgentVersion,
+		UserAgentComments: userAgentComments,
+		ChainParams:       sp.server.chainParams,
+		Services:          sp.server.services,
+		DisableRelayTx:    cfg.BlocksOnly,
+		ProtocolVersion:   maxProtocolVersion,
 	}
 }
 
@@ -1772,8 +1824,8 @@ func (s *server) BanPeer(sp *serverPeer) {
 
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.
-func (s *server) RelayInventory(invVect *wire.InvVect, data interface{}) {
-	s.relayInv <- relayMsg{invVect: invVect, data: data}
+func (s *server) RelayInventory(invVect *wire.InvVect, data interface{}, immediate bool) {
+	s.relayInv <- relayMsg{invVect: invVect, data: data, immediate: immediate}
 }
 
 // BroadcastMessage sends msg to all peers currently connected to the server
@@ -2000,7 +2052,7 @@ out:
 			// yet. We periodically resubmit them until they have.
 			for iv, data := range pendingInvs {
 				ivCopy := iv
-				s.RelayInventory(&ivCopy, data)
+				s.RelayInventory(&ivCopy, data, false)
 			}
 
 			// Process at a random time up to 30mins (in seconds)
@@ -2083,6 +2135,8 @@ func (s *server) Stop() error {
 	if !cfg.DisableRPC && s.rpcServer != nil {
 		s.rpcServer.Stop()
 	}
+
+	s.feeEstimator.Close()
 
 	// Signal the remaining goroutines to quit.
 	close(s.quit)
@@ -2263,7 +2317,7 @@ func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFla
 // newServer returns a new pfcd server configured to listen on addr for the
 // PicFight network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Params, interrupt <-chan struct{}) (*server, error) {
+func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Params, dataDir string, interrupt <-chan struct{}) (*server, error) {
 	services := defaultServices
 	if cfg.NoCFilters {
 		services &^= wire.SFNodeCF
@@ -2454,6 +2508,27 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		indexes = append(indexes, s.cfIndex)
 	}
 
+	feC := fees.EstimatorConfig{
+		ChainParams:  chainParams,
+		MinBucketFee: cfg.minRelayTxFee,
+		MaxBucketFee: pfcutil.Amount(fees.DefaultMaxBucketFeeMultiplier) * cfg.minRelayTxFee,
+		MaxConfirms:  fees.DefaultMaxConfirmations,
+		FeeRateStep:  fees.DefaultFeeRateStep,
+		DatabaseFile: path.Join(dataDir, "feesdb"),
+
+		// 1e5 is the previous (up to 1.1.0) mempool.DefaultMinRelayTxFee that
+		// un-upgraded wallets will be using, so track this particular rate
+		// explicitly. Note that bumping this value will cause the existing fees
+		// database to become invalid and will force nodes to explicitly delete
+		// it.
+		ExtraBucketFee: 1e5,
+	}
+	fe, err := fees.NewEstimator(&feC)
+	if err != nil {
+		return nil, err
+	}
+	s.feeEstimator = fe
+
 	// Create an index manager if any of the optional indexes are enabled.
 	var indexManager blockchain.IndexManager
 	if len(indexes) > 0 {
@@ -2479,13 +2554,11 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 				return standardScriptVerifyFlags(bm.chain)
 			},
+			AcceptSequenceLocks: bm.chain.IsFixSeqLocksAgendaActive,
 		},
 		ChainParams: chainParams,
 		NextStakeDifficulty: func() (int64, error) {
-			bm.chainState.Lock()
-			sDiff := bm.chainState.nextStakeDifficulty
-			bm.chainState.Unlock()
-			return sDiff, nil
+			return bm.chain.BestSnapshot().NextStakeDiff, nil
 		},
 		FetchUtxoView:    bm.chain.FetchUtxoView,
 		BlockByHash:      bm.chain.BlockByHash,
@@ -2494,13 +2567,19 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		CalcSequenceLock: bm.chain.CalcSequenceLock,
 		SubsidyCache:     bm.chain.FetchSubsidyCache(),
 		SigCache:         s.sigCache,
-		PastMedianTime:   func() time.Time { return bm.chain.BestSnapshot().MedianTime },
-		AddrIndex:        s.addrIndex,
-		ExistsAddrIndex:  s.existsAddrIndex,
+		PastMedianTime: func() time.Time {
+			return bm.chain.BestSnapshot().MedianTime
+		},
+		AddrIndex:                 s.addrIndex,
+		ExistsAddrIndex:           s.existsAddrIndex,
+		AddTxToFeeEstimation:      s.feeEstimator.AddMemPoolTransaction,
+		RemoveTxFromFeeEstimation: s.feeEstimator.RemoveMemPoolTransaction,
 	}
 	s.txMemPool = mempool.New(&txC)
 
-	// Create the mining policy based on the configuration options.
+	// Create the mining policy and block template generator based on the
+	// configuration options.
+	//
 	// NOTE: The CPU miner relies on the mempool, so the mempool has to be
 	// created before calling the function to create the CPU miner.
 	policy := mining.Policy{
@@ -2509,7 +2588,17 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		BlockPrioritySize: cfg.BlockPrioritySize,
 		TxMinFreeFee:      cfg.minRelayTxFee,
 	}
-	s.cpuMiner = newCPUMiner(&policy, &s)
+	blockTemplateGenerator := newBlkTmplGenerator(&policy, s.txMemPool,
+		s.timeSource, s.sigCache, s.chainParams, bm.chain, bm)
+	s.cpuMiner = newCPUMiner(&cpuminerConfig{
+		ChainParams:                s.chainParams,
+		PermitConnectionlessMining: cfg.SimNet,
+		BlockTemplateGenerator:     blockTemplateGenerator,
+		MiningAddrs:                cfg.miningAddrs,
+		ProcessBlock:               bm.ProcessBlock,
+		ConnectedCount:             s.ConnectedCount,
+		IsCurrent:                  bm.IsCurrent,
+	})
 
 	// Only setup a function to return new addresses to connect to when
 	// not running in connect-only mode.  The simulation network is always
@@ -2594,7 +2683,8 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 	}
 
 	if !cfg.DisableRPC {
-		s.rpcServer, err = newRPCServer(cfg.RPCListeners, &policy, &s)
+		s.rpcServer, err = newRPCServer(cfg.RPCListeners,
+			blockTemplateGenerator, &s)
 		if err != nil {
 			return nil, err
 		}

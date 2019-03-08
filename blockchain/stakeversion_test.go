@@ -13,6 +13,55 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 )
 
+// isVoterMajorityVersion determines if minVer requirement is met based on
+// prevNode.  The function always uses the voter versions of the prior window.
+// For example, if StakeVersionInterval = 11 and StakeValidationHeight = 13 the
+// windows start at 13 + 11 -1 = 24 and are as follows: 24-34, 35-45, 46-56 ...
+// If height comes in at 35 we use the 24-34 window, up to height 45.
+// If height comes in at 46 we use the 35-45 window, up to height 56 etc.
+//
+// This function MUST be called with the chain state lock held (for writes).
+func (b *BlockChain) isVoterMajorityVersion(minVer uint32, prevNode *blockNode) bool {
+	// Walk blockchain backwards to calculate version.
+	node := b.findStakeVersionPriorNode(prevNode)
+	if node == nil {
+		return 0 >= minVer
+	}
+
+	// Generate map key and look up cached result.
+	key := stakeMajorityCacheVersionKey(minVer, &node.hash)
+	if result, ok := b.isVoterMajorityVersionCache[key]; ok {
+		return result
+	}
+
+	// Tally both the total number of votes in the previous stake version validation
+	// interval and how many of those votes are at least the requested minimum
+	// version.
+	totalVotesFound := int32(0)
+	versionCount := int32(0)
+	iterNode := node
+	for i := int64(0); i < b.chainParams.StakeVersionInterval && iterNode != nil; i++ {
+		totalVotesFound += int32(len(iterNode.votes))
+		for _, v := range iterNode.votes {
+			if v.Version >= minVer {
+				versionCount++
+			}
+		}
+
+		iterNode = iterNode.parent
+	}
+
+	// Determine the required amount of votes to reach supermajority.
+	numRequired := totalVotesFound * b.chainParams.StakeMajorityMultiplier /
+		b.chainParams.StakeMajorityDivisor
+
+	// Cache value.
+	result := versionCount >= numRequired
+	b.isVoterMajorityVersionCache[key] = result
+
+	return result
+}
+
 func TestCalcWantHeight(t *testing.T) {
 	// For example, if StakeVersionInterval = 11 and StakeValidationHeight = 13 the
 	// windows start at 13 + (11 * 2) 25 and are as follows: 24-34, 35-45, 46-56 ...
@@ -53,6 +102,12 @@ func TestCalcWantHeight(t *testing.T) {
 			name:       "simnet params",
 			skip:       chaincfg.SimNetParams.StakeValidationHeight,
 			interval:   chaincfg.SimNetParams.StakeVersionInterval,
+			multiplier: 10000,
+		},
+		{
+			name:       "regnet params",
+			skip:       chaincfg.RegNetParams.StakeValidationHeight,
+			interval:   chaincfg.RegNetParams.StakeVersionInterval,
 			multiplier: 10000,
 		},
 		{
@@ -315,7 +370,7 @@ func TestCalcStakeVersion(t *testing.T) {
 // TestIsStakeMajorityVersion ensures that determining the current majority
 // stake version works as intended under a wide variety of scenarios.
 func TestIsStakeMajorityVersion(t *testing.T) {
-	params := &chaincfg.MainNetParams
+	params := &chaincfg.RegNetParams
 	svh := params.StakeValidationHeight
 	svi := params.StakeVersionInterval
 	tpb := params.TicketsPerBlock

@@ -76,9 +76,9 @@ var genesisBlock = wire.MsgBlock{
 		PrevBlock:    chainhash.Hash{},
 		MerkleRoot:   genesisMerkleRoot,
 		StakeRoot:    chainhash.Hash{},
-		Timestamp:    time.Unix(0, 0),
-		Bits:         0x0,
-		SBits:        0,
+		Timestamp:    time.Unix(1454954400, 0), // Mon, 08 Feb 2016 18:00:00 GMT
+		Bits:         0x1b01ffff,               // Difficulty 32767
+		SBits:        2 * 1e8,                  // 2 Coin
 		Nonce:        0x00000000,
 		StakeVersion: 0,
 	},
@@ -144,9 +144,9 @@ var testNet3GenesisBlock = wire.MsgBlock{
 		Version:      6,
 		PrevBlock:    chainhash.Hash{},
 		MerkleRoot:   genesisCoinbaseTx.TxHash(),
-		Timestamp:    time.Unix(0, 0),
-		Bits:         0x0,
-		SBits:        0,
+		Timestamp:    time.Unix(1533513600, 0), // 2018-08-06 00:00:00 +0000 UTC
+		Bits:         0x1e00ffff,               // Difficulty 1 [000000ffff000000000000000000000000000000000000000000000000000000]
+		SBits:        20000000,
 		Nonce:        0x18aea41a,
 		StakeVersion: 6,
 	},
@@ -159,7 +159,7 @@ var testNet3GenesisHash = testNet3GenesisBlock.BlockHash()
 
 // SimNet -------------------------------------------------------------------------
 
-var regTestGenesisCoinbaseTx = wire.MsgTx{
+var simNetGenesisCoinbaseTx = wire.MsgTx{
 	SerType: wire.TxSerializeFull,
 	Version: 1,
 	TxIn: []*wire.TxIn{
@@ -231,18 +231,62 @@ var simNetGenesisBlock = wire.MsgBlock{
 		Voters:       0,
 		FreshStake:   0,
 		Revocations:  0,
-		Timestamp:    time.Unix(0, 0),
+		Timestamp:    time.Unix(1401292357, 0), // 2009-01-08 20:54:25 -0600 CST
 		PoolSize:     0,
-		Bits:         0x0,
+		Bits:         0x207fffff, // 545259519 [7fffff0000000000000000000000000000000000000000000000000000000000]
 		SBits:        0,
 		Nonce:        0,
 		StakeVersion: 0,
 		Height:       0,
 	},
-	Transactions:  []*wire.MsgTx{&regTestGenesisCoinbaseTx},
-	STransactions: []*wire.MsgTx{},
+	Transactions: []*wire.MsgTx{&simNetGenesisCoinbaseTx},
 }
 
 // simNetGenesisHash is the hash of the first block in the block chain for the
 // simulation test network.
 var simNetGenesisHash = simNetGenesisBlock.BlockHash()
+
+// RegNet -------------------------------------------------------------------------
+
+// regNetGenesisMerkleRoot is the hash of the first transaction in the genesis
+// block for the regression test network.  It is the same as the merkle root for
+// the main network.
+var regNetGenesisMerkleRoot = genesisMerkleRoot
+
+// regNetGenesisBlock defines the genesis block of the block chain which serves
+// as the public transaction ledger for the regression test network.
+var regNetGenesisBlock = wire.MsgBlock{
+	Header: wire.BlockHeader{
+		Version: 1,
+		PrevBlock: chainhash.Hash([chainhash.HashSize]byte{ // Make go vet happy.
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		}),
+		MerkleRoot: simNetGenesisMerkleRoot,
+		StakeRoot: chainhash.Hash([chainhash.HashSize]byte{ // Make go vet happy.
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		}),
+		VoteBits:     0,
+		FinalState:   [6]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		Voters:       0,
+		FreshStake:   0,
+		Revocations:  0,
+		Timestamp:    time.Unix(1538524800, 0), // 2018-10-03 00:00:00 +0000 UTC
+		PoolSize:     0,
+		Bits:         0x207fffff, // 545259519 [7fffff0000000000000000000000000000000000000000000000000000000000]
+		SBits:        0,
+		Nonce:        0,
+		StakeVersion: 0,
+		Height:       0,
+	},
+	Transactions: []*wire.MsgTx{&genesisCoinbaseTx},
+}
+
+// regNetGenesisHash is the hash of the first block in the block chain for the
+// simulation test network.
+var regNetGenesisHash = regNetGenesisBlock.BlockHash()

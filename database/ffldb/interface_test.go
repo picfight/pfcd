@@ -37,7 +37,7 @@ var (
 
 	// blockDataFile is the path to a file containing the first 168 blocks
 	// of the simulation network.
-	blockDataFile = filepath.Join("..", "..", "blockchain", "testdata", "blocks0to168.bz2")
+	blockDataFile = filepath.Join("..", "testdata", "blocks0to168.bz2")
 
 	// errSubTestFail is used to signal that a sub test returned false.
 	errSubTestFail = fmt.Errorf("sub test failure")
@@ -729,7 +729,8 @@ func testMetadataManualTxInterface(tc *testContext) bool {
 	deleteValues := func(values []keyPair) bool {
 		tx, err := tc.db.Begin(true)
 		if err != nil {
-
+			tc.t.Errorf("Begin: unexpected error %v", err)
+			return false
 		}
 		defer rollbackOnPanic(tc.t, tx)
 

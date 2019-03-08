@@ -104,17 +104,16 @@ var rpcTestCases = []rpctest.HarnessTestCase{
 var primaryHarness *rpctest.Harness
 
 func TestMain(m *testing.M) {
-	var err error
-
 	// In order to properly test scenarios on as if we were on mainnet,
 	// ensure that non-standard transactions aren't accepted into the
 	// mempool or relayed.
 	args := []string{"--rejectnonstd"}
-	primaryHarness, err = rpctest.New(&chaincfg.SimNetParams, nil, args)
+	harness, err := rpctest.New(&chaincfg.RegNetParams, nil, args)
 	if err != nil {
 		fmt.Println("unable to create primary harness: ", err)
 		os.Exit(1)
 	}
+	primaryHarness = harness
 
 	// Initialize the primary mining node with a chain of length 125,
 	// providing 25 mature coinbases to allow spending from for testing

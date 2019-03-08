@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/pfcec"
 	"github.com/picfight/pfcd/pfcec/secp256k1"
 	"github.com/picfight/pfcd/pfcutil"
@@ -100,16 +101,6 @@ func TestExtractPkScriptAddrs(t *testing.T) {
 			},
 			reqSigs: 1,
 			class:   PubKeyTy,
-		},
-		{
-			name: "MainNet organizational script and address",
-			script: hexToBytes(
-				"a914f5916158e3e2c4551c1796708db8367207ed13bb87"),
-			addrs: []pfcutil.Address{
-				decodeAddress("Dcur2mcGjmENx4DhNqDctW5wJCVyT3Qeqkx", t),
-			},
-			reqSigs: 1,
-			class:   ScriptHashTy,
 		},
 		{
 			name: "standard p2pk with uncompressed pubkey (0x04)",
@@ -361,15 +352,6 @@ func TestExtractPkScriptAddrs(t *testing.T) {
 	}
 }
 
-func decodeAddress(addrString string, t *testing.T) pfcutil.Address {
-	addr, err := pfcutil.DecodeAddress(addrString)
-	if err != nil {
-		// test setup failed
-		t.Fatalf("Test is not able to test: %v", err)
-	}
-	return addr
-}
-
 // TestCalcScriptInfo ensures the CalcScriptInfo provides the expected results
 // for various valid and invalid script pairs.
 func TestCalcScriptInfo(t *testing.T) {
@@ -520,7 +502,7 @@ func (b *bogusAddress) DSA(chainParams *chaincfg.Params) pfcec.SignatureType {
 // Net returns the network for the bogus address.  It exists to satisfy the
 // pfcutil.Address interface.
 func (b *bogusAddress) Net() *chaincfg.Params {
-	return &chaincfg.SimNetParams
+	return &chaincfg.RegNetParams
 }
 
 // TestPayToAddrScript ensures the PayToAddrScript function generates the
@@ -1131,6 +1113,109 @@ func TestGenerateProvablyPruneableOut(t *testing.T) {
 				"got: %v, want: %v", i, test.name, scriptType,
 				test.class)
 			continue
+		}
+	}
+}
+
+// TestGenerateSStxAddrPush ensures an expected OP_RETURN push is generated.
+func TestGenerateSStxAddrPush(t *testing.T) {
+	var tests = []struct {
+		addrStr  string
+		amount   pfcutil.Amount
+		limits   uint16
+		expected []byte
+	}{
+		{
+			"Dcur2mcGjmENx4DhNqDctW5wJCVyT3Qeqkx",
+			1000,
+			10,
+			hexToBytes("6a1ef5916158e3e2c4551c1796708db8367207ed1" +
+				"3bbe8030000000000800a00"),
+		},
+		{
+			"TscB7V5RuR1oXpA364DFEsNDuAs8Rk6BHJE",
+			543543,
+			256,
+			hexToBytes("6a1e7a5c4cca76f2e0b36db4763daacbd6cbb6ee6" +
+				"e7b374b0800000000000001"),
+		},
+	}
+	for _, test := range tests {
+		addr, err := pfcutil.DecodeAddress(test.addrStr)
+		if err != nil {
+			t.Errorf("DecodeAddress failed: %v", err)
+			continue
+		}
+		s, err := GenerateSStxAddrPush(addr, test.amount, test.limits)
+		if err != nil {
+			t.Errorf("GenerateSStxAddrPush failed: %v", err)
+			continue
+		}
+		if !bytes.Equal(s, test.expected) {
+			t.Errorf("GenerateSStxAddrPush: unexpected script:\n "+
+				"got %x\nwant %x", s, test.expected)
+		}
+	}
+}
+
+// TestGenerateSSGenBlockRef ensures an expected OP_RETURN push is generated.
+func TestGenerateSSGenBlockRef(t *testing.T) {
+	var tests = []struct {
+		blockHash string
+		height    uint32
+		expected  []byte
+	}{
+		{
+			"0000000000004740ad140c86753f9295e09f9cc81b1bb75d7f5552aeeedb7012",
+			1000,
+			hexToBytes("6a241270dbeeae52557f5db71b1bc89c9fe095923" +
+				"f75860c14ad4047000000000000e8030000"),
+		},
+		{
+			"000000000000000033eafc268a67c8d1f02343d7a96cf3fe2a4915ef779b52f9",
+			290000,
+			hexToBytes("6a24f9529b77ef15492afef36ca9d74323f0d1c86" +
+				"78a26fcea330000000000000000d06c0400"),
+		},
+	}
+	for _, test := range tests {
+		h, err := chainhash.NewHashFromStr(test.blockHash)
+		if err != nil {
+			t.Errorf("NewHashFromStr failed: %v", err)
+			continue
+		}
+		s, err := GenerateSSGenBlockRef(*h, test.height)
+		if err != nil {
+			t.Errorf("GenerateSSGenBlockRef failed: %v", err)
+			continue
+		}
+		if !bytes.Equal(s, test.expected) {
+			t.Errorf("GenerateSSGenBlockRef: unexpected script:\n"+
+				" got %x\nwant %x", s, test.expected)
+		}
+	}
+}
+
+// TestGenerateSSGenVotes ensures an expected OP_RETURN push is generated.
+func TestGenerateSSGenVotes(t *testing.T) {
+	var tests = []struct {
+		votebits uint16
+		expected []byte
+	}{
+		{65535, hexToBytes("6a02ffff")},
+		{256, hexToBytes("6a020001")},
+		{127, hexToBytes("6a027f00")},
+		{0, hexToBytes("6a020000")},
+	}
+	for _, test := range tests {
+		s, err := GenerateSSGenVotes(test.votebits)
+		if err != nil {
+			t.Errorf("GenerateSSGenVotes failed: %v", err)
+			continue
+		}
+		if !bytes.Equal(s, test.expected) {
+			t.Errorf("GenerateSSGenVotes: unexpected script:\n "+
+				"got %x\nwant %x", s, test.expected)
 		}
 	}
 }

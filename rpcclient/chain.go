@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
+// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -228,6 +228,44 @@ func (c *Client) GetDifficultyAsync() FutureGetDifficultyResult {
 // minimum difficulty.
 func (c *Client) GetDifficulty() (float64, error) {
 	return c.GetDifficultyAsync().Receive()
+}
+
+// FutureGetBlockChainInfoResult is a future promise to deliver the result of a
+// GetBlockChainInfoAsync RPC invocation (or an applicable error).
+type FutureGetBlockChainInfoResult chan *response
+
+// Receive waits for the response promised by the future and returns the info
+// provided by the server.
+func (r FutureGetBlockChainInfoResult) Receive() (*pfcjson.GetBlockChainInfoResult, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal result as a getblockchaininfo result object.
+	var blockchainInfoRes pfcjson.GetBlockChainInfoResult
+	err = json.Unmarshal(res, &blockchainInfoRes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &blockchainInfoRes, nil
+}
+
+// GetBlockChainInfoAsync returns an instance of a type that can be used to get
+// the result of the RPC at some future time by invoking the Receive function on
+// the returned instance.
+//
+// See GetBlockChainInfo for the blocking version and more details.
+func (c *Client) GetBlockChainInfoAsync() FutureGetBlockChainInfoResult {
+	cmd := pfcjson.NewGetBlockChainInfoCmd()
+	return c.sendCmd(cmd)
+}
+
+// GetBlockChainInfo returns information about the current state of the block
+// chain.
+func (c *Client) GetBlockChainInfo() (*pfcjson.GetBlockChainInfoResult, error) {
+	return c.GetBlockChainInfoAsync().Receive()
 }
 
 // FutureGetBlockHashResult is a future promise to deliver the result of a
@@ -546,6 +584,42 @@ func (r FutureVerifyChainResult) Receive() (bool, error) {
 		return false, err
 	}
 	return verified, nil
+}
+
+// FutureGetChainTipsResult is a future promise to deliver the result of a
+// GetChainTipsAsync RPC invocation (or an applicable error).
+type FutureGetChainTipsResult chan *response
+
+// Receive waits for the response promised by the future and returns slice of
+// all known tips in the block tree.
+func (r FutureGetChainTipsResult) Receive() ([]pfcjson.GetChainTipsResult, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal the result.
+	var chainTips []pfcjson.GetChainTipsResult
+	err = json.Unmarshal(res, &chainTips)
+	if err != nil {
+		return nil, err
+	}
+	return chainTips, nil
+}
+
+// GetChainTipsAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See GetChainTips for the blocking version and more details.
+func (c *Client) GetChainTipsAsync() FutureGetChainTipsResult {
+	cmd := pfcjson.NewGetChainTipsCmd()
+	return c.sendCmd(cmd)
+}
+
+// GetChainTips returns all known tips in the block tree.
+func (c *Client) GetChainTips() ([]pfcjson.GetChainTipsResult, error) {
+	return c.GetChainTipsAsync().Receive()
 }
 
 // VerifyChainAsync returns an instance of a type that can be used to get the

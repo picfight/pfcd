@@ -6,100 +6,12 @@
 package blockchain
 
 import (
-	"encoding/binary"
 	"fmt"
-	"math"
-	"time"
 
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/database"
 	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
 )
-
-// checkCoinbaseUniqueHeight checks to ensure that for all blocks height > 1 the
-// coinbase contains the height encoding to make coinbase hash collisions
-// impossible.
-func checkCoinbaseUniqueHeight(blockHeight int64, block *pfcutil.Block) error {
-	// Coinbase TxOut[0] is always tax, TxOut[1] is always
-	// height + extranonce, so at least two outputs must
-	// exist.
-	if len(block.MsgBlock().Transactions[0].TxOut) < 2 {
-		str := fmt.Sprintf("block %v is missing necessary coinbase "+
-			"outputs", block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
-	}
-
-	// Only version 0 scripts are currently valid.
-	nullDataOut := block.MsgBlock().Transactions[0].TxOut[1]
-	if nullDataOut.Version != 0 {
-		str := fmt.Sprintf("block %v output 1 has wrong script version",
-			block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
-	}
-
-	// The first 4 bytes of the null data output must be the encoded height
-	// of the block, so that every coinbase created has a unique transaction
-	// hash.
-	nullData, err := txscript.ExtractCoinbaseNullData(nullDataOut.PkScript)
-	if err != nil {
-		str := fmt.Sprintf("block %v output 1 has wrong script type",
-			block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
-	}
-	if len(nullData) < 4 {
-		str := fmt.Sprintf("block %v output 1 data push too short to "+
-			"contain height", block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
-	}
-
-	// Check the height and ensure it is correct.
-	cbHeight := binary.LittleEndian.Uint32(nullData[0:4])
-	if cbHeight != uint32(blockHeight) {
-		prevBlock := block.MsgBlock().Header.PrevBlock
-		str := fmt.Sprintf("block %v output 1 has wrong height in "+
-			"coinbase; want %v, got %v; prevBlock %v, header height %v",
-			block.Hash(), blockHeight, cbHeight, prevBlock,
-			block.MsgBlock().Header.Height)
-		return ruleError(ErrCoinbaseHeight, str)
-	}
-
-	return nil
-}
-
-// IsFinalizedTransaction determines whether or not a transaction is finalized.
-func IsFinalizedTransaction(tx *pfcutil.Tx, blockHeight int64, blockTime time.Time) bool {
-	// Lock time of zero means the transaction is finalized.
-	msgTx := tx.MsgTx()
-	lockTime := msgTx.LockTime
-	if lockTime == 0 {
-		return true
-	}
-
-	// The lock time field of a transaction is either a block height at
-	// which the transaction is finalized or a timestamp depending on if the
-	// value is before the txscript.LockTimeThreshold.  When it is under the
-	// threshold it is a block height.
-	var blockTimeOrHeight int64
-	if lockTime < txscript.LockTimeThreshold {
-		blockTimeOrHeight = blockHeight
-	} else {
-		blockTimeOrHeight = blockTime.Unix()
-	}
-	if int64(lockTime) < blockTimeOrHeight {
-		return true
-	}
-
-	// At this point, the transaction's lock time hasn't occurred yet, but
-	// the transaction might still be finalized if the sequence number
-	// for all transaction inputs is maxed out.
-	for _, txIn := range msgTx.TxIn {
-		if txIn.Sequence != math.MaxUint32 {
-			return false
-		}
-	}
-	return true
-}
 
 // maybeAcceptBlock potentially accepts a block into the block chain and, if
 // accepted, returns the length of the fork the block extended.  It performs
@@ -109,8 +21,9 @@ func IsFinalizedTransaction(tx *pfcutil.Tx, blockHeight int64, blockTime time.Ti
 // extends the best chain or is now the tip of the best chain due to causing a
 // reorganize, the fork length will be 0.
 //
-// The flags are also passed to checkBlockContext and connectBestChain.  See
-// their documentation for how the flags modify their behavior.
+// The flags are also passed to checkBlockPositional, checkBlockContext and
+// connectBestChain.  See their documentation for how the flags modify their
+// behavior.
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) maybeAcceptBlock(block *pfcutil.Block, flags BehaviorFlags) (int64, error) {
@@ -131,9 +44,17 @@ func (b *BlockChain) maybeAcceptBlock(block *pfcutil.Block, flags BehaviorFlags)
 		return 0, ruleError(ErrInvalidAncestorBlock, str)
 	}
 
-	// The block must pass all of the validation rules which depend on the
-	// position of the block within the block chain.
-	err := b.checkBlockContext(block, prevNode, flags)
+	// The block must pass all of the validation rules which depend on having
+	// the headers of all ancestors available, but do not rely on having the
+	// full block data of all ancestors available.
+	err := b.checkBlockPositional(block, prevNode, flags)
+	if err != nil {
+		return 0, err
+	}
+
+	// The block must pass all of the validation rules which depend on having
+	// the full block data for all of its ancestors available.
+	err = b.checkBlockContext(block, prevNode, flags)
 	if err != nil {
 		return 0, err
 	}
@@ -168,9 +89,28 @@ func (b *BlockChain) maybeAcceptBlock(block *pfcutil.Block, flags BehaviorFlags)
 	b.index.AddNode(newNode)
 
 	// Ensure the new block index entry is written to the database.
-	err = b.index.flush()
+	err = b.flushBlockIndex()
 	if err != nil {
 		return 0, err
+	}
+
+	// Notify the caller when the block intends to extend the main chain,
+	// the chain believes it is current, and the block has passed all of the
+	// sanity and contextual checks, such as having valid proof of work,
+	// valid merkle and stake roots, and only containing allowed votes and
+	// revocations.
+	//
+	// This allows the block to be relayed before doing the more expensive
+	// connection checks, because even though the block might still fail
+	// to connect and becomes the new main chain tip, that is quite rare in
+	// practice since a lot of work was expended to create a block that
+	// satisifies the proof of work requirement.
+	//
+	// Notice that the chain lock is not released before sending the
+	// notification.  This is intentional and must not be changed without
+	// understanding why!
+	if b.isCurrent() && b.bestChain.Tip() == prevNode {
+		b.sendNotification(NTNewTipBlockChecked, block)
 	}
 
 	// Fetching a stake node could enable a new DoS vector, so restrict
@@ -180,7 +120,6 @@ func (b *BlockChain) maybeAcceptBlock(block *pfcutil.Block, flags BehaviorFlags)
 		if err != nil {
 			return 0, err
 		}
-		newNode.stakeUndoData = newNode.stakeNode.UndoData()
 	}
 
 	// Grab the parent block since it is required throughout the block
@@ -200,7 +139,8 @@ func (b *BlockChain) maybeAcceptBlock(block *pfcutil.Block, flags BehaviorFlags)
 
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
-	// inventory to other peers.
+	// inventory to other peers unless it was already relayed above
+	// via NTNewTipBlockChecked.
 	bestHeight := b.bestChain.Tip().height
 	b.chainLock.Unlock()
 	b.sendNotification(NTBlockAccepted, &BlockAcceptedNtfnsData{

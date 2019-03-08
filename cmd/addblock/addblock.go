@@ -14,7 +14,7 @@ import (
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/indexers"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/limits"
+	"github.com/picfight/pfcd/internal/limits"
 )
 
 const (

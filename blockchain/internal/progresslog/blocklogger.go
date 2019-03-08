@@ -11,7 +11,6 @@ import (
 
 	"github.com/decred/slog"
 
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
 )
 
@@ -46,12 +45,9 @@ func NewBlockProgressLogger(progressMessage string, logger slog.Logger) *BlockPr
 func (b *BlockProgressLogger) LogBlockHeight(block, parent *wire.MsgBlock) {
 	b.Lock()
 	defer b.Unlock()
+
 	b.receivedLogBlocks++
-	regularTxTreeValid := pfcutil.IsFlagSet16(block.Header.VoteBits,
-		pfcutil.BlockValid)
-	if regularTxTreeValid {
-		b.receivedLogTx += int64(len(parent.Transactions))
-	}
+	b.receivedLogTx += int64(len(block.Transactions))
 	b.receivedLogTx += int64(len(block.STransactions))
 
 	now := time.Now()
