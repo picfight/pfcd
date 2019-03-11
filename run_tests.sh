@@ -91,12 +91,12 @@ if [ -f ~/.cache/$DOCKER_IMAGE_TAG.tar ]; then
   $DOCKER load -i ~/.cache/$DOCKER_IMAGE_TAG.tar
 else
   # pull and save image to cache
-  $DOCKER pull decred/$DOCKER_IMAGE_TAG
-  $DOCKER save decred/$DOCKER_IMAGE_TAG > ~/.cache/$DOCKER_IMAGE_TAG.tar
+  $DOCKER pull picfight/$DOCKER_IMAGE_TAG
+  $DOCKER save picfight/$DOCKER_IMAGE_TAG > ~/.cache/$DOCKER_IMAGE_TAG.tar
 fi
 
-$DOCKER run --rm -it -v $(pwd):/src:Z decred/$DOCKER_IMAGE_TAG /bin/bash -c "\
+$DOCKER run --rm -it -v $(pwd):/src:Z picfight/$DOCKER_IMAGE_TAG /bin/bash -c "\
   rsync -ra --filter=':- .gitignore'  \
-  /src/ /go/src/github.com/decred/$REPO/ && \
-  cd github.com/decred/$REPO/ && \
+  /src/ /go/src/github.com/picfight/$REPO/ && \
+  cd github.com/picfight/$REPO/ && \
   env GOVERSION=$GOVERSION GO111MODULE=on bash run_tests.sh"
