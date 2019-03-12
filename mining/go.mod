@@ -1,11 +1,6 @@
 module github.com/picfight/pfcd/mining
 
 require (
-	github.com/picfight/pfcd/blockchain v1.0.1
-	github.com/picfight/pfcd/blockchain/stake v1.0.1
-	github.com/picfight/pfcd/chaincfg/chainhash v1.0.1
-	github.com/picfight/pfcd/pfcutil v1.1.1
-	github.com/picfight/pfcd/wire v1.2.0
 )
 
 replace (

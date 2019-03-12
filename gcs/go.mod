@@ -3,10 +3,6 @@ module github.com/picfight/pfcd/gcs
 require (
 	github.com/dchest/blake256 v1.0.0
 	github.com/dchest/siphash v1.2.0
-	github.com/picfight/pfcd/blockchain/stake v1.0.1
-	github.com/picfight/pfcd/chaincfg/chainhash v1.0.1
-	github.com/picfight/pfcd/txscript v1.0.1
-	github.com/picfight/pfcd/wire v1.2.0
 )
 
 replace (

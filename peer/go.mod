@@ -3,11 +3,6 @@ module github.com/picfight/pfcd/peer
 require (
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd
 	github.com/davecgh/go-spew v1.1.0
-	github.com/picfight/pfcd/blockchain v1.0.1
-	github.com/picfight/pfcd/chaincfg v1.2.0
-	github.com/picfight/pfcd/chaincfg/chainhash v1.0.1
-	github.com/picfight/pfcd/txscript v1.0.1
-	github.com/picfight/pfcd/wire v1.2.0
 	github.com/decred/slog v1.0.0
 )
 
