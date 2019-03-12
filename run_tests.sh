@@ -60,16 +60,6 @@ testrepo () {
     go mod vendor
     unset GO111MODULE
 
-    gometalinter --vendor --disable-all --deadline=10m \
-      --enable=gofmt \
-      --enable=gosimple \
-      --enable=unconvert \
-      --enable=ineffassign \
-      ./...
-    if [ $? != 0 ]; then
-      echo 'gometalinter has some complaints'
-      exit 1
-    fi
   fi
 
   echo "------------------------------------------"
