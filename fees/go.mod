@@ -2,6 +2,10 @@ module github.com/picfight/pfcd/fees
 
 require (
 	github.com/btcsuite/goleveldb v1.0.0
+	github.com/picfight/pfcd/blockchain/stake v1.1.0
+	github.com/picfight/pfcd/chaincfg v1.2.0
+	github.com/picfight/pfcd/chaincfg/chainhash v1.0.1
+	github.com/picfight/pfcd/pfcutil v1.2.0
 	github.com/decred/slog v1.0.0
 	github.com/golang/protobuf v1.2.0 // indirect
 	github.com/jessevdk/go-flags v1.4.0

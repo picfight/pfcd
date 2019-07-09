@@ -8,6 +8,10 @@ require (
 	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/picfight/pfcd/chaincfg v1.2.0
+	github.com/picfight/pfcd/chaincfg/chainhash v1.0.1
+	github.com/picfight/pfcd/pfcutil v1.1.1
+	github.com/picfight/pfcd/wire v1.2.0
 	golang.org/x/net v0.0.0-20180808004115-f9ce57c11b24 // indirect
 	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f // indirect
 	golang.org/x/sys v0.0.0-20181206074257-70b957f3b65e // indirect
