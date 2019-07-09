@@ -17,9 +17,7 @@ var MainNetParams = Params{
 	Net:         wire.MainNet,
 	DefaultPort: "9708",
 	DNSSeeds: []DNSSeed{
-		{"mainnet-seed.decred.mindcry.org", true},
-		{"mainnet-seed.decred.netpurgatory.com", true},
-		{"mainnet-seed.picfight.org", true},
+		{"mainnet-seed.eu.picfight.org", true},
 	},
 
 	// Chain parameters
