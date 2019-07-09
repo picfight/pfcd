@@ -73,7 +73,7 @@ In terms of individual benefits, since pfcd fully validates every block and
 transaction, it provides the highest security and privacy possible when used in
 conjunction with a wallet that also supports directly connecting to it in full
 validation mode, such as [pfcwallet (CLI)](https://github.com/picfight/pfcwallet)
-and [PicFightiton (GUI)](https://github.com/decred/decrediton).
+and [Pfcredit (GUI)](https://github.com/picfight/pfcredit).
 
 ## Minimum Recommended Specifications (pfcd only)
 
