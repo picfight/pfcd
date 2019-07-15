@@ -23,8 +23,8 @@ implement and the API is not stable yet.
   Connects to a pfcd RPC server using TLS-secured websockets, registers for
   block connected and block disconnected notifications, and gets the current
   block count
-* [btcwallet Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/btcwalletwebsockets)
-  Connects to a btcwallet RPC server using TLS-secured websockets, registers for
+* [pfcwallet Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/pfcwalletwebsockets)
+  Connects to a pfcwallet RPC server using TLS-secured websockets, registers for
   notifications about changes to account balances, and gets a list of unspent
   transaction outputs (utxos) the wallet can sign
 * [Picfightcoin Core HTTP POST Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/bitcoincorehttp)
@@ -33,8 +33,8 @@ implement and the API is not stable yet.
 
 ## Major Features
 
-* Supports Websockets (btcd/btcwallet) and HTTP POST mode (bitcoin core)
-* Provides callback and registration functions for btcd/btcwallet notifications
+* Supports Websockets (pfcd/pfcwallet) and HTTP POST mode (bitcoin core)
+* Provides callback and registration functions for pfcd/pfcwallet notifications
 * Supports pfcd extensions
 * Translates to and from higher-level and easier to use Go types
 * Offers a synchronous (blocking) and asynchronous API

@@ -64,8 +64,8 @@ btcd comes with a separate utility named `addblock` which can be used to import
 `bootstrap.dat`.  This approach is used since the import is a one-time operation
 and we prefer to keep the daemon itself as lightweight as possible.
 
-1. Stop btcd if it is already running.  This is required since addblock needs to
-   access the database used by btcd and it will be locked if btcd is using it.
+1. Stop pfcd if it is already running.  This is required since addblock needs to
+   access the database used by pfcd and it will be locked if pfcd is using it.
 2. Note the path to the downloaded bootstrap.dat file.
 3. Run the addblock utility with the `-i` argument pointing to the location of
    boostrap.dat:<br /><br />

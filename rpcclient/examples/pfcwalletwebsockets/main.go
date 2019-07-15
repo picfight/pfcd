@@ -27,8 +27,8 @@ func main() {
 		},
 	}
 
-	// Connect to local btcwallet RPC server using websockets.
-	certHomeDir := pfcutil.AppDataDir("btcwallet", false)
+	// Connect to local pfcwallet RPC server using websockets.
+	certHomeDir := pfcutil.AppDataDir("pfcwallet", false)
 	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
 		log.Fatal(err)
