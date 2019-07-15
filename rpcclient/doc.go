@@ -164,7 +164,7 @@ Example Usage
 The following full-blown client examples are in the examples directory:
 
  - bitcoincorehttp
-   Connects to a bitcoin core RPC server using HTTP POST mode with TLS disabled
+   Connects to a picfightcoin core RPC server using HTTP POST mode with TLS disabled
    and gets the current block count
  - btcdwebsockets
    Connects to a pfcd RPC server using TLS-secured websockets, registers for

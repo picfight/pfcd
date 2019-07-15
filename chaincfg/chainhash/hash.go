@@ -20,7 +20,7 @@ const MaxHashStringSize = HashSize * 2
 // string that has too many characters.
 var ErrHashStrSize = fmt.Errorf("max hash string length is %v bytes", MaxHashStringSize)
 
-// Hash is used in several of the bitcoin messages and common structures.  It
+// Hash is used in several of the picfightcoin messages and common structures.  It
 // typically represents the double sha256 of data.
 type Hash [HashSize]byte
 

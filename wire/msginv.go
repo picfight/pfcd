@@ -18,7 +18,7 @@ import (
 // typical case.
 const defaultInvListAlloc = 1000
 
-// MsgInv implements the Message interface and represents a bitcoin inv message.
+// MsgInv implements the Message interface and represents a picfightcoin inv message.
 // It is used to advertise a peer's known data such as blocks and transactions
 // through inventory vectors.  It may be sent unsolicited to inform other peers
 // of the data or in response to a getblocks message (MsgGetBlocks).  Each
@@ -43,7 +43,7 @@ func (msg *MsgInv) AddInvVect(iv *InvVect) error {
 	return nil
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgInv) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	count, err := ReadVarInt(r, pver)
@@ -73,7 +73,7 @@ func (msg *MsgInv) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) erro
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgInv) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Limit to max inventory vectors per message.
@@ -111,7 +111,7 @@ func (msg *MsgInv) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgInv returns a new bitcoin inv message that conforms to the Message
+// NewMsgInv returns a new picfightcoin inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgInv() *MsgInv {
 	return &MsgInv{
@@ -119,7 +119,7 @@ func NewMsgInv() *MsgInv {
 	}
 }
 
-// NewMsgInvSizeHint returns a new bitcoin inv message that conforms to the
+// NewMsgInvSizeHint returns a new picfightcoin inv message that conforms to the
 // Message interface.  See MsgInv for details.  This function differs from
 // NewMsgInv in that it allows a default allocation size for the backing array
 // which houses the inventory vector list.  This allows callers who know in

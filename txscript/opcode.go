@@ -31,7 +31,7 @@ type opcode struct {
 }
 
 // These constants are the values of the official opcodes used on the btc wiki,
-// in bitcoin core and in most if not all other references and software related
+// in picfightcoin core and in most if not all other references and software related
 // to handling PFC scripts.
 const (
 	OP_0                   = 0x00 // 0
@@ -288,12 +288,12 @@ const (
 	OP_UNKNOWN247          = 0xf7 // 247
 	OP_UNKNOWN248          = 0xf8 // 248
 	OP_UNKNOWN249          = 0xf9 // 249
-	OP_SMALLINTEGER        = 0xfa // 250 - bitcoin core internal
-	OP_PUBKEYS             = 0xfb // 251 - bitcoin core internal
+	OP_SMALLINTEGER        = 0xfa // 250 - picfightcoin core internal
+	OP_PUBKEYS             = 0xfb // 251 - picfightcoin core internal
 	OP_UNKNOWN252          = 0xfc // 252
-	OP_PUBKEYHASH          = 0xfd // 253 - bitcoin core internal
-	OP_PUBKEY              = 0xfe // 254 - bitcoin core internal
-	OP_INVALIDOPCODE       = 0xff // 255 - bitcoin core internal
+	OP_PUBKEYHASH          = 0xfd // 253 - picfightcoin core internal
+	OP_PUBKEY              = 0xfe // 254 - picfightcoin core internal
+	OP_INVALIDOPCODE       = 0xff // 255 - picfightcoin core internal
 )
 
 // Conditional execution constants.

@@ -56,7 +56,7 @@ func (h *BlockHeader) BlockHash() chainhash.Hash {
 	return chainhash.DoubleHashH(buf.Bytes())
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 // See Deserialize for decoding block headers stored to disk, such as in a
 // database, as opposed to decoding block headers from the wire.
@@ -64,7 +64,7 @@ func (h *BlockHeader) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) e
 	return readBlockHeader(r, pver, h)
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 // See Serialize for encoding block headers to be stored to disk, such as in a
 // database, as opposed to encoding block headers for the wire.
@@ -110,7 +110,7 @@ func NewBlockHeader(version int32, prevHash, merkleRootHash *chainhash.Hash,
 	}
 }
 
-// readBlockHeader reads a bitcoin block header from r.  See Deserialize for
+// readBlockHeader reads a picfightcoin block header from r.  See Deserialize for
 // decoding block headers stored to disk, such as in a database, as opposed to
 // decoding from the wire.
 func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
@@ -118,7 +118,7 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 		(*uint32Time)(&bh.Timestamp), &bh.Bits, &bh.Nonce)
 }
 
-// writeBlockHeader writes a bitcoin block header to w.  See Serialize for
+// writeBlockHeader writes a picfightcoin block header to w.  See Serialize for
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {

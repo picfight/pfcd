@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-// MsgPing implements the Message interface and represents a bitcoin ping
+// MsgPing implements the Message interface and represents a picfightcoin ping
 // message.
 //
 // For versions BIP0031Version and earlier, it is used primarily to confirm
@@ -25,7 +25,7 @@ type MsgPing struct {
 	Nonce uint64
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgPing) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	// There was no nonce for BIP0031Version and earlier.
@@ -41,7 +41,7 @@ func (msg *MsgPing) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) err
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgPing) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// There was no nonce for BIP0031Version and earlier.
@@ -78,7 +78,7 @@ func (msg *MsgPing) MaxPayloadLength(pver uint32) uint32 {
 	return plen
 }
 
-// NewMsgPing returns a new bitcoin ping message that conforms to the Message
+// NewMsgPing returns a new picfightcoin ping message that conforms to the Message
 // interface.  See MsgPing for details.
 func NewMsgPing(nonce uint64) *MsgPing {
 	return &MsgPing{

@@ -45,7 +45,7 @@ func (msg *MsgGetHeaders) AddBlockLocatorHash(hash *chainhash.Hash) error {
 	return nil
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgGetHeaders) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	err := readElement(r, &msg.ProtocolVersion)
@@ -80,7 +80,7 @@ func (msg *MsgGetHeaders) PfcDecode(r io.Reader, pver uint32, enc MessageEncodin
 	return readElement(r, &msg.HashStop)
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgGetHeaders) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Limit to max block locator hashes per message.
@@ -126,7 +126,7 @@ func (msg *MsgGetHeaders) MaxPayloadLength(pver uint32) uint32 {
 		chainhash.HashSize) + chainhash.HashSize
 }
 
-// NewMsgGetHeaders returns a new bitcoin getheaders message that conforms to
+// NewMsgGetHeaders returns a new picfightcoin getheaders message that conforms to
 // the Message interface.  See MsgGetHeaders for details.
 func NewMsgGetHeaders() *MsgGetHeaders {
 	return &MsgGetHeaders{

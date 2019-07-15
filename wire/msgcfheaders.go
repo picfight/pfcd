@@ -17,7 +17,7 @@ const (
 	MaxCFHeaderPayload = chainhash.HashSize
 
 	// MaxCFHeadersPerMsg is the maximum number of committed filter headers
-	// that can be in a single bitcoin cfheaders message.
+	// that can be in a single picfightcoin cfheaders message.
 	MaxCFHeadersPerMsg = 2000
 )
 
@@ -45,7 +45,7 @@ func (msg *MsgCFHeaders) AddCFHash(hash *chainhash.Hash) error {
 	return nil
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgCFHeaders) PfcDecode(r io.Reader, pver uint32, _ MessageEncoding) error {
 	// Read filter type
@@ -95,7 +95,7 @@ func (msg *MsgCFHeaders) PfcDecode(r io.Reader, pver uint32, _ MessageEncoding) 
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgCFHeaders) PfcEncode(w io.Writer, pver uint32, _ MessageEncoding) error {
 	// Write filter type
@@ -142,7 +142,7 @@ func (msg *MsgCFHeaders) PfcEncode(w io.Writer, pver uint32, _ MessageEncoding) 
 
 // Deserialize decodes a filter header from r into the receiver using a format
 // that is suitable for long-term storage such as a database. This function
-// differs from PfcDecode in that PfcDecode decodes from the bitcoin wire
+// differs from PfcDecode in that PfcDecode decodes from the picfightcoin wire
 // protocol as it was sent across the network.  The wire encoding can
 // technically differ depending on the protocol version and doesn't even really
 // need to match the format of a stored filter header at all. As of the time
@@ -171,7 +171,7 @@ func (msg *MsgCFHeaders) MaxPayloadLength(pver uint32) uint32 {
 		(MaxCFHeaderPayload * MaxCFHeadersPerMsg)
 }
 
-// NewMsgCFHeaders returns a new bitcoin cfheaders message that conforms to
+// NewMsgCFHeaders returns a new picfightcoin cfheaders message that conforms to
 // the Message interface. See MsgCFHeaders for details.
 func NewMsgCFHeaders() *MsgCFHeaders {
 	return &MsgCFHeaders{

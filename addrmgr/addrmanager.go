@@ -28,7 +28,7 @@ import (
 )
 
 // AddrManager provides a concurrency safe address manager for caching potential
-// peers on the bitcoin network.
+// peers on the picfightcoin network.
 type AddrManager struct {
 	mtx            sync.Mutex
 	peersFile      string
@@ -1135,7 +1135,7 @@ func (a *AddrManager) GetBestLocalAddress(remoteAddr *wire.NetAddress) *wire.Net
 	return bestAddress
 }
 
-// New returns a new bitcoin address manager.
+// New returns a new picfightcoin address manager.
 // Use Start to begin processing asynchronous address updates.
 func New(dataDir string, lookupFunc func(string) ([]net.IP, error)) *AddrManager {
 	am := AddrManager{

@@ -49,7 +49,7 @@ they follow the guidelines set forth on this page.  That said, if you don't have
 the following basic qualifications you will likely find it quite difficult to
 contribute.
 
-- A reasonable understanding of bitcoin at a high level (see the
+- A reasonable understanding of picfightcoin at a high level (see the
   [Required Reading](#ReqReading) section for the original white paper)
 - Experience in some type of C-like language
 - An understanding of data structures and their performance implications
@@ -175,7 +175,7 @@ func CompactToBig(compact uint32) *big.Int {
 // The formula to calculate N is:
 //         N = (-1^sign) * mantissa * 256^(exponent-3)
 //
-// This compact form is only used in bitcoin to encode unsigned 256-bit numbers
+// This compact form is only used in picfightcoin to encode unsigned 256-bit numbers
 // which represent difficulty targets, thus there really is not a need for a
 // sign bit, but it is implemented here to stay consistent with bitcoind.
 func CompactToBig(compact uint32) *big.Int {

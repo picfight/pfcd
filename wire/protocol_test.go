@@ -35,7 +35,7 @@ func TestServiceFlagStringer(t *testing.T) {
 	}
 }
 
-// TestPicfightcoinNetStringer tests the stringized output for bitcoin net types.
+// TestPicfightcoinNetStringer tests the stringized output for picfightcoin net types.
 func TestPicfightcoinNetStringer(t *testing.T) {
 	tests := []struct {
 		in   PicfightcoinNet

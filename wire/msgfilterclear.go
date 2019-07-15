@@ -16,7 +16,7 @@ import (
 // no payload.
 type MsgFilterClear struct{}
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgFilterClear) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0037Version {
@@ -28,7 +28,7 @@ func (msg *MsgFilterClear) PfcDecode(r io.Reader, pver uint32, enc MessageEncodi
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgFilterClear) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0037Version {
@@ -52,7 +52,7 @@ func (msg *MsgFilterClear) MaxPayloadLength(pver uint32) uint32 {
 	return 0
 }
 
-// NewMsgFilterClear returns a new bitcoin filterclear message that conforms to the Message
+// NewMsgFilterClear returns a new picfightcoin filterclear message that conforms to the Message
 // interface.  See MsgFilterClear for details.
 func NewMsgFilterClear() *MsgFilterClear {
 	return &MsgFilterClear{}

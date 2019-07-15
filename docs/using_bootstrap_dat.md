@@ -9,7 +9,7 @@
 
 ### 1. What is bootstrap.dat?
 
-It is a flat, binary file containing bitcoin blockchain data starting from the
+It is a flat, binary file containing picfightcoin blockchain data starting from the
 genesis block and continuing through a relatively recent block height depending
 on the last time it was updated.
 

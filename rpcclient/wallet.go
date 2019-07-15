@@ -1254,7 +1254,7 @@ func (c *Client) RenameAccount(oldAccount, newAccount string) error {
 type FutureValidateAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns information
-// about the given bitcoin address.
+// about the given picfightcoin address.
 func (r FutureValidateAddressResult) Receive() (*pfcjson.ValidateAddressWalletResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
@@ -1282,7 +1282,7 @@ func (c *Client) ValidateAddressAsync(address pfcutil.Address) FutureValidateAdd
 	return c.sendCmd(cmd)
 }
 
-// ValidateAddress returns information about the given bitcoin address.
+// ValidateAddress returns information about the given picfightcoin address.
 func (c *Client) ValidateAddress(address pfcutil.Address) (*pfcjson.ValidateAddressWalletResult, error) {
 	return c.ValidateAddressAsync(address).Receive()
 }

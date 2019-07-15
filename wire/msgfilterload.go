@@ -49,7 +49,7 @@ type MsgFilterLoad struct {
 	Flags     BloomUpdateType
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgFilterLoad) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0037Version {
@@ -79,7 +79,7 @@ func (msg *MsgFilterLoad) PfcDecode(r io.Reader, pver uint32, enc MessageEncodin
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgFilterLoad) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0037Version {
@@ -124,7 +124,7 @@ func (msg *MsgFilterLoad) MaxPayloadLength(pver uint32) uint32 {
 		MaxFilterLoadFilterSize + 9
 }
 
-// NewMsgFilterLoad returns a new bitcoin filterload message that conforms to
+// NewMsgFilterLoad returns a new picfightcoin filterload message that conforms to
 // the Message interface.  See MsgFilterLoad for details.
 func NewMsgFilterLoad(filter []byte, hashFuncs uint32, tweak uint32, flags BloomUpdateType) *MsgFilterLoad {
 	return &MsgFilterLoad{

@@ -19,7 +19,7 @@ type pubKeyTest struct {
 }
 
 var pubKeyTests = []pubKeyTest{
-	// pubkey from bitcoin blockchain tx
+	// pubkey from picfightcoin blockchain tx
 	// 0437cd7f8525ceed2324359c2d0ba26006d92d85
 	{
 		name: "uncompressed ok",

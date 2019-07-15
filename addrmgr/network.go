@@ -110,7 +110,7 @@ func IsLocal(na *wire.NetAddress) bool {
 }
 
 // IsOnionCatTor returns whether or not the passed address is in the IPv6 range
-// used by bitcoin to support Tor (fd87:d87e:eb43::/48).  Note that this range
+// used by picfightcoin to support Tor (fd87:d87e:eb43::/48).  Note that this range
 // is the same range used by OnionCat, which is part of the RFC4193 unique local
 // IPv6 range.
 func IsOnionCatTor(na *wire.NetAddress) bool {

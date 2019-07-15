@@ -19,7 +19,7 @@ type MsgGetCFHeaders struct {
 	StopHash    chainhash.Hash
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgGetCFHeaders) PfcDecode(r io.Reader, pver uint32, _ MessageEncoding) error {
 	err := readElement(r, &msg.FilterType)
@@ -35,7 +35,7 @@ func (msg *MsgGetCFHeaders) PfcDecode(r io.Reader, pver uint32, _ MessageEncodin
 	return readElement(r, &msg.StopHash)
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgGetCFHeaders) PfcEncode(w io.Writer, pver uint32, _ MessageEncoding) error {
 	err := writeElement(w, msg.FilterType)
@@ -64,7 +64,7 @@ func (msg *MsgGetCFHeaders) MaxPayloadLength(pver uint32) uint32 {
 	return 1 + 4 + chainhash.HashSize
 }
 
-// NewMsgGetCFHeaders returns a new bitcoin getcfheader message that conforms to
+// NewMsgGetCFHeaders returns a new picfightcoin getcfheader message that conforms to
 // the Message interface using the passed parameters and defaults for the
 // remaining fields.
 func NewMsgGetCFHeaders(filterType FilterType, startHeight uint32,

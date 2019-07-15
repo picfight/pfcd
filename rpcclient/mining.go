@@ -409,7 +409,7 @@ func (c *Client) SubmitBlockAsync(block *pfcutil.Block, options *pfcjson.SubmitB
 	return c.sendCmd(cmd)
 }
 
-// SubmitBlock attempts to submit a new block into the bitcoin network.
+// SubmitBlock attempts to submit a new block into the picfightcoin network.
 func (c *Client) SubmitBlock(block *pfcutil.Block, options *pfcjson.SubmitBlockOptions) error {
 	return c.SubmitBlockAsync(block, options).Receive()
 }

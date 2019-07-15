@@ -13,12 +13,12 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 )
 
-// MessageHeaderSize is the number of bytes in a bitcoin message header.
+// MessageHeaderSize is the number of bytes in a picfightcoin message header.
 // Picfightcoin network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
 // checksum 4 bytes.
 const MessageHeaderSize = 24
 
-// CommandSize is the fixed size of all commands in the common bitcoin message
+// CommandSize is the fixed size of all commands in the common picfightcoin message
 // header.  Shorter commands must be zero padded.
 const CommandSize = 12
 
@@ -26,7 +26,7 @@ const CommandSize = 12
 // individual limits imposed by messages themselves.
 const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
-// Commands used in bitcoin message headers which describe the type of message.
+// Commands used in picfightcoin message headers which describe the type of message.
 const (
 	CmdVersion      = "version"
 	CmdVerAck       = "verack"
@@ -77,7 +77,7 @@ const (
 // protocol.
 var LatestEncoding = WitnessEncoding
 
-// Message is an interface that describes a bitcoin message.  A type that
+// Message is an interface that describes a picfightcoin message.  A type that
 // implements Message has complete control over the representation of its data
 // and may therefore contain additional or fewer fields than those which
 // are used directly in the protocol encoded message.
@@ -186,7 +186,7 @@ func makeEmptyMessage(command string) (Message, error) {
 	return msg, nil
 }
 
-// messageHeader defines the header structure for all bitcoin protocol messages.
+// messageHeader defines the header structure for all picfightcoin protocol messages.
 type messageHeader struct {
 	magic    PicfightcoinNet // 4 bytes
 	command  string          // 12 bytes
@@ -194,7 +194,7 @@ type messageHeader struct {
 	checksum [4]byte         // 4 bytes
 }
 
-// readMessageHeader reads a bitcoin message header from r.
+// readMessageHeader reads a picfightcoin message header from r.
 func readMessageHeader(r io.Reader) (int, *messageHeader, error) {
 	// Since readElements doesn't return the amount of bytes read, attempt
 	// to read the entire header into a buffer first in case there is a
@@ -238,14 +238,14 @@ func discardInput(r io.Reader, n uint32) {
 	}
 }
 
-// WriteMessageN writes a bitcoin Message to w including the necessary header
+// WriteMessageN writes a picfightcoin Message to w including the necessary header
 // information and returns the number of bytes written.    This function is the
 // same as WriteMessage except it also returns the number of bytes written.
 func WriteMessageN(w io.Writer, msg Message, pver uint32, pfcnet PicfightcoinNet) (int, error) {
 	return WriteMessageWithEncodingN(w, msg, pver, pfcnet, BaseEncoding)
 }
 
-// WriteMessage writes a bitcoin Message to w including the necessary header
+// WriteMessage writes a picfightcoin Message to w including the necessary header
 // information.  This function is the same as WriteMessageN except it doesn't
 // doesn't return the number of bytes written.  This function is mainly provided
 // for backwards compatibility with the original API, but it's also useful for
@@ -255,7 +255,7 @@ func WriteMessage(w io.Writer, msg Message, pver uint32, pfcnet PicfightcoinNet)
 	return err
 }
 
-// WriteMessageWithEncodingN writes a bitcoin Message to w including the
+// WriteMessageWithEncodingN writes a picfightcoin Message to w including the
 // necessary header information and returns the number of bytes written.
 // This function is the same as WriteMessageN except it also allows the caller
 // to specify the message encoding format to be used when serializing wire
@@ -327,8 +327,8 @@ func WriteMessageWithEncodingN(w io.Writer, msg Message, pver uint32,
 	return totalBytes, err
 }
 
-// ReadMessageWithEncodingN reads, validates, and parses the next bitcoin Message
-// from r for the provided protocol version and bitcoin network.  It returns the
+// ReadMessageWithEncodingN reads, validates, and parses the next picfightcoin Message
+// from r for the provided protocol version and picfightcoin network.  It returns the
 // number of bytes read in addition to the parsed Message and raw bytes which
 // comprise the message.  This function is the same as ReadMessageN except it
 // allows the caller to specify which message encoding is to to consult when
@@ -352,7 +352,7 @@ func ReadMessageWithEncodingN(r io.Reader, pver uint32, pfcnet PicfightcoinNet,
 
 	}
 
-	// Check for messages from the wrong bitcoin network.
+	// Check for messages from the wrong picfightcoin network.
 	if hdr.magic != pfcnet {
 		discardInput(r, hdr.length)
 		str := fmt.Sprintf("message from other network [%v]", hdr.magic)
@@ -415,8 +415,8 @@ func ReadMessageWithEncodingN(r io.Reader, pver uint32, pfcnet PicfightcoinNet,
 	return totalBytes, msg, payload, nil
 }
 
-// ReadMessageN reads, validates, and parses the next bitcoin Message from r for
-// the provided protocol version and bitcoin network.  It returns the number of
+// ReadMessageN reads, validates, and parses the next picfightcoin Message from r for
+// the provided protocol version and picfightcoin network.  It returns the number of
 // bytes read in addition to the parsed Message and raw bytes which comprise the
 // message.  This function is the same as ReadMessage except it also returns the
 // number of bytes read.
@@ -424,8 +424,8 @@ func ReadMessageN(r io.Reader, pver uint32, pfcnet PicfightcoinNet) (int, Messag
 	return ReadMessageWithEncodingN(r, pver, pfcnet, BaseEncoding)
 }
 
-// ReadMessage reads, validates, and parses the next bitcoin Message from r for
-// the provided protocol version and bitcoin network.  It returns the parsed
+// ReadMessage reads, validates, and parses the next picfightcoin Message from r for
+// the provided protocol version and picfightcoin network.  It returns the parsed
 // Message and raw bytes which comprise the message.  This function only differs
 // from ReadMessageN in that it doesn't return the number of bytes read.  This
 // function is mainly provided for backwards compatibility with the original

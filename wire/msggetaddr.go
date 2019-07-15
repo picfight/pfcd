@@ -16,13 +16,13 @@ import (
 // This message has no payload.
 type MsgGetAddr struct{}
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgGetAddr) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgGetAddr) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	return nil
@@ -40,7 +40,7 @@ func (msg *MsgGetAddr) MaxPayloadLength(pver uint32) uint32 {
 	return 0
 }
 
-// NewMsgGetAddr returns a new bitcoin getaddr message that conforms to the
+// NewMsgGetAddr returns a new picfightcoin getaddr message that conforms to the
 // Message interface.  See MsgGetAddr for details.
 func NewMsgGetAddr() *MsgGetAddr {
 	return &MsgGetAddr{}

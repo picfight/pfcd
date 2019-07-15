@@ -19,7 +19,7 @@ type MsgFeeFilter struct {
 	MinFee int64
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgFeeFilter) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	if pver < FeeFilterVersion {
@@ -31,7 +31,7 @@ func (msg *MsgFeeFilter) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding
 	return readElement(r, &msg.MinFee)
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgFeeFilter) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < FeeFilterVersion {
@@ -55,7 +55,7 @@ func (msg *MsgFeeFilter) MaxPayloadLength(pver uint32) uint32 {
 	return 8
 }
 
-// NewMsgFeeFilter returns a new bitcoin feefilter message that conforms to
+// NewMsgFeeFilter returns a new picfightcoin feefilter message that conforms to
 // the Message interface.  See MsgFeeFilter for details.
 func NewMsgFeeFilter(minfee int64) *MsgFeeFilter {
 	return &MsgFeeFilter{

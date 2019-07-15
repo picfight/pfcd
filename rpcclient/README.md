@@ -28,7 +28,7 @@ implement and the API is not stable yet.
   notifications about changes to account balances, and gets a list of unspent
   transaction outputs (utxos) the wallet can sign
 * [Picfightcoin Core HTTP POST Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/bitcoincorehttp)
-  Connects to a bitcoin core RPC server using HTTP POST mode with TLS disabled
+  Connects to a picfightcoin core RPC server using HTTP POST mode with TLS disabled
   and gets the current block count
 
 ## Major Features

@@ -10,7 +10,7 @@ import (
 )
 
 // MaxAddrPerMsg is the maximum number of addresses that can be in a single
-// bitcoin addr message (MsgAddr).
+// picfightcoin addr message (MsgAddr).
 const MaxAddrPerMsg = 1000
 
 // MsgAddr implements the Message interface and represents a bitcoin
@@ -55,7 +55,7 @@ func (msg *MsgAddr) ClearAddresses() {
 	msg.AddrList = []*NetAddress{}
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgAddr) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	count, err := ReadVarInt(r, pver)
@@ -83,7 +83,7 @@ func (msg *MsgAddr) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) err
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgAddr) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Protocol versions before MultipleAddressVersion only allowed 1 address
@@ -134,7 +134,7 @@ func (msg *MsgAddr) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxAddrPerMsg * maxNetAddressPayload(pver))
 }
 
-// NewMsgAddr returns a new bitcoin addr message that conforms to the
+// NewMsgAddr returns a new picfightcoin addr message that conforms to the
 // Message interface.  See MsgAddr for details.
 func NewMsgAddr() *MsgAddr {
 	return &MsgAddr{

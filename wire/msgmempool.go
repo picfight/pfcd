@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-// MsgMemPool implements the Message interface and represents a bitcoin mempool
+// MsgMemPool implements the Message interface and represents a picfightcoin mempool
 // message.  It is used to request a list of transactions still in the active
 // memory pool of a relay.
 //
@@ -17,7 +17,7 @@ import (
 // starting with BIP0035Version.
 type MsgMemPool struct{}
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgMemPool) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0035Version {
@@ -29,7 +29,7 @@ func (msg *MsgMemPool) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) 
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgMemPool) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0035Version {
@@ -53,7 +53,7 @@ func (msg *MsgMemPool) MaxPayloadLength(pver uint32) uint32 {
 	return 0
 }
 
-// NewMsgMemPool returns a new bitcoin pong message that conforms to the Message
+// NewMsgMemPool returns a new picfightcoin pong message that conforms to the Message
 // interface.  See MsgPong for details.
 func NewMsgMemPool() *MsgMemPool {
 	return &MsgMemPool{}

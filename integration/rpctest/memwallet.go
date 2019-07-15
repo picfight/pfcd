@@ -139,7 +139,7 @@ func newMemWallet(net *chaincfg.Params, harnessID uint32) (*memWallet, error) {
 	}
 
 	// Track the coinbase generation address to ensure we properly track
-	// newly generated bitcoin we can spend.
+	// newly generated picfightcoin we can spend.
 	addrs := make(map[uint32]pfcutil.Address)
 	addrs[0] = coinbaseAddr
 

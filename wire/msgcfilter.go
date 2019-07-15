@@ -25,7 +25,7 @@ const (
 	MaxCFilterDataSize = 256 * 1024
 )
 
-// MsgCFilter implements the Message interface and represents a bitcoin cfilter
+// MsgCFilter implements the Message interface and represents a picfightcoin cfilter
 // message. It is used to deliver a committed filter in response to a
 // getcfilters (MsgGetCFilters) message.
 type MsgCFilter struct {
@@ -34,7 +34,7 @@ type MsgCFilter struct {
 	Data       []byte
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgCFilter) PfcDecode(r io.Reader, pver uint32, _ MessageEncoding) error {
 	// Read filter type
@@ -55,7 +55,7 @@ func (msg *MsgCFilter) PfcDecode(r io.Reader, pver uint32, _ MessageEncoding) er
 	return err
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgCFilter) PfcEncode(w io.Writer, pver uint32, _ MessageEncoding) error {
 	size := len(msg.Data)
@@ -80,7 +80,7 @@ func (msg *MsgCFilter) PfcEncode(w io.Writer, pver uint32, _ MessageEncoding) er
 
 // Deserialize decodes a filter from r into the receiver using a format that is
 // suitable for long-term storage such as a database. This function differs
-// from PfcDecode in that PfcDecode decodes from the bitcoin wire protocol as
+// from PfcDecode in that PfcDecode decodes from the picfightcoin wire protocol as
 // it was sent across the network.  The wire encoding can technically differ
 // depending on the protocol version and doesn't even really need to match the
 // format of a stored filter at all. As of the time this comment was written,
@@ -107,7 +107,7 @@ func (msg *MsgCFilter) MaxPayloadLength(pver uint32) uint32 {
 		MaxCFilterDataSize + chainhash.HashSize + 1
 }
 
-// NewMsgCFilter returns a new bitcoin cfilter message that conforms to the
+// NewMsgCFilter returns a new picfightcoin cfilter message that conforms to the
 // Message interface. See MsgCFilter for details.
 func NewMsgCFilter(filterType FilterType, blockHash *chainhash.Hash,
 	data []byte) *MsgCFilter {

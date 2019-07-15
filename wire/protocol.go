@@ -53,7 +53,7 @@ const (
 	FeeFilterVersion uint32 = 70013
 )
 
-// ServiceFlag identifies services supported by a bitcoin peer.
+// ServiceFlag identifies services supported by a picfightcoin peer.
 type ServiceFlag uint64
 
 const (
@@ -138,15 +138,15 @@ func (f ServiceFlag) String() string {
 	return s
 }
 
-// PicfightcoinNet represents which bitcoin network a message belongs to.
+// PicfightcoinNet represents which picfightcoin network a message belongs to.
 type PicfightcoinNet uint32
 
-// Constants used to indicate the message bitcoin network.  They can also be
+// Constants used to indicate the message picfightcoin network.  They can also be
 // used to seek to the next message when a stream's state is unknown, but
 // this package does not provide that functionality since it's generally a
 // better idea to simply disconnect clients that are misbehaving over TCP.
 const (
-	// MainNet represents the main bitcoin network.
+	// MainNet represents the main picfightcoin network.
 	MainNet PicfightcoinNet = 0xd9b4bef9
 
 	// TestNet represents the regression test network.
@@ -159,7 +159,7 @@ const (
 	SimNet PicfightcoinNet = 0x12141c16
 )
 
-// bnStrings is a map of bitcoin networks back to their constant names for
+// bnStrings is a map of picfightcoin networks back to their constant names for
 // pretty printing.
 var bnStrings = map[PicfightcoinNet]string{
 	MainNet:  "MainNet",

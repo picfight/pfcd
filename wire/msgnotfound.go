@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-// MsgNotFound defines a bitcoin notfound message which is sent in response to
+// MsgNotFound defines a picfightcoin notfound message which is sent in response to
 // a getdata message if any of the requested data in not available on the peer.
 // Each message is limited to a maximum number of inventory vectors, which is
 // currently 50,000.
@@ -32,7 +32,7 @@ func (msg *MsgNotFound) AddInvVect(iv *InvVect) error {
 	return nil
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgNotFound) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	count, err := ReadVarInt(r, pver)
@@ -62,7 +62,7 @@ func (msg *MsgNotFound) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding)
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgNotFound) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Limit to max inventory vectors per message.
@@ -101,7 +101,7 @@ func (msg *MsgNotFound) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgNotFound returns a new bitcoin notfound message that conforms to the
+// NewMsgNotFound returns a new picfightcoin notfound message that conforms to the
 // Message interface.  See MsgNotFound for details.
 func NewMsgNotFound() *MsgNotFound {
 	return &MsgNotFound{

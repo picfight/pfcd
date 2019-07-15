@@ -35,7 +35,7 @@ func (msg *MsgGetData) AddInvVect(iv *InvVect) error {
 	return nil
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgGetData) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	count, err := ReadVarInt(r, pver)
@@ -65,7 +65,7 @@ func (msg *MsgGetData) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) 
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgGetData) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Limit to max inventory vectors per message.
@@ -103,7 +103,7 @@ func (msg *MsgGetData) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgGetData returns a new bitcoin getdata message that conforms to the
+// NewMsgGetData returns a new picfightcoin getdata message that conforms to the
 // Message interface.  See MsgGetData for details.
 func NewMsgGetData() *MsgGetData {
 	return &MsgGetData{
@@ -111,7 +111,7 @@ func NewMsgGetData() *MsgGetData {
 	}
 }
 
-// NewMsgGetDataSizeHint returns a new bitcoin getdata message that conforms to
+// NewMsgGetDataSizeHint returns a new picfightcoin getdata message that conforms to
 // the Message interface.  See MsgGetData for details.  This function differs
 // from NewMsgGetData in that it allows a default allocation size for the
 // backing array which houses the inventory vector list.  This allows callers

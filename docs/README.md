@@ -25,7 +25,7 @@
 
 ### 1. About
 
-btcd is a full node bitcoin implementation written in [Go](http://golang.org),
+btcd is a full node picfightcoin implementation written in [Go](http://golang.org),
 licensed under the [copyfree](http://www.copyfree.org) ISC License.
 
 This project is currently under active development and is in a Beta state.  It

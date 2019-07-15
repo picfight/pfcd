@@ -1,6 +1,6 @@
 ============================================================================
 User visible changes for btcd
-  A full-node bitcoin implementation written in Go
+  A full-node picfightcoin implementation written in Go
 ============================================================================
 
 Changes in 0.12.0 (Fri Nov 20 2015)
@@ -83,7 +83,7 @@ Changes in 0.12.0 (Fri Nov 20 2015)
     - Add getwalletinfo command (#471)
   - Notable developer-related package changes:
     - Introduce a new peer package which acts a common base for creating and
-      concurrently managing bitcoin network peers (#445)
+      concurrently managing picfightcoin network peers (#445)
     - Various cleanup of the new peer package (#528, #531, #524, #534,
       #549)
     - Blocks heights now consistently use int32 everywhere (#481)
@@ -945,7 +945,7 @@ Changes in 0.3.1-alpha (Tue Oct 15 2013)
     of no longer needed orphans
   - Add functionality to increase ulimits on non-Windows platforms
   - Add support for mempool command which allows remote peers to query the
-    transaction memory pool via the bitcoin protocol
+    transaction memory pool via the picfightcoin protocol
   - Clean up logging a bit
   - Add a flag to disable checkpoints for developers
   - Add a lot of useful debug logging such as message summaries

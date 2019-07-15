@@ -312,7 +312,7 @@ func NewAlertFromPayload(serializedPayload []byte, pver uint32) (*Alert, error) 
 	return &alert, nil
 }
 
-// MsgAlert  implements the Message interface and defines a bitcoin alert
+// MsgAlert  implements the Message interface and defines a picfightcoin alert
 // message.
 //
 // This is a signed message that provides notifications that the client should
@@ -331,7 +331,7 @@ type MsgAlert struct {
 	Payload *Alert
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgAlert) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	var err error
@@ -352,7 +352,7 @@ func (msg *MsgAlert) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) er
 	return err
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgAlert) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	var err error
@@ -396,7 +396,7 @@ func (msg *MsgAlert) MaxPayloadLength(pver uint32) uint32 {
 	return MaxMessagePayload
 }
 
-// NewMsgAlert returns a new bitcoin alert message that conforms to the Message
+// NewMsgAlert returns a new picfightcoin alert message that conforms to the Message
 // interface.  See MsgAlert for details.
 func NewMsgAlert(serializedPayload []byte, signature []byte) *MsgAlert {
 	return &MsgAlert{

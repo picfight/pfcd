@@ -57,7 +57,7 @@ func (msg *MsgBlock) ClearTransactions() {
 	msg.Transactions = make([]*MsgTx, 0, defaultTransactionAlloc)
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 // See Deserialize for decoding blocks stored to disk, such as in a database, as
 // opposed to decoding blocks from the wire.
@@ -97,7 +97,7 @@ func (msg *MsgBlock) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) er
 // Deserialize decodes a block from r into the receiver using a format that is
 // suitable for long-term storage such as a database while respecting the
 // Version field in the block.  This function differs from PfcDecode in that
-// PfcDecode decodes from the bitcoin wire protocol as it was sent across the
+// PfcDecode decodes from the picfightcoin wire protocol as it was sent across the
 // network.  The wire encoding can technically differ depending on the protocol
 // version and doesn't even really need to match the format of a stored block at
 // all.  As of the time this comment was written, the encoded block is the same
@@ -169,7 +169,7 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	return txLocs, nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 // See Serialize for encoding blocks to be stored to disk, such as in a
 // database, as opposed to encoding blocks for the wire.
@@ -197,7 +197,7 @@ func (msg *MsgBlock) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) er
 // Serialize encodes the block to w using a format that suitable for long-term
 // storage such as a database while respecting the Version field in the block.
 // This function differs from PfcEncode in that PfcEncode encodes the block to
-// the bitcoin wire protocol in order to be sent across the network.  The wire
+// the picfightcoin wire protocol in order to be sent across the network.  The wire
 // encoding can technically differ depending on the protocol version and doesn't
 // even really need to match the format of a stored block at all.  As of the
 // time this comment was written, the encoded block is the same in both
@@ -280,7 +280,7 @@ func (msg *MsgBlock) TxHashes() ([]chainhash.Hash, error) {
 	return hashList, nil
 }
 
-// NewMsgBlock returns a new bitcoin block message that conforms to the
+// NewMsgBlock returns a new picfightcoin block message that conforms to the
 // Message interface.  See MsgBlock for details.
 func NewMsgBlock(blockHeader *BlockHeader) *MsgBlock {
 	return &MsgBlock{

@@ -17,7 +17,7 @@ import (
 // starting with SendHeadersVersion.
 type MsgSendHeaders struct{}
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgSendHeaders) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	if pver < SendHeadersVersion {
@@ -29,7 +29,7 @@ func (msg *MsgSendHeaders) PfcDecode(r io.Reader, pver uint32, enc MessageEncodi
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgSendHeaders) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < SendHeadersVersion {
@@ -53,7 +53,7 @@ func (msg *MsgSendHeaders) MaxPayloadLength(pver uint32) uint32 {
 	return 0
 }
 
-// NewMsgSendHeaders returns a new bitcoin sendheaders message that conforms to
+// NewMsgSendHeaders returns a new picfightcoin sendheaders message that conforms to
 // the Message interface.  See MsgSendHeaders for details.
 func NewMsgSendHeaders() *MsgSendHeaders {
 	return &MsgSendHeaders{}

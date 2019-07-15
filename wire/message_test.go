@@ -22,8 +22,8 @@ import (
 func makeHeader(pfcnet PicfightcoinNet, command string,
 	payloadLen uint32, checksum uint32) []byte {
 
-	// The length of a bitcoin message header is 24 bytes.
-	// 4 byte magic number of the bitcoin network + 12 byte command + 4 byte
+	// The length of a picfightcoin message header is 24 bytes.
+	// 4 byte magic number of the picfightcoin network + 12 byte command + 4 byte
 	// payload length + 4 byte checksum.
 	buf := make([]byte, 24)
 	binary.LittleEndian.PutUint32(buf, uint32(pfcnet))

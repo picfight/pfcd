@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package pfcjson provides primitives for working with the bitcoin JSON-RPC API.
+Package pfcjson provides primitives for working with the picfightcoin JSON-RPC API.
 
 Overview
 

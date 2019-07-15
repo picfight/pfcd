@@ -408,7 +408,7 @@ type Tx interface {
 	Rollback() error
 }
 
-// DB provides a generic interface that is used to store bitcoin blocks and
+// DB provides a generic interface that is used to store picfightcoin blocks and
 // related metadata.  This interface is intended to be agnostic to the actual
 // mechanism used for backend data storage.  The RegisterDriver function can be
 // used to add a new backend data storage method.

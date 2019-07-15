@@ -227,7 +227,7 @@ func CheckTransactionSanity(tx *pfcutil.Tx) error {
 	// output must not be negative or more than the max allowed per
 	// transaction.  Also, the total of all outputs must abide by the same
 	// restrictions.  All amounts in a transaction are in a unit value known
-	// as a satoshi.  One bitcoin is a quantity of satoshi as defined by the
+	// as a satoshi.  One picfightcoin is a quantity of satoshi as defined by the
 	// SatoshiPerPicfightcoin constant.
 	var totalSatoshi int64
 	for _, txOut := range msgTx.TxOut {
@@ -911,7 +911,7 @@ func CheckTransactionInputs(tx *pfcutil.Tx, txHeight int32, utxoView *UtxoViewpo
 		// output values of the input transactions must not be negative
 		// or more than the max allowed per transaction.  All amounts in
 		// a transaction are in a unit value known as a satoshi.  One
-		// bitcoin is a quantity of satoshi as defined by the
+		// picfightcoin is a quantity of satoshi as defined by the
 		// SatoshiPerPicfightcoin constant.
 		originTxSatoshi := utxo.Amount()
 		if originTxSatoshi < 0 {

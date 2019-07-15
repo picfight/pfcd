@@ -5,25 +5,25 @@ peer
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/peer)
 
-Package peer provides a common base for creating and managing bitcoin network
+Package peer provides a common base for creating and managing picfightcoin network
 peers.
 
 This package has intentionally been designed so it can be used as a standalone
-package for any projects needing a full featured bitcoin peer base to build on.
+package for any projects needing a full featured picfightcoin peer base to build on.
 
 ## Overview
 
 This package builds upon the wire package, which provides the fundamental
-primitives necessary to speak the bitcoin wire protocol, in order to simplify
+primitives necessary to speak the picfightcoin wire protocol, in order to simplify
 the process of creating fully functional peers.  In essence, it provides a
 common base for creating concurrent safe fully validating nodes, Simplified
 Payment Verification (SPV) nodes, proxies, etc.
 
 A quick overview of the major features peer provides are as follows:
 
- - Provides a basic concurrent safe bitcoin peer for handling bitcoin
+ - Provides a basic concurrent safe picfightcoin peer for handling bitcoin
    communications via the peer-to-peer protocol
- - Full duplex reading and writing of bitcoin protocol messages
+ - Full duplex reading and writing of picfightcoin protocol messages
  - Automatic handling of the initial handshake process including protocol
    version negotiation
  - Asynchronous message queueing of outbound messages with optional channel for
@@ -36,7 +36,7 @@ A quick overview of the major features peer provides are as follows:
    - Picfightcoin network
    - Service support signalling (full nodes, bloom filters, etc)
    - Maximum supported protocol version
-   - Ability to register callbacks for handling bitcoin protocol messages
+   - Ability to register callbacks for handling picfightcoin protocol messages
  - Inventory message batching and send trickling with known inventory detection
    and avoidance
  - Automatic periodic keep-alive pinging and pong responses

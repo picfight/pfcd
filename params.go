@@ -10,7 +10,7 @@ import (
 )
 
 // activeNetParams is a pointer to the parameters specific to the
-// currently active bitcoin network.
+// currently active picfightcoin network.
 var activeNetParams = &mainNetParams
 
 // params is used to group parameters for various networks such as the main
@@ -55,7 +55,7 @@ var simNetParams = params{
 	rpcPort: "18556",
 }
 
-// netName returns the name used when referring to a bitcoin network.  At the
+// netName returns the name used when referring to a picfightcoin network.  At the
 // time of writing, pfcd currently places blocks for testnet version 3 in the
 // data and log directory "testnet", which does not match the Name field of the
 // chaincfg parameters.  This function can be used to override this directory

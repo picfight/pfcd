@@ -19,7 +19,7 @@ const MaxUserAgentLen = 256
 // DefaultUserAgent for wire in the stack
 const DefaultUserAgent = "/btcwire:0.5.0/"
 
-// MsgVersion implements the Message interface and represents a bitcoin version
+// MsgVersion implements the Message interface and represents a picfightcoin version
 // message.  It is used for a peer to advertise itself as soon as an outbound
 // connection is made.  The remote peer then uses this information along with
 // its own to negotiate.  The remote peer must then respond with a version
@@ -69,7 +69,7 @@ func (msg *MsgVersion) AddService(service ServiceFlag) {
 	msg.Services |= service
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // The version message is special in that the protocol version hasn't been
 // negotiated yet.  As a result, the pver field is ignored and any fields which
 // are added in new versions are optional.  This also mean that r must be a
@@ -147,7 +147,7 @@ func (msg *MsgVersion) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) 
 	return nil
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgVersion) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	err := validateUserAgent(msg.UserAgent)
@@ -217,7 +217,7 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 		MaxUserAgentLen
 }
 
-// NewMsgVersion returns a new bitcoin version message that conforms to the
+// NewMsgVersion returns a new picfightcoin version message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgVersion(me *NetAddress, you *NetAddress, nonce uint64,

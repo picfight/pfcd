@@ -25,7 +25,7 @@ type MsgFilterAdd struct {
 	Data []byte
 }
 
-// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the picfightcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgFilterAdd) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0037Version {
@@ -40,7 +40,7 @@ func (msg *MsgFilterAdd) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding
 	return err
 }
 
-// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the picfightcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgFilterAdd) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0037Version {
@@ -72,7 +72,7 @@ func (msg *MsgFilterAdd) MaxPayloadLength(pver uint32) uint32 {
 		MaxFilterAddDataSize
 }
 
-// NewMsgFilterAdd returns a new bitcoin filteradd message that conforms to the
+// NewMsgFilterAdd returns a new picfightcoin filteradd message that conforms to the
 // Message interface.  See MsgFilterAdd for details.
 func NewMsgFilterAdd(data []byte) *MsgFilterAdd {
 	return &MsgFilterAdd{

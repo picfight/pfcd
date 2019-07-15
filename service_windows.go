@@ -25,7 +25,7 @@ const (
 	svcDisplayName = "Pfcd Service"
 
 	// svcDesc is the description of the service.
-	svcDesc = "Downloads and stays synchronized with the bitcoin block " +
+	svcDesc = "Downloads and stays synchronized with the picfightcoin block " +
 		"chain and provides chain services to applications."
 )
 
