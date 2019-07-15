@@ -6,7 +6,7 @@
         2. [Linux/BSD/MacOSX/POSIX](#PosixInstallation)
           1. [Gentoo Linux](#GentooInstallation)
     2. [Configuration](#Configuration)
-    3. [Controlling and Querying btcd via btcctl](#PfcctlConfig)
+    3. [Controlling and Querying pfcd via btcctl](#PfcctlConfig)
     4. [Mining](#Mining)
 3. [Help](#Help)
     1. [Startup](#Startup)
@@ -50,7 +50,7 @@ wallet functionality and this was a very intentional design decision.  See the
 blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
 for more details.  This means you can't actually make or receive payments
 directly with btcd.  That functionality is provided by the
-[btcwallet](https://github.com/btcsuite/btcwallet) and
+[pfcwallet](https://github.com/picfight/pfcwallet) and
 [Paymetheus](https://github.com/btcsuite/Paymetheus) (Windows-only) projects
 which are both under active development.
 
@@ -127,14 +127,14 @@ $ git pull && GO111MODULE=on go install -v . ./cmd/...
 **2.2 Configuration**
 
 btcd has a number of [configuration](http://godoc.org/github.com/picfight/pfcd)
-options, which can be viewed by running: `$ btcd --help`.
+options, which can be viewed by running: `$ pfcd --help`.
 
 <a name="PfcctlConfig" />
 
-**2.3 Controlling and Querying btcd via btcctl**
+**2.3 Controlling and Querying pfcd via btcctl**
 
 btcctl is a command line utility that can be used to both control and query btcd
-via [RPC](http://www.wikipedia.org/wiki/Remote_procedure_call).  btcd does
+via [RPC](http://www.wikipedia.org/wiki/Remote_procedure_call).  pfcd does
 **not** enable its RPC server by default;  You must configure at minimum both an
 RPC username and password or both an RPC limited username and password:
 
@@ -226,7 +226,7 @@ configuration necessary, however, there is an optional method to use a
 **3.1 Wallet**
 
 btcd was intentionally developed without an integrated wallet for security
-reasons.  Please see [btcwallet](https://github.com/btcsuite/btcwallet) for more
+reasons.  Please see [pfcwallet](https://github.com/picfight/pfcwallet) for more
 information.
 
 

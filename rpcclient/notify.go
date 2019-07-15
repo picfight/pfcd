@@ -183,19 +183,19 @@ type NotificationHandlers struct {
 	// btcd.
 	//
 	// This will only be available when client is connected to a wallet
-	// server such as btcwallet.
+	// server such as pfcwallet.
 	OnPfcdConnected func(connected bool)
 
 	// OnAccountBalance is invoked with account balance updates.
 	//
 	// This will only be available when speaking to a wallet server
-	// such as btcwallet.
+	// such as pfcwallet.
 	OnAccountBalance func(account string, balance pfcutil.Amount, confirmed bool)
 
 	// OnWalletLockState is invoked when a wallet is locked or unlocked.
 	//
 	// This will only be available when client is connected to a wallet
-	// server such as btcwallet.
+	// server such as pfcwallet.
 	OnWalletLockState func(locked bool)
 
 	// OnUnknownNotification is invoked when an unrecognized notification
@@ -419,7 +419,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 		connected, err := parsePfcdConnectedNtfnParams(ntfn.Params)
 		if err != nil {
-			log.Warnf("Received invalid btcd connected "+
+			log.Warnf("Received invalid pfcd connected "+
 				"notification: %v", err)
 			return
 		}
@@ -776,7 +776,7 @@ func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*pfcjson.TxRawR
 }
 
 // parsePfcdConnectedNtfnParams parses out the connection status of btcd
-// and btcwallet from the parameters of a btcdconnected notification.
+// and pfcwallet from the parameters of a btcdconnected notification.
 func parsePfcdConnectedNtfnParams(params []json.RawMessage) (bool, error) {
 	if len(params) != 1 {
 		return false, wrongNumParams(len(params))

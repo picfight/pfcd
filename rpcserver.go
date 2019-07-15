@@ -177,7 +177,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 
 // list of commands that we recognize, but for which pfcd has no support because
 // it lacks support for wallet functionality. For these commands the user
-// should ask a connected instance of btcwallet.
+// should ask a connected instance of pfcwallet.
 var rpcAskWallet = map[string]struct{}{
 	"addmultisigaddress":     {},
 	"backupwallet":           {},
@@ -354,7 +354,7 @@ func handleUnimplemented(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 
 // handleAskWallet is the handler for commands that are recognized as valid, but
 // are unable to answer correctly since it involves wallet state.
-// These commands will be implemented in btcwallet.
+// These commands will be implemented in pfcwallet.
 func handleAskWallet(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
 	return nil, ErrRPCNoWallet
 }

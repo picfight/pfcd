@@ -2268,12 +2268,12 @@ func (c *Client) GetInfo() (*pfcjson.InfoWalletResult, error) {
 }
 
 // TODO(davec): Implement
-// backupwallet (NYI in btcwallet)
-// encryptwallet (Won't be supported by btcwallet since it's always encrypted)
-// getwalletinfo (NYI in btcwallet or pfcjson)
-// listaddressgroupings (NYI in btcwallet)
-// listreceivedbyaccount (NYI in btcwallet)
+// backupwallet (NYI in pfcwallet)
+// encryptwallet (Won't be supported by pfcwallet since it's always encrypted)
+// getwalletinfo (NYI in pfcwallet or pfcjson)
+// listaddressgroupings (NYI in pfcwallet)
+// listreceivedbyaccount (NYI in pfcwallet)
 
 // DUMP
-// importwallet (NYI in btcwallet)
-// dumpwallet (NYI in btcwallet)
+// importwallet (NYI in pfcwallet)
+// dumpwallet (NYI in pfcwallet)

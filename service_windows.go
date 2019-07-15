@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	// svcName is the name of btcd service.
+	// svcName is the name of pfcd service.
 	svcName = "btcdsvc"
 
 	// svcDisplayName is the service name that will be shown in the windows
