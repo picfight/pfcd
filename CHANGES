@@ -335,7 +335,7 @@ Changes in 0.10.0 (Sun Mar 01 2015)
   - showblock utility changes:
     - Remove utility in favor of the RPC getblock method
   - Notable developer-related package changes:
-    - Many of the core packages have been relocated into the btcd repository
+    - Many of the core packages have been relocated into the pfcd repository
       (https://github.com/picfight/pfcd/issues/214)
     - A new version of the pfcjson package that has been completely
       redesigned from the ground up based based upon how the project has
@@ -453,7 +453,7 @@ Changes in 0.9.0 (Sat Sep 20 2014)
       as height (https://github.com/conformal/btcd/issues/151)
   - btcctl utility changes:
     - Accept --simnet flag which automatically selects the appropriate port
-      and TLS certificates needed to communicate with btcd and btcwallet on
+      and TLS certificates needed to communicate with pfcd and btcwallet on
       the simulation test network
     - Fix createrawtransaction command to send amounts denominated in PFC
     - Add estimatefee command
@@ -828,7 +828,7 @@ Changes in 0.4.0 (Thu Dec 12 2013)
   - Improve btcctl utility in the following ways:
     - Add the ability to specify a configuration file
     - Add a default entry for the RPC cert to point to the location
-      it will likely be in the btcd home directory
+      it will likely be in the pfcd home directory
     - Implement --version flag
     - Provide a --notls option to support non-TLS configurations
   - Fix a couple of minor races found by the Go race detector
@@ -861,7 +861,7 @@ Changes in 0.4.0 (Thu Dec 12 2013)
     - Update getblock with new verbose flag (thanks @flammit)
     - Add listtransactions command to btcctl
     - Add getbalance command to btcctl
-  - Add basic support for btcd to run as a native Windows service
+  - Add basic support for pfcd to run as a native Windows service
     (https://github.com/conformal/btcd/issues/42)
   - Package addblock utility with Windows MSIs
   - Add support for TravisCI (continuous build integration)
@@ -921,7 +921,7 @@ Changes in 0.3.2 (Tue Oct 22 2013)
     getbestblockhash, decoderawtransaction, getdifficulty,
     getconnectioncount, getpeerinfo, and addnode
   - Improve the btcctl utility that is used to issue JSON-RPC commands
-  - Fix an issue preventing btcd from cleanly shutting down with the RPC
+  - Fix an issue preventing pfcd from cleanly shutting down with the RPC
     stop command
   - Add a number of database interface tests to ensure backends implement
     the expected interface

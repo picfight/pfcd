@@ -33,7 +33,7 @@ is extremely stable and has been in production use since October 2013.
 
 It properly downloads, validates, and serves the block chain using the exact
 rules (including consensus bugs) for block acceptance as Picfightcoin Core.  We have
-taken great care to avoid btcd causing a fork to the block chain.  It includes a
+taken great care to avoid pfcd causing a fork to the block chain.  It includes a
 full block validation testing framework which contains all of the 'official'
 block acceptance tests (and some additional ones) that is run on every pull
 request to help ensure it properly follows consensus.  Also, it passes all of
@@ -45,7 +45,7 @@ ensures all individual transactions admitted to the pool follow the rules
 required by the block chain and also includes more strict checks which filter
 transactions based on miner requirements ("standard" transactions).
 
-One key difference between btcd and Picfightcoin Core is that btcd does *NOT* include
+One key difference between pfcd and Picfightcoin Core is that pfcd does *NOT* include
 wallet functionality and this was a very intentional design decision.  See the
 blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
 for more details.  This means you can't actually make or receive payments
@@ -70,7 +70,7 @@ details on how to install on the supported operating systems.
 **2.1.1 Windows Installation**<br />
 
 * Install the MSI available at: https://github.com/picfight/pfcd/releases
-* Launch btcd from the Start Menu
+* Launch pfcd from the Start Menu
 
 <a name="PosixInstallation" />
 
@@ -100,7 +100,7 @@ $ cd $GOPATH/src/github.com/picfight/pfcd
 $ GO111MODULE=on go install -v . ./cmd/...
 ```
 
-- btcd (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
+- pfcd (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
   not already add the bin directory to your system path during Go installation,
   we recommend you do so now.
 
@@ -202,7 +202,7 @@ certificate into the default system Certificate Authority list.
 
 **3.1 Startup**
 
-Typically btcd will run and start downloading the block chain with no extra
+Typically pfcd will run and start downloading the block chain with no extra
 configuration necessary, however, there is an optional method to use a
 `bootstrap.dat` file that may speed up the initial block chain download process.
 
@@ -219,7 +219,7 @@ configuration necessary, however, there is an optional method to use a
 * [What Ports Are Used by Default?](https://github.com/picfight/pfcd/tree/master/docs/default_ports.md)
 * [How To Listen on Specific Interfaces](https://github.com/picfight/pfcd/tree/master/docs/configure_peer_server_listen_interfaces.md)
 * [How To Configure RPC Server to Listen on Specific Interfaces](https://github.com/picfight/pfcd/tree/master/docs/configure_rpc_server_listen_interfaces.md)
-* [Configuring btcd with Tor](https://github.com/picfight/pfcd/tree/master/docs/configuring_tor.md)
+* [Configuring pfcd with Tor](https://github.com/picfight/pfcd/tree/master/docs/configuring_tor.md)
 
 <a name="Wallet" />
 
@@ -245,7 +245,7 @@ information.
 **4.2 Mailing Lists**
 
 * <a href="mailto:btcd+subscribe@opensource.conformal.com">btcd</a>: discussion
-  of btcd and its packages.
+  of pfcd and its packages.
 * <a href="mailto:btcd-commits+subscribe@opensource.conformal.com">btcd-commits</a>:
   readonly mail-out of source code changes.
 
