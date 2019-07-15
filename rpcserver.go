@@ -763,7 +763,7 @@ func createTxRawResult(chainParams *chaincfg.Params, mtx *wire.MsgTx,
 	}
 
 	if blkHeader != nil {
-		// This is not a typo, they are identical in bitcoind as well.
+		// This is not a typo, they are identical in picfightcoind as well.
 		txReply.Time = blkHeader.Timestamp.Unix()
 		txReply.Blocktime = blkHeader.Timestamp.Unix()
 		txReply.BlockHash = blkHash
@@ -3339,7 +3339,7 @@ func handleSendRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan st
 		rpcsLog.Debugf("Rejected transaction %v: %v", tx.Hash(), err)
 
 		// We'll then map the rule error to the appropriate RPC error,
-		// matching bitcoind's behavior.
+		// matching picfightcoind's behavior.
 		code := pfcjson.ErrRPCTxError
 		if txRuleErr, ok := ruleErr.Err.(mempool.TxRuleError); ok {
 			errDesc := txRuleErr.Description

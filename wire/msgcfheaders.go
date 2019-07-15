@@ -21,7 +21,7 @@ const (
 	MaxCFHeadersPerMsg = 2000
 )
 
-// MsgCFHeaders implements the Message interface and represents a bitcoin
+// MsgCFHeaders implements the Message interface and represents a picfightcoin
 // cfheaders message.  It is used to deliver committed filter header information
 // in response to a getcfheaders message (MsgGetCFHeaders). The maximum number
 // of committed filter headers per message is currently 2000. See

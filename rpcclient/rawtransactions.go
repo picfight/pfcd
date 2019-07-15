@@ -26,7 +26,7 @@ const (
 
 	// SigHashNone indicates NONE of the outputs should be signed.  This
 	// can be thought of as specifying the signer does not care where the
-	// bitcoins go.
+	// picfightcoins go.
 	SigHashNone SigHashType = "NONE"
 
 	// SigHashSingle indicates that a SINGLE output should be signed.  This

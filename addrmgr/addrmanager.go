@@ -295,7 +295,7 @@ func (a *AddrManager) pickTried(bucket int) *list.Element {
 }
 
 func (a *AddrManager) getNewBucket(netAddr, srcAddr *wire.NetAddress) int {
-	// bitcoind:
+	// picfightcoind:
 	// doublesha256(key + sourcegroup + int64(doublesha256(key + group + sourcegroup))%bucket_per_source_group) % num_new_buckets
 
 	data1 := []byte{}
@@ -317,7 +317,7 @@ func (a *AddrManager) getNewBucket(netAddr, srcAddr *wire.NetAddress) int {
 }
 
 func (a *AddrManager) getTriedBucket(netAddr *wire.NetAddress) int {
-	// bitcoind hashes this as:
+	// picfightcoind hashes this as:
 	// doublesha256(key + group + truncate_to_64bits(doublesha256(key)) % buckets_per_group) % num_buckets
 	data1 := []byte{}
 	data1 = append(data1, a.key[:]...)
@@ -725,7 +725,7 @@ func (a *AddrManager) HostToNetAddress(host string, port uint16, services wire.S
 	var ip net.IP
 	if len(host) == 22 && host[16:] == ".onion" {
 		// go base32 encoding uses capitals (as does the rfc
-		// but Tor and bitcoind tend to user lowercase, so we switch
+		// but Tor and picfightcoind tend to user lowercase, so we switch
 		// case here.
 		data, err := base32.StdEncoding.DecodeString(
 			strings.ToUpper(host[:16]))

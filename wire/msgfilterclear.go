@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-// MsgFilterClear implements the Message interface and represents a bitcoin
+// MsgFilterClear implements the Message interface and represents a picfightcoin
 // filterclear message which is used to reset a Bloom filter.
 //
 // This message was not added until protocol version BIP0037Version and has

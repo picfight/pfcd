@@ -640,7 +640,7 @@ func (sp *serverPeer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 	}
 }
 
-// OnHeaders is invoked when a peer receives a headers bitcoin
+// OnHeaders is invoked when a peer receives a headers picfightcoin
 // message.  The message is passed down to the sync manager.
 func (sp *serverPeer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	sp.server.syncManager.QueueHeaders(msg, sp.Peer)
@@ -726,7 +726,7 @@ func (sp *serverPeer) OnGetData(_ *peer.Peer, msg *wire.MsgGetData) {
 	}
 }
 
-// OnGetBlocks is invoked when a peer receives a getblocks bitcoin
+// OnGetBlocks is invoked when a peer receives a getblocks picfightcoin
 // message.
 func (sp *serverPeer) OnGetBlocks(_ *peer.Peer, msg *wire.MsgGetBlocks) {
 	// Find the most recent known block in the best chain based on the block
@@ -765,7 +765,7 @@ func (sp *serverPeer) OnGetBlocks(_ *peer.Peer, msg *wire.MsgGetBlocks) {
 	}
 }
 
-// OnGetHeaders is invoked when a peer receives a getheaders bitcoin
+// OnGetHeaders is invoked when a peer receives a getheaders picfightcoin
 // message.
 func (sp *serverPeer) OnGetHeaders(_ *peer.Peer, msg *wire.MsgGetHeaders) {
 	// Ignore getheaders requests if not in sync.
@@ -1169,7 +1169,7 @@ func (sp *serverPeer) OnFeeFilter(_ *peer.Peer, msg *wire.MsgFeeFilter) {
 	atomic.StoreInt64(&sp.feeFilter, msg.MinFee)
 }
 
-// OnFilterAdd is invoked when a peer receives a filteradd bitcoin
+// OnFilterAdd is invoked when a peer receives a filteradd picfightcoin
 // message and is used by remote peers to add data to an already loaded bloom
 // filter.  The peer will be disconnected if a filter is not loaded when this
 // message is received or the server is not configured to allow bloom filters.
@@ -1190,7 +1190,7 @@ func (sp *serverPeer) OnFilterAdd(_ *peer.Peer, msg *wire.MsgFilterAdd) {
 	sp.filter.Add(msg.Data)
 }
 
-// OnFilterClear is invoked when a peer receives a filterclear bitcoin
+// OnFilterClear is invoked when a peer receives a filterclear picfightcoin
 // message and is used by remote peers to clear an already loaded bloom filter.
 // The peer will be disconnected if a filter is not loaded when this message is
 // received  or the server is not configured to allow bloom filters.
@@ -1211,7 +1211,7 @@ func (sp *serverPeer) OnFilterClear(_ *peer.Peer, msg *wire.MsgFilterClear) {
 	sp.filter.Unload()
 }
 
-// OnFilterLoad is invoked when a peer receives a filterload bitcoin
+// OnFilterLoad is invoked when a peer receives a filterload picfightcoin
 // message and it used to load a bloom filter that should be used for
 // delivering merkle blocks and associated transactions that match the filter.
 // The peer will be disconnected if the server is not configured to allow bloom
@@ -1309,7 +1309,7 @@ func (sp *serverPeer) OnAddr(_ *peer.Peer, msg *wire.MsgAddr) {
 	// Add addresses to server address manager.  The address manager handles
 	// the details of things such as preventing duplicate addresses, max
 	// addresses, and last seen updates.
-	// XXX bitcoind gives a 2 hour time penalty here, do we want to do the
+	// XXX picfightcoind gives a 2 hour time penalty here, do we want to do the
 	// same?
 	sp.server.addrManager.AddAddresses(msg.AddrList, sp.NA())
 }

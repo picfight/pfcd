@@ -13,7 +13,7 @@ import (
 // picfightcoin addr message (MsgAddr).
 const MaxAddrPerMsg = 1000
 
-// MsgAddr implements the Message interface and represents a bitcoin
+// MsgAddr implements the Message interface and represents a picfightcoin
 // addr message.  It is used to provide a list of known active peers on the
 // network.  An active peer is considered one that has transmitted a message
 // within the last 3 hours.  Nodes which have not transmitted in that time

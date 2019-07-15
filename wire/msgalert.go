@@ -316,7 +316,7 @@ func NewAlertFromPayload(serializedPayload []byte, pver uint32) (*Alert, error) 
 // message.
 //
 // This is a signed message that provides notifications that the client should
-// display if the signature matches the key.  bitcoind/bitcoin-qt only checks
+// display if the signature matches the key.  picfightcoind/bitcoin-qt only checks
 // against a signature from the core developers.
 type MsgAlert struct {
 	// SerializedPayload is the alert payload serialized as a string so that the

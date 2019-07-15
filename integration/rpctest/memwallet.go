@@ -373,7 +373,7 @@ func (m *memWallet) NewAddress() (pfcutil.Address, error) {
 	return m.newAddress()
 }
 
-// fundTx attempts to fund a transaction sending amt bitcoin. The coins are
+// fundTx attempts to fund a transaction sending amt picfightcoin. The coins are
 // selected such that the final amount spent pays enough fees as dictated by the
 // passed fee rate. The passed fee rate should be expressed in
 // satoshis-per-byte. The transaction being funded can optionally include a

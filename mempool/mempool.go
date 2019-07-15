@@ -1169,7 +1169,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, rejec
 	if rateLimit && txFee < minFee {
 		nowUnix := time.Now().Unix()
 		// Decay passed data with an exponentially decaying ~10 minute
-		// window - matches bitcoind handling.
+		// window - matches picfightcoind handling.
 		mp.pennyTotal *= math.Pow(1.0-1.0/600.0,
 			float64(nowUnix-mp.lastPennyUnix))
 		mp.lastPennyUnix = nowUnix

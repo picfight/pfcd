@@ -17,7 +17,7 @@ import (
 // 8 bits per byte.  Then an extra one to cover partials.
 const maxFlagsPerMerkleBlock = maxTxPerBlock / 8
 
-// MsgMerkleBlock implements the Message interface and represents a bitcoin
+// MsgMerkleBlock implements the Message interface and represents a picfightcoin
 // merkleblock message which is used to reset a Bloom filter.
 //
 // This message was not added until protocol version BIP0037Version.

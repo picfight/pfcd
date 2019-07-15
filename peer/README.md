@@ -21,7 +21,7 @@ Payment Verification (SPV) nodes, proxies, etc.
 
 A quick overview of the major features peer provides are as follows:
 
- - Provides a basic concurrent safe picfightcoin peer for handling bitcoin
+ - Provides a basic concurrent safe picfightcoin peer for handling picfightcoin
    communications via the peer-to-peer protocol
  - Full duplex reading and writing of picfightcoin protocol messages
  - Automatic handling of the initial handshake process including protocol

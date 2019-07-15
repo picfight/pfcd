@@ -28,7 +28,7 @@ which proves the spender owns the associated private key.  This information
 is used to prove the the spender is authorized to perform the transaction.
 
 One benefit of using a scripting language is added flexibility in specifying
-what conditions must be met in order to spend bitcoins.
+what conditions must be met in order to spend picfightcoins.
 
 Errors
 

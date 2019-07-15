@@ -42,7 +42,7 @@ func NewRPCError(code RPCErrorCode, message string) *RPCError {
 
 // IsValidIDType checks that the ID field (which can go in any of the JSON-RPC
 // requests, responses, or notifications) is valid.  JSON-RPC 1.0 allows any
-// valid JSON type.  JSON-RPC 2.0 (which bitcoind follows for some parts) only
+// valid JSON type.  JSON-RPC 2.0 (which picfightcoind follows for some parts) only
 // allows string, number, or null, so this function restricts the allowed types
 // to that list.  This function is only provided in case the caller is manually
 // marshalling for some reason.    The functions which accept an ID in this

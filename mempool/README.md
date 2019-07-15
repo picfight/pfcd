@@ -34,7 +34,7 @@ to other peers on the network and notifying the mining process that new
 transactions are available.
 
 This package has intentionally been designed so it can be used as a standalone
-package for any projects needing the ability create an in-memory pool of bitcoin
+package for any projects needing the ability create an in-memory pool of picfightcoin
 transactions that are not only valid by consensus rules, but also adhere to a
 configurable policy.
 

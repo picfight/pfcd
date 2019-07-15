@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-// MsgSendHeaders implements the Message interface and represents a bitcoin
+// MsgSendHeaders implements the Message interface and represents a picfightcoin
 // sendheaders message.  It is used to request the peer send block headers
 // rather than inventory vectors.
 //

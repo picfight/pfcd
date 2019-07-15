@@ -17,7 +17,7 @@ import (
 // PrevBlock and MerkleRoot hashes.
 const MaxBlockHeaderPayload = 16 + (chainhash.HashSize * 2)
 
-// BlockHeader defines information about a block and is used in the bitcoin
+// BlockHeader defines information about a block and is used in the picfightcoin
 // block (MsgBlock) and headers (MsgHeaders) messages.
 type BlockHeader struct {
 	// Version of the block.  This is not the same as the protocol version.

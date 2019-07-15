@@ -58,7 +58,7 @@ func isSupportedDbType(dbType string) bool {
 }
 
 // loadBlocks reads files containing picfightcoin block data (gzipped but otherwise
-// in the format bitcoind writes) from disk and returns them as an array of
+// in the format picfightcoind writes) from disk and returns them as an array of
 // pfcutil.Block.  This is largely borrowed from the test code in btcdb.
 func loadBlocks(filename string) (blocks []*pfcutil.Block, err error) {
 	filename = filepath.Join("testdata/", filename)

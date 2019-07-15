@@ -21,7 +21,7 @@ between HTTP POST and websockets.
 By default, this client assumes the RPC server supports websockets and has
 TLS enabled.  In practice, this currently means it assumes you are talking to
 btcd or pfcwallet by default.  However, configuration options are provided to
-fall back to HTTP POST and disable TLS to support talking with inferior bitcoin
+fall back to HTTP POST and disable TLS to support talking with inferior picfightcoin
 core style RPC servers.
 
 Websockets vs HTTP POST
@@ -163,7 +163,7 @@ Example Usage
 
 The following full-blown client examples are in the examples directory:
 
- - bitcoincorehttp
+ - picfightcoincorehttp
    Connects to a picfightcoin core RPC server using HTTP POST mode with TLS disabled
    and gets the current block count
  - btcdwebsockets

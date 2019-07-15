@@ -127,11 +127,11 @@ type MessageListeners struct {
 	// OnCFilter is invoked when a peer receives a cfilter picfightcoin message.
 	OnCFilter func(p *Peer, msg *wire.MsgCFilter)
 
-	// OnCFHeaders is invoked when a peer receives a cfheaders bitcoin
+	// OnCFHeaders is invoked when a peer receives a cfheaders picfightcoin
 	// message.
 	OnCFHeaders func(p *Peer, msg *wire.MsgCFHeaders)
 
-	// OnCFCheckpt is invoked when a peer receives a cfcheckpt bitcoin
+	// OnCFCheckpt is invoked when a peer receives a cfcheckpt picfightcoin
 	// message.
 	OnCFCheckpt func(p *Peer, msg *wire.MsgCFCheckpt)
 
@@ -141,22 +141,22 @@ type MessageListeners struct {
 	// OnHeaders is invoked when a peer receives a headers picfightcoin message.
 	OnHeaders func(p *Peer, msg *wire.MsgHeaders)
 
-	// OnNotFound is invoked when a peer receives a notfound bitcoin
+	// OnNotFound is invoked when a peer receives a notfound picfightcoin
 	// message.
 	OnNotFound func(p *Peer, msg *wire.MsgNotFound)
 
 	// OnGetData is invoked when a peer receives a getdata picfightcoin message.
 	OnGetData func(p *Peer, msg *wire.MsgGetData)
 
-	// OnGetBlocks is invoked when a peer receives a getblocks bitcoin
+	// OnGetBlocks is invoked when a peer receives a getblocks picfightcoin
 	// message.
 	OnGetBlocks func(p *Peer, msg *wire.MsgGetBlocks)
 
-	// OnGetHeaders is invoked when a peer receives a getheaders bitcoin
+	// OnGetHeaders is invoked when a peer receives a getheaders picfightcoin
 	// message.
 	OnGetHeaders func(p *Peer, msg *wire.MsgGetHeaders)
 
-	// OnGetCFilters is invoked when a peer receives a getcfilters bitcoin
+	// OnGetCFilters is invoked when a peer receives a getcfilters picfightcoin
 	// message.
 	OnGetCFilters func(p *Peer, msg *wire.MsgGetCFilters)
 
@@ -174,15 +174,15 @@ type MessageListeners struct {
 	// OnFilterAdd is invoked when a peer receives a filteradd picfightcoin message.
 	OnFilterAdd func(p *Peer, msg *wire.MsgFilterAdd)
 
-	// OnFilterClear is invoked when a peer receives a filterclear bitcoin
+	// OnFilterClear is invoked when a peer receives a filterclear picfightcoin
 	// message.
 	OnFilterClear func(p *Peer, msg *wire.MsgFilterClear)
 
-	// OnFilterLoad is invoked when a peer receives a filterload bitcoin
+	// OnFilterLoad is invoked when a peer receives a filterload picfightcoin
 	// message.
 	OnFilterLoad func(p *Peer, msg *wire.MsgFilterLoad)
 
-	// OnMerkleBlock  is invoked when a peer receives a merkleblock bitcoin
+	// OnMerkleBlock  is invoked when a peer receives a merkleblock picfightcoin
 	// message.
 	OnMerkleBlock func(p *Peer, msg *wire.MsgMerkleBlock)
 
@@ -197,7 +197,7 @@ type MessageListeners struct {
 	// OnReject is invoked when a peer receives a reject picfightcoin message.
 	OnReject func(p *Peer, msg *wire.MsgReject)
 
-	// OnSendHeaders is invoked when a peer receives a sendheaders bitcoin
+	// OnSendHeaders is invoked when a peer receives a sendheaders picfightcoin
 	// message.
 	OnSendHeaders func(p *Peer, msg *wire.MsgSendHeaders)
 
@@ -404,7 +404,7 @@ type HostToNetAddrFunc func(host string, port uint16,
 // It acts as the traffic cop between the external world and the actual
 // goroutine which writes to the network socket.
 
-// Peer provides a basic concurrent safe picfightcoin peer for handling bitcoin
+// Peer provides a basic concurrent safe picfightcoin peer for handling picfightcoin
 // communications via the peer-to-peer protocol.  It provides full duplex
 // reading and writing, automatic handling of the initial handshake process,
 // querying of usage statistics and other information about the remote peer such

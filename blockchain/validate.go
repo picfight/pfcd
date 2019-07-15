@@ -866,7 +866,7 @@ func (b *BlockChain) checkBIP0030(node *blockNode, block *pfcutil.Block, view *U
 // requirements are met, detecting double spends, validating all values and fees
 // are in the legal range and the total output amount doesn't exceed the input
 // amount, and verifying the signatures to prove the spender was the owner of
-// the bitcoins and therefore allowed to spend them.  As it checks the inputs,
+// the picfightcoins and therefore allowed to spend them.  As it checks the inputs,
 // it also calculates the total fees for the transaction and returns that value.
 //
 // NOTE: The transaction MUST have already been sanity checked with the
@@ -958,7 +958,7 @@ func CheckTransactionInputs(tx *pfcutil.Tx, txHeight int32, utxoView *UtxoViewpo
 		return 0, ruleError(ErrSpendTooHigh, str)
 	}
 
-	// NOTE: bitcoind checks if the transaction fees are < 0 here, but that
+	// NOTE: picfightcoind checks if the transaction fees are < 0 here, but that
 	// is an impossible condition because of the check above that ensures
 	// the inputs are >= the outputs.
 	txFeeInSatoshi := totalSatoshiIn - totalSatoshiOut

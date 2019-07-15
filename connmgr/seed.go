@@ -61,7 +61,7 @@ func SeedFromDNS(chainParams *chaincfg.Params, reqServices wire.ServiceFlag,
 			intPort, _ := strconv.Atoi(chainParams.DefaultPort)
 			for i, peer := range seedpeers {
 				addresses[i] = wire.NewNetAddressTimestamp(
-					// bitcoind seeds with addresses from
+					// picfightcoind seeds with addresses from
 					// a time randomly selected between 3
 					// and 7 days ago.
 					time.Now().Add(-1*time.Second*time.Duration(secondsIn3Days+

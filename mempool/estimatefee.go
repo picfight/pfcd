@@ -59,7 +59,7 @@ var (
 // SatoshiPerByte is number with units of satoshis per byte.
 type SatoshiPerByte float64
 
-// PfcPerKilobyte is number with units of bitcoins per kilobyte.
+// PfcPerKilobyte is number with units of picfightcoins per kilobyte.
 type PfcPerKilobyte float64
 
 // ToPfcPerKb returns a float value that represents the given

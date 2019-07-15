@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-// MsgFeeFilter implements the Message interface and represents a bitcoin
+// MsgFeeFilter implements the Message interface and represents a picfightcoin
 // feefilter message.  It is used to request the receiving peer does not
 // announce any transactions below the specified minimum fee rate.
 //

@@ -14,7 +14,7 @@ import (
 // a getcfheaders message.
 const MaxGetCFiltersReqRange = 1000
 
-// MsgGetCFilters implements the Message interface and represents a bitcoin
+// MsgGetCFilters implements the Message interface and represents a picfightcoin
 // getcfilters message. It is used to request committed filters for a range of
 // blocks.
 type MsgGetCFilters struct {

@@ -285,7 +285,7 @@ information.
     * [database](https://github.com/picfight/pfcd/tree/master/database) -
       Provides a database interface for the Picfightcoin block chain
     * [mempool](https://github.com/picfight/pfcd/tree/master/mempool) -
-      Package mempool provides a policy-enforced pool of unmined bitcoin
+      Package mempool provides a policy-enforced pool of unmined picfightcoin
       transactions.
     * [pfcutil](https://github.com/picfight/pfcutil) - Provides Picfightcoin-specific
       convenience functions and types
