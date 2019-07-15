@@ -40,7 +40,7 @@ const (
 
 	// baseSubsidy is the starting subsidy amount for mined blocks.  This
 	// value is halved every SubsidyHalvingInterval blocks.
-	baseSubsidy = 50 * pfcutil.SatoshiPerBitcoin
+	baseSubsidy = 50 * pfcutil.SatoshiPerPicfightcoin
 )
 
 var (
@@ -228,7 +228,7 @@ func CheckTransactionSanity(tx *pfcutil.Tx) error {
 	// transaction.  Also, the total of all outputs must abide by the same
 	// restrictions.  All amounts in a transaction are in a unit value known
 	// as a satoshi.  One bitcoin is a quantity of satoshi as defined by the
-	// SatoshiPerBitcoin constant.
+	// SatoshiPerPicfightcoin constant.
 	var totalSatoshi int64
 	for _, txOut := range msgTx.TxOut {
 		satoshi := txOut.Value
@@ -245,7 +245,7 @@ func CheckTransactionSanity(tx *pfcutil.Tx) error {
 		}
 
 		// Two's complement int64 overflow guarantees that any overflow
-		// is detected and reported.  This is impossible for Bitcoin, but
+		// is detected and reported.  This is impossible for Picfightcoin, but
 		// perhaps possible if an alt increases the total money supply.
 		totalSatoshi += satoshi
 		if totalSatoshi < 0 {
@@ -524,7 +524,7 @@ func checkBlockSanity(block *pfcutil.Block, powLimit *big.Int, timeSource Median
 	// Build merkle tree and ensure the calculated merkle root matches the
 	// entry in the block header.  This also has the effect of caching all
 	// of the transaction hashes in the block to speed up future hash
-	// checks.  Bitcoind builds the tree here and checks the merkle root
+	// checks.  Picfightcoind builds the tree here and checks the merkle root
 	// after the following checks, but there is no reason not to check the
 	// merkle root matches here.
 	merkles := BuildMerkleTreeStore(block.Transactions(), false)
@@ -912,7 +912,7 @@ func CheckTransactionInputs(tx *pfcutil.Tx, txHeight int32, utxoView *UtxoViewpo
 		// or more than the max allowed per transaction.  All amounts in
 		// a transaction are in a unit value known as a satoshi.  One
 		// bitcoin is a quantity of satoshi as defined by the
-		// SatoshiPerBitcoin constant.
+		// SatoshiPerPicfightcoin constant.
 		originTxSatoshi := utxo.Amount()
 		if originTxSatoshi < 0 {
 			str := fmt.Sprintf("transaction output has negative "+

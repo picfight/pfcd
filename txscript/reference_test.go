@@ -77,7 +77,7 @@ func parseWitnessStack(elements []interface{}) ([][]byte, error) {
 // parsing.  It is declared here so it only needs to be created once.
 var shortFormOps map[string]byte
 
-// parseShortForm parses a string as as used in the Bitcoin Core reference tests
+// parseShortForm parses a string as as used in the Picfightcoin Core reference tests
 // into the script it came from.
 //
 // The format used for these tests is pretty simple if ad-hoc:
@@ -820,7 +820,7 @@ testloop:
 	}
 }
 
-// TestCalcSignatureHash runs the Bitcoin Core signature hash calculation tests
+// TestCalcSignatureHash runs the Picfightcoin Core signature hash calculation tests
 // in sighash.json.
 // https://github.com/bitcoin/bitcoin/blob/master/src/test/data/sighash.json
 func TestCalcSignatureHash(t *testing.T) {

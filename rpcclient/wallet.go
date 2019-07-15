@@ -986,7 +986,7 @@ func (c *Client) AddWitnessAddress(address string) (pfcutil.Address, error) {
 type FutureGetAccountAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns the current
-// Bitcoin address for receiving payments to the specified account.
+// Picfightcoin address for receiving payments to the specified account.
 func (r FutureGetAccountAddressResult) Receive() (pfcutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
@@ -1013,7 +1013,7 @@ func (c *Client) GetAccountAddressAsync(account string) FutureGetAccountAddressR
 	return c.sendCmd(cmd)
 }
 
-// GetAccountAddress returns the current Bitcoin address for receiving payments
+// GetAccountAddress returns the current Picfightcoin address for receiving payments
 // to the specified account.
 func (c *Client) GetAccountAddress(account string) (pfcutil.Address, error) {
 	return c.GetAccountAddressAsync(account).Receive()

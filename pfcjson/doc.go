@@ -42,7 +42,7 @@ object, except they have the id field set to null.  Therefore, servers will
 ignore requests with the id field set to null, while clients can choose to
 consume or ignore them.
 
-Unfortunately, the original Bitcoin JSON-RPC API (and hence anything compatible
+Unfortunately, the original Picfightcoin JSON-RPC API (and hence anything compatible
 with it) doesn't always follow the spec and will sometimes return an error
 string in the result field with a null error for certain commands.  However,
 for the most part, the error field will be set as described on failure.

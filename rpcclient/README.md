@@ -5,10 +5,10 @@ rpcclient
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/rpcclient)
 
-rpcclient implements a Websocket-enabled Bitcoin JSON-RPC client package written
+rpcclient implements a Websocket-enabled Picfightcoin JSON-RPC client package written
 in [Go](http://golang.org/).  It provides a robust and easy to use client for
-interfacing with a Bitcoin RPC server that uses a btcd/bitcoin core compatible
-Bitcoin JSON-RPC API.
+interfacing with a Picfightcoin RPC server that uses a btcd/bitcoin core compatible
+Picfightcoin JSON-RPC API.
 
 ## Status
 
@@ -27,7 +27,7 @@ implement and the API is not stable yet.
   Connects to a btcwallet RPC server using TLS-secured websockets, registers for
   notifications about changes to account balances, and gets a list of unspent
   transaction outputs (utxos) the wallet can sign
-* [Bitcoin Core HTTP POST Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/bitcoincorehttp)
+* [Picfightcoin Core HTTP POST Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/bitcoincorehttp)
   Connects to a bitcoin core RPC server using HTTP POST mode with TLS disabled
   and gets the current block count
 

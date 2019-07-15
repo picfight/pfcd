@@ -22,7 +22,7 @@ protocol level.
 $ go get -u github.com/picfight/pfcd/wire
 ```
 
-## Bitcoin Message Overview
+## Picfightcoin Message Overview
 
 The bitcoin protocol consists of exchanging messages between peers. Each message
 is preceded by a header which identifies information about it such as which

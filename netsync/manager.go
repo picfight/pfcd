@@ -545,7 +545,7 @@ func (sm *SyncManager) handleTxMsg(tmsg *txMsg) {
 		return
 	}
 
-	// NOTE:  BitcoinJ, and possibly other wallets, don't follow the spec of
+	// NOTE:  PicfightcoinJ, and possibly other wallets, don't follow the spec of
 	// sending an inventory message and allowing the remote peer to decide
 	// whether or not they want to request the transaction via a getdata
 	// message.  Unfortunately, the reference implementation permits

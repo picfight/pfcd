@@ -1943,7 +1943,7 @@ func handleGetBlockTemplateRequest(s *rpcServer, request *pfcjson.TemplateReques
 
 		return nil, &pfcjson.RPCError{
 			Code:    pfcjson.ErrRPCClientNotConnected,
-			Message: "Bitcoin is not connected",
+			Message: "Picfightcoin is not connected",
 		}
 	}
 
@@ -1952,7 +1952,7 @@ func handleGetBlockTemplateRequest(s *rpcServer, request *pfcjson.TemplateReques
 	if currentHeight != 0 && !s.cfg.SyncMgr.IsCurrent() {
 		return nil, &pfcjson.RPCError{
 			Code:    pfcjson.ErrRPCClientInInitialDownload,
-			Message: "Bitcoin is downloading blocks...",
+			Message: "Picfightcoin is downloading blocks...",
 		}
 	}
 
@@ -3284,7 +3284,7 @@ func handleSearchRawTransactions(s *rpcServer, cmd interface{}, closeChan <-chan
 
 		// Add the block information to the result if there is any.
 		if blkHeader != nil {
-			// This is not a typo, they are identical in Bitcoin
+			// This is not a typo, they are identical in Picfightcoin
 			// Core as well.
 			result.Time = blkHeader.Timestamp.Unix()
 			result.Blocktime = blkHeader.Timestamp.Unix()
@@ -3583,13 +3583,13 @@ func handleVerifyMessage(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 	// Validate the signature - this just shows that it was valid at all.
 	// we will compare it with the key next.
 	var buf bytes.Buffer
-	wire.WriteVarString(&buf, 0, "Bitcoin Signed Message:\n")
+	wire.WriteVarString(&buf, 0, "Picfightcoin Signed Message:\n")
 	wire.WriteVarString(&buf, 0, c.Message)
 	expectedMessageHash := chainhash.DoubleHashB(buf.Bytes())
 	pk, wasCompressed, err := pfcec.RecoverCompact(pfcec.S256(), sig,
 		expectedMessageHash)
 	if err != nil {
-		// Mirror Bitcoin Core behavior, which treats error in
+		// Mirror Picfightcoin Core behavior, which treats error in
 		// RecoverCompact as invalid signature.
 		return false, nil
 	}
@@ -3603,7 +3603,7 @@ func handleVerifyMessage(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 	}
 	address, err := pfcutil.NewAddressPubKey(serializedPK, params)
 	if err != nil {
-		// Again mirror Bitcoin Core behavior, which treats error in public key
+		// Again mirror Picfightcoin Core behavior, which treats error in public key
 		// reconstruction as invalid signature.
 		return false, nil
 	}
@@ -3830,7 +3830,7 @@ type parsedRPCCmd struct {
 	err    *pfcjson.RPCError
 }
 
-// standardCmdResult checks that a parsed command is a standard Bitcoin JSON-RPC
+// standardCmdResult checks that a parsed command is a standard Picfightcoin JSON-RPC
 // command and runs the appropriate handler to reply to the command.  Any
 // commands which are not recognized or not implemented will return an error
 // suitable for use in replies.
@@ -3963,10 +3963,10 @@ func (s *rpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request, isAdmin 
 		// must not be responded to. JSON-RPC 2.0 permits the null value as a
 		// valid request id, therefore such requests are not notifications.
 		//
-		// Bitcoin Core serves requests with "id":null or even an absent "id",
+		// Picfightcoin Core serves requests with "id":null or even an absent "id",
 		// and responds to such requests with "id":null in the response.
 		//
-		// Btcd does not respond to any request without and "id" or "id":null,
+		// Pfcd does not respond to any request without and "id" or "id":null,
 		// regardless the indicated JSON-RPC protocol version unless RPC quirks
 		// are enabled. With RPC quirks enabled, such requests will be responded
 		// to if the reqeust does not indicate JSON-RPC version.
@@ -4030,7 +4030,7 @@ func (s *rpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request, isAdmin 
 		rpcsLog.Errorf("Failed to write marshalled reply: %v", err)
 	}
 
-	// Terminate with newline to maintain compatibility with Bitcoin Core.
+	// Terminate with newline to maintain compatibility with Picfightcoin Core.
 	if err := buf.WriteByte('\n'); err != nil {
 		rpcsLog.Errorf("Failed to append terminating newline to reply: %v", err)
 	}

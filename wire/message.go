@@ -14,7 +14,7 @@ import (
 )
 
 // MessageHeaderSize is the number of bytes in a bitcoin message header.
-// Bitcoin network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
+// Picfightcoin network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
 // checksum 4 bytes.
 const MessageHeaderSize = 24
 
@@ -64,16 +64,16 @@ type MessageEncoding uint32
 
 const (
 	// BaseEncoding encodes all messages in the default format specified
-	// for the Bitcoin wire protocol.
+	// for the Picfightcoin wire protocol.
 	BaseEncoding MessageEncoding = 1 << iota
 
 	// WitnessEncoding encodes all messages other than transaction messages
-	// using the default Bitcoin wire protocol specification. For transaction
+	// using the default Picfightcoin wire protocol specification. For transaction
 	// messages, the new encoding format detailed in BIP0144 will be used.
 	WitnessEncoding
 )
 
-// LatestEncoding is the most recently specified encoding for the Bitcoin wire
+// LatestEncoding is the most recently specified encoding for the Picfightcoin wire
 // protocol.
 var LatestEncoding = WitnessEncoding
 

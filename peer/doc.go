@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package peer provides a common base for creating and managing Bitcoin network
+Package peer provides a common base for creating and managing Picfightcoin network
 peers.
 
 Overview
@@ -28,7 +28,7 @@ A quick overview of the major features peer provides are as follows:
      incoming connections so they have flexibility to establish connections as
      they see fit (proxies, etc)
    - User agent name and version
-   - Bitcoin network
+   - Picfightcoin network
    - Service support signalling (full nodes, bloom filters, etc)
    - Maximum supported protocol version
    - Ability to register callbacks for handling bitcoin protocol messages
@@ -142,9 +142,9 @@ the debug level provides summaries of every message sent and received, and
 logging at the trace level provides full dumps of parsed messages as well as the
 raw message bytes using a format similar to hexdump -C.
 
-Bitcoin Improvement Proposals
+Picfightcoin Improvement Proposals
 
 This package supports all BIPS supported by the wire package.
-(https://godoc.org/github.com/picfight/pfcd/wire#hdr-Bitcoin_Improvement_Proposals)
+(https://godoc.org/github.com/picfight/pfcd/wire#hdr-Picfightcoin_Improvement_Proposals)
 */
 package peer

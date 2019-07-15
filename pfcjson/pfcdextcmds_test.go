@@ -15,11 +15,11 @@ import (
 	"github.com/picfight/pfcd/pfcjson"
 )
 
-// TestBtcdExtCmds tests all of the btcd extended commands marshal and unmarshal
+// TestPfcdExtCmds tests all of the btcd extended commands marshal and unmarshal
 // into valid results include handling of optional fields being omitted in the
 // marshalled command, while optional fields with defaults have the default
 // assigned on unmarshalled commands.
-func TestBtcdExtCmds(t *testing.T) {
+func TestPfcdExtCmds(t *testing.T) {
 	t.Parallel()
 
 	testID := int(1)

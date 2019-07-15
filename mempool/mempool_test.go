@@ -1457,7 +1457,7 @@ func TestAncestorsDescendants(t *testing.T) {
 func TestRBF(t *testing.T) {
 	t.Parallel()
 
-	const defaultFee = pfcutil.SatoshiPerBitcoin
+	const defaultFee = pfcutil.SatoshiPerPicfightcoin
 
 	testCases := []struct {
 		name  string

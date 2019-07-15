@@ -12,10 +12,10 @@ import (
 	"github.com/picfight/pfcd/pfcjson"
 )
 
-// TestBtcdExtCustomResults ensures any results that have custom marshalling
+// TestPfcdExtCustomResults ensures any results that have custom marshalling
 // work as inteded.
 // and unmarshal code of results are as expected.
-func TestBtcdExtCustomResults(t *testing.T) {
+func TestPfcdExtCustomResults(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

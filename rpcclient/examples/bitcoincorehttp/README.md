@@ -1,7 +1,7 @@
-Bitcoin Core HTTP POST Example
+Picfightcoin Core HTTP POST Example
 ==============================
 
-This example shows how to use the rpcclient package to connect to a Bitcoin
+This example shows how to use the rpcclient package to connect to a Picfightcoin
 Core RPC server using HTTP POST mode with TLS disabled and gets the current
 block count.
 

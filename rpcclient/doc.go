@@ -3,12 +3,12 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package rpcclient implements a websocket-enabled Bitcoin JSON-RPC client.
+Package rpcclient implements a websocket-enabled Picfightcoin JSON-RPC client.
 
 Overview
 
 This client provides a robust and easy to use client for interfacing with a
-Bitcoin RPC server that uses a btcd/bitcoin core compatible Bitcoin JSON-RPC
+Picfightcoin RPC server that uses a btcd/bitcoin core compatible Picfightcoin JSON-RPC
 API.  This client has been tested with btcd (https://github.com/picfight/pfcd),
 btcwallet (https://github.com/btcsuite/btcwallet), and
 bitcoin core (https://github.com/bitcoin).

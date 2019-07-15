@@ -63,7 +63,7 @@ func testSendOutputs(r *Harness, t *testing.T) {
 
 	// First, generate a small spend which will require only a single
 	// input.
-	txid := genSpend(pfcutil.Amount(5 * pfcutil.SatoshiPerBitcoin))
+	txid := genSpend(pfcutil.Amount(5 * pfcutil.SatoshiPerPicfightcoin))
 
 	// Generate a single block, the transaction the wallet created should
 	// be found in this block.
@@ -75,7 +75,7 @@ func testSendOutputs(r *Harness, t *testing.T) {
 
 	// Next, generate a spend much greater than the block reward. This
 	// transaction should also have been mined properly.
-	txid = genSpend(pfcutil.Amount(500 * pfcutil.SatoshiPerBitcoin))
+	txid = genSpend(pfcutil.Amount(500 * pfcutil.SatoshiPerPicfightcoin))
 	blockHashes, err = r.Node.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
@@ -335,7 +335,7 @@ func testGenerateAndSubmitBlock(r *Harness, t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create script: %v", err)
 	}
-	output := wire.NewTxOut(pfcutil.SatoshiPerBitcoin, pkScript)
+	output := wire.NewTxOut(pfcutil.SatoshiPerPicfightcoin, pkScript)
 
 	const numTxns = 5
 	txns := make([]*pfcutil.Tx, 0, numTxns)
@@ -402,7 +402,7 @@ func testGenerateAndSubmitBlockWithCustomCoinbaseOutputs(r *Harness,
 	if err != nil {
 		t.Fatalf("unable to create script: %v", err)
 	}
-	output := wire.NewTxOut(pfcutil.SatoshiPerBitcoin, pkScript)
+	output := wire.NewTxOut(pfcutil.SatoshiPerPicfightcoin, pkScript)
 
 	const numTxns = 5
 	txns := make([]*pfcutil.Tx, 0, numTxns)
@@ -479,7 +479,7 @@ func testMemWalletReorg(r *Harness, t *testing.T) {
 	defer harness.TearDown()
 
 	// The internal wallet of this harness should now have 250 PFC.
-	expectedBalance := pfcutil.Amount(250 * pfcutil.SatoshiPerBitcoin)
+	expectedBalance := pfcutil.Amount(250 * pfcutil.SatoshiPerPicfightcoin)
 	walletBalance := harness.ConfirmedBalance()
 	if expectedBalance != walletBalance {
 		t.Fatalf("wallet balance incorrect: expected %v, got %v",
@@ -520,7 +520,7 @@ func testMemWalletLockedOutputs(r *Harness, t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create script: %v", err)
 	}
-	outputAmt := pfcutil.Amount(50 * pfcutil.SatoshiPerBitcoin)
+	outputAmt := pfcutil.Amount(50 * pfcutil.SatoshiPerPicfightcoin)
 	output := wire.NewTxOut(int64(outputAmt), pkScript)
 	tx, err := r.CreateTransaction([]*wire.TxOut{output}, 10, true)
 	if err != nil {
@@ -603,7 +603,7 @@ func TestMain(m *testing.M) {
 func TestHarness(t *testing.T) {
 	// We should have (numMatureOutputs * 50 PFC) of mature unspendable
 	// outputs.
-	expectedBalance := pfcutil.Amount(numMatureOutputs * 50 * pfcutil.SatoshiPerBitcoin)
+	expectedBalance := pfcutil.Amount(numMatureOutputs * 50 * pfcutil.SatoshiPerPicfightcoin)
 	harnessBalance := mainHarness.ConfirmedBalance()
 	if harnessBalance != expectedBalance {
 		t.Fatalf("expected wallet balance of %v instead have %v",

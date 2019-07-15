@@ -59,18 +59,18 @@ var (
 // SatoshiPerByte is number with units of satoshis per byte.
 type SatoshiPerByte float64
 
-// BtcPerKilobyte is number with units of bitcoins per kilobyte.
-type BtcPerKilobyte float64
+// PfcPerKilobyte is number with units of bitcoins per kilobyte.
+type PfcPerKilobyte float64
 
-// ToBtcPerKb returns a float value that represents the given
+// ToPfcPerKb returns a float value that represents the given
 // SatoshiPerByte converted to satoshis per kb.
-func (rate SatoshiPerByte) ToBtcPerKb() BtcPerKilobyte {
+func (rate SatoshiPerByte) ToPfcPerKb() PfcPerKilobyte {
 	// If our rate is the error value, return that.
 	if rate == SatoshiPerByte(-1.0) {
 		return -1.0
 	}
 
-	return BtcPerKilobyte(float64(rate) * bytePerKb * btcPerSatoshi)
+	return PfcPerKilobyte(float64(rate) * bytePerKb * btcPerSatoshi)
 }
 
 // Fee returns the fee for a transaction of a given size for
@@ -546,7 +546,7 @@ func (ef *FeeEstimator) estimates() []SatoshiPerByte {
 
 // EstimateFee estimates the fee per byte to have a tx confirmed a given
 // number of blocks from now.
-func (ef *FeeEstimator) EstimateFee(numBlocks uint32) (BtcPerKilobyte, error) {
+func (ef *FeeEstimator) EstimateFee(numBlocks uint32) (PfcPerKilobyte, error) {
 	ef.mtx.Lock()
 	defer ef.mtx.Unlock()
 
@@ -571,7 +571,7 @@ func (ef *FeeEstimator) EstimateFee(numBlocks uint32) (BtcPerKilobyte, error) {
 		ef.cached = ef.estimates()
 	}
 
-	return ef.cached[int(numBlocks)-1].ToBtcPerKb(), nil
+	return ef.cached[int(numBlocks)-1].ToPfcPerKb(), nil
 }
 
 // In case the format for the serialized version of the FeeEstimator changes,

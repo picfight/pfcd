@@ -460,7 +460,7 @@ func NewGetRawMempoolCmd(verbose *bool) *GetRawMempoolCmd {
 
 // GetRawTransactionCmd defines the getrawtransaction JSON-RPC command.
 //
-// NOTE: This field is an int versus a bool to remain compatible with Bitcoin
+// NOTE: This field is an int versus a bool to remain compatible with Picfightcoin
 // Core even though it really should be a bool.
 type GetRawTransactionCmd struct {
 	Txid    string

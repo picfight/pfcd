@@ -1405,7 +1405,7 @@ func (tx *transaction) fetchPendingRegion(region *database.BlockRegion) ([]byte,
 
 // FetchBlockRegion returns the raw serialized bytes for the given block region.
 //
-// For example, it is possible to directly extract Bitcoin transactions and/or
+// For example, it is possible to directly extract Picfightcoin transactions and/or
 // scripts from a block with this function.  Depending on the backend
 // implementation, this can provide significant savings by avoiding the need to
 // load entire blocks.
@@ -1478,7 +1478,7 @@ func (tx *transaction) FetchBlockRegion(region *database.BlockRegion) ([]byte, e
 // FetchBlockRegions returns the raw serialized bytes for the given block
 // regions.
 //
-// For example, it is possible to directly extract Bitcoin transactions and/or
+// For example, it is possible to directly extract Picfightcoin transactions and/or
 // scripts from various blocks with this function.  Depending on the backend
 // implementation, this can provide significant savings by avoiding the need to
 // load entire blocks.

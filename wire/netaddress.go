@@ -105,7 +105,7 @@ func readNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 	if err != nil {
 		return err
 	}
-	// Sigh.  Bitcoin protocol mixes little and big endian.
+	// Sigh.  Picfightcoin protocol mixes little and big endian.
 	port, err := binarySerializer.Uint16(r, bigEndian)
 	if err != nil {
 		return err
@@ -144,6 +144,6 @@ func writeNetAddress(w io.Writer, pver uint32, na *NetAddress, ts bool) error {
 		return err
 	}
 
-	// Sigh.  Bitcoin protocol mixes little and big endian.
+	// Sigh.  Picfightcoin protocol mixes little and big endian.
 	return binary.Write(w, bigEndian, na.Port)
 }

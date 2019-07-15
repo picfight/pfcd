@@ -128,7 +128,7 @@ func BigToCompact(n *big.Int) uint32 {
 	return compact
 }
 
-// CalcWork calculates a work value from difficulty bits.  Bitcoin increases
+// CalcWork calculates a work value from difficulty bits.  Picfightcoin increases
 // the difficulty for generating a block by decreasing the value which the
 // generated hash must be less than.  This difficulty target is stored in each
 // block header using a compact representation as described in the documentation
@@ -271,7 +271,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(lastNode *blockNode, newBlockTim
 	// Calculate new target difficulty as:
 	//  currentDifficulty * (adjustedTimespan / targetTimespan)
 	// The result uses integer division which means it will be slightly
-	// rounded down.  Bitcoind also uses integer division to calculate this
+	// rounded down.  Picfightcoind also uses integer division to calculate this
 	// result.
 	oldTarget := CompactToBig(lastNode.bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))

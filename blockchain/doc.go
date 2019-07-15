@@ -26,7 +26,7 @@ caller a high level of flexibility in how they want to react to certain events
 such as orphan blocks which need their parents requested and newly connected
 main chain blocks which might result in wallet updates.
 
-Bitcoin Chain Processing Overview
+Picfightcoin Chain Processing Overview
 
 Before a block is allowed into the block chain, it must go through an intensive
 series of validation rules.  The following list serves as a general outline of
@@ -70,7 +70,7 @@ violations through type assertions.  In addition, callers can programmatically
 determine the specific rule violation by examining the ErrorCode field of the
 type asserted blockchain.RuleError.
 
-Bitcoin Improvement Proposals
+Picfightcoin Improvement Proposals
 
 This package includes spec changes outlined by the following BIPs:
 

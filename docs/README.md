@@ -6,7 +6,7 @@
         2. [Linux/BSD/MacOSX/POSIX](#PosixInstallation)
           1. [Gentoo Linux](#GentooInstallation)
     2. [Configuration](#Configuration)
-    3. [Controlling and Querying btcd via btcctl](#BtcctlConfig)
+    3. [Controlling and Querying btcd via btcctl](#PfcctlConfig)
     4. [Mining](#Mining)
 3. [Help](#Help)
     1. [Startup](#Startup)
@@ -19,7 +19,7 @@
 5. [Developer Resources](#DeveloperResources)
     1. [Code Contribution Guidelines](#ContributionGuidelines)
     2. [JSON-RPC Reference](#JSONRPCReference)
-    3. [The btcsuite Bitcoin-related Go Packages](#GoPackages)
+    3. [The btcsuite Picfightcoin-related Go Packages](#GoPackages)
 
 <a name="About" />
 
@@ -32,12 +32,12 @@ This project is currently under active development and is in a Beta state.  It
 is extremely stable and has been in production use since October 2013.
 
 It properly downloads, validates, and serves the block chain using the exact
-rules (including consensus bugs) for block acceptance as Bitcoin Core.  We have
+rules (including consensus bugs) for block acceptance as Picfightcoin Core.  We have
 taken great care to avoid btcd causing a fork to the block chain.  It includes a
 full block validation testing framework which contains all of the 'official'
 block acceptance tests (and some additional ones) that is run on every pull
 request to help ensure it properly follows consensus.  Also, it passes all of
-the JSON test data in the Bitcoin Core code.
+the JSON test data in the Picfightcoin Core code.
 
 It also properly relays newly mined blocks, maintains a transaction pool, and
 relays individual transactions that have not yet made it into a block.  It
@@ -45,7 +45,7 @@ ensures all individual transactions admitted to the pool follow the rules
 required by the block chain and also includes more strict checks which filter
 transactions based on miner requirements ("standard" transactions).
 
-One key difference between btcd and Bitcoin Core is that btcd does *NOT* include
+One key difference between btcd and Picfightcoin Core is that btcd does *NOT* include
 wallet functionality and this was a very intentional design decision.  See the
 blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
 for more details.  This means you can't actually make or receive payments
@@ -117,7 +117,7 @@ $ git pull && GO111MODULE=on go install -v . ./cmd/...
 
 **2.1.2.1 Gentoo Linux Installation**
 
-* Install Layman and enable the Bitcoin overlay.
+* Install Layman and enable the Picfightcoin overlay.
   * https://gitlab.com/bitcoin/gentoo
 * Copy or symlink `/var/lib/layman/bitcoin/Documentation/package.keywords/btcd-live` to `/etc/portage/package.keywords/`
 * Install btcd: `$ emerge net-p2p/btcd`
@@ -129,7 +129,7 @@ $ git pull && GO111MODULE=on go install -v . ./cmd/...
 btcd has a number of [configuration](http://godoc.org/github.com/picfight/pfcd)
 options, which can be viewed by running: `$ btcd --help`.
 
-<a name="BtcctlConfig" />
+<a name="PfcctlConfig" />
 
 **2.3 Controlling and Querying btcd via btcctl**
 
@@ -181,7 +181,7 @@ miningaddr=1M83ju3EChKYyysmM2FXtLNftbacagd8FR
 **2. Add btcd's RPC TLS certificate to system Certificate Authority list.**
 
 `cgminer` uses [curl](http://curl.haxx.se/) to fetch data from the RPC server.
-Since curl validates the certificate by default, we must install the `btcd` RPC
+Since curl validates the certificate by default, we must install the `pfcd` RPC
 certificate into the default system Certificate Authority list.
 
 **Ubuntu**
@@ -264,33 +264,33 @@ information.
 
 <a name="GoPackages" />
 
-* The btcsuite Bitcoin-related Go Packages:
+* The btcsuite Picfightcoin-related Go Packages:
     * [btcrpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) - Implements a
-      robust and easy to use Websocket-enabled Bitcoin JSON-RPC client
+      robust and easy to use Websocket-enabled Picfightcoin JSON-RPC client
     * [pfcjson](https://github.com/picfight/pfcd/tree/master/pfcjson) - Provides an extensive API
       for the underlying JSON-RPC command and return values
     * [wire](https://github.com/picfight/pfcd/tree/master/wire) - Implements the
-      Bitcoin wire protocol
+      Picfightcoin wire protocol
     * [peer](https://github.com/picfight/pfcd/tree/master/peer) -
-      Provides a common base for creating and managing Bitcoin network peers.
+      Provides a common base for creating and managing Picfightcoin network peers.
     * [blockchain](https://github.com/picfight/pfcd/tree/master/blockchain) -
-      Implements Bitcoin block handling and chain selection rules
+      Implements Picfightcoin block handling and chain selection rules
     * [blockchain/fullblocktests](https://github.com/picfight/pfcd/tree/master/blockchain/fullblocktests) -
       Provides a set of block tests for testing the consensus validation rules
     * [txscript](https://github.com/picfight/pfcd/tree/master/txscript) -
-      Implements the Bitcoin transaction scripting language
+      Implements the Picfightcoin transaction scripting language
     * [pfcec](https://github.com/picfight/pfcd/tree/master/pfcec) - Implements
       support for the elliptic curve cryptographic functions needed for the
-      Bitcoin scripts
+      Picfightcoin scripts
     * [database](https://github.com/picfight/pfcd/tree/master/database) -
-      Provides a database interface for the Bitcoin block chain
+      Provides a database interface for the Picfightcoin block chain
     * [mempool](https://github.com/picfight/pfcd/tree/master/mempool) -
       Package mempool provides a policy-enforced pool of unmined bitcoin
       transactions.
-    * [pfcutil](https://github.com/picfight/pfcutil) - Provides Bitcoin-specific
+    * [pfcutil](https://github.com/picfight/pfcutil) - Provides Picfightcoin-specific
       convenience functions and types
     * [chainhash](https://github.com/picfight/pfcd/tree/master/chaincfg/chainhash) -
       Provides a generic hash type and associated functions that allows the
       specific hash algorithm to be abstracted.
     * [connmgr](https://github.com/picfight/pfcd/tree/master/connmgr) -
-      Package connmgr implements a generic Bitcoin network connection manager.
+      Package connmgr implements a generic Picfightcoin network connection manager.

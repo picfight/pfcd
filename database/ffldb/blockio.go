@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	// The Bitcoin protocol encodes block height as int32, so max number of
+	// The Picfightcoin protocol encodes block height as int32, so max number of
 	// blocks is 2^31.  Max block size per the protocol is 32MiB per block.
 	// So the theoretical max at the time this comment was written is 64PiB
 	// (pebibytes).  With files @ 512MiB each, this would require a maximum
@@ -456,7 +456,7 @@ func (s *blockStore) writeBlock(rawBlock []byte) (blockLocation, error) {
 		wc.curFile.file = file
 	}
 
-	// Bitcoin network.
+	// Picfightcoin network.
 	origOffset := wc.curOffset
 	hasher := crc32.New(castagnoli)
 	var scratch [4]byte

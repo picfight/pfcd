@@ -14,7 +14,7 @@ supported bitcoin messages to and from the wire.  This package does not deal
 with the specifics of message handling such as what to do when a message is
 received.  This provides the caller with a high level of flexibility.
 
-Bitcoin Message Overview
+Picfightcoin Message Overview
 
 The bitcoin protocol consists of exchanging messages between peers.  Each
 message is preceded by a header which identifies information about it such as
@@ -77,7 +77,7 @@ latest protocol version this package supports and is typically the value to use
 for all outbound connections before a potentially lower protocol version is
 negotiated.
 
-Bitcoin Network
+Picfightcoin Network
 
 The bitcoin network is a magic number which is used to identify the start of a
 message and which bitcoin network the message applies to.  This package provides
@@ -147,7 +147,7 @@ io.ErrShortWrite, or of type wire.MessageError.  This allows the caller to
 differentiate between general IO errors and malformed messages through type
 assertions.
 
-Bitcoin Improvement Proposals
+Picfightcoin Improvement Proposals
 
 This package includes spec changes outlined by the following BIPs:
 

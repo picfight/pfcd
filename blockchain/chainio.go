@@ -498,7 +498,7 @@ func dbRemoveSpendJournalEntry(dbTx database.Tx, blockHash *chainhash.Hash) erro
 // The unspent transaction output (utxo) set consists of an entry for each
 // unspent output using a format that is optimized to reduce space using domain
 // specific compression algorithms.  This format is a slightly modified version
-// of the format used in Bitcoin Core.
+// of the format used in Picfightcoin Core.
 //
 // Each entry is keyed by an outpoint as specified below.  It is important to
 // note that the key encoding uses a VLQ, which employs an MSB encoding so

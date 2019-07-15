@@ -16,8 +16,8 @@ on the last time it was updated.
 See [this](https://bitcointalk.org/index.php?topic=145386.0) thread on
 bitcointalk for more details.
 
-**NOTE:** Using bootstrap.dat is entirely optional.  Btcd will download the
-block chain from other peers through the Bitcoin protocol with no extra
+**NOTE:** Using bootstrap.dat is entirely optional.  Pfcd will download the
+block chain from other peers through the Picfightcoin protocol with no extra
 configuration needed.
 
 <a name="ProsCons" />
@@ -51,7 +51,7 @@ for the torrent download details.
 
 You don't need to trust the file as the `addblock` utility verifies every block
 using the same rules that are used when downloading the block chain normally
-through the Bitcoin protocol.  Additionally, the chain rules contain hard-coded
+through the Picfightcoin protocol.  Additionally, the chain rules contain hard-coded
 checkpoints for the known-good block chain at periodic intervals.  This ensures
 that not only is it a valid chain, but it is the same chain that everyone else
 is using.
@@ -71,7 +71,7 @@ and we prefer to keep the daemon itself as lightweight as possible.
    boostrap.dat:<br /><br />
 **Windows:**
 ```bat
-C:\> "%PROGRAMFILES%\Btcd Suite\Btcd\addblock" -i C:\Path\To\bootstrap.dat
+C:\> "%PROGRAMFILES%\Pfcd Suite\Pfcd\addblock" -i C:\Path\To\bootstrap.dat
 ```
 **Linux/Unix/BSD/POSIX:**
 ```bash

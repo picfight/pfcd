@@ -14,11 +14,11 @@ import (
 	"github.com/picfight/pfcd/pfcjson"
 )
 
-// TestBtcWalletExtCmds tests all of the btcwallet extended commands marshal and
+// TestPfcWalletExtCmds tests all of the btcwallet extended commands marshal and
 // unmarshal into valid results include handling of optional fields being
 // omitted in the marshalled command, while optional fields with defaults have
 // the default assigned on unmarshalled commands.
-func TestBtcWalletExtCmds(t *testing.T) {
+func TestPfcWalletExtCmds(t *testing.T) {
 	t.Parallel()
 
 	testID := int(1)
