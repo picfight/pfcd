@@ -554,7 +554,7 @@ Example Return|`{`<br />&nbsp;&nbsp;`"bytes": 310768,`<br />&nbsp;&nbsp;`"size":
 |---|---|
 |Method|verifychain|
 |Parameters|1. checklevel (numeric, optional, default=3) - how in-depth the verification is (0=least amount of checks, higher levels are clamped to the highest supported level)<br />2. numblocks (numeric, optional, default=288) - the number of blocks starting from the end of the chain to verify|
-|Description|Verifies the block chain database.<br />The actual checks performed by the `checklevel` parameter is implementation specific.  For btcd this is:<br />`checklevel=0` - Look up each block and ensure it can be loaded from the database.<br />`checklevel=1` - Perform basic context-free sanity checks on each block.|
+|Description|Verifies the block chain database.<br />The actual checks performed by the `checklevel` parameter is implementation specific.  For pfcd this is:<br />`checklevel=0` - Look up each block and ensure it can be loaded from the database.<br />`checklevel=1` - Perform basic context-free sanity checks on each block.|
 |Notes|<font color="orange">Pfcd currently only supports `checklevel` 0 and 1, but the default is still 3 for compatibility.  Per the information in the Parameters section above, higher levels are automatically clamped to the highest supported level, so this means the default is effectively 1 for btcd.</font>|
 |Returns|`true` or `false` (boolean)|
 |Example Return|`true`|
