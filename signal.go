@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -31,11 +30,11 @@ func interruptListener() <-chan struct{} {
 		// channel to notify the caller.
 		select {
 		case sig := <-interruptChannel:
-			pfcdLog.Infof("Received signal (%s).  Shutting down...",
+			btcdLog.Infof("Received signal (%s).  Shutting down...",
 				sig)
 
 		case <-shutdownRequestChannel:
-			pfcdLog.Infof("Shutdown requested.  Shutting down...")
+			btcdLog.Info("Shutdown requested.  Shutting down...")
 		}
 		close(c)
 
@@ -45,11 +44,11 @@ func interruptListener() <-chan struct{} {
 		for {
 			select {
 			case sig := <-interruptChannel:
-				pfcdLog.Infof("Received signal (%s).  Already "+
+				btcdLog.Infof("Received signal (%s).  Already "+
 					"shutting down...", sig)
 
 			case <-shutdownRequestChannel:
-				pfcdLog.Info("Shutdown requested.  Already " +
+				btcdLog.Info("Shutdown requested.  Already " +
 					"shutting down...")
 			}
 		}

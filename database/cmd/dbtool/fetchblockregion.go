@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -79,6 +78,7 @@ func (cmd *blockRegionCmd) Execute(args []string) error {
 			return err
 		}
 		log.Infof("Loaded block region in %v", time.Since(startTime))
+		log.Infof("Double Hash: %s", chainhash.DoubleHashH(regionBytes))
 		log.Infof("Region Hex: %s", hex.EncodeToString(regionBytes))
 		return nil
 	})

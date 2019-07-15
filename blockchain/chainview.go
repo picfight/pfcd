@@ -1,5 +1,4 @@
 // Copyright (c) 2017 The btcsuite developers
-// Copyright (c) 2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,7 +10,7 @@ import (
 
 // approxNodesPerWeek is an approximation of the number of new blocks there are
 // in a week on average.
-const approxNodesPerWeek = 12 * 24 * 7
+const approxNodesPerWeek = 6 * 24 * 7
 
 // log2FloorMasks defines the masks to use when quickly calculating
 // floor(log2(x)) in a constant log2(32) = 5 steps, where x is a uint32, using
@@ -128,12 +127,12 @@ func (c *chainView) setTip(node *blockNode) {
 	// such that the array should only have to be extended about once a
 	// week.
 	needed := node.height + 1
-	if int64(cap(c.nodes)) < needed {
+	if int32(cap(c.nodes)) < needed {
 		nodes := make([]*blockNode, needed, needed+approxNodesPerWeek)
 		copy(nodes, c.nodes)
 		c.nodes = nodes
 	} else {
-		prevLen := int64(len(c.nodes))
+		prevLen := int32(len(c.nodes))
 		c.nodes = c.nodes[0:needed]
 		for i := prevLen; i < needed; i++ {
 			c.nodes[i] = nil
@@ -165,8 +164,8 @@ func (c *chainView) SetTip(node *blockNode) {
 // to the caller to ensure the lock is held.
 //
 // This function MUST be called with the view mutex locked (for reads).
-func (c *chainView) height() int64 {
-	return int64(len(c.nodes) - 1)
+func (c *chainView) height() int32 {
+	return int32(len(c.nodes) - 1)
 }
 
 // Height returns the height of the tip of the chain view.  It will return -1 if
@@ -174,7 +173,7 @@ func (c *chainView) height() int64 {
 // initialized).
 //
 // This function is safe for concurrent access.
-func (c *chainView) Height() int64 {
+func (c *chainView) Height() int32 {
 	c.mtx.Lock()
 	height := c.height()
 	c.mtx.Unlock()
@@ -186,8 +185,8 @@ func (c *chainView) Height() int64 {
 // version in that it is up to the caller to ensure the lock is held.
 //
 // This function MUST be called with the view mutex locked (for reads).
-func (c *chainView) nodeByHeight(height int64) *blockNode {
-	if height < 0 || height >= int64(len(c.nodes)) {
+func (c *chainView) nodeByHeight(height int32) *blockNode {
+	if height < 0 || height >= int32(len(c.nodes)) {
 		return nil
 	}
 
@@ -198,7 +197,7 @@ func (c *chainView) nodeByHeight(height int64) *blockNode {
 // returned if the height does not exist.
 //
 // This function is safe for concurrent access.
-func (c *chainView) NodeByHeight(height int64) *blockNode {
+func (c *chainView) NodeByHeight(height int32) *blockNode {
 	c.mtx.Lock()
 	node := c.nodeByHeight(height)
 	c.mtx.Unlock()
@@ -210,10 +209,6 @@ func (c *chainView) NodeByHeight(height int64) *blockNode {
 //
 // This function is safe for concurrent access.
 func (c *chainView) Equals(other *chainView) bool {
-	if c == other {
-		return true
-	}
-
 	c.mtx.Lock()
 	other.mtx.Lock()
 	equals := len(c.nodes) == len(other.nodes) && c.tip() == other.tip()
@@ -357,9 +352,9 @@ func (c *chainView) blockLocator(node *blockNode) BlockLocator {
 	// Use the current tip if requested.
 	if node == nil {
 		node = c.tip()
-		if node == nil {
-			return nil
-		}
+	}
+	if node == nil {
+		return nil
 	}
 
 	// Calculate the max number of entries that will ultimately be in the
@@ -376,7 +371,7 @@ func (c *chainView) blockLocator(node *blockNode) BlockLocator {
 	}
 	locator := make(BlockLocator, 0, maxEntries)
 
-	step := int64(1)
+	step := int32(1)
 	for node != nil {
 		locator = append(locator, &node.hash)
 

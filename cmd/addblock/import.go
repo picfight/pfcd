@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -16,8 +15,8 @@ import (
 	"github.com/picfight/pfcd/blockchain/indexers"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 var zeroHash = chainhash.Hash{}
@@ -26,7 +25,6 @@ var zeroHash = chainhash.Hash{}
 type importResults struct {
 	blocksProcessed int64
 	blocksImported  int64
-	duration        time.Duration
 	err             error
 }
 
@@ -48,7 +46,6 @@ type blockImporter struct {
 	lastHeight        int64
 	lastBlockTime     time.Time
 	lastLogTime       time.Time
-	startTime         time.Time
 }
 
 // readBlock reads the next block from the input file.
@@ -132,12 +129,11 @@ func (bi *blockImporter) processBlock(serializedBlock []byte) (bool, error) {
 
 	// Ensure the blocks follows all of the chain rules and match up to the
 	// known checkpoints.
-	forkLen, isOrphan, err := bi.chain.ProcessBlock(block,
+	isMainChain, isOrphan, err := bi.chain.ProcessBlock(block,
 		blockchain.BFFastAdd)
 	if err != nil {
 		return false, err
 	}
-	isMainChain := !isOrphan && forkLen == 0
 	if !isMainChain {
 		return false, fmt.Errorf("import file contains an block that "+
 			"does not extend the main chain: %v", blockHash)
@@ -160,7 +156,7 @@ out:
 		// notify the status handler with the error and bail.
 		serializedBlock, err := bi.readBlock()
 		if err != nil {
-			bi.errChan <- fmt.Errorf("error reading from input "+
+			bi.errChan <- fmt.Errorf("Error reading from input "+
 				"file: %v", err.Error())
 			break out
 		}
@@ -263,7 +259,6 @@ func (bi *blockImporter) statusHandler(resultsChan chan *importResults) {
 		resultsChan <- &importResults{
 			blocksProcessed: bi.blocksProcessed,
 			blocksImported:  bi.blocksImported,
-			duration:        time.Since(bi.startTime),
 			err:             err,
 		}
 		close(bi.quit)
@@ -273,7 +268,6 @@ func (bi *blockImporter) statusHandler(resultsChan chan *importResults) {
 		resultsChan <- &importResults{
 			blocksProcessed: bi.blocksProcessed,
 			blocksImported:  bi.blocksImported,
-			duration:        time.Since(bi.startTime),
 			err:             nil,
 		}
 	}
@@ -306,7 +300,7 @@ func (bi *blockImporter) Import() chan *importResults {
 // newBlockImporter returns a new importer for the provided file reader seeker
 // and database.
 func newBlockImporter(db database.DB, r io.ReadSeeker) (*blockImporter, error) {
-	// Create the various indexes as needed.
+	// Create the transaction and address indexes if needed.
 	//
 	// CAUTION: the txindex needs to be first in the indexes array because
 	// the addrindex uses data from the txindex during catchup.  If the
@@ -329,16 +323,11 @@ func newBlockImporter(db database.DB, r io.ReadSeeker) (*blockImporter, error) {
 		log.Info("Address index is enabled")
 		indexes = append(indexes, indexers.NewAddrIndex(db, activeNetParams))
 	}
-	if !cfg.NoExistsAddrIndex {
-		log.Info("Exists address index is enabled")
-		indexes = append(indexes, indexers.NewExistsAddrIndex(db,
-			activeNetParams))
-	}
 
 	// Create an index manager if any of the optional indexes are enabled.
 	var indexManager blockchain.IndexManager
 	if len(indexes) > 0 {
-		indexManager = indexers.NewManager(db, indexes, activeNetParams)
+		indexManager = indexers.NewManager(db, indexes)
 	}
 
 	chain, err := blockchain.New(&blockchain.Config{
@@ -360,6 +349,5 @@ func newBlockImporter(db database.DB, r io.ReadSeeker) (*blockImporter, error) {
 		quit:         make(chan struct{}),
 		chain:        chain,
 		lastLogTime:  time.Now(),
-		startTime:    time.Now(),
 	}, nil
 }

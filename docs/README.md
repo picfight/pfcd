@@ -2,36 +2,57 @@
 1. [About](#About)
 2. [Getting Started](#GettingStarted)
     1. [Installation](#Installation)
+        1. [Windows](#WindowsInstallation)
+        2. [Linux/BSD/MacOSX/POSIX](#PosixInstallation)
+          1. [Gentoo Linux](#GentooInstallation)
     2. [Configuration](#Configuration)
-    3. [Controlling and Querying pfcd via pfcctl](#PfcctlConfig)
+    3. [Controlling and Querying btcd via btcctl](#BtcctlConfig)
     4. [Mining](#Mining)
 3. [Help](#Help)
-    1. [Network Configuration](#NetworkConfig)
-    2. [Wallet](#Wallet)
+    1. [Startup](#Startup)
+        1. [Using bootstrap.dat](#BootstrapDat)
+    2. [Network Configuration](#NetworkConfig)
+    3. [Wallet](#Wallet)
 4. [Contact](#Contact)
-    1. [Community](#ContactCommunity)
+    1. [IRC](#ContactIRC)
+    2. [Mailing Lists](#MailingLists)
 5. [Developer Resources](#DeveloperResources)
     1. [Code Contribution Guidelines](#ContributionGuidelines)
     2. [JSON-RPC Reference](#JSONRPCReference)
-    3. [Go Modules](#GoModules)
-    4. [Module Hierarchy](#ModuleHierarchy)
+    3. [The btcsuite Bitcoin-related Go Packages](#GoPackages)
 
 <a name="About" />
 
 ### 1. About
 
-pfcd is a full node PicFight implementation written in [Go](http://golang.org),
-and is licensed under the [copyfree](http://www.copyfree.org) ISC License.
+btcd is a full node bitcoin implementation written in [Go](http://golang.org),
+licensed under the [copyfree](http://www.copyfree.org) ISC License.
 
-This software is currently under active development.  It is extremely stable and
-has been in production use since February 2016.
+This project is currently under active development and is in a Beta state.  It
+is extremely stable and has been in production use since October 2013.
+
+It properly downloads, validates, and serves the block chain using the exact
+rules (including consensus bugs) for block acceptance as Bitcoin Core.  We have
+taken great care to avoid btcd causing a fork to the block chain.  It includes a
+full block validation testing framework which contains all of the 'official'
+block acceptance tests (and some additional ones) that is run on every pull
+request to help ensure it properly follows consensus.  Also, it passes all of
+the JSON test data in the Bitcoin Core code.
 
 It also properly relays newly mined blocks, maintains a transaction pool, and
 relays individual transactions that have not yet made it into a block.  It
 ensures all individual transactions admitted to the pool follow the rules
-required into the block chain and also includes the vast majority of the more
-strict checks which filter transactions based on miner requirements ("standard"
-transactions).
+required by the block chain and also includes more strict checks which filter
+transactions based on miner requirements ("standard" transactions).
+
+One key difference between btcd and Bitcoin Core is that btcd does *NOT* include
+wallet functionality and this was a very intentional design decision.  See the
+blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
+for more details.  This means you can't actually make or receive payments
+directly with btcd.  That functionality is provided by the
+[btcwallet](https://github.com/btcsuite/btcwallet) and
+[Paymetheus](https://github.com/btcsuite/Paymetheus) (Windows-only) projects
+which are both under active development.
 
 <a name="GettingStarted" />
 
@@ -39,24 +60,81 @@ transactions).
 
 <a name="Installation" />
 
-**2.1 Installation**<br />
+**2.1 Installation**
 
-The first step is to install pfcd.  The installation instructions can be found
-[here](https://github.com/picfight/pfcd/tree/master/README.md#Installation).
+The first step is to install btcd.  See one of the following sections for
+details on how to install on the supported operating systems.
+
+<a name="WindowsInstallation" />
+
+**2.1.1 Windows Installation**<br />
+
+* Install the MSI available at: https://github.com/picfight/pfcd/releases
+* Launch btcd from the Start Menu
+
+<a name="PosixInstallation" />
+
+**2.1.2 Linux/BSD/MacOSX/POSIX Installation**
+
+
+- Install Go according to the installation instructions here:
+  http://golang.org/doc/install
+
+- Ensure Go was installed properly and is a supported version:
+
+```bash
+$ go version
+$ go env GOROOT GOPATH
+```
+
+NOTE: The `GOROOT` and `GOPATH` above must not be the same path.  It is
+recommended that `GOPATH` is set to a directory in your home directory such as
+`~/goprojects` to avoid write permission issues.  It is also recommended to add
+`$GOPATH/bin` to your `PATH` at this point.
+
+- Run the following commands to obtain pfcd, all dependencies, and install it:
+
+```bash
+$ git clone https://github.com/picfight/pfcd $GOPATH/src/github.com/picfight/pfcd
+$ cd $GOPATH/src/github.com/picfight/pfcd
+$ GO111MODULE=on go install -v . ./cmd/...
+```
+
+- btcd (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
+  not already add the bin directory to your system path during Go installation,
+  we recommend you do so now.
+
+**Updating**
+
+- Run the following commands to update pfcd, all dependencies, and install it:
+
+```bash
+$ cd $GOPATH/src/github.com/picfight/pfcd
+$ git pull && GO111MODULE=on go install -v . ./cmd/...
+```
+
+<a name="GentooInstallation" />
+
+**2.1.2.1 Gentoo Linux Installation**
+
+* Install Layman and enable the Bitcoin overlay.
+  * https://gitlab.com/bitcoin/gentoo
+* Copy or symlink `/var/lib/layman/bitcoin/Documentation/package.keywords/btcd-live` to `/etc/portage/package.keywords/`
+* Install btcd: `$ emerge net-p2p/btcd`
 
 <a name="Configuration" />
 
-**2.2 Configuration**<br />
+**2.2 Configuration**
 
-pfcd has a number of [configuration](http://godoc.org/github.com/picfight/pfcd)
-options, which can be viewed by running: `$ pfcd --help`.
+btcd has a number of [configuration](http://godoc.org/github.com/picfight/pfcd)
+options, which can be viewed by running: `$ btcd --help`.
 
-<a name="PfcctlConfig" />
+<a name="BtcctlConfig" />
 
-**2.3 Controlling and Querying pfcd via pfcctl**<br />
+**2.3 Controlling and Querying btcd via btcctl**
 
-pfcctl is a command line utility that can be used to both control and query pfcd
-via [RPC](http://www.wikipedia.org/wiki/Remote_procedure_call).  pfcd does
+btcctl is a command line utility that can be used to both control and query btcd
+via [RPC](http://www.wikipedia.org/wiki/Remote_procedure_call).  btcd does
 **not** enable its RPC server by default;  You must configure at minimum both an
 RPC username and password or both an RPC limited username and password:
 
@@ -68,7 +146,7 @@ rpcpass=SomeDecentp4ssw0rd
 rpclimituser=mylimituser
 rpclimitpass=Limitedp4ssw0rd
 ```
-* pfcctl.conf configuration file
+* btcctl.conf configuration file
 ```
 [Application Options]
 rpcuser=myuser
@@ -80,71 +158,96 @@ OR
 rpclimituser=mylimituser
 rpclimitpass=Limitedp4ssw0rd
 ```
-For a list of available options, run: `$ pfcctl --help`
+For a list of available options, run: `$ btcctl --help`
 
 <a name="Mining" />
 
-**2.4 Mining**<br />
-pfcd supports the [getwork](https://github.com/picfight/pfcd/tree/master/docs/json_rpc_api.md#getwork)
-RPC.  The limited user cannot access this RPC.<br />
+**2.4 Mining**
 
-**1. Add the payment addresses with the `miningaddr` option.**<br />
+btcd supports the `getblocktemplate` RPC.
+The limited user cannot access this RPC.
+
+
+**1. Add the payment addresses with the `miningaddr` option.**
 
 ```
 [Application Options]
 rpcuser=myuser
 rpcpass=SomeDecentp4ssw0rd
-miningaddr=DsExampleAddress1
-miningaddr=DsExampleAddress2
+miningaddr=12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX
+miningaddr=1M83ju3EChKYyysmM2FXtLNftbacagd8FR
 ```
 
-**2. Add pfcd's RPC TLS certificate to system Certificate Authority list.**<br />
+**2. Add btcd's RPC TLS certificate to system Certificate Authority list.**
 
 `cgminer` uses [curl](http://curl.haxx.se/) to fetch data from the RPC server.
-Since curl validates the certificate by default, we must install the `pfcd` RPC
+Since curl validates the certificate by default, we must install the `btcd` RPC
 certificate into the default system Certificate Authority list.
 
-**Ubuntu**<br />
+**Ubuntu**
 
-1. Copy rpc.cert to /usr/share/ca-certificates: `# cp /home/user/.pfcd/rpc.cert /usr/share/ca-certificates/pfcd.crt`<br />
-2. Add pfcd.crt to /etc/ca-certificates.conf: `# echo pfcd.crt >> /etc/ca-certificates.conf`<br />
-3. Update the CA certificate list: `# update-ca-certificates`<br />
+1. Copy rpc.cert to /usr/share/ca-certificates: `# cp /home/user/.btcd/rpc.cert /usr/share/ca-certificates/btcd.crt`
+2. Add btcd.crt to /etc/ca-certificates.conf: `# echo btcd.crt >> /etc/ca-certificates.conf`
+3. Update the CA certificate list: `# update-ca-certificates`
 
-**3. Set your mining software url to use https.**<br />
+**3. Set your mining software url to use https.**
 
-`$ cgminer -o https://127.0.0.1:9709 -u rpcuser -p rpcpassword`
+`$ cgminer -o https://127.0.0.1:8334 -u rpcuser -p rpcpassword`
 
 <a name="Help" />
 
 ### 3. Help
 
+<a name="Startup" />
+
+**3.1 Startup**
+
+Typically btcd will run and start downloading the block chain with no extra
+configuration necessary, however, there is an optional method to use a
+`bootstrap.dat` file that may speed up the initial block chain download process.
+
+<a name="BootstrapDat" />
+
+**3.1.1 bootstrap.dat**
+
+* [Using bootstrap.dat](https://github.com/picfight/pfcd/tree/master/docs/using_bootstrap_dat.md)
+
 <a name="NetworkConfig" />
 
-**3.1 Network Configuration**<br />
+**3.1.2 Network Configuration**
+
 * [What Ports Are Used by Default?](https://github.com/picfight/pfcd/tree/master/docs/default_ports.md)
 * [How To Listen on Specific Interfaces](https://github.com/picfight/pfcd/tree/master/docs/configure_peer_server_listen_interfaces.md)
 * [How To Configure RPC Server to Listen on Specific Interfaces](https://github.com/picfight/pfcd/tree/master/docs/configure_rpc_server_listen_interfaces.md)
-* [Configuring pfcd with Tor](https://github.com/picfight/pfcd/tree/master/docs/configuring_tor.md)
+* [Configuring btcd with Tor](https://github.com/picfight/pfcd/tree/master/docs/configuring_tor.md)
 
 <a name="Wallet" />
 
-**3.2 Wallet**<br />
+**3.1 Wallet**
 
-pfcd was intentionally developed without an integrated wallet for security
-reasons.  Please see [pfcwallet](https://github.com/picfight/pfcwallet) for more
+btcd was intentionally developed without an integrated wallet for security
+reasons.  Please see [btcwallet](https://github.com/btcsuite/btcwallet) for more
 information.
+
 
 <a name="Contact" />
 
 ### 4. Contact
 
-<a name="ContactCommunity" />
+<a name="ContactIRC" />
 
-**4.1 Community**<br />
+**4.1 IRC**
 
-If you have any further questions you can find us at:
+* [irc.freenode.net](irc://irc.freenode.net), channel `#btcd`
 
-https://picfight.org/community
+<a name="MailingLists" />
+
+**4.2 Mailing Lists**
+
+* <a href="mailto:btcd+subscribe@opensource.conformal.com">btcd</a>: discussion
+  of btcd and its packages.
+* <a href="mailto:btcd-commits+subscribe@opensource.conformal.com">btcd-commits</a>:
+  readonly mail-out of source code changes.
 
 <a name="DeveloperResources" />
 
@@ -152,77 +255,42 @@ https://picfight.org/community
 
 <a name="ContributionGuidelines" />
 
-**5.1 Code Contribution Guidelines**
-
 * [Code Contribution Guidelines](https://github.com/picfight/pfcd/tree/master/docs/code_contribution_guidelines.md)
 
 <a name="JSONRPCReference" />
 
-**5.2 JSON-RPC Reference**
-
 * [JSON-RPC Reference](https://github.com/picfight/pfcd/tree/master/docs/json_rpc_api.md)
     * [RPC Examples](https://github.com/picfight/pfcd/tree/master/docs/json_rpc_api.md#ExampleCode)
 
-<a name="GoModules" />
+<a name="GoPackages" />
 
-**5.3 Go Modules**
-
-The following versioned modules are provided by pfcd repository:
-
-* [rpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) - Implements
-  a robust and easy to use Websocket-enabled PicFight JSON-RPC client
-* [pfcjson](https://github.com/picfight/pfcd/tree/master/pfcjson) - Provides an
-  extensive API for the underlying JSON-RPC command and return values
-* [wire](https://github.com/picfight/pfcd/tree/master/wire) - Implements the
-  PicFight wire protocol
-* [peer](https://github.com/picfight/pfcd/tree/master/peer) - Provides a common
-  base for creating and managing PicFight network peers
-* [blockchain](https://github.com/picfight/pfcd/tree/master/blockchain) -
-  Implements PicFight block handling and chain selection rules
-  * [stake](https://github.com/picfight/pfcd/tree/master/blockchain/stake) -
-    Provides an API for working with stake transactions and other portions
-    related to the Proof-of-Stake (PoS) system
-* [txscript](https://github.com/picfight/pfcd/tree/master/txscript) -
-  Implements the PicFight transaction scripting language
-* [pfcec](https://github.com/picfight/pfcd/tree/master/pfcec) - Provides constants
-  for the supported cryptographic signatures supported by PicFight scripts
-  * [secp256k1](https://github.com/picfight/pfcd/tree/master/pfcec/secp256k1) -
-    Implements the secp256k1 elliptic curve
-  * [edwards](https://github.com/picfight/pfcd/tree/master/pfcec/edwards) -
-    Implements the edwards25519 twisted Edwards curve
-* [database](https://github.com/picfight/pfcd/tree/master/database) -
-  Provides a database interface for the PicFight block chain
-* [mempool](https://github.com/picfight/pfcd/tree/master/mempool) - Provides a
-  policy-enforced pool of unmined PicFight transactions
-* [pfcutil](https://github.com/picfight/pfcd/tree/master/pfcutil) - Provides
-  PicFight-specific convenience functions and types
-* [chaincfg](https://github.com/picfight/pfcd/tree/master/chaincfg) - Defines
-  chain configuration parameters for the standard PicFight networks and allows
-  callers to define their own custom PicFight networks for testing puproses
-  * [chainhash](https://github.com/picfight/pfcd/tree/master/chaincfg/chainhash) -
-    Provides a generic hash type and associated functions that allows the
-    specific hash algorithm to be abstracted
-* [certgen](https://github.com/picfight/pfcd/tree/master/certgen) - Provides a
-  function for creating a new TLS certificate key pair, typically used for
-  encrypting RPC and websocket communications
-* [addrmgr](https://github.com/picfight/pfcd/tree/master/addrmgr) - Provides a
-  concurrency safe PicFight network address manager
-* [connmgr](https://github.com/picfight/pfcd/tree/master/connmgr) - Implements a
-  generic PicFight network connection manager
-* [hdkeychain](https://github.com/picfight/pfcd/tree/master/hdkeychain) - Provides
-  an API for working with  PicFight hierarchical deterministic extended keys
-* [gcs](https://github.com/picfight/pfcd/tree/master/gcs) - Provides an API for
-  building and using Golomb-coded set filters useful for light clients such as
-  SPV wallets
-* [fees](https://github.com/picfight/pfcd/tree/master/fees) - Provides methods for
-  tracking and estimating fee rates for new transactions to be mined into the
-  network
-
-<a name="ModuleHierarchy" />
-
-**5.4 Module Hierarchy**
-
-The following diagram shows an overview of the hierarchy for the modules
-provided by the pfcd repository.
-
-![Module Hierarchy](./assets/module_hierarchy.svg)
+* The btcsuite Bitcoin-related Go Packages:
+    * [btcrpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) - Implements a
+      robust and easy to use Websocket-enabled Bitcoin JSON-RPC client
+    * [pfcjson](https://github.com/picfight/pfcd/tree/master/pfcjson) - Provides an extensive API
+      for the underlying JSON-RPC command and return values
+    * [wire](https://github.com/picfight/pfcd/tree/master/wire) - Implements the
+      Bitcoin wire protocol
+    * [peer](https://github.com/picfight/pfcd/tree/master/peer) -
+      Provides a common base for creating and managing Bitcoin network peers.
+    * [blockchain](https://github.com/picfight/pfcd/tree/master/blockchain) -
+      Implements Bitcoin block handling and chain selection rules
+    * [blockchain/fullblocktests](https://github.com/picfight/pfcd/tree/master/blockchain/fullblocktests) -
+      Provides a set of block tests for testing the consensus validation rules
+    * [txscript](https://github.com/picfight/pfcd/tree/master/txscript) -
+      Implements the Bitcoin transaction scripting language
+    * [pfcec](https://github.com/picfight/pfcd/tree/master/pfcec) - Implements
+      support for the elliptic curve cryptographic functions needed for the
+      Bitcoin scripts
+    * [database](https://github.com/picfight/pfcd/tree/master/database) -
+      Provides a database interface for the Bitcoin block chain
+    * [mempool](https://github.com/picfight/pfcd/tree/master/mempool) -
+      Package mempool provides a policy-enforced pool of unmined bitcoin
+      transactions.
+    * [pfcutil](https://github.com/picfight/pfcutil) - Provides Bitcoin-specific
+      convenience functions and types
+    * [chainhash](https://github.com/picfight/pfcd/tree/master/chaincfg/chainhash) -
+      Provides a generic hash type and associated functions that allows the
+      specific hash algorithm to be abstracted.
+    * [connmgr](https://github.com/picfight/pfcd/tree/master/connmgr) -
+      Package connmgr implements a generic Bitcoin network connection manager.

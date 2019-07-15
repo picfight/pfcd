@@ -1,5 +1,4 @@
-// Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,6 +10,8 @@ package pfcjson
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/picfight/pfcd/wire"
 )
 
 // AddNodeSubCmd defines the type used in the addnode JSON-RPC command for the
@@ -30,22 +31,6 @@ const (
 	ANOneTry AddNodeSubCmd = "onetry"
 )
 
-// NodeSubCmd defines the type used in the addnode JSON-RPC command for the
-// sub command field.
-type NodeSubCmd string
-
-const (
-	// NConnect indicates the specified host that should be connected to.
-	NConnect NodeSubCmd = "connect"
-
-	// NRemove indicates the specified peer that should be removed as a
-	// persistent peer.
-	NRemove NodeSubCmd = "remove"
-
-	// NDisconnect indicates the specified peer should be disonnected.
-	NDisconnect NodeSubCmd = "disconnect"
-)
-
 // AddNodeCmd defines the addnode JSON-RPC command.
 type AddNodeCmd struct {
 	Addr   string
@@ -62,12 +47,10 @@ func NewAddNodeCmd(addr string, subCmd AddNodeSubCmd) *AddNodeCmd {
 }
 
 // TransactionInput represents the inputs to a transaction.  Specifically a
-// transaction hash and output number pair. Contains PicFight additions.
+// transaction hash and output number pair.
 type TransactionInput struct {
-	Amount float64 `json:"amount,omitempty"`
-	Txid   string  `json:"txid"`
-	Vout   uint32  `json:"vout"`
-	Tree   int8    `json:"tree"`
+	Txid string `json:"txid"`
+	Vout uint32 `json:"vout"`
 }
 
 // CreateRawTransactionCmd defines the createrawtransaction JSON-RPC command.
@@ -75,7 +58,6 @@ type CreateRawTransactionCmd struct {
 	Inputs   []TransactionInput
 	Amounts  map[string]float64 `jsonrpcusage:"{\"address\":amount,...}"` // In PFC
 	LockTime *int64
-	Expiry   *int64
 }
 
 // NewCreateRawTransactionCmd returns a new instance which can be used to issue
@@ -83,28 +65,12 @@ type CreateRawTransactionCmd struct {
 //
 // Amounts are in PFC.
 func NewCreateRawTransactionCmd(inputs []TransactionInput, amounts map[string]float64,
-	lockTime *int64, expiry *int64) *CreateRawTransactionCmd {
+	lockTime *int64) *CreateRawTransactionCmd {
 
 	return &CreateRawTransactionCmd{
 		Inputs:   inputs,
 		Amounts:  amounts,
 		LockTime: lockTime,
-		Expiry:   expiry,
-	}
-}
-
-// DebugLevelCmd defines the debuglevel JSON-RPC command.  This command is not a
-// standard Bitcoin command.  It is an extension for btcd.
-type DebugLevelCmd struct {
-	LevelSpec string
-}
-
-// NewDebugLevelCmd returns a new DebugLevelCmd which can be used to issue a
-// debuglevel JSON-RPC command.  This command is not a standard Bitcoin command.
-// It is an extension for btcd.
-func NewDebugLevelCmd(levelSpec string) *DebugLevelCmd {
-	return &DebugLevelCmd{
-		LevelSpec: levelSpec,
 	}
 }
 
@@ -134,164 +100,6 @@ func NewDecodeScriptCmd(hexScript string) *DecodeScriptCmd {
 	}
 }
 
-// EstimateFeeCmd defines the estimatefee JSON-RPC command.
-type EstimateFeeCmd struct {
-	NumBlocks int64
-}
-
-// NewEstimateFeeCmd returns a new instance which can be used to issue an
-// estimatefee JSON-RPC command.
-func NewEstimateFeeCmd(numBlocks int64) *EstimateFeeCmd {
-	return &EstimateFeeCmd{
-		NumBlocks: numBlocks,
-	}
-}
-
-// EstimateSmartFeeMode defines estimation mode to be used with
-// the estimatesmartfee command.
-type EstimateSmartFeeMode string
-
-const (
-	// EstimateSmartFeeEconomical returns an
-	// economical result.
-	EstimateSmartFeeEconomical EstimateSmartFeeMode = "economical"
-
-	// EstimateSmartFeeConservative potentially returns
-	// a conservative result.
-	EstimateSmartFeeConservative EstimateSmartFeeMode = "conservative"
-)
-
-// EstimateSmartFeeCmd defines the estimatesmartfee JSON-RPC command.
-type EstimateSmartFeeCmd struct {
-	Confirmations int64
-	Mode          *EstimateSmartFeeMode `jsonrpcdefault:"\"conservative\""`
-}
-
-// NewEstimateSmartFeeCmd returns a new instance which can be used to issue an
-// estimatesmartfee JSON-RPC command.
-func NewEstimateSmartFeeCmd(confirmations int64, mode *EstimateSmartFeeMode) *EstimateSmartFeeCmd {
-	return &EstimateSmartFeeCmd{
-		Confirmations: confirmations,
-		Mode:          mode,
-	}
-}
-
-// EstimateStakeDiffCmd defines the eststakedifficulty JSON-RPC command.
-type EstimateStakeDiffCmd struct {
-	Tickets *uint32
-}
-
-// NewEstimateStakeDiffCmd defines the eststakedifficulty JSON-RPC command.
-func NewEstimateStakeDiffCmd(tickets *uint32) *EstimateStakeDiffCmd {
-	return &EstimateStakeDiffCmd{
-		Tickets: tickets,
-	}
-}
-
-// ExistsAddressCmd defines the existsaddress JSON-RPC command.
-type ExistsAddressCmd struct {
-	Address string
-}
-
-// NewExistsAddressCmd returns a new instance which can be used to issue a
-// existsaddress JSON-RPC command.
-func NewExistsAddressCmd(address string) *ExistsAddressCmd {
-	return &ExistsAddressCmd{
-		Address: address,
-	}
-}
-
-// ExistsAddressesCmd defines the existsaddresses JSON-RPC command.
-type ExistsAddressesCmd struct {
-	Addresses []string
-}
-
-// NewExistsAddressesCmd returns a new instance which can be used to issue an
-// existsaddresses JSON-RPC command.
-func NewExistsAddressesCmd(addresses []string) *ExistsAddressesCmd {
-	return &ExistsAddressesCmd{
-		Addresses: addresses,
-	}
-}
-
-// ExistsMissedTicketsCmd defines the existsmissedtickets JSON-RPC command.
-type ExistsMissedTicketsCmd struct {
-	TxHashBlob string
-}
-
-// NewExistsMissedTicketsCmd returns a new instance which can be used to issue an
-// existsmissedtickets JSON-RPC command.
-func NewExistsMissedTicketsCmd(txHashBlob string) *ExistsMissedTicketsCmd {
-	return &ExistsMissedTicketsCmd{
-		TxHashBlob: txHashBlob,
-	}
-}
-
-// ExistsExpiredTicketsCmd defines the existsexpiredtickets JSON-RPC command.
-type ExistsExpiredTicketsCmd struct {
-	TxHashBlob string
-}
-
-// NewExistsExpiredTicketsCmd returns a new instance which can be used to issue an
-// existsexpiredtickets JSON-RPC command.
-func NewExistsExpiredTicketsCmd(txHashBlob string) *ExistsExpiredTicketsCmd {
-	return &ExistsExpiredTicketsCmd{
-		TxHashBlob: txHashBlob,
-	}
-}
-
-// ExistsLiveTicketCmd defines the existsliveticket JSON-RPC command.
-type ExistsLiveTicketCmd struct {
-	TxHash string
-}
-
-// NewExistsLiveTicketCmd returns a new instance which can be used to issue an
-// existsliveticket JSON-RPC command.
-func NewExistsLiveTicketCmd(txHash string) *ExistsLiveTicketCmd {
-	return &ExistsLiveTicketCmd{
-		TxHash: txHash,
-	}
-}
-
-// ExistsLiveTicketsCmd defines the existslivetickets JSON-RPC command.
-type ExistsLiveTicketsCmd struct {
-	TxHashBlob string
-}
-
-// NewExistsLiveTicketsCmd returns a new instance which can be used to issue an
-// existslivetickets JSON-RPC command.
-func NewExistsLiveTicketsCmd(txHashBlob string) *ExistsLiveTicketsCmd {
-	return &ExistsLiveTicketsCmd{
-		TxHashBlob: txHashBlob,
-	}
-}
-
-// ExistsMempoolTxsCmd defines the existsmempooltxs JSON-RPC command.
-type ExistsMempoolTxsCmd struct {
-	TxHashBlob string
-}
-
-// NewExistsMempoolTxsCmd returns a new instance which can be used to issue an
-// existslivetickets JSON-RPC command.
-func NewExistsMempoolTxsCmd(txHashBlob string) *ExistsMempoolTxsCmd {
-	return &ExistsMempoolTxsCmd{
-		TxHashBlob: txHashBlob,
-	}
-}
-
-// GenerateCmd defines the generate JSON-RPC command.
-type GenerateCmd struct {
-	NumBlocks uint32
-}
-
-// NewGenerateCmd returns a new instance which can be used to issue a generate
-// JSON-RPC command.
-func NewGenerateCmd(numBlocks uint32) *GenerateCmd {
-	return &GenerateCmd{
-		NumBlocks: numBlocks,
-	}
-}
-
 // GetAddedNodeInfoCmd defines the getaddednodeinfo JSON-RPC command.
 type GetAddedNodeInfoCmd struct {
 	DNS  bool
@@ -308,15 +116,6 @@ func NewGetAddedNodeInfoCmd(dns bool, node *string) *GetAddedNodeInfoCmd {
 		DNS:  dns,
 		Node: node,
 	}
-}
-
-// GetBestBlockCmd defines the getbestblock JSON-RPC command.
-type GetBestBlockCmd struct{}
-
-// NewGetBestBlockCmd returns a new instance which can be used to issue a
-// getbestblock JSON-RPC command.
-func NewGetBestBlockCmd() *GetBestBlockCmd {
-	return &GetBestBlockCmd{}
 }
 
 // GetBestBlockHashCmd defines the getbestblockhash JSON-RPC command.
@@ -391,21 +190,6 @@ func NewGetBlockHeaderCmd(hash string, verbose *bool) *GetBlockHeaderCmd {
 	return &GetBlockHeaderCmd{
 		Hash:    hash,
 		Verbose: verbose,
-	}
-}
-
-// GetBlockSubsidyCmd defines the getblocksubsidy JSON-RPC command.
-type GetBlockSubsidyCmd struct {
-	Height int64
-	Voters uint16
-}
-
-// NewGetBlockSubsidyCmd returns a new instance which can be used to issue a
-// getblocksubsidy JSON-RPC command.
-func NewGetBlockSubsidyCmd(height int64, voters uint16) *GetBlockSubsidyCmd {
-	return &GetBlockSubsidyCmd{
-		Height: height,
-		Voters: voters,
 	}
 }
 
@@ -500,12 +284,12 @@ func NewGetBlockTemplateCmd(request *TemplateRequest) *GetBlockTemplateCmd {
 // GetCFilterCmd defines the getcfilter JSON-RPC command.
 type GetCFilterCmd struct {
 	Hash       string
-	FilterType string
+	FilterType wire.FilterType
 }
 
 // NewGetCFilterCmd returns a new instance which can be used to issue a
 // getcfilter JSON-RPC command.
-func NewGetCFilterCmd(hash string, filterType string) *GetCFilterCmd {
+func NewGetCFilterCmd(hash string, filterType wire.FilterType) *GetCFilterCmd {
 	return &GetCFilterCmd{
 		Hash:       hash,
 		FilterType: filterType,
@@ -515,12 +299,13 @@ func NewGetCFilterCmd(hash string, filterType string) *GetCFilterCmd {
 // GetCFilterHeaderCmd defines the getcfilterheader JSON-RPC command.
 type GetCFilterHeaderCmd struct {
 	Hash       string
-	FilterType string
+	FilterType wire.FilterType
 }
 
 // NewGetCFilterHeaderCmd returns a new instance which can be used to issue a
 // getcfilterheader JSON-RPC command.
-func NewGetCFilterHeaderCmd(hash string, filterType string) *GetCFilterHeaderCmd {
+func NewGetCFilterHeaderCmd(hash string,
+	filterType wire.FilterType) *GetCFilterHeaderCmd {
 	return &GetCFilterHeaderCmd{
 		Hash:       hash,
 		FilterType: filterType,
@@ -536,15 +321,6 @@ func NewGetChainTipsCmd() *GetChainTipsCmd {
 	return &GetChainTipsCmd{}
 }
 
-// GetCoinSupplyCmd defines the getcoinsupply JSON-RPC command.
-type GetCoinSupplyCmd struct{}
-
-// NewGetCoinSupplyCmd returns a new instance which can be used to issue a
-// getcoinsupply JSON-RPC command.
-func NewGetCoinSupplyCmd() *GetCoinSupplyCmd {
-	return &GetCoinSupplyCmd{}
-}
-
 // GetConnectionCountCmd defines the getconnectioncount JSON-RPC command.
 type GetConnectionCountCmd struct{}
 
@@ -552,15 +328,6 @@ type GetConnectionCountCmd struct{}
 // getconnectioncount JSON-RPC command.
 func NewGetConnectionCountCmd() *GetConnectionCountCmd {
 	return &GetConnectionCountCmd{}
-}
-
-// GetCurrentNetCmd defines the getcurrentnet JSON-RPC command.
-type GetCurrentNetCmd struct{}
-
-// NewGetCurrentNetCmd returns a new instance which can be used to issue a
-// getcurrentnet JSON-RPC command.
-func NewGetCurrentNetCmd() *GetCurrentNetCmd {
-	return &GetCurrentNetCmd{}
 }
 
 // GetDifficultyCmd defines the getdifficulty JSON-RPC command.
@@ -599,18 +366,16 @@ func NewGetInfoCmd() *GetInfoCmd {
 	return &GetInfoCmd{}
 }
 
-// GetHeadersCmd defines the getheaders JSON-RPC command.
-type GetHeadersCmd struct {
-	BlockLocators string `json:"blocklocators"`
-	HashStop      string `json:"hashstop"`
+// GetMempoolEntryCmd defines the getmempoolentry JSON-RPC command.
+type GetMempoolEntryCmd struct {
+	TxID string
 }
 
-// NewGetHeadersCmd returns a new instance which can be used to issue a
-// getheaders JSON-RPC command.
-func NewGetHeadersCmd(blockLocators string, hashStop string) *GetHeadersCmd {
-	return &GetHeadersCmd{
-		BlockLocators: blockLocators,
-		HashStop:      hashStop,
+// NewGetMempoolEntryCmd returns a new instance which can be used to issue a
+// getmempoolentry JSON-RPC command.
+func NewGetMempoolEntryCmd(txHash string) *GetMempoolEntryCmd {
+	return &GetMempoolEntryCmd{
+		TxID: txHash,
 	}
 }
 
@@ -677,31 +442,9 @@ func NewGetPeerInfoCmd() *GetPeerInfoCmd {
 	return &GetPeerInfoCmd{}
 }
 
-// GetRawMempoolTxTypeCmd defines the type used in the getrawmempool JSON-RPC
-// command for the TxType command field.
-type GetRawMempoolTxTypeCmd string
-
-const (
-	// GRMAll indicates any type of transaction should be returned.
-	GRMAll GetRawMempoolTxTypeCmd = "all"
-
-	// GRMRegular indicates only regular transactions should be returned.
-	GRMRegular GetRawMempoolTxTypeCmd = "regular"
-
-	// GRMTickets indicates that only tickets should be returned.
-	GRMTickets GetRawMempoolTxTypeCmd = "tickets"
-
-	// GRMVotes indicates that only votes should be returned.
-	GRMVotes GetRawMempoolTxTypeCmd = "votes"
-
-	// GRMRevocations indicates that only revocations should be returned.
-	GRMRevocations GetRawMempoolTxTypeCmd = "revocations"
-)
-
 // GetRawMempoolCmd defines the getmempool JSON-RPC command.
 type GetRawMempoolCmd struct {
 	Verbose *bool `jsonrpcdefault:"false"`
-	TxType  *string
 }
 
 // NewGetRawMempoolCmd returns a new instance which can be used to issue a
@@ -709,10 +452,9 @@ type GetRawMempoolCmd struct {
 //
 // The parameters which are pointers indicate they are optional.  Passing nil
 // for optional parameters will use the default value.
-func NewGetRawMempoolCmd(verbose *bool, txType *string) *GetRawMempoolCmd {
+func NewGetRawMempoolCmd(verbose *bool) *GetRawMempoolCmd {
 	return &GetRawMempoolCmd{
 		Verbose: verbose,
-		TxType:  txType,
 	}
 }
 
@@ -737,55 +479,6 @@ func NewGetRawTransactionCmd(txHash string, verbose *int) *GetRawTransactionCmd 
 	}
 }
 
-// GetStakeDifficultyCmd is a type handling custom marshaling and
-// unmarshaling of getstakedifficulty JSON RPC commands.
-type GetStakeDifficultyCmd struct{}
-
-// NewGetStakeDifficultyCmd returns a new instance which can be used to
-// issue a JSON-RPC getstakedifficulty command.
-func NewGetStakeDifficultyCmd() *GetStakeDifficultyCmd {
-	return &GetStakeDifficultyCmd{}
-}
-
-// GetStakeVersionInfoCmd returns stake version info for the current interval.
-// Optionally, Count indicates how many additional intervals to return.
-type GetStakeVersionInfoCmd struct {
-	Count *int32
-}
-
-// NewGetStakeVersionInfoCmd returns a new instance which can be used to
-// issue a JSON-RPC getstakeversioninfo command.
-func NewGetStakeVersionInfoCmd(count int32) *GetStakeVersionInfoCmd {
-	return &GetStakeVersionInfoCmd{
-		Count: &count,
-	}
-}
-
-// GetStakeVersionsCmd returns stake version for a range of blocks.
-// Count indicates how many blocks are walked backwards.
-type GetStakeVersionsCmd struct {
-	Hash  string
-	Count int32
-}
-
-// NewGetStakeVersionsCmd returns a new instance which can be used to
-// issue a JSON-RPC getstakeversions command.
-func NewGetStakeVersionsCmd(hash string, count int32) *GetStakeVersionsCmd {
-	return &GetStakeVersionsCmd{
-		Hash:  hash,
-		Count: count,
-	}
-}
-
-// GetTicketPoolValueCmd defines the getticketpoolvalue JSON-RPC command.
-type GetTicketPoolValueCmd struct{}
-
-// NewGetTicketPoolValueCmd returns a new instance which can be used to issue a
-// getticketpoolvalue JSON-RPC command.
-func NewGetTicketPoolValueCmd() *GetTicketPoolValueCmd {
-	return &GetTicketPoolValueCmd{}
-}
-
 // GetTxOutCmd defines the gettxout JSON-RPC command.
 type GetTxOutCmd struct {
 	Txid           string
@@ -806,6 +499,24 @@ func NewGetTxOutCmd(txHash string, vout uint32, includeMempool *bool) *GetTxOutC
 	}
 }
 
+// GetTxOutProofCmd defines the gettxoutproof JSON-RPC command.
+type GetTxOutProofCmd struct {
+	TxIDs     []string
+	BlockHash *string
+}
+
+// NewGetTxOutProofCmd returns a new instance which can be used to issue a
+// gettxoutproof JSON-RPC command.
+//
+// The parameters which are pointers indicate they are optional.  Passing nil
+// for optional parameters will use the default value.
+func NewGetTxOutProofCmd(txIDs []string, blockHash *string) *GetTxOutProofCmd {
+	return &GetTxOutProofCmd{
+		TxIDs:     txIDs,
+		BlockHash: blockHash,
+	}
+}
+
 // GetTxOutSetInfoCmd defines the gettxoutsetinfo JSON-RPC command.
 type GetTxOutSetInfoCmd struct{}
 
@@ -813,20 +524,6 @@ type GetTxOutSetInfoCmd struct{}
 // gettxoutsetinfo JSON-RPC command.
 func NewGetTxOutSetInfoCmd() *GetTxOutSetInfoCmd {
 	return &GetTxOutSetInfoCmd{}
-}
-
-// GetVoteInfoCmd returns voting results over a range of blocks.  Count
-// indicates how many blocks are walked backwards.
-type GetVoteInfoCmd struct {
-	Version uint32
-}
-
-// NewGetVoteInfoCmd returns a new instance which can be used to
-// issue a JSON-RPC getvoteinfo command.
-func NewGetVoteInfoCmd(version uint32) *GetVoteInfoCmd {
-	return &GetVoteInfoCmd{
-		Version: version,
-	}
 }
 
 // GetWorkCmd defines the getwork JSON-RPC command.
@@ -861,43 +558,16 @@ func NewHelpCmd(command *string) *HelpCmd {
 	}
 }
 
-// LiveTicketsCmd is a type handling custom marshaling and
-// unmarshaling of livetickets JSON RPC commands.
-type LiveTicketsCmd struct{}
-
-// NewLiveTicketsCmd returns a new instance which can be used to issue a JSON-RPC
-// livetickets command.
-func NewLiveTicketsCmd() *LiveTicketsCmd {
-	return &LiveTicketsCmd{}
+// InvalidateBlockCmd defines the invalidateblock JSON-RPC command.
+type InvalidateBlockCmd struct {
+	BlockHash string
 }
 
-// MissedTicketsCmd is a type handling custom marshaling and
-// unmarshaling of missedtickets JSON RPC commands.
-type MissedTicketsCmd struct{}
-
-// NewMissedTicketsCmd returns a new instance which can be used to issue a JSON-RPC
-// missedtickets command.
-func NewMissedTicketsCmd() *MissedTicketsCmd {
-	return &MissedTicketsCmd{}
-}
-
-// NodeCmd defines the dropnode JSON-RPC command.
-type NodeCmd struct {
-	SubCmd        NodeSubCmd `jsonrpcusage:"\"connect|remove|disconnect\""`
-	Target        string
-	ConnectSubCmd *string `jsonrpcusage:"\"perm|temp\""`
-}
-
-// NewNodeCmd returns a new instance which can be used to issue a `node`
-// JSON-RPC command.
-//
-// The parameters which are pointers indicate they are optional.  Passing nil
-// for optional parameters will use the default value.
-func NewNodeCmd(subCmd NodeSubCmd, target string, connectSubCmd *string) *NodeCmd {
-	return &NodeCmd{
-		SubCmd:        subCmd,
-		Target:        target,
-		ConnectSubCmd: connectSubCmd,
+// NewInvalidateBlockCmd returns a new instance which can be used to issue a
+// invalidateblock JSON-RPC command.
+func NewInvalidateBlockCmd(blockHash string) *InvalidateBlockCmd {
+	return &InvalidateBlockCmd{
+		BlockHash: blockHash,
 	}
 }
 
@@ -910,24 +580,30 @@ func NewPingCmd() *PingCmd {
 	return &PingCmd{}
 }
 
-// RebroadcastMissedCmd is a type handling custom marshaling and
-// unmarshaling of rebroadcastwinners JSON RPC commands.
-type RebroadcastMissedCmd struct{}
-
-// NewRebroadcastMissedCmd returns a new instance which can be used to
-// issue a JSON-RPC rebroadcastmissed command.
-func NewRebroadcastMissedCmd() *RebroadcastMissedCmd {
-	return &RebroadcastMissedCmd{}
+// PreciousBlockCmd defines the preciousblock JSON-RPC command.
+type PreciousBlockCmd struct {
+	BlockHash string
 }
 
-// RebroadcastWinnersCmd is a type handling custom marshaling and
-// unmarshaling of rebroadcastwinners JSON RPC commands.
-type RebroadcastWinnersCmd struct{}
+// NewPreciousBlockCmd returns a new instance which can be used to issue a
+// preciousblock JSON-RPC command.
+func NewPreciousBlockCmd(blockHash string) *PreciousBlockCmd {
+	return &PreciousBlockCmd{
+		BlockHash: blockHash,
+	}
+}
 
-// NewRebroadcastWinnersCmd returns a new instance which can be used to
-// issue a JSON-RPC rebroadcastwinners command.
-func NewRebroadcastWinnersCmd() *RebroadcastWinnersCmd {
-	return &RebroadcastWinnersCmd{}
+// ReconsiderBlockCmd defines the reconsiderblock JSON-RPC command.
+type ReconsiderBlockCmd struct {
+	BlockHash string
+}
+
+// NewReconsiderBlockCmd returns a new instance which can be used to issue a
+// reconsiderblock JSON-RPC command.
+func NewReconsiderBlockCmd(blockHash string) *ReconsiderBlockCmd {
+	return &ReconsiderBlockCmd{
+		BlockHash: blockHash,
+	}
 }
 
 // SearchRawTransactionsCmd defines the searchrawtransactions JSON-RPC command.
@@ -1028,62 +704,12 @@ func NewSubmitBlockCmd(hexBlock string, options *SubmitBlockOptions) *SubmitBloc
 	}
 }
 
-// TicketFeeInfoCmd defines the ticketsfeeinfo JSON-RPC command.
-type TicketFeeInfoCmd struct {
-	Blocks  *uint32
-	Windows *uint32
-}
+// UptimeCmd defines the uptime JSON-RPC command.
+type UptimeCmd struct{}
 
-// NewTicketFeeInfoCmd returns a new instance which can be used to issue a
-// JSON-RPC ticket fee info command.
-func NewTicketFeeInfoCmd(blocks *uint32, windows *uint32) *TicketFeeInfoCmd {
-	return &TicketFeeInfoCmd{
-		Blocks:  blocks,
-		Windows: windows,
-	}
-}
-
-// TicketsForAddressCmd defines the ticketsforbucket JSON-RPC command.
-type TicketsForAddressCmd struct {
-	Address string
-}
-
-// NewTicketsForAddressCmd returns a new instance which can be used to issue a
-// JSON-RPC tickets for bucket command.
-func NewTicketsForAddressCmd(addr string) *TicketsForAddressCmd {
-	return &TicketsForAddressCmd{addr}
-}
-
-// TicketVWAPCmd defines the ticketvwap JSON-RPC command.
-type TicketVWAPCmd struct {
-	Start *uint32
-	End   *uint32
-}
-
-// NewTicketVWAPCmd returns a new instance which can be used to issue a
-// JSON-RPC ticket volume weight average price command.
-func NewTicketVWAPCmd(start *uint32, end *uint32) *TicketVWAPCmd {
-	return &TicketVWAPCmd{
-		Start: start,
-		End:   end,
-	}
-}
-
-// TxFeeInfoCmd defines the ticketsfeeinfo JSON-RPC command.
-type TxFeeInfoCmd struct {
-	Blocks     *uint32
-	RangeStart *uint32
-	RangeEnd   *uint32
-}
-
-// NewTxFeeInfoCmd returns a new instance which can be used to issue a
-// JSON-RPC ticket fee info command.
-func NewTxFeeInfoCmd(blocks *uint32, start *uint32, end *uint32) *TxFeeInfoCmd {
-	return &TxFeeInfoCmd{
-		Blocks:     blocks,
-		RangeStart: start,
-		RangeEnd:   end,
-	}
+// NewUptimeCmd returns a new instance which can be used to issue an uptime JSON-RPC command.
+func NewUptimeCmd() *UptimeCmd {
+	return &UptimeCmd{}
 }
 
 // ValidateAddressCmd defines the validateaddress JSON-RPC command.
@@ -1101,8 +727,8 @@ func NewValidateAddressCmd(address string) *ValidateAddressCmd {
 
 // VerifyChainCmd defines the verifychain JSON-RPC command.
 type VerifyChainCmd struct {
-	CheckLevel *int64 `jsonrpcdefault:"3"`
-	CheckDepth *int64 `jsonrpcdefault:"288"` // 0 = all
+	CheckLevel *int32 `jsonrpcdefault:"3"`
+	CheckDepth *int32 `jsonrpcdefault:"288"` // 0 = all
 }
 
 // NewVerifyChainCmd returns a new instance which can be used to issue a
@@ -1110,7 +736,7 @@ type VerifyChainCmd struct {
 //
 // The parameters which are pointers indicate they are optional.  Passing nil
 // for optional parameters will use the default value.
-func NewVerifyChainCmd(checkLevel, checkDepth *int64) *VerifyChainCmd {
+func NewVerifyChainCmd(checkLevel, checkDepth *int32) *VerifyChainCmd {
 	return &VerifyChainCmd{
 		CheckLevel: checkLevel,
 		CheckDepth: checkDepth,
@@ -1134,12 +760,18 @@ func NewVerifyMessageCmd(address, signature, message string) *VerifyMessageCmd {
 	}
 }
 
-// VersionCmd defines the version JSON-RPC command.
-type VersionCmd struct{}
+// VerifyTxOutProofCmd defines the verifytxoutproof JSON-RPC command.
+type VerifyTxOutProofCmd struct {
+	Proof string
+}
 
-// NewVersionCmd returns a new instance which can be used to issue a JSON-RPC
-// version command.
-func NewVersionCmd() *VersionCmd { return new(VersionCmd) }
+// NewVerifyTxOutProofCmd returns a new instance which can be used to issue a
+// verifytxoutproof JSON-RPC command.
+func NewVerifyTxOutProofCmd(proof string) *VerifyTxOutProofCmd {
+	return &VerifyTxOutProofCmd{
+		Proof: proof,
+	}
+}
 
 func init() {
 	// No special flags for commands in this file.
@@ -1147,41 +779,25 @@ func init() {
 
 	MustRegisterCmd("addnode", (*AddNodeCmd)(nil), flags)
 	MustRegisterCmd("createrawtransaction", (*CreateRawTransactionCmd)(nil), flags)
-	MustRegisterCmd("debuglevel", (*DebugLevelCmd)(nil), flags)
 	MustRegisterCmd("decoderawtransaction", (*DecodeRawTransactionCmd)(nil), flags)
 	MustRegisterCmd("decodescript", (*DecodeScriptCmd)(nil), flags)
-	MustRegisterCmd("estimatefee", (*EstimateFeeCmd)(nil), flags)
-	MustRegisterCmd("estimatesmartfee", (*EstimateSmartFeeCmd)(nil), flags)
-	MustRegisterCmd("estimatestakediff", (*EstimateStakeDiffCmd)(nil), flags)
-	MustRegisterCmd("existsaddress", (*ExistsAddressCmd)(nil), flags)
-	MustRegisterCmd("existsaddresses", (*ExistsAddressesCmd)(nil), flags)
-	MustRegisterCmd("existsmissedtickets", (*ExistsMissedTicketsCmd)(nil), flags)
-	MustRegisterCmd("existsexpiredtickets", (*ExistsExpiredTicketsCmd)(nil), flags)
-	MustRegisterCmd("existsliveticket", (*ExistsLiveTicketCmd)(nil), flags)
-	MustRegisterCmd("existslivetickets", (*ExistsLiveTicketsCmd)(nil), flags)
-	MustRegisterCmd("existsmempooltxs", (*ExistsMempoolTxsCmd)(nil), flags)
-	MustRegisterCmd("generate", (*GenerateCmd)(nil), flags)
 	MustRegisterCmd("getaddednodeinfo", (*GetAddedNodeInfoCmd)(nil), flags)
-	MustRegisterCmd("getbestblock", (*GetBestBlockCmd)(nil), flags)
 	MustRegisterCmd("getbestblockhash", (*GetBestBlockHashCmd)(nil), flags)
 	MustRegisterCmd("getblock", (*GetBlockCmd)(nil), flags)
 	MustRegisterCmd("getblockchaininfo", (*GetBlockChainInfoCmd)(nil), flags)
 	MustRegisterCmd("getblockcount", (*GetBlockCountCmd)(nil), flags)
 	MustRegisterCmd("getblockhash", (*GetBlockHashCmd)(nil), flags)
 	MustRegisterCmd("getblockheader", (*GetBlockHeaderCmd)(nil), flags)
-	MustRegisterCmd("getblocksubsidy", (*GetBlockSubsidyCmd)(nil), flags)
 	MustRegisterCmd("getblocktemplate", (*GetBlockTemplateCmd)(nil), flags)
 	MustRegisterCmd("getcfilter", (*GetCFilterCmd)(nil), flags)
 	MustRegisterCmd("getcfilterheader", (*GetCFilterHeaderCmd)(nil), flags)
 	MustRegisterCmd("getchaintips", (*GetChainTipsCmd)(nil), flags)
-	MustRegisterCmd("getcoinsupply", (*GetCoinSupplyCmd)(nil), flags)
 	MustRegisterCmd("getconnectioncount", (*GetConnectionCountCmd)(nil), flags)
-	MustRegisterCmd("getcurrentnet", (*GetCurrentNetCmd)(nil), flags)
 	MustRegisterCmd("getdifficulty", (*GetDifficultyCmd)(nil), flags)
 	MustRegisterCmd("getgenerate", (*GetGenerateCmd)(nil), flags)
 	MustRegisterCmd("gethashespersec", (*GetHashesPerSecCmd)(nil), flags)
-	MustRegisterCmd("getheaders", (*GetHeadersCmd)(nil), flags)
 	MustRegisterCmd("getinfo", (*GetInfoCmd)(nil), flags)
+	MustRegisterCmd("getmempoolentry", (*GetMempoolEntryCmd)(nil), flags)
 	MustRegisterCmd("getmempoolinfo", (*GetMempoolInfoCmd)(nil), flags)
 	MustRegisterCmd("getmininginfo", (*GetMiningInfoCmd)(nil), flags)
 	MustRegisterCmd("getnetworkinfo", (*GetNetworkInfoCmd)(nil), flags)
@@ -1190,32 +806,23 @@ func init() {
 	MustRegisterCmd("getpeerinfo", (*GetPeerInfoCmd)(nil), flags)
 	MustRegisterCmd("getrawmempool", (*GetRawMempoolCmd)(nil), flags)
 	MustRegisterCmd("getrawtransaction", (*GetRawTransactionCmd)(nil), flags)
-	MustRegisterCmd("getstakedifficulty", (*GetStakeDifficultyCmd)(nil), flags)
-	MustRegisterCmd("getstakeversioninfo", (*GetStakeVersionInfoCmd)(nil), flags)
-	MustRegisterCmd("getstakeversions", (*GetStakeVersionsCmd)(nil), flags)
-	MustRegisterCmd("getticketpoolvalue", (*GetTicketPoolValueCmd)(nil), flags)
 	MustRegisterCmd("gettxout", (*GetTxOutCmd)(nil), flags)
+	MustRegisterCmd("gettxoutproof", (*GetTxOutProofCmd)(nil), flags)
 	MustRegisterCmd("gettxoutsetinfo", (*GetTxOutSetInfoCmd)(nil), flags)
-	MustRegisterCmd("getvoteinfo", (*GetVoteInfoCmd)(nil), flags)
 	MustRegisterCmd("getwork", (*GetWorkCmd)(nil), flags)
 	MustRegisterCmd("help", (*HelpCmd)(nil), flags)
-	MustRegisterCmd("livetickets", (*LiveTicketsCmd)(nil), flags)
-	MustRegisterCmd("missedtickets", (*MissedTicketsCmd)(nil), flags)
-	MustRegisterCmd("node", (*NodeCmd)(nil), flags)
+	MustRegisterCmd("invalidateblock", (*InvalidateBlockCmd)(nil), flags)
 	MustRegisterCmd("ping", (*PingCmd)(nil), flags)
-	MustRegisterCmd("rebroadcastmissed", (*RebroadcastMissedCmd)(nil), flags)
-	MustRegisterCmd("rebroadcastwinners", (*RebroadcastWinnersCmd)(nil), flags)
+	MustRegisterCmd("preciousblock", (*PreciousBlockCmd)(nil), flags)
+	MustRegisterCmd("reconsiderblock", (*ReconsiderBlockCmd)(nil), flags)
 	MustRegisterCmd("searchrawtransactions", (*SearchRawTransactionsCmd)(nil), flags)
 	MustRegisterCmd("sendrawtransaction", (*SendRawTransactionCmd)(nil), flags)
 	MustRegisterCmd("setgenerate", (*SetGenerateCmd)(nil), flags)
 	MustRegisterCmd("stop", (*StopCmd)(nil), flags)
 	MustRegisterCmd("submitblock", (*SubmitBlockCmd)(nil), flags)
-	MustRegisterCmd("ticketfeeinfo", (*TicketFeeInfoCmd)(nil), flags)
-	MustRegisterCmd("ticketsforaddress", (*TicketsForAddressCmd)(nil), flags)
-	MustRegisterCmd("ticketvwap", (*TicketVWAPCmd)(nil), flags)
-	MustRegisterCmd("txfeeinfo", (*TxFeeInfoCmd)(nil), flags)
+	MustRegisterCmd("uptime", (*UptimeCmd)(nil), flags)
 	MustRegisterCmd("validateaddress", (*ValidateAddressCmd)(nil), flags)
 	MustRegisterCmd("verifychain", (*VerifyChainCmd)(nil), flags)
 	MustRegisterCmd("verifymessage", (*VerifyMessageCmd)(nil), flags)
-	MustRegisterCmd("version", (*VersionCmd)(nil), flags)
+	MustRegisterCmd("verifytxoutproof", (*VerifyTxOutProofCmd)(nil), flags)
 }

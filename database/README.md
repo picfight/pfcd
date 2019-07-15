@@ -7,17 +7,17 @@ database
 
 Package database provides a block and metadata storage database.
 
-Please note that this package is intended to enable pfcd to support different
+Please note that this package is intended to enable btcd to support different
 database backends and is not something that a client can directly access as only
 one entity can have the database open at a time (for most database backends),
-and that entity will be pfcd.
+and that entity will be btcd.
 
 When a client wants programmatic access to the data provided by pfcd, they'll
-likely want to use the [pfcrpcclient](https://github.com/picfight/pfcrpcclient)
+likely want to use the [rpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient)
 package which makes use of the [JSON-RPC API](https://github.com/picfight/pfcd/tree/master/docs/json_rpc_api.md).
 
 However, this package could be extremely useful for any applications requiring
-PicFight block storage capabilities.
+Bitcoin block storage capabilities.
 
 The default backend, ffldb, has a strong focus on speed, efficiency, and
 robustness.  It makes use of leveldb for the metadata, flat files for block
@@ -26,7 +26,7 @@ storage, and strict checksums in key areas to ensure data integrity.
 ## Feature Overview
 
 - Key/value metadata store
-- PicFight block storage
+- Bitcoin block storage
 - Efficient retrieval of block headers and regions (transactions, scripts, etc)
 - Read-only and read-write transactions with both manual and managed modes
 - Nested buckets
@@ -34,19 +34,19 @@ storage, and strict checksums in key areas to ensure data integrity.
 - Supports registration of backend databases
 - Comprehensive test coverage
 
-## Installation
+## Installation and Updating
 
 ```bash
-$ go get github.com/picfight/pfcd/database2
+$ go get -u github.com/picfight/pfcd/database
 ```
 
 ## Examples
 
-* [Basic Usage Example](http://godoc.org/github.com/picfight/pfcd/database2#example-package--BasicUsage)  
+* [Basic Usage Example](http://godoc.org/github.com/picfight/pfcd/database#example-package--BasicUsage)  
   Demonstrates creating a new database and using a managed read-write
   transaction to store and retrieve metadata.
 
-* [Block Storage and Retrieval Example](http://godoc.org/github.com/picfight/pfcd/database2#example-package--BlockStorageAndRetrieval)  
+* [Block Storage and Retrieval Example](http://godoc.org/github.com/picfight/pfcd/database#example-package--BlockStorageAndRetrieval)  
   Demonstrates creating a new database, using a managed read-write transaction
   to store a block, and then using a managed read-only transaction to fetch the
   block.

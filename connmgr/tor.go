@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -100,15 +99,12 @@ func TorLookupIP(host, proxy string) ([]net.IP, error) {
 		return nil, ErrTorInvalidProxyResponse
 	}
 	if buf[1] != 0 {
-		if int(buf[1]) > len(torStatusErrors) {
-			err = ErrTorInvalidProxyResponse
-		} else {
-			err = torStatusErrors[buf[1]]
-			if err == nil {
-				err = ErrTorInvalidProxyResponse
-			}
+		if int(buf[1]) >= len(torStatusErrors) {
+			return nil, ErrTorInvalidProxyResponse
+		} else if err := torStatusErrors[buf[1]]; err != nil {
+			return nil, err
 		}
-		return nil, err
+		return nil, ErrTorInvalidProxyResponse
 	}
 	if buf[3] != 1 {
 		err := torStatusErrors[torGeneralError]

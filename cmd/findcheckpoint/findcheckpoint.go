@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -37,7 +36,7 @@ func loadBlockDB() (database.DB, error) {
 
 // findCandidates searches the chain backwards for checkpoint candidates and
 // returns a slice of found candidates, if any.  It also stops searching for
-// candidates at the last checkpoint that is already hard coded into chain
+// candidates at the last checkpoint that is already hard coded into btcchain
 // since there is no point in finding candidates before already existing
 // checkpoints.
 func findCandidates(chain *blockchain.BlockChain, latestHash *chainhash.Hash) ([]*chaincfg.Checkpoint, error) {
@@ -60,7 +59,7 @@ func findCandidates(chain *blockchain.BlockChain, latestHash *chainhash.Hash) ([
 
 	// The latest known block must be at least the last known checkpoint
 	// plus required checkpoint confirmations.
-	checkpointConfirmations := int64(blockchain.CheckpointConfirmations)
+	checkpointConfirmations := int32(blockchain.CheckpointConfirmations)
 	requiredHeight := latestCheckpoint.Height + checkpointConfirmations
 	if block.Height() < requiredHeight {
 		return nil, fmt.Errorf("the block database is only at height "+
@@ -85,7 +84,7 @@ func findCandidates(chain *blockchain.BlockChain, latestHash *chainhash.Hash) ([
 
 	// Loop backwards through the chain to find checkpoint candidates.
 	candidates := make([]*chaincfg.Checkpoint, 0, cfg.NumCandidates)
-	numTested := int64(0)
+	numTested := int32(0)
 	for len(candidates) < cfg.NumCandidates && block.Height() > requiredHeight {
 		// Display progress.
 		if numTested%progressInterval == 0 {
@@ -120,10 +119,10 @@ func findCandidates(chain *blockchain.BlockChain, latestHash *chainhash.Hash) ([
 
 // showCandidate display a checkpoint candidate using and output format
 // determined by the configuration parameters.  The Go syntax output
-// uses the format the chain code expects for checkpoints added to the list.
+// uses the format the btcchain code expects for checkpoints added to the list.
 func showCandidate(candidateNum int, checkpoint *chaincfg.Checkpoint) {
 	if cfg.UseGoOutput {
-		fmt.Printf("Candidate %d -- {%d, newHashFromStr(\"%v\")},\n",
+		fmt.Printf("Candidate %d -- {%d, newShaHashFromStr(\"%v\")},\n",
 			candidateNum, checkpoint.Height, checkpoint.Hash)
 		return
 	}
@@ -154,6 +153,7 @@ func main() {
 	chain, err := blockchain.New(&blockchain.Config{
 		DB:          db,
 		ChainParams: activeNetParams,
+		TimeSource:  blockchain.NewMedianTime(),
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to initialize chain: %v\n", err)

@@ -1,5 +1,4 @@
 // Copyright (c) 2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -165,7 +164,8 @@ func (b *addrIndexBucket) sanityCheck(addrKey [addrKeySize]byte, expectedTotal i
 }
 
 // TestAddrIndexLevels ensures that adding and deleting entries to the address
-// index creates multiple levels as described by the address index documentation.
+// index creates multiple levels as described by the address index
+// documentation.
 func TestAddrIndexLevels(t *testing.T) {
 	t.Parallel()
 
@@ -222,7 +222,7 @@ nextTest:
 		for i := 0; i < test.numInsert; i++ {
 			txLoc := wire.TxLoc{TxStart: i * 2}
 			err := dbPutAddrIndexEntry(populatedBucket, test.key,
-				uint32(i), txLoc, uint32(i%100))
+				uint32(i), txLoc)
 			if err != nil {
 				t.Errorf("dbPutAddrIndexEntry #%d (%s) - "+
 					"unexpected error: %v", testNum,

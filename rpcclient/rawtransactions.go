@@ -1,5 +1,4 @@
-// Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -12,8 +11,8 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 // SigHashType enumerates the available signature hashing types that the
@@ -240,207 +239,22 @@ func (r FutureCreateRawTransactionResult) Receive() (*wire.MsgTx, error) {
 //
 // See CreateRawTransaction for the blocking version and more details.
 func (c *Client) CreateRawTransactionAsync(inputs []pfcjson.TransactionInput,
-	amounts map[pfcutil.Address]pfcutil.Amount, lockTime *int64, expiry *int64) FutureCreateRawTransactionResult {
+	amounts map[pfcutil.Address]pfcutil.Amount, lockTime *int64) FutureCreateRawTransactionResult {
 
 	convertedAmts := make(map[string]float64, len(amounts))
 	for addr, amount := range amounts {
-		convertedAmts[addr.String()] = amount.ToCoin()
+		convertedAmts[addr.String()] = amount.ToPFC()
 	}
-	cmd := pfcjson.NewCreateRawTransactionCmd(inputs, convertedAmts, lockTime, expiry)
+	cmd := pfcjson.NewCreateRawTransactionCmd(inputs, convertedAmts, lockTime)
 	return c.sendCmd(cmd)
 }
 
 // CreateRawTransaction returns a new transaction spending the provided inputs
 // and sending to the provided addresses.
 func (c *Client) CreateRawTransaction(inputs []pfcjson.TransactionInput,
-	amounts map[pfcutil.Address]pfcutil.Amount, lockTime *int64, expiry *int64) (*wire.MsgTx, error) {
+	amounts map[pfcutil.Address]pfcutil.Amount, lockTime *int64) (*wire.MsgTx, error) {
 
-	return c.CreateRawTransactionAsync(inputs, amounts, lockTime, expiry).Receive()
-}
-
-// FutureCreateRawSStxResult is a future promise to deliver the result
-// of a CreateRawSStxAsync RPC invocation (or an applicable error).
-type FutureCreateRawSStxResult chan *response
-
-// Receive waits for the response promised by the future and returns a new
-// transaction spending the provided inputs and sending to the provided
-// addresses.
-func (r FutureCreateRawSStxResult) Receive() (*wire.MsgTx, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a string.
-	var txHex string
-	err = json.Unmarshal(res, &txHex)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decode the serialized transaction hex to raw bytes.
-	serializedTx, err := hex.DecodeString(txHex)
-	if err != nil {
-		return nil, err
-	}
-
-	// Deserialize the transaction and return it.
-	var msgTx wire.MsgTx
-	if err := msgTx.Deserialize(bytes.NewReader(serializedTx)); err != nil {
-		return nil, err
-	}
-	return &msgTx, nil
-}
-
-// SStxCommitOut represents the output to an SStx transaction. Specifically a
-// a commitment address and amount, and a change address and amount. Same
-// name as the JSON lib, but different internal structures.
-type SStxCommitOut struct {
-	Addr       pfcutil.Address
-	CommitAmt  pfcutil.Amount
-	ChangeAddr pfcutil.Address
-	ChangeAmt  pfcutil.Amount
-}
-
-// CreateRawSStxAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See CreateRawSStx for the blocking version and more details.
-func (c *Client) CreateRawSStxAsync(inputs []pfcjson.SStxInput,
-	amount map[pfcutil.Address]pfcutil.Amount,
-	couts []SStxCommitOut) FutureCreateRawSStxResult {
-
-	convertedAmt := make(map[string]int64, len(amount))
-	for addr, amt := range amount {
-		convertedAmt[addr.String()] = int64(amt)
-	}
-	convertedCouts := make([]pfcjson.SStxCommitOut, len(couts))
-	for i, cout := range couts {
-		convertedCouts[i].Addr = cout.Addr.String()
-		convertedCouts[i].CommitAmt = int64(cout.CommitAmt)
-		convertedCouts[i].ChangeAddr = cout.ChangeAddr.String()
-		convertedCouts[i].ChangeAmt = int64(cout.ChangeAmt)
-	}
-
-	cmd := pfcjson.NewCreateRawSStxCmd(inputs,
-		convertedAmt,
-		convertedCouts)
-
-	return c.sendCmd(cmd)
-}
-
-// CreateRawSStx returns a new transaction spending the provided inputs
-// and sending to the provided addresses.
-func (c *Client) CreateRawSStx(inputs []pfcjson.SStxInput,
-	amount map[pfcutil.Address]pfcutil.Amount,
-	couts []SStxCommitOut) (*wire.MsgTx, error) {
-
-	return c.CreateRawSStxAsync(inputs, amount, couts).Receive()
-}
-
-// FutureCreateRawSSGenTxResult is a future promise to deliver the result
-// of a CreateRawSSGenTxAsync RPC invocation (or an applicable error).
-type FutureCreateRawSSGenTxResult chan *response
-
-// Receive waits for the response promised by the future and returns a new
-// transaction spending the provided inputs and sending to the provided
-// addresses.
-func (r FutureCreateRawSSGenTxResult) Receive() (*wire.MsgTx, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a string.
-	var txHex string
-	err = json.Unmarshal(res, &txHex)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decode the serialized transaction hex to raw bytes.
-	serializedTx, err := hex.DecodeString(txHex)
-	if err != nil {
-		return nil, err
-	}
-
-	// Deserialize the transaction and return it.
-	var msgTx wire.MsgTx
-	if err := msgTx.Deserialize(bytes.NewReader(serializedTx)); err != nil {
-		return nil, err
-	}
-	return &msgTx, nil
-}
-
-// CreateRawSSGenTxAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See CreateRawSSGenTx for the blocking version and more details.
-func (c *Client) CreateRawSSGenTxAsync(inputs []pfcjson.TransactionInput,
-	votebits uint16) FutureCreateRawSSGenTxResult {
-
-	cmd := pfcjson.NewCreateRawSSGenTxCmd(inputs, votebits)
-	return c.sendCmd(cmd)
-}
-
-// CreateRawSSGenTx returns a new transaction spending the provided inputs
-// and sending to the provided addresses.
-func (c *Client) CreateRawSSGenTx(inputs []pfcjson.TransactionInput,
-	votebits uint16) (*wire.MsgTx, error) {
-
-	return c.CreateRawSSGenTxAsync(inputs, votebits).Receive()
-}
-
-// FutureCreateRawSSRtxResult is a future promise to deliver the result
-// of a CreateRawSSRtxAsync RPC invocation (or an applicable error).
-type FutureCreateRawSSRtxResult chan *response
-
-// Receive waits for the response promised by the future and returns a new
-// transaction spending the provided inputs and sending to the provided
-// addresses.
-func (r FutureCreateRawSSRtxResult) Receive() (*wire.MsgTx, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a string.
-	var txHex string
-	err = json.Unmarshal(res, &txHex)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decode the serialized transaction hex to raw bytes.
-	serializedTx, err := hex.DecodeString(txHex)
-	if err != nil {
-		return nil, err
-	}
-
-	// Deserialize the transaction and return it.
-	var msgTx wire.MsgTx
-	if err := msgTx.Deserialize(bytes.NewReader(serializedTx)); err != nil {
-		return nil, err
-	}
-	return &msgTx, nil
-}
-
-// CreateRawSSRtxAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See CreateRawSSRtx for the blocking version and more details.
-func (c *Client) CreateRawSSRtxAsync(inputs []pfcjson.TransactionInput, fee pfcutil.Amount) FutureCreateRawSSRtxResult {
-	feeF64 := fee.ToCoin()
-	cmd := pfcjson.NewCreateRawSSRtxCmd(inputs, &feeF64)
-	return c.sendCmd(cmd)
-}
-
-// CreateRawSSRtx returns a new SSR transactionm (revoking an sstx).
-func (c *Client) CreateRawSSRtx(inputs []pfcjson.TransactionInput, fee pfcutil.Amount) (*wire.MsgTx, error) {
-	return c.CreateRawSSRtxAsync(inputs, fee).Receive()
+	return c.CreateRawTransactionAsync(inputs, amounts, lockTime).Receive()
 }
 
 // FutureSendRawTransactionResult is a future promise to deliver the result
@@ -691,42 +505,6 @@ func (c *Client) SignRawTransaction4(tx *wire.MsgTx,
 		hashType).Receive()
 }
 
-// SignRawSSGenTxAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See SignRawSSGenTx for the blocking version and more details.
-func (c *Client) SignRawSSGenTxAsync(tx *wire.MsgTx) FutureSignRawTransactionResult {
-
-	txHex := ""
-	if tx != nil {
-		// Serialize the transaction and convert to hex string.
-		buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
-		if err := tx.Serialize(buf); err != nil {
-			return newFutureError(err)
-		}
-		txHex = hex.EncodeToString(buf.Bytes())
-	}
-
-	cmd := pfcjson.NewSignRawTransactionCmd(txHex, &[]pfcjson.RawTxInput{},
-		nil, pfcjson.String("ssgen"))
-	return c.sendCmd(cmd)
-}
-
-// SignRawSSGenTx signs inputs for the passed transaction using the
-// the specified signature hash type given the list of information about extra
-// input transactions and a potential list of private keys needed to perform
-// the signing process.  The private keys, if specified, must be in wallet
-// import format (WIF).
-//
-// The only input transactions that need to be specified are ones the RPC server
-// does not already know.  This means the list of transaction inputs can be nil
-// if the RPC server already knows them all.
-func (c *Client) SignRawSSGenTx(tx *wire.MsgTx) (*wire.MsgTx, bool, error) {
-
-	return c.SignRawSSGenTxAsync(tx).Receive()
-}
-
 // FutureSearchRawTransactionsResult is a future promise to deliver the result
 // of the SearchRawTransactionsAsync RPC invocation (or an applicable error).
 type FutureSearchRawTransactionsResult chan *response
@@ -772,15 +550,11 @@ func (r FutureSearchRawTransactionsResult) Receive() ([]*wire.MsgTx, error) {
 // function on the returned instance.
 //
 // See SearchRawTransactions for the blocking version and more details.
-func (c *Client) SearchRawTransactionsAsync(address pfcutil.Address, skip,
-	count int, reverse bool,
-	filterAddrs []string) FutureSearchRawTransactionsResult {
-
+func (c *Client) SearchRawTransactionsAsync(address pfcutil.Address, skip, count int, reverse bool, filterAddrs []string) FutureSearchRawTransactionsResult {
 	addr := address.EncodeAddress()
 	verbose := pfcjson.Int(0)
-	prevOut := pfcjson.Int(0)
 	cmd := pfcjson.NewSearchRawTransactionsCmd(addr, verbose, &skip, &count,
-		prevOut, &reverse, &filterAddrs)
+		nil, &reverse, &filterAddrs)
 	return c.sendCmd(cmd)
 }
 
@@ -791,11 +565,8 @@ func (c *Client) SearchRawTransactionsAsync(address pfcutil.Address, skip,
 //
 // See SearchRawTransactionsVerbose to retrieve a list of data structures with
 // information about the transactions instead of the transactions themselves.
-func (c *Client) SearchRawTransactions(address pfcutil.Address, skip, count int,
-	reverse bool, filterAddrs []string) ([]*wire.MsgTx, error) {
-
-	return c.SearchRawTransactionsAsync(address, skip, count, reverse,
-		filterAddrs).Receive()
+func (c *Client) SearchRawTransactions(address pfcutil.Address, skip, count int, reverse bool, filterAddrs []string) ([]*wire.MsgTx, error) {
+	return c.SearchRawTransactionsAsync(address, skip, count, reverse, filterAddrs).Receive()
 }
 
 // FutureSearchRawTransactionsVerboseResult is a future promise to deliver the
@@ -827,12 +598,11 @@ func (r FutureSearchRawTransactionsVerboseResult) Receive() ([]*pfcjson.SearchRa
 //
 // See SearchRawTransactionsVerbose for the blocking version and more details.
 func (c *Client) SearchRawTransactionsVerboseAsync(address pfcutil.Address, skip,
-	count int, includePrevOut bool, reverse bool,
-	filterAddrs *[]string) FutureSearchRawTransactionsVerboseResult {
+	count int, includePrevOut, reverse bool, filterAddrs *[]string) FutureSearchRawTransactionsVerboseResult {
 
 	addr := address.EncodeAddress()
 	verbose := pfcjson.Int(1)
-	prevOut := pfcjson.Int(0)
+	var prevOut *int
 	if includePrevOut {
 		prevOut = pfcjson.Int(1)
 	}
@@ -849,9 +619,46 @@ func (c *Client) SearchRawTransactionsVerboseAsync(address pfcutil.Address, skip
 //
 // See SearchRawTransactions to retrieve a list of raw transactions instead.
 func (c *Client) SearchRawTransactionsVerbose(address pfcutil.Address, skip,
-	count int, includePrevOut bool, reverse bool,
-	filterAddrs []string) ([]*pfcjson.SearchRawTransactionsResult, error) {
+	count int, includePrevOut, reverse bool, filterAddrs []string) ([]*pfcjson.SearchRawTransactionsResult, error) {
 
 	return c.SearchRawTransactionsVerboseAsync(address, skip, count,
 		includePrevOut, reverse, &filterAddrs).Receive()
+}
+
+// FutureDecodeScriptResult is a future promise to deliver the result
+// of a DecodeScriptAsync RPC invocation (or an applicable error).
+type FutureDecodeScriptResult chan *response
+
+// Receive waits for the response promised by the future and returns information
+// about a script given its serialized bytes.
+func (r FutureDecodeScriptResult) Receive() (*pfcjson.DecodeScriptResult, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal result as a decodescript result object.
+	var decodeScriptResult pfcjson.DecodeScriptResult
+	err = json.Unmarshal(res, &decodeScriptResult)
+	if err != nil {
+		return nil, err
+	}
+
+	return &decodeScriptResult, nil
+}
+
+// DecodeScriptAsync returns an instance of a type that can be used to
+// get the result of the RPC at some future time by invoking the Receive
+// function on the returned instance.
+//
+// See DecodeScript for the blocking version and more details.
+func (c *Client) DecodeScriptAsync(serializedScript []byte) FutureDecodeScriptResult {
+	scriptHex := hex.EncodeToString(serializedScript)
+	cmd := pfcjson.NewDecodeScriptCmd(scriptHex)
+	return c.sendCmd(cmd)
+}
+
+// DecodeScript returns information about a script given its serialized bytes.
+func (c *Client) DecodeScript(serializedScript []byte) (*pfcjson.DecodeScriptResult, error) {
+	return c.DecodeScriptAsync(serializedScript).Receive()
 }

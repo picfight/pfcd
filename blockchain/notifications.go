@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,9 +6,6 @@ package blockchain
 
 import (
 	"fmt"
-
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
 )
 
 // NotificationType represents the type of a notification message.
@@ -21,31 +17,10 @@ type NotificationCallback func(*Notification)
 
 // Constants for the type of a notification message.
 const (
-	// NTNewTipBlockChecked indicates the associated block intends to extend
-	// the current main chain and has passed all of the sanity and
-	// contextual checks such as having valid proof of work, valid merkle
-	// and stake roots, and only containing allowed votes and revocations.
-	//
-	// It should be noted that the block might still ultimately fail to
-	// become the new main chain tip if it contains invalid scripts, double
-	// spends, etc.  However, this is quite rare in practice because a lot
-	// of work was expended to create a block which satisifies the proof of
-	// work requirement.
-	//
-	// Finally, this notification is only sent if the the chain is believed
-	// to be current and the chain lock is NOT released, so consumers must
-	// take care to avoid calling blockchain functions to avoid potential
-	// deadlock.
-	//
-	// Typically, a caller would want to use this notification to relay the
-	// block to the rest of the network without needing to wait for the more
-	// time consuming full connection to take place.
-	NTNewTipBlockChecked NotificationType = iota
-
 	// NTBlockAccepted indicates the associated block was accepted into
 	// the block chain.  Note that this does not necessarily mean it was
 	// added to the main chain.  For that, use NTBlockConnected.
-	NTBlockAccepted
+	NTBlockAccepted NotificationType = iota
 
 	// NTBlockConnected indicates the associated block was connected to the
 	// main chain.
@@ -54,38 +29,14 @@ const (
 	// NTBlockDisconnected indicates the associated block was disconnected
 	// from the main chain.
 	NTBlockDisconnected
-
-	// NTChainReorgStarted indicates that a chain reorganization has commenced.
-	NTChainReorgStarted
-
-	// NTChainReorgDone indicates that a chain reorganization has concluded.
-	NTChainReorgDone
-
-	// NTReorganization indicates that a blockchain reorganization has taken
-	// place.
-	NTReorganization
-
-	// NTSpentAndMissedTickets indicates spent or missed tickets from a newly
-	// accepted block.
-	NTSpentAndMissedTickets
-
-	// NTSpentAndMissedTickets indicates newly maturing tickets from a newly
-	// accepted block.
-	NTNewTickets
 )
 
 // notificationTypeStrings is a map of notification types back to their constant
 // names for pretty printing.
 var notificationTypeStrings = map[NotificationType]string{
-	NTNewTipBlockChecked:    "NTNewTipBlockChecked",
-	NTBlockAccepted:         "NTBlockAccepted",
-	NTBlockConnected:        "NTBlockConnected",
-	NTBlockDisconnected:     "NTBlockDisconnected",
-	NTChainReorgStarted:     "NTChainReorgStarted",
-	NTChainReorgDone:        "NTChainReorgDone",
-	NTReorganization:        "NTReorganization",
-	NTSpentAndMissedTickets: "NTSpentAndMissedTickets",
-	NTNewTickets:            "NTNewTickets",
+	NTBlockAccepted:     "NTBlockAccepted",
+	NTBlockConnected:    "NTBlockConnected",
+	NTBlockDisconnected: "NTBlockDisconnected",
 }
 
 // String returns the NotificationType in human-readable form.
@@ -96,75 +47,35 @@ func (n NotificationType) String() string {
 	return fmt.Sprintf("Unknown Notification Type (%d)", int(n))
 }
 
-// BlockAcceptedNtfnsData is the structure for data indicating information
-// about an accepted block.  Note that this does not necessarily mean the block
-// that was accepted extended the best chain as it might have created or
-// extended a side chain.
-type BlockAcceptedNtfnsData struct {
-	// BestHeight is the height of the current best chain.  Since the accepted
-	// block might be on a side chain, this is not necessarily the same as the
-	// height of the accepted block.
-	BestHeight int64
-
-	// ForkLen is the length of the side chain the block extended or zero in the
-	// case the block extended the main chain.
-	//
-	// This can be used in conjunction with the height of the accepted block to
-	// determine the height at which the side chain the block created or
-	// extended forked from the best chain.
-	ForkLen int64
-
-	// Block is the block that was accepted into the chain.
-	Block *pfcutil.Block
-}
-
-// ReorganizationNtfnsData is the structure for data indicating information
-// about a reorganization.
-type ReorganizationNtfnsData struct {
-	OldHash   chainhash.Hash
-	OldHeight int64
-	NewHash   chainhash.Hash
-	NewHeight int64
-}
-
-// TicketNotificationsData is the structure for new/spent/missed ticket
-// notifications at blockchain HEAD that are outgoing from chain.
-type TicketNotificationsData struct {
-	Hash            chainhash.Hash
-	Height          int64
-	StakeDifficulty int64
-	TicketsSpent    []chainhash.Hash
-	TicketsMissed   []chainhash.Hash
-	TicketsNew      []chainhash.Hash
-}
-
 // Notification defines notification that is sent to the caller via the callback
 // function provided during the call to New and consists of a notification type
 // as well as associated data that depends on the type as follows:
-// 	- NTNewTipBlockChecked:    *pfcutil.Block
-// 	- NTBlockAccepted:         *BlockAcceptedNtfnsData
-// 	- NTBlockConnected:        []*pfcutil.Block of len 2
-// 	- NTBlockDisconnected:     []*pfcutil.Block of len 2
-// 	- NTChainReorgStarted:     nil
-// 	- NTChainReorgDone:        nil
-//  - NTReorganization:        *ReorganizationNtfnsData
-//  - NTSpentAndMissedTickets: *TicketNotificationsData
-//  - NTNewTickets:            *TicketNotificationsData
+// 	- NTBlockAccepted:     *pfcutil.Block
+// 	- NTBlockConnected:    *pfcutil.Block
+// 	- NTBlockDisconnected: *pfcutil.Block
 type Notification struct {
 	Type NotificationType
 	Data interface{}
+}
+
+// Subscribe to block chain notifications. Registers a callback to be executed
+// when various events take place. See the documentation on Notification and
+// NotificationType for details on the types and contents of notifications.
+func (b *BlockChain) Subscribe(callback NotificationCallback) {
+	b.notificationsLock.Lock()
+	b.notifications = append(b.notifications, callback)
+	b.notificationsLock.Unlock()
 }
 
 // sendNotification sends a notification with the passed type and data if the
 // caller requested notifications by providing a callback function in the call
 // to New.
 func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
-	// Ignore it if the caller didn't request notifications.
-	if b.notifications == nil {
-		return
-	}
-
 	// Generate and send the notification.
 	n := Notification{Type: typ, Data: data}
-	b.notifications(&n)
+	b.notificationsLock.RLock()
+	for _, callback := range b.notifications {
+		callback(&n)
+	}
+	b.notificationsLock.RUnlock()
 }

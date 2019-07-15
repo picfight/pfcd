@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -350,7 +349,7 @@ func TestImmutableDuplicatePut(t *testing.T) {
 
 		// Ensure the key still exists and is the new value.
 		if gotVal := testTreap.Has(key); !gotVal {
-			t.Fatalf("Has: unexpected result - got %v, want false",
+			t.Fatalf("Has: unexpected result - got %v, want true",
 				gotVal)
 		}
 		if gotVal := testTreap.Get(key); !bytes.Equal(gotVal, expectedVal) {
@@ -381,7 +380,7 @@ func TestImmutableNilValue(t *testing.T) {
 
 	// Ensure the key exists and is an empty byte slice.
 	if gotVal := testTreap.Has(key); !gotVal {
-		t.Fatalf("Has: unexpected result - got %v, want false", gotVal)
+		t.Fatalf("Has: unexpected result - got %v, want true", gotVal)
 	}
 	if gotVal := testTreap.Get(key); gotVal == nil {
 		t.Fatalf("Get: unexpected result - got nil, want empty slice")

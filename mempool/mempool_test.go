@@ -1,80 +1,43 @@
 // Copyright (c) 2016 The btcsuite developers
-// Copyright (c) 2017-2019 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package mempool
 
 import (
-	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"reflect"
-	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/chaingen"
-	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/mining"
 	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
-)
-
-const (
-	// singleInputTicketSize is the typical size of a normal P2PKH ticket
-	// in bytes when the ticket has one input, rounded up.
-	singleInputTicketSize int64 = 300
+	"github.com/picfight/pfcutil"
 )
 
 // fakeChain is used by the pool harness to provide generated test utxos and
 // a current faked chain height to the pool callbacks.  This, in turn, allows
-// transactions to be appear as though they are spending completely valid utxos.
+// transactions to appear as though they are spending completely valid utxos.
 type fakeChain struct {
 	sync.RWMutex
-	nextStakeDiff  int64
 	utxos          *blockchain.UtxoViewpoint
-	utxoTimes      map[wire.OutPoint]int64
-	blocks         map[chainhash.Hash]*pfcutil.Block
-	currentHash    chainhash.Hash
-	currentHeight  int64
-	medianTime     time.Time
-	scriptFlags    txscript.ScriptFlags
-	acceptSeqLocks bool
+	currentHeight  int32
+	medianTimePast time.Time
 }
 
-// NextStakeDifficulty returns the next stake difficulty associated with the
-// fake chain instance.
-func (s *fakeChain) NextStakeDifficulty() (int64, error) {
-	s.RLock()
-	nextStakeDiff := s.nextStakeDiff
-	s.RUnlock()
-	return nextStakeDiff, nil
-}
-
-// SetNextStakeDifficulty sets the next stake difficulty associated with the
-// fake chain instance.
-func (s *fakeChain) SetNextStakeDifficulty(nextStakeDiff int64) {
-	s.Lock()
-	s.nextStakeDiff = nextStakeDiff
-	s.Unlock()
-}
-
-// FetchUtxoView loads utxo details about the input transactions referenced by
-// the passed transaction from the point of view of the fake chain.
-// It also attempts to fetch the utxo details for the transaction itself so the
-// returned view can be examined for duplicate unspent transaction outputs.
+// FetchUtxoView loads utxo details about the inputs referenced by the passed
+// transaction from the point of view of the fake chain.  It also attempts to
+// fetch the utxos for the outputs of the transaction itself so the returned
+// view can be examined for duplicate transactions.
 //
 // This function is safe for concurrent access however the returned view is NOT.
-func (s *fakeChain) FetchUtxoView(tx *pfcutil.Tx, treeValid bool) (*blockchain.UtxoViewpoint, error) {
+func (s *fakeChain) FetchUtxoView(tx *pfcutil.Tx) (*blockchain.UtxoViewpoint, error) {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -83,59 +46,25 @@ func (s *fakeChain) FetchUtxoView(tx *pfcutil.Tx, treeValid bool) (*blockchain.U
 
 	// Add an entry for the tx itself to the new view.
 	viewpoint := blockchain.NewUtxoViewpoint()
-	entry := s.utxos.LookupEntry(tx.Hash())
-	viewpoint.Entries()[*tx.Hash()] = entry.Clone()
+	prevOut := wire.OutPoint{Hash: *tx.Hash()}
+	for txOutIdx := range tx.MsgTx().TxOut {
+		prevOut.Index = uint32(txOutIdx)
+		entry := s.utxos.LookupEntry(prevOut)
+		viewpoint.Entries()[prevOut] = entry.Clone()
+	}
 
 	// Add entries for all of the inputs to the tx to the new view.
 	for _, txIn := range tx.MsgTx().TxIn {
-		originHash := &txIn.PreviousOutPoint.Hash
-		entry := s.utxos.LookupEntry(originHash)
-		viewpoint.Entries()[*originHash] = entry.Clone()
+		entry := s.utxos.LookupEntry(txIn.PreviousOutPoint)
+		viewpoint.Entries()[txIn.PreviousOutPoint] = entry.Clone()
 	}
 
 	return viewpoint, nil
 }
 
-// BlockByHash returns the block with the given hash from the fake chain
-// instance.  Blocks can be added to the instance with the AddBlock function.
-func (s *fakeChain) BlockByHash(hash *chainhash.Hash) (*pfcutil.Block, error) {
-	s.RLock()
-	block, ok := s.blocks[*hash]
-	s.RUnlock()
-	if !ok {
-		return nil, fmt.Errorf("unable to find block %v in fake chain",
-			hash)
-	}
-	return block, nil
-}
-
-// AddBlock adds a block that will be available to the BlockByHash function to
-// the fake chain instance.
-func (s *fakeChain) AddBlock(block *pfcutil.Block) {
-	s.Lock()
-	s.blocks[*block.Hash()] = block
-	s.Unlock()
-}
-
-// BestHash returns the current best hash associated with the fake chain
-// instance.
-func (s *fakeChain) BestHash() *chainhash.Hash {
-	s.RLock()
-	hash := &s.currentHash
-	s.RUnlock()
-	return hash
-}
-
-// SetHash sets the current best hash associated with the fake chain instance.
-func (s *fakeChain) SetBestHash(hash *chainhash.Hash) {
-	s.Lock()
-	s.currentHash = *hash
-	s.Unlock()
-}
-
 // BestHeight returns the current height associated with the fake chain
 // instance.
-func (s *fakeChain) BestHeight() int64 {
+func (s *fakeChain) BestHeight() int32 {
 	s.RLock()
 	height := s.currentHeight
 	s.RUnlock()
@@ -143,161 +72,38 @@ func (s *fakeChain) BestHeight() int64 {
 }
 
 // SetHeight sets the current height associated with the fake chain instance.
-func (s *fakeChain) SetHeight(height int64) {
+func (s *fakeChain) SetHeight(height int32) {
 	s.Lock()
 	s.currentHeight = height
 	s.Unlock()
 }
 
-// PastMedianTime returns the current median time associated with the fake chain
-// instance.
-func (s *fakeChain) PastMedianTime() time.Time {
+// MedianTimePast returns the current median time past associated with the fake
+// chain instance.
+func (s *fakeChain) MedianTimePast() time.Time {
 	s.RLock()
-	medianTime := s.medianTime
+	mtp := s.medianTimePast
 	s.RUnlock()
-	return medianTime
+	return mtp
 }
 
-// SetPastMedianTime sets the current median time associated with the fake chain
-// instance.
-func (s *fakeChain) SetPastMedianTime(medianTime time.Time) {
+// SetMedianTimePast sets the current median time past associated with the fake
+// chain instance.
+func (s *fakeChain) SetMedianTimePast(mtp time.Time) {
 	s.Lock()
-	s.medianTime = medianTime
+	s.medianTimePast = mtp
 	s.Unlock()
 }
 
-// CalcSequenceLock returns the current sequence lock for the passed transaction
-// associated with the fake chain instance.
-func (s *fakeChain) CalcSequenceLock(tx *pfcutil.Tx, view *blockchain.UtxoViewpoint) (*blockchain.SequenceLock, error) {
-	// A value of -1 for each lock type allows a transaction to be included in a
-	// block at any given height or time.
-	sequenceLock := &blockchain.SequenceLock{MinHeight: -1, MinTime: -1}
+// CalcSequenceLock returns the current sequence lock for the passed
+// transaction associated with the fake chain instance.
+func (s *fakeChain) CalcSequenceLock(tx *pfcutil.Tx,
+	view *blockchain.UtxoViewpoint) (*blockchain.SequenceLock, error) {
 
-	// Sequence locks do not apply if the tx version is less than 2, or the tx
-	// is a coinbase or stakebase, so return now with a sequence lock that
-	// indicates the tx can possibly be included in a block at any given height
-	// or time.
-	msgTx := tx.MsgTx()
-	enforce := msgTx.Version >= 2
-	if !enforce || blockchain.IsCoinBaseTx(msgTx) || stake.IsSSGen(msgTx) {
-		return sequenceLock, nil
-	}
-
-	for txInIndex, txIn := range msgTx.TxIn {
-		// Nothing to calculate for this input when relative time locks are
-		// disabled for it.
-		sequenceNum := txIn.Sequence
-		if sequenceNum&wire.SequenceLockTimeDisabled != 0 {
-			continue
-		}
-
-		utxo := view.LookupEntry(&txIn.PreviousOutPoint.Hash)
-		if utxo == nil {
-			str := fmt.Sprintf("output %v referenced from transaction %s:%d "+
-				"either does not exist or has already been spent",
-				txIn.PreviousOutPoint, tx.Hash(), txInIndex)
-			return nil, blockchain.RuleError{
-				ErrorCode:   blockchain.ErrMissingTxOut,
-				Description: str,
-			}
-		}
-
-		// Calculate the sequence locks from the point of view of the next block
-		// for inputs that are in the mempool.
-		inputHeight := utxo.BlockHeight()
-		if inputHeight == mining.UnminedHeight {
-			inputHeight = s.BestHeight() + 1
-		}
-
-		// Mask off the value portion of the sequence number to obtain
-		// the time lock delta required before this input can be spent.
-		// The relative lock can be time based or block based.
-		relativeLock := int64(sequenceNum & wire.SequenceLockTimeMask)
-
-		if sequenceNum&wire.SequenceLockTimeIsSeconds != 0 {
-			// Ordinarily time based relative locks determine the median time
-			// for the block before the one the input was mined into, however,
-			// in order to facilitate testing the fake chain instance instead
-			// allows callers to directly set median times associated with fake
-			// utxos and looks up those values here.
-			medianTime := s.FakeUxtoMedianTime(&txIn.PreviousOutPoint)
-
-			// Calculate the minimum required timestamp based on the sum of the
-			// past median time and required relative number of seconds.  Since
-			// time based relative locks have a granularity associated with
-			// them, shift left accordingly in order to convert to the proper
-			// number of relative seconds.  Also, subtract one from the relative
-			// lock to maintain the original lock time semantics.
-			relativeSecs := relativeLock << wire.SequenceLockTimeGranularity
-			minTime := medianTime + relativeSecs - 1
-			if minTime > sequenceLock.MinTime {
-				sequenceLock.MinTime = minTime
-			}
-		} else {
-			// This input requires a relative lock expressed in blocks before it
-			// can be spent.  Therefore, calculate the minimum required height
-			// based on the sum of the input height and required relative number
-			// of blocks.  Also, subtract one from the relative lock in order to
-			// maintain the original lock time semantics.
-			minHeight := inputHeight + relativeLock - 1
-			if minHeight > sequenceLock.MinHeight {
-				sequenceLock.MinHeight = minHeight
-			}
-		}
-	}
-
-	return sequenceLock, nil
-}
-
-// StandardVerifyFlags returns the standard verification script flags associated
-// with the fake chain instance.
-func (s *fakeChain) StandardVerifyFlags() (txscript.ScriptFlags, error) {
-	return s.scriptFlags, nil
-}
-
-// SetStandardVerifyFlags sets the standard verification script flags associated
-// with the fake chain instance.
-func (s *fakeChain) SetStandardVerifyFlags(flags txscript.ScriptFlags) {
-	s.scriptFlags = flags
-}
-
-// FakeUxtoMedianTime returns the median time associated with the requested utxo
-// from the cake chain instance.
-func (s *fakeChain) FakeUxtoMedianTime(prevOut *wire.OutPoint) int64 {
-	s.RLock()
-	medianTime := s.utxoTimes[*prevOut]
-	s.RUnlock()
-	return medianTime
-}
-
-// AddFakeUtxoMedianTime adds a median time to the fake chain instance that will
-// be used when querying the median time for the provided transaction and output
-// when calculating by-time sequence locks.
-func (s *fakeChain) AddFakeUtxoMedianTime(tx *pfcutil.Tx, txOutIdx uint32, medianTime time.Time) {
-	s.Lock()
-	s.utxoTimes[wire.OutPoint{
-		Hash:  *tx.Hash(),
-		Index: txOutIdx,
-		Tree:  wire.TxTreeRegular,
-	}] = medianTime.Unix()
-	s.Unlock()
-}
-
-// AcceptSequenceLocks returns whether or not the pool harness the fake chain
-// is associated with should accept transactions with sequence locks enabled.
-func (s *fakeChain) AcceptSequenceLocks() (bool, error) {
-	s.RLock()
-	acceptSeqLocks := s.acceptSeqLocks
-	s.RUnlock()
-	return acceptSeqLocks, nil
-}
-
-// SetAcceptSequenceLocks sets whether or not the pool harness the fake chain is
-// associated with should accept transactions with sequence locks enabled.
-func (s *fakeChain) SetAcceptSequenceLocks(accept bool) {
-	s.Lock()
-	s.acceptSeqLocks = accept
-	s.Unlock()
+	return &blockchain.SequenceLock{
+		Seconds:     -1,
+		BlockHeight: -1,
+	}, nil
 }
 
 // spendableOutput is a convenience type that houses a particular utxo and the
@@ -310,9 +116,9 @@ type spendableOutput struct {
 // txOutToSpendableOut returns a spendable output given a transaction and index
 // of the output to use.  This is useful as a convenience when creating test
 // transactions.
-func txOutToSpendableOut(tx *pfcutil.Tx, outputNum uint32, tree int8) spendableOutput {
+func txOutToSpendableOut(tx *pfcutil.Tx, outputNum uint32) spendableOutput {
 	return spendableOutput{
-		outPoint: wire.OutPoint{Hash: *tx.Hash(), Index: outputNum, Tree: tree},
+		outPoint: wire.OutPoint{Hash: *tx.Hash(), Index: outputNum},
 		amount:   pfcutil.Amount(tx.MsgTx().TxOut[outputNum].Value),
 	}
 }
@@ -326,7 +132,7 @@ type poolHarness struct {
 	//
 	// payAddr is the p2sh address for the signing key and is used for the
 	// payment address throughout the tests.
-	signKey     *secp256k1.PrivateKey
+	signKey     *pfcec.PrivateKey
 	payAddr     pfcutil.Address
 	payScript   []byte
 	chainParams *chaincfg.Params
@@ -335,48 +141,30 @@ type poolHarness struct {
 	txPool *TxPool
 }
 
-// GetScript is the pool harness' implementation of the ScriptDB interface.
-// It returns the pool harness' payment redeen script for any address
-// passed in.
-func (p *poolHarness) GetScript(addr pfcutil.Address) ([]byte, error) {
-	return p.payScript, nil
-}
-
-// GetKey is the pool harness' implementation of the KeyDB interface.
-// It returns the pool harness' signature key for any address passed in.
-func (p *poolHarness) GetKey(addr pfcutil.Address) (chainec.PrivateKey, bool, error) {
-	return p.signKey, true, nil
-}
-
-// AddFakeUTXO creates a fake mined uxto for the provided transaction.
-func (p *poolHarness) AddFakeUTXO(tx *pfcutil.Tx, blockHeight int64) {
-	p.chain.utxos.AddTxOuts(tx, blockHeight, wire.NullBlockIndex)
-}
-
 // CreateCoinbaseTx returns a coinbase transaction with the requested number of
 // outputs paying an appropriate subsidy based on the passed block height to the
 // address associated with the harness.  It automatically uses a standard
 // signature script that starts with the block height that is required by
 // version 2 blocks.
-func (p *poolHarness) CreateCoinbaseTx(blockHeight int64, numOutputs uint32) (*pfcutil.Tx, error) {
+func (p *poolHarness) CreateCoinbaseTx(blockHeight int32, numOutputs uint32) (*pfcutil.Tx, error) {
 	// Create standard coinbase script.
 	extraNonce := int64(0)
 	coinbaseScript, err := txscript.NewScriptBuilder().
-		AddInt64(blockHeight).AddInt64(extraNonce).Script()
+		AddInt64(int64(blockHeight)).AddInt64(extraNonce).Script()
 	if err != nil {
 		return nil, err
 	}
 
-	tx := wire.NewMsgTx()
+	tx := wire.NewMsgTx(wire.TxVersion)
 	tx.AddTxIn(&wire.TxIn{
 		// Coinbase transactions have no inputs, so previous outpoint is
 		// zero hash and max index.
 		PreviousOutPoint: *wire.NewOutPoint(&chainhash.Hash{},
-			wire.MaxPrevOutIndex, wire.TxTreeRegular),
+			wire.MaxPrevOutIndex),
 		SignatureScript: coinbaseScript,
 		Sequence:        wire.MaxTxInSequenceNum,
 	})
-	totalInput := p.txPool.cfg.SubsidyCache.CalcBlockSubsidy(blockHeight)
+	totalInput := blockchain.CalcBlockSubsidy(blockHeight, p.chainParams)
 	amountPerOutput := totalInput / int64(numOutputs)
 	remainder := totalInput - amountPerOutput*int64(numOutputs)
 	for i := uint32(0); i < numOutputs; i++ {
@@ -399,29 +187,30 @@ func (p *poolHarness) CreateCoinbaseTx(blockHeight int64, numOutputs uint32) (*p
 // inputs and generates the provided number of outputs by evenly splitting the
 // total input amount.  All outputs will be to the payment script associated
 // with the harness and all inputs are assumed to do the same.
-//
-// Additionally, if one or more munge functions are specified, they will be
-// invoked with the transaction prior to signing it.  This provides callers with
-// the opportunity to modify the transaction which is especially useful for
-// testing.
-func (p *poolHarness) CreateSignedTx(inputs []spendableOutput, numOutputs uint32, mungers ...func(*wire.MsgTx)) (*pfcutil.Tx, error) {
+func (p *poolHarness) CreateSignedTx(inputs []spendableOutput,
+	numOutputs uint32, fee pfcutil.Amount,
+	signalsReplacement bool) (*pfcutil.Tx, error) {
+
 	// Calculate the total input amount and split it amongst the requested
 	// number of outputs.
 	var totalInput pfcutil.Amount
 	for _, input := range inputs {
 		totalInput += input.amount
 	}
+	totalInput -= fee
 	amountPerOutput := int64(totalInput) / int64(numOutputs)
 	remainder := int64(totalInput) - amountPerOutput*int64(numOutputs)
 
-	tx := wire.NewMsgTx()
-	tx.Expiry = wire.NoExpiryValue
+	tx := wire.NewMsgTx(wire.TxVersion)
+	sequence := wire.MaxTxInSequenceNum
+	if signalsReplacement {
+		sequence = MaxRBFSequence
+	}
 	for _, input := range inputs {
 		tx.AddTxIn(&wire.TxIn{
 			PreviousOutPoint: input.outPoint,
 			SignatureScript:  nil,
-			Sequence:         wire.MaxTxInSequenceNum,
-			ValueIn:          int64(input.amount),
+			Sequence:         sequence,
 		})
 	}
 	for i := uint32(0); i < numOutputs; i++ {
@@ -435,11 +224,6 @@ func (p *poolHarness) CreateSignedTx(inputs []spendableOutput, numOutputs uint32
 			PkScript: p.payScript,
 			Value:    amount,
 		})
-	}
-
-	// Perform any transaction munging just before signing.
-	for _, f := range mungers {
-		f(tx)
 	}
 
 	// Sign the new transaction.
@@ -467,12 +251,11 @@ func (p *poolHarness) CreateTxChain(firstOutput spendableOutput, numTxns uint32)
 		// Create the transaction using the previous transaction output
 		// and paying the full amount to the payment address associated
 		// with the harness.
-		tx := wire.NewMsgTx()
+		tx := wire.NewMsgTx(wire.TxVersion)
 		tx.AddTxIn(&wire.TxIn{
 			PreviousOutPoint: prevOutPoint,
 			SignatureScript:  nil,
 			Sequence:         wire.MaxTxInSequenceNum,
-			ValueIn:          int64(spendableAmount),
 		})
 		tx.AddTxOut(&wire.TxOut{
 			PkScript: p.payScript,
@@ -496,183 +279,6 @@ func (p *poolHarness) CreateTxChain(firstOutput spendableOutput, numTxns uint32)
 	return txChain, nil
 }
 
-// CreateTx creates a zero-fee regular transaction from the provided spendable
-// output.
-func (p *poolHarness) CreateTx(out spendableOutput) (*pfcutil.Tx, error) {
-	txns, err := p.CreateTxChain(out, 1)
-	if err != nil {
-		return nil, err
-	}
-	return txns[0], err
-}
-
-// CreateTicketPurchase creates a ticket purchase spending the first output of
-// the provided transaction.
-func (p *poolHarness) CreateTicketPurchase(sourceTx *pfcutil.Tx, cost int64) (*pfcutil.Tx, error) {
-	ticketfee := pfcutil.Amount(singleInputTicketSize)
-	ticketPrice := pfcutil.Amount(cost)
-
-	// Generate the p2sh, commitment and change scripts of the ticket.
-	pkScript, err := txscript.PayToSStx(p.payAddr)
-	if err != nil {
-		return nil, err
-	}
-	commitScript := chaingen.PurchaseCommitmentScript(p.payAddr,
-		ticketPrice+ticketfee, 0, ticketPrice)
-	change := pfcutil.Amount(sourceTx.MsgTx().TxOut[0].Value) -
-		ticketPrice - ticketfee
-	changeScript, err := txscript.PayToSStxChange(p.payAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Generate the ticket purchase.
-	tx := wire.NewMsgTx()
-	tx.AddTxIn(&wire.TxIn{
-		PreviousOutPoint: wire.OutPoint{
-			Hash:  *sourceTx.Hash(),
-			Index: 0,
-			Tree:  wire.TxTreeRegular,
-		},
-		Sequence:    wire.MaxTxInSequenceNum,
-		ValueIn:     sourceTx.MsgTx().TxOut[0].Value,
-		BlockHeight: uint32(p.chain.BestHeight()),
-	})
-
-	tx.AddTxOut(wire.NewTxOut(int64(ticketPrice), pkScript))
-	tx.AddTxOut(wire.NewTxOut(0, commitScript))
-	tx.AddTxOut(wire.NewTxOut(int64(change), changeScript))
-
-	// Sign the ticket purchase.
-	sigScript, err := txscript.SignatureScript(tx, 0,
-		sourceTx.MsgTx().TxOut[0].PkScript, txscript.SigHashAll, p.signKey, true)
-	if err != nil {
-		return nil, err
-	}
-	tx.TxIn[0].SignatureScript = sigScript
-
-	return pfcutil.NewTx(tx), nil
-}
-
-// newVoteScript generates a voting script from the passed VoteBits, for
-// use in a vote.
-func newVoteScript(voteBits stake.VoteBits) ([]byte, error) {
-	b := make([]byte, 2+len(voteBits.ExtendedBits))
-	binary.LittleEndian.PutUint16(b[0:2], voteBits.Bits)
-	copy(b[2:], voteBits.ExtendedBits[:])
-	return txscript.GenerateProvablyPruneableOut(b)
-}
-
-// CreateVote creates a vote transaction using the provided ticket.
-func (p *poolHarness) CreateVote(ticket *pfcutil.Tx) (*pfcutil.Tx, error) {
-	// Calculate the vote subsidy
-	subsidy := blockchain.CalcStakeVoteSubsidy(p.txPool.cfg.SubsidyCache,
-		p.chain.BestHeight(), p.chainParams)
-	// Parse the ticket purchase transaction and generate the vote reward.
-	ticketPayKinds, ticketHash160s, ticketValues, _, _, _ :=
-		stake.TxSStxStakeOutputInfo(ticket.MsgTx())
-	voteRewardValues := stake.CalculateRewards(ticketValues,
-		ticket.MsgTx().TxOut[0].Value, subsidy)
-
-	// Add the stakebase input.
-	vote := wire.NewMsgTx()
-	stakebaseOutPoint := wire.NewOutPoint(&chainhash.Hash{}, ^uint32(0),
-		wire.TxTreeRegular)
-	stakebaseInput := wire.NewTxIn(stakebaseOutPoint, subsidy, nil)
-	vote.AddTxIn(stakebaseInput)
-
-	// Add the ticket input.
-	spendOut := txOutToSpendableOut(ticket, 0, wire.TxTreeStake)
-	ticketInput := wire.NewTxIn(&spendOut.outPoint, int64(spendOut.amount), nil)
-	ticketInput.BlockHeight = uint32(p.chain.BestHeight())
-	ticketInput.BlockIndex = 5
-	vote.AddTxIn(ticketInput)
-
-	// Add the block reference output.
-	blockRefScript, _ := txscript.GenerateSSGenBlockRef(chainhash.Hash{},
-		uint32(p.chain.BestHeight()))
-	vote.AddTxOut(wire.NewTxOut(0, blockRefScript))
-
-	// Create the vote script.
-	voteBits := stake.VoteBits{Bits: uint16(0xff), ExtendedBits: []byte{}}
-	voteScript, err := newVoteScript(voteBits)
-	if err != nil {
-		return nil, err
-	}
-	vote.AddTxOut(wire.NewTxOut(0, voteScript))
-
-	// Create P2SH scripts for the ticket outputs.
-	for i, hash160 := range ticketHash160s {
-		scriptFn := txscript.PayToSSGenPKHDirect
-		if ticketPayKinds[i] { // P2SH
-			scriptFn = txscript.PayToSSGenSHDirect
-		}
-		// Error is checking for a nil hash160, just ignore it.
-		script, _ := scriptFn(hash160)
-		vote.AddTxOut(wire.NewTxOut(voteRewardValues[i], script))
-	}
-
-	// Sign the input.
-	inputToSign := 1
-	redeemTicketScript := ticket.MsgTx().TxOut[0].PkScript
-	signedScript, err := txscript.SignTxOutput(p.chainParams, vote, inputToSign,
-		redeemTicketScript, txscript.SigHashAll, p,
-		p, vote.TxIn[inputToSign].SignatureScript, pfcec.STEcdsaSecp256k1)
-	if err != nil {
-		return nil, err
-	}
-
-	vote.TxIn[0].SignatureScript = p.chainParams.StakeBaseSigScript
-	vote.TxIn[1].SignatureScript = signedScript
-
-	return pfcutil.NewTx(vote), nil
-}
-
-// CreateRevocation creates a revocation using the provided ticket.
-func (p *poolHarness) CreateRevocation(ticket *pfcutil.Tx) (*pfcutil.Tx, error) {
-	ticketPurchase := ticket.MsgTx()
-	ticketHash := ticketPurchase.TxHash()
-
-	// Parse the ticket purchase transaction and generate the revocation value.
-	ticketPayKinds, ticketHash160s, ticketValues, _, _, _ :=
-		stake.TxSStxStakeOutputInfo(ticketPurchase)
-	revocationValues := stake.CalculateRewards(ticketValues,
-		ticketPurchase.TxOut[0].Value, 0)
-
-	// Add the ticket input.
-	revocation := wire.NewMsgTx()
-	ticketOutPoint := wire.NewOutPoint(&ticketHash, 0, wire.TxTreeStake)
-	ticketInput := wire.NewTxIn(ticketOutPoint,
-		ticketPurchase.TxOut[ticketOutPoint.Index].Value, nil)
-	revocation.AddTxIn(ticketInput)
-
-	// All remaining outputs pay to the output destinations and amounts tagged
-	// by the ticket purchase.
-	for i, hash160 := range ticketHash160s {
-		scriptFn := txscript.PayToSSRtxPKHDirect
-		if ticketPayKinds[i] { // P2SH
-			scriptFn = txscript.PayToSSRtxSHDirect
-		}
-		// Error is checking for a nil hash160, just ignore it.
-		script, _ := scriptFn(hash160)
-		revocation.AddTxOut(wire.NewTxOut(revocationValues[i], script))
-	}
-
-	// Sign the input.
-	inputToSign := 0
-	redeemTicketScript := ticket.MsgTx().TxOut[0].PkScript
-	signedScript, err := txscript.SignTxOutput(p.chainParams, revocation, inputToSign,
-		redeemTicketScript, txscript.SigHashAll, p,
-		p, revocation.TxIn[inputToSign].SignatureScript, pfcec.STEcdsaSecp256k1)
-	if err != nil {
-		return nil, err
-	}
-
-	revocation.TxIn[0].SignatureScript = signedScript
-
-	return pfcutil.NewTx(revocation), nil
-}
-
 // newPoolHarness returns a new instance of a pool harness initialized with a
 // fake chain and a TxPool bound to it that is configured with a policy suitable
 // for testing.  Also, the fake chain is populated with the returned spendable
@@ -685,13 +291,12 @@ func newPoolHarness(chainParams *chaincfg.Params) (*poolHarness, []spendableOutp
 	if err != nil {
 		return nil, nil, err
 	}
-	signKey, signPub := secp256k1.PrivKeyFromBytes(keyBytes)
+	signKey, signPub := pfcec.PrivKeyFromBytes(pfcec.S256(), keyBytes)
 
 	// Generate associated pay-to-script-hash address and resulting payment
 	// script.
 	pubKeyBytes := signPub.SerializeCompressed()
-	payPubKeyAddr, err := pfcutil.NewAddressSecpPubKey(pubKeyBytes,
-		chainParams)
+	payPubKeyAddr, err := pfcutil.NewAddressPubKey(pubKeyBytes, chainParams)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -702,13 +307,7 @@ func newPoolHarness(chainParams *chaincfg.Params) (*poolHarness, []spendableOutp
 	}
 
 	// Create a new fake chain and harness bound to it.
-	subsidyCache := blockchain.NewSubsidyCache(0, chainParams)
-	chain := &fakeChain{
-		utxos:       blockchain.NewUtxoViewpoint(),
-		utxoTimes:   make(map[wire.OutPoint]int64),
-		blocks:      make(map[chainhash.Hash]*pfcutil.Block),
-		scriptFlags: BaseStandardVerifyFlags,
-	}
+	chain := &fakeChain{utxos: blockchain.NewUtxoViewpoint()}
 	harness := poolHarness{
 		signKey:     signKey,
 		payAddr:     payAddr,
@@ -718,28 +317,21 @@ func newPoolHarness(chainParams *chaincfg.Params) (*poolHarness, []spendableOutp
 		chain: chain,
 		txPool: New(&Config{
 			Policy: Policy{
-				MaxTxVersion:         2,
 				DisableRelayPriority: true,
 				FreeTxRelayLimit:     15.0,
 				MaxOrphanTxs:         5,
 				MaxOrphanTxSize:      1000,
-				MaxSigOpsPerTx:       blockchain.MaxSigOpsPerBlock / 5,
+				MaxSigOpCostPerTx:    blockchain.MaxBlockSigOpsCost / 4,
 				MinRelayTxFee:        1000, // 1 Satoshi per byte
-				StandardVerifyFlags:  chain.StandardVerifyFlags,
-				AcceptSequenceLocks:  chain.AcceptSequenceLocks,
+				MaxTxVersion:         1,
 			},
-			ChainParams:         chainParams,
-			NextStakeDifficulty: chain.NextStakeDifficulty,
-			FetchUtxoView:       chain.FetchUtxoView,
-			BlockByHash:         chain.BlockByHash,
-			BestHash:            chain.BestHash,
-			BestHeight:          chain.BestHeight,
-			PastMedianTime:      chain.PastMedianTime,
-			CalcSequenceLock:    chain.CalcSequenceLock,
-			SubsidyCache:        subsidyCache,
-			SigCache:            nil,
-			AddrIndex:           nil,
-			ExistsAddrIndex:     nil,
+			ChainParams:      chainParams,
+			FetchUtxoView:    chain.FetchUtxoView,
+			BestHeight:       chain.BestHeight,
+			MedianTimePast:   chain.MedianTimePast,
+			CalcSequenceLock: chain.CalcSequenceLock,
+			SigCache:         nil,
+			AddrIndex:        nil,
 		}),
 	}
 
@@ -755,12 +347,12 @@ func newPoolHarness(chainParams *chaincfg.Params) (*poolHarness, []spendableOutp
 	if err != nil {
 		return nil, nil, err
 	}
-	harness.chain.utxos.AddTxOuts(coinbase, curHeight+1, wire.NullBlockIndex)
+	harness.chain.utxos.AddTxOuts(coinbase, curHeight+1)
 	for i := uint32(0); i < numOutputs; i++ {
-		outputs = append(outputs, txOutToSpendableOut(coinbase, i, wire.TxTreeRegular))
+		outputs = append(outputs, txOutToSpendableOut(coinbase, i))
 	}
-	harness.chain.SetHeight(int64(chainParams.CoinbaseMaturity) + curHeight)
-	harness.chain.SetPastMedianTime(time.Now())
+	harness.chain.SetHeight(int32(chainParams.CoinbaseMaturity) + curHeight)
+	harness.chain.SetMedianTimePast(time.Now())
 
 	return &harness, outputs, nil
 }
@@ -772,33 +364,89 @@ type testContext struct {
 	harness *poolHarness
 }
 
+// addCoinbaseTx adds a spendable coinbase transaction to the test context's
+// mock chain.
+func (ctx *testContext) addCoinbaseTx(numOutputs uint32) *pfcutil.Tx {
+	ctx.t.Helper()
+
+	coinbaseHeight := ctx.harness.chain.BestHeight() + 1
+	coinbase, err := ctx.harness.CreateCoinbaseTx(coinbaseHeight, numOutputs)
+	if err != nil {
+		ctx.t.Fatalf("unable to create coinbase: %v", err)
+	}
+
+	ctx.harness.chain.utxos.AddTxOuts(coinbase, coinbaseHeight)
+	maturity := int32(ctx.harness.chainParams.CoinbaseMaturity)
+	ctx.harness.chain.SetHeight(coinbaseHeight + maturity)
+	ctx.harness.chain.SetMedianTimePast(time.Now())
+
+	return coinbase
+}
+
+// addSignedTx creates a transaction that spends the inputs with the given fee.
+// It can be added to the test context's mempool or mock chain based on the
+// confirmed boolean.
+func (ctx *testContext) addSignedTx(inputs []spendableOutput,
+	numOutputs uint32, fee pfcutil.Amount,
+	signalsReplacement, confirmed bool) *pfcutil.Tx {
+
+	ctx.t.Helper()
+
+	tx, err := ctx.harness.CreateSignedTx(
+		inputs, numOutputs, fee, signalsReplacement,
+	)
+	if err != nil {
+		ctx.t.Fatalf("unable to create transaction: %v", err)
+	}
+
+	if confirmed {
+		newHeight := ctx.harness.chain.BestHeight() + 1
+		ctx.harness.chain.utxos.AddTxOuts(tx, newHeight)
+		ctx.harness.chain.SetHeight(newHeight)
+		ctx.harness.chain.SetMedianTimePast(time.Now())
+	} else {
+		acceptedTxns, err := ctx.harness.txPool.ProcessTransaction(
+			tx, true, false, 0,
+		)
+		if err != nil {
+			ctx.t.Fatalf("unable to process transaction: %v", err)
+		}
+		if len(acceptedTxns) != 1 {
+			ctx.t.Fatalf("expected one accepted transaction, got %d",
+				len(acceptedTxns))
+		}
+		testPoolMembership(ctx, tx, false, true)
+	}
+
+	return tx
+}
+
 // testPoolMembership tests the transaction pool associated with the provided
 // test context to determine if the passed transaction matches the provided
 // orphan pool and transaction pool status.  It also further determines if it
 // should be reported as available by the HaveTransaction function based upon
 // the two flags and tests that condition as well.
 func testPoolMembership(tc *testContext, tx *pfcutil.Tx, inOrphanPool, inTxPool bool) {
+	tc.t.Helper()
+
 	txHash := tx.Hash()
 	gotOrphanPool := tc.harness.txPool.IsOrphanInPool(txHash)
 	if inOrphanPool != gotOrphanPool {
-		_, file, line, _ := runtime.Caller(1)
-		tc.t.Fatalf("%s:%d -- IsOrphanInPool: want %v, got %v", file,
-			line, inOrphanPool, gotOrphanPool)
+		tc.t.Fatalf("IsOrphanInPool: want %v, got %v", inOrphanPool,
+			gotOrphanPool)
 	}
 
 	gotTxPool := tc.harness.txPool.IsTransactionInPool(txHash)
 	if inTxPool != gotTxPool {
-		_, file, line, _ := runtime.Caller(1)
-		tc.t.Fatalf("%s:%d -- IsTransactionInPool: want %v, got %v",
-			file, line, inTxPool, gotTxPool)
+		tc.t.Fatalf("IsTransactionInPool: want %v, got %v", inTxPool,
+			gotTxPool)
 	}
 
 	gotHaveTx := tc.harness.txPool.HaveTransaction(txHash)
 	wantHaveTx := inOrphanPool || inTxPool
 	if wantHaveTx != gotHaveTx {
-		_, file, line, _ := runtime.Caller(1)
-		tc.t.Fatalf("%s:%d -- HaveTransaction: want %v, got %v", file,
-			line, wantHaveTx, gotHaveTx)
+		tc.t.Fatalf("HaveTransaction: want %v, got %v", wantHaveTx,
+			gotHaveTx)
 	}
 }
 
@@ -828,7 +476,7 @@ func TestSimpleOrphanChain(t *testing.T) {
 	// none are evicted).
 	for _, tx := range chainedTxns[1 : maxOrphans+1] {
 		acceptedTxns, err := harness.txPool.ProcessTransaction(tx, true,
-			false, true)
+			false, 0)
 		if err != nil {
 			t.Fatalf("ProcessTransaction: failed to accept valid "+
 				"orphan %v", err)
@@ -851,7 +499,7 @@ func TestSimpleOrphanChain(t *testing.T) {
 	// to ensure it has no bearing on whether or not already existing
 	// orphans in the pool are linked.
 	acceptedTxns, err := harness.txPool.ProcessTransaction(chainedTxns[0],
-		false, false, true)
+		false, false, 0)
 	if err != nil {
 		t.Fatalf("ProcessTransaction: failed to accept valid "+
 			"orphan %v", err)
@@ -861,204 +509,11 @@ func TestSimpleOrphanChain(t *testing.T) {
 			"length does not match expected -- got %d, want %d",
 			len(acceptedTxns), len(chainedTxns))
 	}
-	for _, tx := range acceptedTxns {
+	for _, txD := range acceptedTxns {
 		// Ensure the transaction is no longer in the orphan pool, is
 		// now in the transaction pool, and is reported as available.
-		testPoolMembership(tc, tx, false, true)
+		testPoolMembership(tc, txD.Tx, false, true)
 	}
-}
-
-// TestTicketPurchaseOrphan ensures that ticket purchases are orphaned when
-// referenced outputs spent are from missing transactions.
-func TestTicketPurchaseOrphan(t *testing.T) {
-	t.Parallel()
-
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
-	if err != nil {
-		t.Fatalf("unable to create test pool: %v", err)
-	}
-	tc := &testContext{t, harness}
-
-	// Create a regular transaction from the first spendable output
-	// provided by the harness.
-	tx, err := harness.CreateTx(spendableOuts[0])
-	if err != nil {
-		t.Fatalf("unable to create transaction: %v", err)
-	}
-
-	// Create a ticket purchase transaction spending the outputs of the
-	// prior regular transaction.
-	ticket, err := harness.CreateTicketPurchase(tx, 40000)
-	if err != nil {
-		t.Fatalf("unable to create ticket purchase transaction %v", err)
-	}
-
-	// Ensure the ticket purchase is accepted as an orphan.
-	acceptedTxns, err := harness.txPool.ProcessTransaction(ticket, true,
-		false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept valid orphan %v", err)
-	}
-	testPoolMembership(tc, ticket, true, false)
-
-	if len(acceptedTxns) > 0 {
-		t.Fatalf("ProcessTransaction: expected zero accepted transactions "+
-			"got %v", len(acceptedTxns))
-	}
-
-	// Add the regular transaction whose outputs are spent by the ticket purchase
-	// and ensure they all get accepted.  Notice the accept orphans flag is also
-	// false here to ensure it has no bearing on whether or not already existing
-	// orphans in the pool are linked.
-	_, err = harness.txPool.ProcessTransaction(tx, false, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept valid transaction %v",
-			err)
-	}
-	testPoolMembership(tc, tx, false, true)
-	testPoolMembership(tc, ticket, false, true)
-}
-
-// TestVoteOrphan ensures that votes are orphaned when referenced outputs
-// spent are from missing transactions.
-func TestVoteOrphan(t *testing.T) {
-	t.Parallel()
-
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
-	if err != nil {
-		t.Fatalf("unable to create test pool: %v", err)
-	}
-	tc := &testContext{t, harness}
-
-	// Create a regular transaction from the first spendable output
-	// provided by the harness.
-	tx, err := harness.CreateTx(spendableOuts[0])
-	if err != nil {
-		t.Fatalf("unable to create transaction: %v", err)
-	}
-
-	// Create a ticket purchase transaction spending the outputs of the
-	// prior regular transaction.
-	ticket, err := harness.CreateTicketPurchase(tx, 40000)
-	if err != nil {
-		t.Fatalf("unable to create ticket purchase transaction: %v", err)
-	}
-
-	harness.chain.SetHeight(harness.chainParams.StakeValidationHeight)
-
-	vote, err := harness.CreateVote(ticket)
-	if err != nil {
-		t.Fatalf("unable to create vote: %v", err)
-	}
-
-	// Ensure the vote is rejected because it is an orphan.
-	_, err = harness.txPool.ProcessTransaction(vote, false, false, true)
-	if err == nil {
-		t.Fatalf("ProcessTransaction: accepted transaction references " +
-			"outputs of unknown or fully-spent transaction")
-	}
-	testPoolMembership(tc, vote, false, false)
-
-	// Ensure the ticket is accepted as an orphan.
-	_, err = harness.txPool.ProcessTransaction(ticket, true, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept valid transaction %v",
-			err)
-	}
-	testPoolMembership(tc, ticket, true, false)
-
-	// Ensure the regular tx whose output is spent by the ticket is accepted.
-	_, err = harness.txPool.ProcessTransaction(tx, false, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept valid transaction %v",
-			err)
-	}
-	testPoolMembership(tc, tx, false, true)
-
-	// Generate a fake mined utxo for the ticket created.
-	harness.AddFakeUTXO(ticket, int64(ticket.MsgTx().TxIn[0].BlockHeight))
-
-	// Ensure the previously rejected vote is accepted now since all referenced
-	// utxos can now be found.
-	_, err = harness.txPool.ProcessTransaction(vote, false, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept orphan transaction %v",
-			err)
-	}
-	testPoolMembership(tc, tx, false, true)
-	testPoolMembership(tc, ticket, false, true)
-	testPoolMembership(tc, vote, false, true)
-}
-
-// TestRevocationOrphan ensures that revocations are orphaned when
-// referenced outputs spent are from missing transactions.
-func TestRevocationOrphan(t *testing.T) {
-	t.Parallel()
-
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
-	if err != nil {
-		t.Fatalf("unable to create test pool: %v", err)
-	}
-	tc := &testContext{t, harness}
-
-	// Create a regular transaction from the first spendable output
-	// provided by the harness.
-	tx, err := harness.CreateTx(spendableOuts[0])
-	if err != nil {
-		t.Fatalf("unable to create transaction: %v", err)
-	}
-
-	// Create a ticket purchase transaction spending the outputs of the
-	// prior regular transaction.
-	ticket, err := harness.CreateTicketPurchase(tx, 40000)
-	if err != nil {
-		t.Fatalf("unable to create ticket purchase transaction: %v", err)
-	}
-
-	harness.chain.SetHeight(harness.chainParams.StakeValidationHeight + 1)
-
-	revocation, err := harness.CreateRevocation(ticket)
-	if err != nil {
-		t.Fatalf("unable to create revocation: %v", err)
-	}
-
-	// Ensure the vote is rejected because it is an orphan.
-	_, err = harness.txPool.ProcessTransaction(revocation, false, false, true)
-	if err == nil {
-		t.Fatalf("ProcessTransaction: accepted transaction references " +
-			"outputs of unknown or fully-spent transaction")
-	}
-	testPoolMembership(tc, revocation, false, false)
-
-	// Ensure the ticket is accepted as an orphan.
-	_, err = harness.txPool.ProcessTransaction(ticket, true, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept valid transaction %v",
-			err)
-	}
-	testPoolMembership(tc, ticket, true, false)
-
-	// Ensure the regular tx whose output is spent by the ticket is accepted.
-	_, err = harness.txPool.ProcessTransaction(tx, false, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept valid transaction %v",
-			err)
-	}
-	testPoolMembership(tc, tx, false, true)
-
-	// Generate a fake mined utxos for the ticket created.
-	harness.AddFakeUTXO(ticket, int64(ticket.MsgTx().TxIn[0].BlockHeight))
-
-	// Ensure the previously rejected revocation is accepted now since all referenced
-	// utxos can now be found.
-	_, err = harness.txPool.ProcessTransaction(revocation, false, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept orphan transaction %v",
-			err)
-	}
-	testPoolMembership(tc, tx, false, true)
-	testPoolMembership(tc, ticket, false, true)
-	testPoolMembership(tc, revocation, false, true)
 }
 
 // TestOrphanReject ensures that orphans are properly rejected when the allow
@@ -1083,7 +538,7 @@ func TestOrphanReject(t *testing.T) {
 	// Ensure orphans are rejected when the allow orphans flag is not set.
 	for _, tx := range chainedTxns[1:] {
 		acceptedTxns, err := harness.txPool.ProcessTransaction(tx, false,
-			false, true)
+			false, 0)
 		if err == nil {
 			t.Fatalf("ProcessTransaction: did not fail on orphan "+
 				"%v when allow orphans flag is false", tx.Hash())
@@ -1140,7 +595,7 @@ func TestOrphanEviction(t *testing.T) {
 	// all accepted.  This will cause an eviction.
 	for _, tx := range chainedTxns[1:] {
 		acceptedTxns, err := harness.txPool.ProcessTransaction(tx, true,
-			false, true)
+			false, 0)
 		if err != nil {
 			t.Fatalf("ProcessTransaction: failed to accept valid "+
 				"orphan %v", err)
@@ -1179,85 +634,6 @@ func TestOrphanEviction(t *testing.T) {
 	}
 }
 
-// TestExpirationPruning ensures that transactions that expire without being
-// mined are removed.
-func TestExpirationPruning(t *testing.T) {
-	harness, outputs, err := newPoolHarness(&chaincfg.MainNetParams)
-	if err != nil {
-		t.Fatalf("unable to create test pool: %v", err)
-	}
-	tc := &testContext{t, harness}
-
-	// Create and add a transaction with several outputs that spends the first
-	// spendable output provided by the harness and ensure it is not the orphan
-	// pool, is in the transaction pool, and is reported as available.
-	//
-	// These outputs will be used as inputs to transactions with expirations.
-	const numTxns = 5
-	multiOutputTx, err := harness.CreateSignedTx([]spendableOutput{outputs[0]},
-		numTxns)
-	if err != nil {
-		t.Fatalf("unable to create signed tx: %v", err)
-	}
-	acceptedTxns, err := harness.txPool.ProcessTransaction(multiOutputTx,
-		true, false, true)
-	if err != nil {
-		t.Fatalf("ProcessTransaction: failed to accept valid tx: %v", err)
-	}
-	if len(acceptedTxns) != 1 {
-		t.Fatalf("ProcessTransaction: reported %d accepted transactions from "+
-			"what should be 1", len(acceptedTxns))
-	}
-	testPoolMembership(tc, multiOutputTx, false, true)
-
-	// Create several transactions such that each transaction has an expiration
-	// one block after the previous and the first one expires in the block after
-	// the next one.
-	nextBlockHeight := harness.chain.BestHeight() + 1
-	expiringTxns := make([]*pfcutil.Tx, 0, numTxns)
-	for i := 0; i < numTxns; i++ {
-		tx, err := harness.CreateSignedTx([]spendableOutput{
-			txOutToSpendableOut(multiOutputTx, uint32(i), wire.TxTreeRegular),
-		}, 1, func(tx *wire.MsgTx) {
-			tx.Expiry = uint32(nextBlockHeight + int64(i) + 1)
-		})
-		if err != nil {
-			t.Fatalf("unable to create signed tx: %v", err)
-		}
-		expiringTxns = append(expiringTxns, tx)
-	}
-
-	// Ensure expiration pruning is working properly by adding each expiring
-	// transaction just before the point at which it will expire and advancing
-	// the chain so that the transaction becomes expired and thus should be
-	// pruned.
-	for _, tx := range expiringTxns {
-		acceptedTxns, err := harness.txPool.ProcessTransaction(tx, true, false,
-			true)
-		if err != nil {
-			t.Fatalf("ProcessTransaction: failed to accept valid tx: %v", err)
-		}
-
-		// Ensure the transaction was reported as accepted, is not in the orphan
-		// pool, is in the transaction pool, and is reported as available.
-		if len(acceptedTxns) != 1 {
-			t.Fatalf("ProcessTransaction: reported %d accepted transactions "+
-				"from what should be 1", len(acceptedTxns))
-		}
-		testPoolMembership(tc, tx, false, true)
-
-		// Simulate processing a new block that did not mine any of the txns.
-		harness.chain.SetHeight(harness.chain.BestHeight() + 1)
-
-		// Prune any transactions that are now expired and ensure that the tx
-		// that was just added was pruned by checking that it is not in the
-		// orphan pool, not in the transaction pool, and not reported as
-		// available.
-		harness.txPool.PruneExpiredTx()
-		testPoolMembership(tc, tx, false, false)
-	}
-}
-
 // TestBasicOrphanRemoval ensure that orphan removal works as expected when an
 // orphan that doesn't exist is removed  both when there is another orphan that
 // redeems it and when there is not.
@@ -1283,7 +659,7 @@ func TestBasicOrphanRemoval(t *testing.T) {
 	// none are evicted).
 	for _, tx := range chainedTxns[1 : maxOrphans+1] {
 		acceptedTxns, err := harness.txPool.ProcessTransaction(tx, true,
-			false, true)
+			false, 0)
 		if err != nil {
 			t.Fatalf("ProcessTransaction: failed to accept valid "+
 				"orphan %v", err)
@@ -1306,9 +682,7 @@ func TestBasicOrphanRemoval(t *testing.T) {
 	nonChainedOrphanTx, err := harness.CreateSignedTx([]spendableOutput{{
 		amount:   pfcutil.Amount(5000000000),
 		outPoint: wire.OutPoint{Hash: chainhash.Hash{}, Index: 0},
-	}}, 1, func(tx *wire.MsgTx) {
-		tx.Expiry = uint32(harness.chain.BestHeight() + 1)
-	})
+	}}, 1, 0, false)
 	if err != nil {
 		t.Fatalf("unable to create signed tx: %v", err)
 	}
@@ -1360,7 +734,7 @@ func TestOrphanChainRemoval(t *testing.T) {
 	// none are evicted).
 	for _, tx := range chainedTxns[1 : maxOrphans+1] {
 		acceptedTxns, err := harness.txPool.ProcessTransaction(tx, true,
-			false, true)
+			false, 0)
 		if err != nil {
 			t.Fatalf("ProcessTransaction: failed to accept valid "+
 				"orphan %v", err)
@@ -1423,7 +797,7 @@ func TestMultiInputOrphanDoubleSpend(t *testing.T) {
 	// except the final one.
 	for _, tx := range chainedTxns[1:maxOrphans] {
 		acceptedTxns, err := harness.txPool.ProcessTransaction(tx, true,
-			false, true)
+			false, 0)
 		if err != nil {
 			t.Fatalf("ProcessTransaction: failed to accept valid "+
 				"orphan %v", err)
@@ -1442,14 +816,14 @@ func TestMultiInputOrphanDoubleSpend(t *testing.T) {
 	// since it would otherwise be possible for a malicious actor to disrupt
 	// tx chains.
 	doubleSpendTx, err := harness.CreateSignedTx([]spendableOutput{
-		txOutToSpendableOut(chainedTxns[1], 0, wire.TxTreeRegular),
-		txOutToSpendableOut(chainedTxns[maxOrphans], 0, wire.TxTreeRegular),
-	}, 1)
+		txOutToSpendableOut(chainedTxns[1], 0),
+		txOutToSpendableOut(chainedTxns[maxOrphans], 0),
+	}, 1, 0, false)
 	if err != nil {
 		t.Fatalf("unable to create signed tx: %v", err)
 	}
 	acceptedTxns, err := harness.txPool.ProcessTransaction(doubleSpendTx,
-		true, false, true)
+		true, false, 0)
 	if err != nil {
 		t.Fatalf("ProcessTransaction: failed to accept valid orphan %v",
 			err)
@@ -1468,7 +842,7 @@ func TestMultiInputOrphanDoubleSpend(t *testing.T) {
 	// This will cause the shared output to become a concrete spend which
 	// will in turn must cause the double spending orphan to be removed.
 	acceptedTxns, err = harness.txPool.ProcessTransaction(chainedTxns[0],
-		false, false, true)
+		false, false, 0)
 	if err != nil {
 		t.Fatalf("ProcessTransaction: failed to accept valid tx %v", err)
 	}
@@ -1477,10 +851,10 @@ func TestMultiInputOrphanDoubleSpend(t *testing.T) {
 			"length does not match expected -- got %d, want %d",
 			len(acceptedTxns), maxOrphans)
 	}
-	for _, tx := range acceptedTxns {
+	for _, txD := range acceptedTxns {
 		// Ensure the transaction is no longer in the orphan pool, is
 		// in the transaction pool, and is reported as available.
-		testPoolMembership(tc, tx, false, true)
+		testPoolMembership(tc, txD.Tx, false, true)
 	}
 
 	// Ensure the double spending orphan is no longer in the orphan pool and
@@ -1488,302 +862,951 @@ func TestMultiInputOrphanDoubleSpend(t *testing.T) {
 	testPoolMembership(tc, doubleSpendTx, false, false)
 }
 
-// mustLockTimeToSeq converts the passed relative lock time to a sequence number
-// by using LockTimeToSequence.  It only differs in that it will panic if there
-// is an error so errors in the source code can be detected.  It will only (and
-// must only)  be called with hard-coded, and therefore known good, values.
-func mustLockTimeToSeq(isSeconds bool, lockTime uint32) uint32 {
-	sequence, err := blockchain.LockTimeToSequence(isSeconds, lockTime)
-	if err != nil {
-		panic(fmt.Sprintf("invalid lock time in source file: "+
-			"isSeconds: %v, lockTime: %d", isSeconds, lockTime))
-	}
-	return sequence
-}
-
-// seqIntervalToSecs converts the passed number of sequence lock intervals into
-// the number of seconds it represents.
-func seqIntervalToSecs(intervals uint32) uint32 {
-	return intervals << wire.SequenceLockTimeGranularity
-}
-
-// TestSequenceLockAcceptance ensures that transactions which involve sequence
-// locks are accepted or rejected from the memory as expected.
-func TestSequenceLockAcceptance(t *testing.T) {
+// TestCheckSpend tests that CheckSpend returns the expected spends found in
+// the mempool.
+func TestCheckSpend(t *testing.T) {
 	t.Parallel()
 
-	// Shorter versions of variables for convenience.
-	const seqLockTimeDisabled = wire.SequenceLockTimeDisabled
-	const seqLockTimeIsSecs = wire.SequenceLockTimeIsSeconds
+	harness, outputs, err := newPoolHarness(&chaincfg.MainNetParams)
+	if err != nil {
+		t.Fatalf("unable to create test pool: %v", err)
+	}
 
-	tests := []struct {
-		name         string // test description.
-		txVersion    uint16 // transaction version.
-		sequence     uint32 // sequence number used for input.
-		heightOffset int64  // mock chain height offset at which to evaluate.
-		secsOffset   int64  // mock median time offset at which to evaluate.
-		valid        bool   // whether tx is valid when enforcing seq locks.
+	// The mempool is empty, so none of the spendable outputs should have a
+	// spend there.
+	for _, op := range outputs {
+		spend := harness.txPool.CheckSpend(op.outPoint)
+		if spend != nil {
+			t.Fatalf("Unexpeced spend found in pool: %v", spend)
+		}
+	}
+
+	// Create a chain of transactions rooted with the first spendable
+	// output provided by the harness.
+	const txChainLength = 5
+	chainedTxns, err := harness.CreateTxChain(outputs[0], txChainLength)
+	if err != nil {
+		t.Fatalf("unable to create transaction chain: %v", err)
+	}
+	for _, tx := range chainedTxns {
+		_, err := harness.txPool.ProcessTransaction(tx, true,
+			false, 0)
+		if err != nil {
+			t.Fatalf("ProcessTransaction: failed to accept "+
+				"tx: %v", err)
+		}
+	}
+
+	// The first tx in the chain should be the spend of the spendable
+	// output.
+	op := outputs[0].outPoint
+	spend := harness.txPool.CheckSpend(op)
+	if spend != chainedTxns[0] {
+		t.Fatalf("expected %v to be spent by %v, instead "+
+			"got %v", op, chainedTxns[0], spend)
+	}
+
+	// Now all but the last tx should be spent by the next.
+	for i := 0; i < len(chainedTxns)-1; i++ {
+		op = wire.OutPoint{
+			Hash:  *chainedTxns[i].Hash(),
+			Index: 0,
+		}
+		expSpend := chainedTxns[i+1]
+		spend = harness.txPool.CheckSpend(op)
+		if spend != expSpend {
+			t.Fatalf("expected %v to be spent by %v, instead "+
+				"got %v", op, expSpend, spend)
+		}
+	}
+
+	// The last tx should have no spend.
+	op = wire.OutPoint{
+		Hash:  *chainedTxns[txChainLength-1].Hash(),
+		Index: 0,
+	}
+	spend = harness.txPool.CheckSpend(op)
+	if spend != nil {
+		t.Fatalf("Unexpeced spend found in pool: %v", spend)
+	}
+}
+
+// TestSignalsReplacement tests that transactions properly signal they can be
+// replaced using RBF.
+func TestSignalsReplacement(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name               string
+		setup              func(ctx *testContext) *pfcutil.Tx
+		signalsReplacement bool
 	}{
 		{
-			name:         "By-height lock with seq == height == 0",
-			txVersion:    2,
-			sequence:     mustLockTimeToSeq(false, 0),
-			heightOffset: 0,
-			valid:        true,
-		},
-		{
-			// The mempool is for transactions to be included in the next block
-			// so sequence locks are calculated based on that point of view.
-			// Thus, a sequence lock of one for an input created at the current
-			// height will be satisified.
-			name:         "By-height lock with seq == 1, height == 0",
-			txVersion:    2,
-			sequence:     mustLockTimeToSeq(false, 1),
-			heightOffset: 0,
-			valid:        true,
-		},
-		{
-			name:         "By-height lock with seq == height == 65535",
-			txVersion:    2,
-			sequence:     mustLockTimeToSeq(false, 65535),
-			heightOffset: 65534,
-			valid:        true,
-		},
-		{
-			name:         "By-height lock with masked max seq == height",
-			txVersion:    2,
-			sequence:     0xffffffff &^ seqLockTimeDisabled &^ seqLockTimeIsSecs,
-			heightOffset: 65534,
-			valid:        true,
-		},
-		{
-			name:         "By-height lock with unsatisfied seq == 2",
-			txVersion:    2,
-			sequence:     mustLockTimeToSeq(false, 2),
-			heightOffset: 0,
-			valid:        false,
-		},
-		{
-			name:         "By-height lock with unsatisfied masked max sequence",
-			txVersion:    2,
-			sequence:     0xffffffff &^ seqLockTimeDisabled &^ seqLockTimeIsSecs,
-			heightOffset: 65533,
-			valid:        false,
-		},
-		{
-			name:       "By-time lock with seq == elapsed == 0",
-			txVersion:  2,
-			sequence:   mustLockTimeToSeq(true, 0),
-			secsOffset: 0,
-			valid:      true,
-		},
-		{
-			name:       "By-time lock with seq == elapsed == max",
-			txVersion:  2,
-			sequence:   mustLockTimeToSeq(true, seqIntervalToSecs(65535)),
-			secsOffset: int64(seqIntervalToSecs(65535)),
-			valid:      true,
-		},
-		{
-			name:       "By-time lock with unsatisifed seq == 1024",
-			txVersion:  2,
-			sequence:   mustLockTimeToSeq(true, seqIntervalToSecs(2)),
-			secsOffset: int64(seqIntervalToSecs(1)),
-			valid:      false,
-		},
-		{
-			name:       "By-time lock with unsatisifed masked max sequence",
-			txVersion:  2,
-			sequence:   0xffffffff &^ seqLockTimeDisabled,
-			secsOffset: int64(seqIntervalToSecs(65534)),
-			valid:      false,
-		},
-		{
-			name:         "Disabled by-height lock with seq == height == 0",
-			txVersion:    2,
-			sequence:     mustLockTimeToSeq(false, 0) | seqLockTimeDisabled,
-			heightOffset: 0,
-			valid:        true,
-		},
-		{
-			name:         "Disabled by-height lock with unsatisified sequence",
-			txVersion:    2,
-			sequence:     mustLockTimeToSeq(false, 2) | seqLockTimeDisabled,
-			heightOffset: 0,
-			valid:        true,
-		},
-		{
-			name:       "Disabled by-time lock with seq == elapsed == 0",
-			txVersion:  2,
-			sequence:   mustLockTimeToSeq(true, 0) | seqLockTimeDisabled,
-			secsOffset: 0,
-			valid:      true,
-		},
-		{
-			name:      "Disabled by-time lock with unsatisifed seq == 1024",
-			txVersion: 2,
-			sequence: mustLockTimeToSeq(true, seqIntervalToSecs(2)) |
-				seqLockTimeDisabled,
-			secsOffset: int64(seqIntervalToSecs(1)),
-			valid:      true,
-		},
+			// Transactions can signal replacement through
+			// inheritance if any of its ancestors does.
+			name: "non-signaling with unconfirmed non-signaling parent",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				coinbase := ctx.addCoinbaseTx(1)
 
-		// The following section uses version 1 transactions which are not
-		// subject to sequence locks.
-		{
-			name:         "By-height lock with seq == height == 0 (v1)",
-			txVersion:    1,
-			sequence:     mustLockTimeToSeq(false, 0),
-			heightOffset: 0,
-			valid:        true,
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(outs, 1, 0, false, false)
+
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				return ctx.addSignedTx(outs, 1, 0, false, false)
+			},
+			signalsReplacement: false,
 		},
 		{
-			name:         "By-height lock with unsatisfied seq == 2 (v1)",
-			txVersion:    1,
-			sequence:     mustLockTimeToSeq(false, 2),
-			heightOffset: 0,
-			valid:        true,
+			// Transactions can signal replacement through
+			// inheritance if any of its ancestors does, but they
+			// must be unconfirmed.
+			name: "non-signaling with confirmed signaling parent",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(outs, 1, 0, true, true)
+
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				return ctx.addSignedTx(outs, 1, 0, false, false)
+			},
+			signalsReplacement: false,
 		},
 		{
-			name:       "By-time lock with seq == elapsed == 0 (v1)",
-			txVersion:  1,
-			sequence:   mustLockTimeToSeq(true, 0),
-			secsOffset: 0,
-			valid:      true,
+			name: "inherited signaling",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// We'll create a chain of transactions
+				// A -> B -> C where C is the transaction we'll
+				// be checking for replacement signaling. The
+				// transaction can signal replacement through
+				// any of its ancestors as long as they also
+				// signal replacement.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				a := ctx.addSignedTx(outs, 1, 0, true, false)
+
+				aOut := txOutToSpendableOut(a, 0)
+				outs = []spendableOutput{aOut}
+				b := ctx.addSignedTx(outs, 1, 0, false, false)
+
+				bOut := txOutToSpendableOut(b, 0)
+				outs = []spendableOutput{bOut}
+				return ctx.addSignedTx(outs, 1, 0, false, false)
+			},
+			signalsReplacement: true,
 		},
 		{
-			name:       "By-time lock with unsatisifed seq == 1024 (v1)",
-			txVersion:  1,
-			sequence:   mustLockTimeToSeq(true, seqIntervalToSecs(2)),
-			secsOffset: int64(seqIntervalToSecs(1)),
-			valid:      true,
-		},
-		{
-			name:         "Disabled by-height lock with seq == height == 0 (v1)",
-			txVersion:    1,
-			sequence:     mustLockTimeToSeq(false, 0) | seqLockTimeDisabled,
-			heightOffset: 0,
-			valid:        true,
-		},
-		{
-			name:         "Disabled by-height lock with unsatisified seq (v1)",
-			txVersion:    1,
-			sequence:     mustLockTimeToSeq(false, 2) | seqLockTimeDisabled,
-			heightOffset: 0,
-			valid:        true,
-		},
-		{
-			name:       "Disabled by-time lock with seq == elapsed == 0 (v1)",
-			txVersion:  1,
-			sequence:   mustLockTimeToSeq(true, 0) | seqLockTimeDisabled,
-			secsOffset: 0,
-			valid:      true,
-		},
-		{
-			name:      "Disabled by-time lock with unsatisifed seq == 1024 (v1)",
-			txVersion: 1,
-			sequence: mustLockTimeToSeq(true, seqIntervalToSecs(2)) |
-				seqLockTimeDisabled,
-			secsOffset: int64(seqIntervalToSecs(1)),
-			valid:      true,
+			name: "explicit signaling",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				coinbase := ctx.addCoinbaseTx(1)
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				return ctx.addSignedTx(outs, 1, 0, true, false)
+			},
+			signalsReplacement: true,
 		},
 	}
 
-	// Run through the tests twice such that the first time the pool is set to
-	// reject all sequence locks and the second it is not.
-	for _, acceptSeqLocks := range []bool{false, true} {
-		harness, _, err := newPoolHarness(&chaincfg.MainNetParams)
-		if err != nil {
-			t.Fatalf("unable to create test pool: %v", err)
-		}
-		tc := &testContext{t, harness}
-
-		harness.chain.SetAcceptSequenceLocks(acceptSeqLocks)
-		baseHeight := harness.chain.BestHeight()
-		baseTime := time.Now()
-		for i, test := range tests {
-			// Create and add a mock utxo at a common base height so updating
-			// the mock chain height below will cause sequence locks to be
-			// evaluated relative to that height.
-			//
-			// The output value adds the test index in order to ensure the
-			// resulting transaction hash is unique.
-			inputMsgTx := wire.NewMsgTx()
-			inputMsgTx.AddTxOut(&wire.TxOut{
-				PkScript: harness.payScript,
-				Value:    1000000000 + int64(i),
-			})
-			inputTx := pfcutil.NewTx(inputMsgTx)
-			harness.AddFakeUTXO(inputTx, baseHeight)
-			harness.chain.AddFakeUtxoMedianTime(inputTx, 0, baseTime)
-
-			// Create a transaction which spends from the mock utxo with the
-			// details specified in the test data.
-			spendableOut := txOutToSpendableOut(inputTx, 0, wire.TxTreeRegular)
-			inputs := []spendableOutput{spendableOut}
-			tx, err := harness.CreateSignedTx(inputs, 1, func(tx *wire.MsgTx) {
-				tx.Version = test.txVersion
-				tx.TxIn[0].Sequence = test.sequence
-			})
+	for _, testCase := range testCases {
+		success := t.Run(testCase.name, func(t *testing.T) {
+			// We'll start each test by creating our mempool
+			// harness.
+			harness, _, err := newPoolHarness(&chaincfg.MainNetParams)
 			if err != nil {
-				t.Fatalf("unable to create tx: %v", err)
+				t.Fatalf("unable to create test pool: %v", err)
 			}
+			ctx := &testContext{t, harness}
 
-			// Determine if the test data describes a transaction with an
-			// enabled sequence lock.
-			hasEnabledSeqLock := test.txVersion >= 2 &&
-				test.sequence&wire.SequenceLockTimeDisabled == 0
+			// Each test includes a setup method, which will set up
+			// its required dependencies. The transaction returned
+			// is the one we'll be using to determine if it signals
+			// replacement support.
+			tx := testCase.setup(ctx)
 
-			// Set the mock chain height and median time based on the test data
-			// and ensure the transaction is either accepted or rejected as
-			// desired.
-			secsOffset := time.Second * time.Duration(test.secsOffset)
-			harness.chain.SetHeight(baseHeight + test.heightOffset)
-			harness.chain.SetPastMedianTime(baseTime.Add(secsOffset))
-			acceptedTxns, err := harness.txPool.ProcessTransaction(tx, false,
-				false, true)
-			switch {
-			case !acceptSeqLocks && hasEnabledSeqLock && err == nil:
-				t.Fatalf("%s: did not reject tx when seq locks are not allowed",
-					test.name)
-
-			case !acceptSeqLocks && !hasEnabledSeqLock && err != nil:
-				t.Fatalf("%s: did not accept tx: %v", test.name, err)
-
-			case acceptSeqLocks && test.valid && err != nil:
-				t.Fatalf("%s: did not accept tx: %v", test.name, err)
-
-			case acceptSeqLocks && !test.valid && err == nil:
-				t.Fatalf("%s: did not reject tx", test.name)
+			// Each test should match the expected response.
+			signalsReplacement := ctx.harness.txPool.signalsReplacement(
+				tx, nil,
+			)
+			if signalsReplacement && !testCase.signalsReplacement {
+				ctx.t.Fatalf("expected transaction %v to not "+
+					"signal replacement", tx.Hash())
 			}
+			if !signalsReplacement && testCase.signalsReplacement {
+				ctx.t.Fatalf("expected transaction %v to "+
+					"signal replacement", tx.Hash())
+			}
+		})
+		if !success {
+			break
+		}
+	}
+}
 
-			// Ensure the number of reported accepted transactions and pool
-			// membership matches the expected result.
-			shouldHaveAccepted := (acceptSeqLocks && test.valid) ||
-				(!acceptSeqLocks && !hasEnabledSeqLock)
-			switch {
-			case shouldHaveAccepted:
-				// Ensure the transaction was reported as accepted.
-				if len(acceptedTxns) != 1 {
-					t.Fatalf("%s: reported %d accepted transactions from what "+
-						"should be 1", test.name, len(acceptedTxns))
+// TestCheckPoolDoubleSpend ensures that the mempool can properly detect
+// unconfirmed double spends in the case of replacement and non-replacement
+// transactions.
+func TestCheckPoolDoubleSpend(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		setup         func(ctx *testContext) *pfcutil.Tx
+		isReplacement bool
+	}{
+		{
+			// Transactions that don't double spend any inputs,
+			// regardless of whether they signal replacement or not,
+			// are valid.
+			name: "no double spend",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(outs, 1, 0, false, false)
+
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				return ctx.addSignedTx(outs, 2, 0, false, false)
+			},
+			isReplacement: false,
+		},
+		{
+			// Transactions that don't signal replacement and double
+			// spend inputs are invalid.
+			name: "non-replacement double spend",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				coinbase1 := ctx.addCoinbaseTx(1)
+				coinbaseOut1 := txOutToSpendableOut(coinbase1, 0)
+				outs := []spendableOutput{coinbaseOut1}
+				ctx.addSignedTx(outs, 1, 0, true, false)
+
+				coinbase2 := ctx.addCoinbaseTx(1)
+				coinbaseOut2 := txOutToSpendableOut(coinbase2, 0)
+				outs = []spendableOutput{coinbaseOut2}
+				ctx.addSignedTx(outs, 1, 0, false, false)
+
+				// Create a transaction that spends both
+				// coinbase outputs that were spent above. This
+				// should be detected as a double spend as one
+				// of the transactions doesn't signal
+				// replacement.
+				outs = []spendableOutput{coinbaseOut1, coinbaseOut2}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 1, 0, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
 				}
 
-				// Ensure the transaction is not in the orphan pool, in the
-				// transaction pool, and reported as available.
-				testPoolMembership(tc, tx, false, true)
+				return tx
+			},
+			isReplacement: false,
+		},
+		{
+			// Transactions that double spend inputs and signal
+			// replacement are invalid if the mempool's policy
+			// rejects replacements.
+			name: "reject replacement policy",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				// Set the mempool's policy to reject
+				// replacements. Even if we have a transaction
+				// that spends inputs that signal replacement,
+				// it should still be rejected.
+				ctx.harness.txPool.cfg.Policy.RejectReplacement = true
 
-			case !shouldHaveAccepted:
-				if len(acceptedTxns) != 0 {
-					// Ensure no transactions were reported as accepted.
-					t.Fatalf("%s: reported %d accepted transactions from what "+
-						"should have been rejected", test.name, len(acceptedTxns))
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// Create a replaceable parent that spends the
+				// coinbase output.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(outs, 1, 0, true, false)
+
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				ctx.addSignedTx(outs, 1, 0, false, false)
+
+				// Create another transaction that spends the
+				// same coinbase output. Since the original
+				// spender of this output, all of its spends
+				// should also be conflicts.
+				outs = []spendableOutput{coinbaseOut}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 2, 0, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
 				}
 
-				// Ensure the transaction is not in the orphan pool, not in the
-				// transaction pool, and not reported as available.
-				testPoolMembership(tc, tx, false, false)
+				return tx
+			},
+			isReplacement: false,
+		},
+		{
+			// Transactions that double spend inputs and signal
+			// replacement are valid as long as the mempool's policy
+			// accepts them.
+			name: "replacement double spend",
+			setup: func(ctx *testContext) *pfcutil.Tx {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// Create a replaceable parent that spends the
+				// coinbase output.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(outs, 1, 0, true, false)
+
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				ctx.addSignedTx(outs, 1, 0, false, false)
+
+				// Create another transaction that spends the
+				// same coinbase output. Since the original
+				// spender of this output, all of its spends
+				// should also be conflicts.
+				outs = []spendableOutput{coinbaseOut}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 2, 0, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx
+			},
+			isReplacement: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		success := t.Run(testCase.name, func(t *testing.T) {
+			// We'll start each test by creating our mempool
+			// harness.
+			harness, _, err := newPoolHarness(&chaincfg.MainNetParams)
+			if err != nil {
+				t.Fatalf("unable to create test pool: %v", err)
 			}
+			ctx := &testContext{t, harness}
+
+			// Each test includes a setup method, which will set up
+			// its required dependencies. The transaction returned
+			// is the one we'll be querying for the expected
+			// conflicts.
+			tx := testCase.setup(ctx)
+
+			// Ensure that the mempool properly detected the double
+			// spend unless this is a replacement transaction.
+			isReplacement, err :=
+				ctx.harness.txPool.checkPoolDoubleSpend(tx)
+			if testCase.isReplacement && err != nil {
+				t.Fatalf("expected no error for replacement "+
+					"transaction, got: %v", err)
+			}
+			if isReplacement && !testCase.isReplacement {
+				t.Fatalf("expected replacement transaction")
+			}
+			if !isReplacement && testCase.isReplacement {
+				t.Fatalf("expected non-replacement transaction")
+			}
+		})
+		if !success {
+			break
+		}
+	}
+}
+
+// TestConflicts ensures that the mempool can properly detect conflicts when
+// processing new incoming transactions.
+func TestConflicts(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+
+		// setup sets up the required dependencies for each test. It
+		// returns the transaction we'll check for conflicts and its
+		// expected unique conflicts.
+		setup func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx)
+	}{
+		{
+			// Create a transaction that would introduce no
+			// conflicts in the mempool. This is done by not
+			// spending any outputs that are currently being spent
+			// within the mempool.
+			name: "no conflicts",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(outs, 1, 0, false, false)
+
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 2, 0, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+		},
+		{
+			// Create a transaction that would introduce two
+			// conflicts in the mempool by spending two outputs
+			// which are each already being spent by a different
+			// transaction within the mempool.
+			name: "conflicts",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase1 := ctx.addCoinbaseTx(1)
+				coinbaseOut1 := txOutToSpendableOut(coinbase1, 0)
+				outs := []spendableOutput{coinbaseOut1}
+				conflict1 := ctx.addSignedTx(
+					outs, 1, 0, false, false,
+				)
+
+				coinbase2 := ctx.addCoinbaseTx(1)
+				coinbaseOut2 := txOutToSpendableOut(coinbase2, 0)
+				outs = []spendableOutput{coinbaseOut2}
+				conflict2 := ctx.addSignedTx(
+					outs, 1, 0, false, false,
+				)
+
+				// Create a transaction that spends both
+				// coinbase outputs that were spent above.
+				outs = []spendableOutput{coinbaseOut1, coinbaseOut2}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 1, 0, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, []*pfcutil.Tx{conflict1, conflict2}
+			},
+		},
+		{
+			// Create a transaction that would introduce two
+			// conflicts in the mempool by spending an output
+			// already being spent in the mempool by a different
+			// transaction. The second conflict stems from spending
+			// the transaction that spends the original spender of
+			// the output, i.e., a descendant of the original
+			// spender.
+			name: "descendant conflicts",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// Create a replaceable parent that spends the
+				// coinbase output.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(outs, 1, 0, false, false)
+
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				child := ctx.addSignedTx(outs, 1, 0, false, false)
+
+				// Create another transaction that spends the
+				// same coinbase output. Since the original
+				// spender of this output has descendants, they
+				// should also be conflicts.
+				outs = []spendableOutput{coinbaseOut}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 2, 0, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, []*pfcutil.Tx{parent, child}
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		success := t.Run(testCase.name, func(t *testing.T) {
+			// We'll start each test by creating our mempool
+			// harness.
+			harness, _, err := newPoolHarness(&chaincfg.MainNetParams)
+			if err != nil {
+				t.Fatalf("unable to create test pool: %v", err)
+			}
+			ctx := &testContext{t, harness}
+
+			// Each test includes a setup method, which will set up
+			// its required dependencies. The transaction returned
+			// is the one we'll be querying for the expected
+			// conflicts.
+			tx, conflicts := testCase.setup(ctx)
+
+			// Assert the expected conflicts are returned.
+			txConflicts := ctx.harness.txPool.txConflicts(tx)
+			if len(txConflicts) != len(conflicts) {
+				ctx.t.Fatalf("expected %d conflicts, got %d",
+					len(conflicts), len(txConflicts))
+			}
+			for _, conflict := range conflicts {
+				conflictHash := *conflict.Hash()
+				if _, ok := txConflicts[conflictHash]; !ok {
+					ctx.t.Fatalf("expected %v to be found "+
+						"as a conflict", conflictHash)
+				}
+			}
+		})
+		if !success {
+			break
+		}
+	}
+}
+
+// TestAncestorsDescendants ensures that we can properly retrieve the
+// unconfirmed ancestors and descendants of a transaction.
+func TestAncestorsDescendants(t *testing.T) {
+	t.Parallel()
+
+	// We'll start the test by initializing our mempool harness.
+	harness, outputs, err := newPoolHarness(&chaincfg.MainNetParams)
+	if err != nil {
+		t.Fatalf("unable to create test pool: %v", err)
+	}
+	ctx := &testContext{t, harness}
+
+	// We'll be creating the following chain of unconfirmed transactions:
+	//
+	//       B ----
+	//     /        \
+	//   A            E
+	//     \        /
+	//       C -- D
+	//
+	// where B and C spend A, D spends C, and E spends B and D. We set up a
+	// chain like so to properly detect ancestors and descendants past a
+	// single parent/child.
+	aInputs := outputs[:1]
+	a := ctx.addSignedTx(aInputs, 2, 0, false, false)
+
+	bInputs := []spendableOutput{txOutToSpendableOut(a, 0)}
+	b := ctx.addSignedTx(bInputs, 1, 0, false, false)
+
+	cInputs := []spendableOutput{txOutToSpendableOut(a, 1)}
+	c := ctx.addSignedTx(cInputs, 1, 0, false, false)
+
+	dInputs := []spendableOutput{txOutToSpendableOut(c, 0)}
+	d := ctx.addSignedTx(dInputs, 1, 0, false, false)
+
+	eInputs := []spendableOutput{
+		txOutToSpendableOut(b, 0), txOutToSpendableOut(d, 0),
+	}
+	e := ctx.addSignedTx(eInputs, 1, 0, false, false)
+
+	// We'll be querying for the ancestors of E. We should expect to see all
+	// of the transactions that it depends on.
+	expectedAncestors := map[chainhash.Hash]struct{}{
+		*a.Hash(): struct{}{}, *b.Hash(): struct{}{},
+		*c.Hash(): struct{}{}, *d.Hash(): struct{}{},
+	}
+	ancestors := ctx.harness.txPool.txAncestors(e, nil)
+	if len(ancestors) != len(expectedAncestors) {
+		ctx.t.Fatalf("expected %d ancestors, got %d",
+			len(expectedAncestors), len(ancestors))
+	}
+	for ancestorHash := range ancestors {
+		if _, ok := expectedAncestors[ancestorHash]; !ok {
+			ctx.t.Fatalf("found unexpected ancestor %v",
+				ancestorHash)
+		}
+	}
+
+	// Then, we'll query for the descendants of A. We should expect to see
+	// all of the transactions that depend on it.
+	expectedDescendants := map[chainhash.Hash]struct{}{
+		*b.Hash(): struct{}{}, *c.Hash(): struct{}{},
+		*d.Hash(): struct{}{}, *e.Hash(): struct{}{},
+	}
+	descendants := ctx.harness.txPool.txDescendants(a, nil)
+	if len(descendants) != len(expectedDescendants) {
+		ctx.t.Fatalf("expected %d descendants, got %d",
+			len(expectedDescendants), len(descendants))
+	}
+	for descendantHash := range descendants {
+		if _, ok := expectedDescendants[descendantHash]; !ok {
+			ctx.t.Fatalf("found unexpected descendant %v",
+				descendantHash)
+		}
+	}
+}
+
+// TestRBF tests the different cases required for a transaction to properly
+// replace its conflicts given that they all signal replacement.
+func TestRBF(t *testing.T) {
+	t.Parallel()
+
+	const defaultFee = pfcutil.SatoshiPerBitcoin
+
+	testCases := []struct {
+		name  string
+		setup func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx)
+		err   string
+	}{
+		{
+			// A transaction cannot replace another if it doesn't
+			// signal replacement.
+			name: "non-replaceable parent",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// Create a transaction that spends the coinbase
+				// output and doesn't signal for replacement.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				ctx.addSignedTx(outs, 1, defaultFee, false, false)
+
+				// Attempting to create another transaction that
+				// spends the same output should fail since the
+				// original transaction spending it doesn't
+				// signal replacement.
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 2, defaultFee, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+			err: "already spent by transaction",
+		},
+		{
+			// A transaction cannot replace another if we don't
+			// allow accepting replacement transactions.
+			name: "reject replacement policy",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				ctx.harness.txPool.cfg.Policy.RejectReplacement = true
+
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// Create a transaction that spends the coinbase
+				// output and doesn't signal for replacement.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				ctx.addSignedTx(outs, 1, defaultFee, true, false)
+
+				// Attempting to create another transaction that
+				// spends the same output should fail since the
+				// original transaction spending it doesn't
+				// signal replacement.
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 2, defaultFee, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+			err: "already spent by transaction",
+		},
+		{
+			// A transaction cannot replace another if doing so
+			// would cause more than 100 transactions being
+			// replaced.
+			name: "exceeds maximum conflicts",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				const numDescendants = 100
+				coinbaseOuts := make(
+					[]spendableOutput, numDescendants,
+				)
+				for i := 0; i < numDescendants; i++ {
+					tx := ctx.addCoinbaseTx(1)
+					coinbaseOuts[i] = txOutToSpendableOut(tx, 0)
+				}
+				parent := ctx.addSignedTx(
+					coinbaseOuts, numDescendants,
+					defaultFee, true, false,
+				)
+
+				// We'll then spend each output of the parent
+				// transaction with a distinct transaction.
+				for i := uint32(0); i < numDescendants; i++ {
+					out := txOutToSpendableOut(parent, i)
+					outs := []spendableOutput{out}
+					ctx.addSignedTx(
+						outs, 1, defaultFee, false, false,
+					)
+				}
+
+				// We'll then create a replacement transaction
+				// by spending one of the coinbase outputs.
+				// Replacing the original spender of the
+				// coinbase output would evict the maximum
+				// number of transactions from the mempool,
+				// however, so we should reject it.
+				tx, err := ctx.harness.CreateSignedTx(
+					coinbaseOuts[:1], 1, defaultFee, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+			err: "evicts more transactions than permitted",
+		},
+		{
+			// A transaction cannot replace another if the
+			// replacement ends up spending an output that belongs
+			// to one of the transactions it replaces.
+			name: "replacement spends parent transaction",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// Create a transaction that spends the coinbase
+				// output and signals replacement.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(
+					outs, 1, defaultFee, true, false,
+				)
+
+				// Attempting to create another transaction that
+				// spends it, but also replaces it, should be
+				// invalid.
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{coinbaseOut, parentOut}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 2, defaultFee, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+			err: "spends parent transaction",
+		},
+		{
+			// A transaction cannot replace another if it has a
+			// lower fee rate than any of the transactions it
+			// intends to replace.
+			name: "insufficient fee rate",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase1 := ctx.addCoinbaseTx(1)
+				coinbase2 := ctx.addCoinbaseTx(1)
+
+				// We'll create two transactions that each spend
+				// one of the coinbase outputs. The first will
+				// have a higher fee rate than the second.
+				coinbaseOut1 := txOutToSpendableOut(coinbase1, 0)
+				outs := []spendableOutput{coinbaseOut1}
+				ctx.addSignedTx(outs, 1, defaultFee*2, true, false)
+
+				coinbaseOut2 := txOutToSpendableOut(coinbase2, 0)
+				outs = []spendableOutput{coinbaseOut2}
+				ctx.addSignedTx(outs, 1, defaultFee, true, false)
+
+				// We'll then create the replacement transaction
+				// by spending the coinbase outputs. It will be
+				// an invalid one however, since it won't have a
+				// higher fee rate than the first transaction.
+				outs = []spendableOutput{coinbaseOut1, coinbaseOut2}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 1, defaultFee*2, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+			err: "insufficient fee rate",
+		},
+		{
+			// A transaction cannot replace another if it doesn't
+			// have an absolute greater than the transactions its
+			// replacing _plus_ the replacement transaction's
+			// minimum relay fee.
+			name: "insufficient absolute fee",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// We'll create a transaction with two outputs
+				// and the default fee.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				ctx.addSignedTx(outs, 2, defaultFee, true, false)
+
+				// We'll create a replacement transaction with
+				// one output, which should cause the
+				// transaction's absolute fee to be lower than
+				// the above's, so it'll be invalid.
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 1, defaultFee, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+			err: "insufficient absolute fee",
+		},
+		{
+			// A transaction cannot replace another if it introduces
+			// a new unconfirmed input that was not already in any
+			// of the transactions it's directly replacing.
+			name: "spends new unconfirmed input",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase1 := ctx.addCoinbaseTx(1)
+				coinbase2 := ctx.addCoinbaseTx(1)
+
+				// We'll create two unconfirmed transactions
+				// from our coinbase transactions.
+				coinbaseOut1 := txOutToSpendableOut(coinbase1, 0)
+				outs := []spendableOutput{coinbaseOut1}
+				ctx.addSignedTx(outs, 1, defaultFee, true, false)
+
+				coinbaseOut2 := txOutToSpendableOut(coinbase2, 0)
+				outs = []spendableOutput{coinbaseOut2}
+				newTx := ctx.addSignedTx(
+					outs, 1, defaultFee, false, false,
+				)
+
+				// We should not be able to accept a replacement
+				// transaction that spends an unconfirmed input
+				// that was not previously included.
+				newTxOut := txOutToSpendableOut(newTx, 0)
+				outs = []spendableOutput{coinbaseOut1, newTxOut}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 1, defaultFee*2, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, nil
+			},
+			err: "spends new unconfirmed input",
+		},
+		{
+			// A transaction can replace another with a higher fee.
+			name: "higher fee",
+			setup: func(ctx *testContext) (*pfcutil.Tx, []*pfcutil.Tx) {
+				coinbase := ctx.addCoinbaseTx(1)
+
+				// Create a transaction that we'll directly
+				// replace.
+				coinbaseOut := txOutToSpendableOut(coinbase, 0)
+				outs := []spendableOutput{coinbaseOut}
+				parent := ctx.addSignedTx(
+					outs, 1, defaultFee, true, false,
+				)
+
+				// Spend the parent transaction to create a
+				// descendant that will be indirectly replaced.
+				parentOut := txOutToSpendableOut(parent, 0)
+				outs = []spendableOutput{parentOut}
+				child := ctx.addSignedTx(
+					outs, 1, defaultFee, false, false,
+				)
+
+				// The replacement transaction should replace
+				// both transactions above since it has a higher
+				// fee and doesn't violate any other conditions
+				// within the RBF policy.
+				outs = []spendableOutput{coinbaseOut}
+				tx, err := ctx.harness.CreateSignedTx(
+					outs, 1, defaultFee*3, false,
+				)
+				if err != nil {
+					ctx.t.Fatalf("unable to create "+
+						"transaction: %v", err)
+				}
+
+				return tx, []*pfcutil.Tx{parent, child}
+			},
+			err: "",
+		},
+	}
+
+	for _, testCase := range testCases {
+		success := t.Run(testCase.name, func(t *testing.T) {
+			// We'll start each test by creating our mempool
+			// harness.
+			harness, _, err := newPoolHarness(&chaincfg.MainNetParams)
+			if err != nil {
+				t.Fatalf("unable to create test pool: %v", err)
+			}
+
+			// We'll enable relay priority to ensure we can properly
+			// test fees between replacement transactions and the
+			// transactions it replaces.
+			harness.txPool.cfg.Policy.DisableRelayPriority = false
+
+			// Each test includes a setup method, which will set up
+			// its required dependencies. The transaction returned
+			// is the intended replacement, which should replace the
+			// expected list of transactions.
+			ctx := &testContext{t, harness}
+			replacementTx, replacedTxs := testCase.setup(ctx)
+
+			// Attempt to process the replacement transaction. If
+			// it's not a valid one, we should see the error
+			// expected by the test.
+			_, err = ctx.harness.txPool.ProcessTransaction(
+				replacementTx, false, false, 0,
+			)
+			if testCase.err == "" && err != nil {
+				ctx.t.Fatalf("expected no error when "+
+					"processing replacement transaction, "+
+					"got: %v", err)
+			}
+			if testCase.err != "" && err == nil {
+				ctx.t.Fatalf("expected error when processing "+
+					"replacement transaction: %v",
+					testCase.err)
+			}
+			if testCase.err != "" && err != nil {
+				if !strings.Contains(err.Error(), testCase.err) {
+					ctx.t.Fatalf("expected error: %v\n"+
+						"got: %v", testCase.err, err)
+				}
+			}
+
+			// If the replacement transaction is valid, we'll check
+			// that it has been included in the mempool and its
+			// conflicts have been removed. Otherwise, the conflicts
+			// should remain in the mempool.
+			valid := testCase.err == ""
+			for _, tx := range replacedTxs {
+				testPoolMembership(ctx, tx, false, !valid)
+			}
+			testPoolMembership(ctx, replacementTx, false, valid)
+		})
+		if !success {
+			break
 		}
 	}
 }

@@ -9,46 +9,49 @@
 5. [Standard Methods](#Methods)<br />
 5.1. [Method Overview](#MethodOverview)<br />
 5.2. [Method Details](#MethodDetails)<br />
-6. [Websocket Methods (Websocket Specific) ](#WSMethods)<br />
-6.1. [Method Overview](#WSMethodOverview)<br />
-6.2. [Method Details](#WSMethodDetails)<br />
-7. [Notifications (Websocket-specific)](#Notifications)<br />
-7.1. [Notification Overview](#NotificationOverview)<br />
-7.2. [Notification Details](#NotificationDetails)<br />
-8. [Example Code](#ExampleCode)<br />
-8.1. [Go](#ExampleGoApp)<br />
-8.2. [node.js](#ExampleNodeJsCode)<br />
+6. [Extension Methods](#ExtensionMethods)<br />
+6.1. [Method Overview](#ExtMethodOverview)<br />
+6.2. [Method Details](#ExtMethodDetails)<br />
+7. [Websocket Extension Methods (Websocket-specific)](#WSExtMethods)<br />
+7.1. [Method Overview](#WSExtMethodOverview)<br />
+7.2. [Method Details](#WSExtMethodDetails)<br />
+8. [Notifications (Websocket-specific)](#Notifications)<br />
+8.1. [Notification Overview](#NotificationOverview)<br />
+8.2. [Notification Details](#NotificationDetails)<br />
+9. [Example Code](#ExampleCode)<br />
+9.1. [Go](#ExampleGoApp)<br />
+9.2. [node.js](#ExampleNodeJsCode)<br />
 
 <a name="Overview" />
 
 ### 1. Overview
 
-pfcd provides a [JSON-RPC](http://json-rpc.org/wiki/specification) API that is
+btcd provides a [JSON-RPC](http://json-rpc.org/wiki/specification) API that is
 fully compatible with the original bitcoind/bitcoin-qt.  There are a few key
-differences between pfcd and bitcoind as far as how RPCs are serviced:
+differences between btcd and bitcoind as far as how RPCs are serviced:
 * Unlike bitcoind that has the wallet and chain intermingled in the same process
-  which leads to several issues, pfcd intentionally splits the wallet and chain
+  which leads to several issues, btcd intentionally splits the wallet and chain
   services into independent processes.  See the blog post
   [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon/) for
   further details on why they were separated.  This means that if you are
   talking directly to pfcd, only chain-related RPCs are available.  However both
   chain-related and wallet-related RPCs are available via
-  [pfcwallet](https://github.com/picfight/pfcwallet).
-* pfcd is secure by default which means that the RPC connection is TLS-enabled
+  [btcwallet](https://github.com/btcsuite/btcwallet).
+* btcd is secure by default which means that the RPC connection is TLS-enabled
   by default
-* pfcd provides access to the API through both
+* btcd provides access to the API through both
   [HTTP POST](http://en.wikipedia.org/wiki/POST_%28HTTP%29) requests and
   [Websockets](http://en.wikipedia.org/wiki/WebSocket)
 
-Websockets are the preferred transport for pfcd RPC and are used by applications
-such as [pfcwallet](https://github.com/picfight/pfcwallet) for inter-process
-communication with pfcd.  The websocket connection endpoint for pfcd is
-`wss://your_ip_or_domain:9709/ws`.
+Websockets are the preferred transport for btcd RPC and are used by applications
+such as [btcwallet](https://github.com/btcsuite/btcwallet) for inter-process
+communication with btcd.  The websocket connection endpoint for btcd is
+`wss://your_ip_or_domain:8334/ws`.
 
 In addition to the [standard API](#Methods), an [extension API](#WSExtMethods)
 has been developed that is exclusive to clients using Websockets. In its current
 state, this API attempts to cover features found missing in the standard API
-during the development of pfcwallet.
+during the development of btcwallet.
 
 While the [standard API](#Methods) is stable, the
 [Websocket extension API](#WSExtMethods) should be considered a work in
@@ -60,22 +63,22 @@ The original bitcoind/bitcoin-qt JSON-RPC API documentation is available at [htt
 
 ### 2. HTTP POST Versus Websockets
 
-The pfcd RPC server supports both [HTTP POST](http://en.wikipedia.org/wiki/POST_%28HTTP%29)
+The btcd RPC server supports both [HTTP POST](http://en.wikipedia.org/wiki/POST_%28HTTP%29)
 requests and the preferred [Websockets](http://en.wikipedia.org/wiki/WebSocket).
-All of the standard and extension methods described in
-this documentation can be accessed through both. As the name
+All of the [standard](#Methods) and [extension](#ExtensionMethods) methods
+described in this documentation can be accessed through both.  As the name
 indicates, the [Websocket-specific extension](#WSExtMethods) methods can only be
 accessed when connected via Websockets.
 
 As mentioned in the [overview](#Overview), the websocket connection endpoint for
-pfcd is `wss://your_ip_or_domain:9709/ws`.
+btcd is `wss://your_ip_or_domain:8334/ws`.
 
 The most important differences between the two transports as it pertains to the
 JSON-RPC API are:
 
 |   |HTTP POST Requests|Websockets|
 |---|------------------|----------|
-|Allows multiple requests across a single connection|Yes|Yes|
+|Allows multiple requests across a single connection|No|Yes|
 |Supports asynchronous notifications|No|Yes|
 |Scales well with large numbers of requests|No|Yes|
 
@@ -88,23 +91,23 @@ JSON-RPC API are:
 **3.1 Authentication Overview**<br />
 
 The following authentication details are needed before establishing a connection
-to a pfcd RPC server:
+to a btcd RPC server:
 
-* **rpcuser** is the full-access username configured for the pfcd RPC server
-* **rpcpass** is the full-access password configured for the pfcd RPC server
-* **rpclimituser** is the limited username configured for the pfcd RPC server
-* **rpclimitpass** is the limited password configured for the pfcd RPC server
-* **rpccert** is the PEM-encoded X.509 certificate (public key) that the pfcd
-  server is configured with.  It is automatically generated by pfcd and placed
-  in the pfcd home directory (which is typically `%LOCALAPPDATA%\Pfcd` on
-  Windows and `~/.pfcd` on POSIX-like OSes)
+* **rpcuser** is the full-access username configured for the btcd RPC server
+* **rpcpass** is the full-access password configured for the btcd RPC server
+* **rpclimituser** is the limited username configured for the btcd RPC server
+* **rpclimitpass** is the limited password configured for the btcd RPC server
+* **rpccert** is the PEM-encoded X.509 certificate (public key) that the btcd
+  server is configured with.  It is automatically generated by btcd and placed
+  in the btcd home directory (which is typically `%LOCALAPPDATA%\Btcd` on
+  Windows and `~/.btcd` on POSIX-like OSes)
 
-**NOTE:** As mentioned above, pfcd is secure by default which means the RPC
+**NOTE:** As mentioned above, btcd is secure by default which means the RPC
 server is not running unless configured with a **rpcuser** and **rpcpass**
 and/or a **rpclimituser** and **rpclimitpass**, and uses TLS authentication for
 all connections.
 
-Depending on which connection type you are using, you can choose one of
+Depending on which connection transaction you are using, you can choose one of
 two, mutually exclusive, methods.
 - [Use HTTP Authorization Header](#HTTPAuth) - HTTP POST requests and Websockets
 - [Use the JSON-RPC "authenticate" command](#JSONAuth) - Websockets only
@@ -113,7 +116,7 @@ two, mutually exclusive, methods.
 
 **3.2 HTTP Basic Access Authentication**<br />
 
-The pfcd RPC server uses HTTP [basic access authentication](http://en.wikipedia.org/wiki/Basic_access_authentication) with the **rpcuser**
+The btcd RPC server uses HTTP [basic access authentication](http://en.wikipedia.org/wiki/Basic_access_authentication) with the **rpcuser**
 and **rpcpass** detailed above.  If the supplied credentials are invalid, you
 will be disconnected immediately upon making the connection.
 
@@ -135,11 +138,11 @@ authenticated will cause the websocket to be closed immediately.
 
 ### 4. Command-line Utility
 
-pfcd comes with a separate utility named `pfcctl` which can be used to issue
-these RPC commands via HTTP POST requests to pfcd after configuring it with the
+btcd comes with a separate utility named `btcctl` which can be used to issue
+these RPC commands via HTTP POST requests to btcd after configuring it with the
 information in the [Authentication](#Authentication) section above.  It can also
 be used to communicate with any server/daemon/service which provides a JSON-RPC
-API compatible with the original pfcd client.
+API compatible with the original bitcoind/bitcoin-qt client.
 
 <a name="Methods" />
 
@@ -161,39 +164,29 @@ the method name for further details such as parameter and return information.
 |5|[getaddednodeinfo](#getaddednodeinfo)|N|Returns information about manually added (persistent) peers.|
 |6|[getbestblockhash](#getbestblockhash)|Y|Returns the hash of the of the best (most recent) block in the longest block chain.|
 |7|[getblock](#getblock)|Y|Returns information about a block given its hash.|
-|8|[getblockchaininfo](#getblockchaininfo)|Y|Returns information about the current state of the block chain.|
-|9|[getblockcount](#getblockcount)|Y|Returns the number of blocks in the longest block chain.|
-|10|[getblockhash](#getblockhash)|Y|Returns hash of the block in best block chain at the given height.|
-|11|[getblockheader](#getblockheader)|Y|Returns the block header of the block.|
-|12|[getchaintips](#getchaintips)|Y|Returns information about all known chain tips the in the block tree.|
-|13|[getconnectioncount](#getconnectioncount)|N|Returns the number of active connections to other peers.|
-|14|[getdifficulty](#getdifficulty)|Y|Returns the proof-of-work difficulty as a multiple of the minimum difficulty.|
-|15|[getgenerate](#getgenerate)|N|Return if the server is set to generate coins (mine) or not.|
-|16|[gethashespersec](#gethashespersec)|N|Returns a recent hashes per second performance measurement while generating coins (mining).|
-|17|[getinfo](#getinfo)|Y|Returns a JSON object containing various state info.|
-|18|[getmempoolinfo](#getmempoolinfo)|N|Returns a JSON object containing mempool-related information.|
-|19|[getmininginfo](#getmininginfo)|N|Returns a JSON object containing mining-related information.|
-|20|[getnettotals](#getnettotals)|Y|Returns a JSON object containing network traffic statistics.|
-|21|[getnetworkhashps](#getnetworkhashps)|Y|Returns the estimated network hashes per second for the block heights provided by the parameters.|
-|22|[getpeerinfo](#getpeerinfo)|N|Returns information about each connected network peer as an array of json objects.|
-|23|[getrawmempool](#getrawmempool)|Y|Returns an array of hashes for all of the transactions currently in the memory pool.|
-|24|[getrawtransaction](#getrawtransaction)|Y|Returns information about a transaction given its hash.|
-|25|[getwork](#getwork)|N|Returns formatted hash data to work on or checks and submits solved data.<br /><br />NOTE: Since pfcd does not have the wallet integrated to provide payment addresses, pfcd must be configured via the `--miningaddr` option to provide which payment addresses to pay created blocks to for this RPC to function.|
-|26|[help](#help)|Y|Returns a list of all commands or help for a specified command.|
-|27|[ping](#ping)|N|Queues a ping to be sent to each connected peer.|
-|28|[sendrawtransaction](#sendrawtransaction)|Y|Submits the serialized, hex-encoded transaction to the local peer and relays it to the network.<br /><br />NOTE: pfcd does not yet implement the `allowhighfees` parameter, so it has no effect|
-|29|[setgenerate](#setgenerate) |N|Set the server to generate coins (mine) or not.<br/>NOTE: Since pfcd does not have the wallet integrated to provide payment addresses, pfcd must be configured via the `--miningaddr` option to provide which payment addresses to pay created blocks to for this RPC to function.|
-|30|[stop](#stop)|N|Shutdown pfcd.|
-|31|[submitblock](#submitblock)|Y|Attempts to submit a new serialized, hex-encoded block to the network.|
-|32|[validateaddress](#validateaddress)|Y|Verifies the given address is valid.  NOTE: Since pfcd does not have a wallet integrated, pfcd will only return whether the address is valid or not.|
-|33|[verifychain](#verifychain)|N|Verifies the block chain database.|
-|34|[debuglevel](#debuglevel)|N|Dynamically changes the debug logging level.|
-|35|[getbestblock](#getbestblock)|Y|Get block height and hash of best block in the main chain.|
-|36|[getcurrentnet](#getcurrentnet)|Y|Get PicFight network pfcd is running on.|
-|37|[searchrawtransactions](#searchrawtransactions)|Y|Query for transactions related to a particular address.|
-|38|[node](#node)|N|Attempts to add or remove a peer. |
-|39|[generate](#generate)|N|When in simnet or regtest mode, generate a set number of blocks. |
-|40|[getstakeversions](#getstakeversions)|Y|Get stake versions per block. |
+|8|[getblockcount](#getblockcount)|Y|Returns the number of blocks in the longest block chain.|
+|9|[getblockhash](#getblockhash)|Y|Returns hash of the block in best block chain at the given height.|
+|10|[getblockheader](#getblockheader)|Y|Returns the block header of the block.|
+|11|[getconnectioncount](#getconnectioncount)|N|Returns the number of active connections to other peers.|
+|12|[getdifficulty](#getdifficulty)|Y|Returns the proof-of-work difficulty as a multiple of the minimum difficulty.|
+|13|[getgenerate](#getgenerate)|N|Return if the server is set to generate coins (mine) or not.|
+|14|[gethashespersec](#gethashespersec)|N|Returns a recent hashes per second performance measurement while generating coins (mining).|
+|15|[getinfo](#getinfo)|Y|Returns a JSON object containing various state info.|
+|16|[getmempoolinfo](#getmempoolinfo)|N|Returns a JSON object containing mempool-related information.|
+|17|[getmininginfo](#getmininginfo)|N|Returns a JSON object containing mining-related information.|
+|18|[getnettotals](#getnettotals)|Y|Returns a JSON object containing network traffic statistics.|
+|19|[getnetworkhashps](#getnetworkhashps)|Y|Returns the estimated network hashes per second for the block heights provided by the parameters.|
+|20|[getpeerinfo](#getpeerinfo)|N|Returns information about each connected network peer as an array of json objects.|
+|21|[getrawmempool](#getrawmempool)|Y|Returns an array of hashes for all of the transactions currently in the memory pool.|
+|22|[getrawtransaction](#getrawtransaction)|Y|Returns information about a transaction given its hash.|
+|23|[help](#help)|Y|Returns a list of all commands or help for a specified command.|
+|24|[ping](#ping)|N|Queues a ping to be sent to each connected peer.|
+|25|[sendrawtransaction](#sendrawtransaction)|Y|Submits the serialized, hex-encoded transaction to the local peer and relays it to the network.<br /><font color="orange">btcd does not yet implement the `allowhighfees` parameter, so it has no effect</font>|
+|26|[setgenerate](#setgenerate) |N|Set the server to generate coins (mine) or not.<br/>NOTE: Since btcd does not have the wallet integrated to provide payment addresses, btcd must be configured via the `--miningaddr` option to provide which payment addresses to pay created blocks to for this RPC to function.|
+|27|[stop](#stop)|N|Shutdown btcd.|
+|28|[submitblock](#submitblock)|Y|Attempts to submit a new serialized, hex-encoded block to the network.|
+|29|[validateaddress](#validateaddress)|Y|Verifies the given address is valid.  NOTE: Since btcd does not have a wallet integrated, btcd will only return whether the address is valid or not.|
+|30|[verifychain](#verifychain)|N|Verifies the block chain database.|
 
 <a name="MethodDetails" />
 
@@ -204,7 +197,7 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|addnode|
-|Parameters|1. `peer`: `(string, required)` ip address and port of the peer to operate on.<br />2. `command`: `(string, required)` - `add` to add a persistent peer, `remove` to remove a persistent peer, or `onetry` to try a single connection to a peer.|
+|Parameters|1. peer (string, required) - ip address and port of the peer to operate on<br />2. command (string, required) - `add` to add a persistent peer, `remove` to remove a persistent peer, or `onetry` to try a single connection to a peer|
 |Description|Attempts to add or remove a persistent peer.|
 |Returns|Nothing|
 [Return to Overview](#MethodOverview)<br />
@@ -215,11 +208,11 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|createrawtransaction|
-|Parameters|1. `transaction inputs`:  `(JSON array, required)` json array of json objects.</br> `amount`: `(numeric)` the previous output amount.<br />`hash`: `(string, required)` the hash of the input.</br> `vout`: (numeric, required) the specific output of the input transaction to redeem transaction.<br /><br />`[{"amount": n.nnn, "txid": "hash", "vout": n}, ...]`<br /><br />2. `addresses and amounts`: `(JSON object, required)` - json object with addresses as keys and output amounts as values.</br>`address`: `(string, required)` the address to send the specified output amount to.<br /><br />`{"address": n.nnn, ...}`|
-|Description|Returns a new transaction spending the provided inputs and sending to the provided addresses.The transaction inputs are not signed in the created transaction.<br /><br />The `signrawtransaction` RPC command provided by wallet must be used to sign the resulting transaction.|
+|Parameters|1. transaction inputs (JSON array, required) - json array of json objects<br />`[`<br />&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "hash", (string, required) the hash of the input transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"vout": n  (numeric, required) the specific output of the input transaction to redeem`<br />&nbsp;&nbsp;`}, ...`<br />`]`<br />2. addresses and amounts (JSON object, required) - json object with addresses as keys and amounts as values<br />`{`<br />&nbsp;&nbsp;`"address": n.nnn (numeric, required) the address to send to as the key and the amount in PFC as the value`<br />&nbsp;&nbsp;`, ...`<br />`}`<br />3. locktime (int64, optional, default=0) - specifies the transaction locktime.  If non-zero, the inputs will also have their locktimes activated. |
+|Description|Returns a new transaction spending the provided inputs and sending to the provided addresses.<br />The transaction inputs are not signed in the created transaction.<br />The `signrawtransaction` RPC command provided by wallet must be used to sign the resulting transaction.|
 |Returns|`"transaction" (string) hex-encoded bytes of the serialized transaction`|
-|Example Parameters|1. transaction inputs `[{"amount":0.49213337, "txid":"e6da89de7a6b8508ce8f371a3d0535b04b5e108cb1a6e9284602d3bfd357c018", "vout":1}]`<br /><br />2. addresses and amounts ```{"13cgrTP7wgbZYWrY9BZ22BV6p82QXQT3nY": 0.49213337}```|
-|Example Return|Newlines added for display purposes.  The actual return does not contain newlines.<br />`010000000118c057d3bfd3024628e9a6b18c105e4bb035053d1a378fce08856b7ade89dae6010000`<br />`0000ffffffff0199efee02000000001976a9141cb013db35ecccc156fdfd81d03a11c51998f99388`<br />`ac00000000`|
+|Example Parameters|1. transaction inputs `[{"txid":"e6da89de7a6b8508ce8f371a3d0535b04b5e108cb1a6e9284602d3bfd357c018","vout":1}]`<br />2. addresses and amounts `{"13cgrTP7wgbZYWrY9BZ22BV6p82QXQT3nY": 0.49213337}`<br />3. locktime `0`|
+|Example Return|`010000000118c057d3bfd3024628e9a6b18c105e4bb035053d1a378fce08856b7ade89dae6010000`<br />`0000ffffffff0199efee02000000001976a9141cb013db35ecccc156fdfd81d03a11c51998f99388`<br />`ac00000000`<br /><font color="orange">**Newlines added for display purposes.  The actual return does not contain newlines.**</font>|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -228,21 +221,22 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|decoderawtransaction|
-|Parameters|1. `data`: `(string, required)` serialized, hex-encoded transaction.|
+|Parameters|1. data (string, required) - serialized, hex-encoded transaction|
 |Description|Returns a JSON object representing the provided serialized, hex-encoded transaction.|
-|Returns|`(json object)`<br />`txid`: `(string)` the transaction id. <br />`hash`: `(string)` the hash of the transaction. <br /> `locktime`: `(numeric)` the transaction lock time.<br />`version`: `(numeric)` the block version. <br />`expiry`: `(numeric)` the transaction expiry. <br />`vin`: `(array of json objects)` the transaction inputs as json objects.<br />`vout`: `(array of json objects)` the transaction outputs as json objects.<br /><br />`{"txid": "hash", "locktime": n, "version":n, "expiry": n, "vin": [...], "vout": [...]}`<br /><br />**vin (for coinbase transactions)**<br />`(json object)`<br /> `coinbase`: (string) the hex-encoded bytes of the signature script.<br />`sequence`: (numeric) the script sequence number.<br /><br />`{"coinbase": "data", "sequence": n, ...}`<br /><br />**vin (for stakebase transactions)**<br />`(json object)`<br /> `stakebase`: (string) the hash of the stake transaction.<br />`sequence`: (numeric) the script sequence number.<br /><br />`{"stakebase": "hash", "sequence": n, ...}`<br /><br />**vin (for non-coinbase / non-stakebase transactions)**<br />`(json object)`<br />`txid`: `(string)` the hash of the origin transaction.<br />`vout`: `(numeric)` the index of the output being redeemed from the origin transaction.<br />`scriptSig`: `(json object)` the signature script used to redeem the origin transaction.<br />`asm`:`(string)` disassembly of the script.<br />`data`: `(string)` hex-encoded bytes of the script.<br />`sequence`:  `(numeric)` the script sequence number.<br /><br />`{"txid": "hash", "vout": n,"scriptSig": {"asm": "asm", "hex": "data"}, "sequence": n, ...}`<br /><br />**vout**<br />`(json object)`<br />`value`: `(numeric)` the value in PFC.<br />`n`: `(numeric)` the index of this transaction output.<br />`scriptPubKey`:`(json object)` the public key script used to pay coins.<br />`asm`: `(string)` disassembly of the script.<br /> `hex`: `(string)` hex-encoded bytes of the script.<br /> `reqSigs`: `(numeric)` the number of required signatures.<br />`type`: `(string)` the type of the script (e.g. 'pubkeyhash').<br />`addresses`: `(json array of string)` the PicFight addresses associated with this output.<br /><br />`{ "value": n, "n": n, "scriptPubKey": {"asm": "asm", "hex": "data","reqSigs": n, "type": "scripttype","addresses": [...]}}`|
-|Example Return|**For coinbase transactions**<br />`{"txid": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", "version": 1, "locktime": 0, "vin": [{"coinbase": "04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6...","sequence": 4294967295}, ...],"vout": [{"value": 50, "n": 0, "scriptPubKey": {"asm": "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4ce...","hex": "4104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4...", "reqSigs": 1,"type": "pubkey","addresses": ["1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", ...]}}]}`<br /><br />**For stakebase transactions**<br />`{"txid": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", "version": 1, "locktime": 0, "vin": [{"stakebase": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04","sequence": 4294967295}, ...],"vout": [{"value": 50, "n": 0, "scriptPubKey": {"asm": "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4ce...","hex": "4104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4...", "reqSigs": 1,"type": "pubkey","addresses": ["1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", ...]}}]}`<br /><br />**For non-coinbase / non-stakebase transactions**<br />`{"txid": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", "version": 1, "locktime": 0, "vin": [{"txid": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04", "vout": 0, "scriptSig": {"asm": "3046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f0...", "hex": "493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8...",},"sequence": 4294967295}, ...],"vout": [{"value": 50, "n": 0, "scriptPubKey": {"asm": "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4ce...","hex": "4104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4...", "reqSigs": 1,"type": "pubkey","addresses": ["1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", ...]}}]}`|
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"txid": "hash",  (string) the hash of the transaction`<br />&nbsp;&nbsp;`"version": n,  (numeric) the transaction version`<br />&nbsp;&nbsp;`"locktime": n,  (numeric) the transaction lock time`<br />&nbsp;&nbsp;`"vin": [  (array of json objects) the transaction inputs as json objects`<br />&nbsp;&nbsp;<font color="orange">For coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"coinbase": "data",  (string) the hex-encoded bytes of the signature script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": n,  (numeric) the script sequence number`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;<font color="orange">For non-coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "hash", (string) the hash of the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"vout": n, (numeric) the index of the output being redeemed from the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptSig": { (json object) the signature script used to redeem the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "asm", (string) disassembly of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "data",  (string) hex-encoded bytes of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": n,  (numeric) the script sequence number`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}, ...`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"vout": [  (array of json objects) the transaction outputs as json objects`<br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"value": n, (numeric) the value in PFC`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"n": n, (numeric) the index of this transaction output`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptPubKey": { (json object) the public key script used to pay coins`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "asm",  (string) disassembly of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "data", (string) hex-encoded bytes of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"reqSigs": n,  (numeric) the number of required signatures`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"type": "scripttype" (string) the type of the script (e.g. 'pubkeyhash')`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [ (json array of string) the bitcoin addresses associated with this output`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"bitcoinaddress",  (string) the bitcoin address`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`...`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}, ...`<br />&nbsp;&nbsp;`]`<br />`}`|
+|Example Return|`{`<br />&nbsp;&nbsp;`"txid": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",`<br />&nbsp;&nbsp;`"version": 1,`<br />&nbsp;&nbsp;`"locktime": 0,`<br />&nbsp;&nbsp;`"vin": [`<br />&nbsp;&nbsp;<font color="orange">For coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"coinbase": "04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": 4294967295,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;<font color="orange">For non-coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"vout": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptSig": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "3046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f0...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": 4294967295,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"vout": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"value": 50,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"n": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptPubKey": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4ce...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "4104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"reqSigs": 1,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"type": "pubkey"`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;`]`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
+
 ***
 <a name="decodescript"/>
 
 |   |   |
 |---|---|
 |Method|decodescript|
-|Parameters|1. `script`: `(string, required)` hex-encoded script.|
+|Parameters|1. script (string, required) - hex-encoded script|
 |Description|Returns a JSON object with information about the provided hex-encoded script.|
-|Returns|`(json object)`<br />`asm`: `(string)` disassembly of the script (absent for nonstandard scripts).<br />`reqSigs`: `(numeric)` the number of required signatures.<br />`type`: `(string)` the type of the script (e.g. 'pubkeyhash').<br />`addresses`: `(json array of string)` the PicFight addresses associated with this script.<br />`p2sh`: `(string)` the script hash for use in pay-to-script-hash transactions.<br /><br />`{ "asm": "asm", "reqSigs": n, "type": "scripttype", "addresses": [...], "p2sh": "scripthash"}`|
-|Example Return|`{"asm": "OP_DUP OP_HASH160 b0a4d8a91981106e4ed85165a66748b19f7b7ad4 OP_EQUALVERIFY OP_CHECKSIG", "reqSigs": 1, "type": "pubkeyhash", "addresses": ["1H71QVBpzuLTNUh5pewaH3UTLTo2vWgcRJ"], "p2sh": "359b84ff799f48231990ff0298206f54117b08b6"}`|
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"asm": "asm",  (string) disassembly of the script`<br />&nbsp;&nbsp;`"reqSigs": n,  (numeric) the number of required signatures`<br />&nbsp;&nbsp;`"type": "scripttype",  (string) the type of the script (e.g. 'pubkeyhash')`<br />&nbsp;&nbsp;`"addresses": [ (json array of string) the bitcoin addresses associated with this script`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"bitcoinaddress",  (string) the bitcoin address`<br />&nbsp;&nbsp;&nbsp;&nbsp;`...`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"p2sh": "scripthash",  (string) the script hash for use in pay-to-script-hash transactions`<br />`}`|
+|Example Return|`{`<br />&nbsp;&nbsp;`"asm": "OP_DUP OP_HASH160 b0a4d8a91981106e4ed85165a66748b19f7b7ad4 OP_EQUALVERIFY OP_CHECKSIG",`<br />&nbsp;&nbsp;`"reqSigs": 1,`<br />&nbsp;&nbsp;`"type": "pubkeyhash",`<br />&nbsp;&nbsp;`"addresses": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"1H71QVBpzuLTNUh5pewaH3UTLTo2vWgcRJ"`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"p2sh": "359b84ff799f48231990ff0298206f54117b08b6"`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -251,12 +245,12 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|getaddednodeinfo|
-|Parameters|1. `dns`: `(boolean, required)` specifies whether the returned data is a JSON object including DNS and connection information, or just a list of added peers.<br />2. `node`: `(string, optional)` only return information about this specific peer instead of all added peers.|
+|Parameters|1. dns (boolean, required) - specifies whether the returned data is a JSON object including DNS and connection information, or just a list of added peers<br />2. node (string, optional) - only return information about this specific peer instead of all added peers.|
 |Description|Returns information about manually added (persistent) peers.|
 |Returns (dns=false)|`["ip:port", ...]`|
-|Returns (dns=true)|`(json array of objects)`<br />`addednode`: `(string)` the ip address or domain of the added peer.<br />`connected`: `(boolean)` whether or not the peer is currently connected.<br />`addresses`: `(json array or objects)` DNS lookup and connection information about the peer.<br />`address`: `(string)` the ip address for this DNS entry.<br />`connected`: `(string)` the connection 'direction' (if connected).<br /><br />`[{"addednode": "ip_or_domain","connected": true or false,"addresses": [{address: "ip"}, ...], "connected": "inbound/outbound/false"}, ...]`|
-|Example Return (dns=false)|`["192.168.0.10:9708", "mydomain.org:9708"]`|
-|Example Return (dns=true)|`[{"addednode": "mydomain.org:9708", "connected": true, "addresses": [{"address": "1.2.3.4", "connected": "outbound"}, {"address": "5.6.7.8", "connected": "false"}]}]`|
+|Returns (dns=true)|`[ (json array of objects)`<br />&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"addednode": "ip_or_domain",  (string) the ip address or domain of the added peer`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"connected": true or false,  (boolean) whether or not the peer is currently connected`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [  (json array or objects) DNS lookup and connection information about the peer`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"address": "ip",  (string) the ip address for this DNS entry`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"connected": "inbound/outbound/false"  (string) the connection 'direction' (if connected)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}, ...`<br />&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`}, ...`<br />`]`|
+|Example Return (dns=false)|`["192.168.0.10:8333", "mydomain.org:8333"]`|
+|Example Return (dns=true)|`[`<br />&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"addednode": "mydomain.org:8333",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"connected": true,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"address": "1.2.3.4",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"connected": "outbound"`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`},`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"address": "5.6.7.8",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"connected": "false"`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`}`<br />`]`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -267,7 +261,7 @@ the method name for further details such as parameter and return information.
 |Method|getbestblockhash|
 |Parameters|None|
 |Description|Returns the hash of the of the best (most recent) block in the longest block chain.|
-|Returns|`string`|
+|Returns|string|
 |Example Return|`0000000000000001f356adc6b29ab42b59f913a396e170f80190dba615bd1e60`|
 [Return to Overview](#MethodOverview)<br />
 
@@ -277,12 +271,13 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|getblock|
-|Parameters|1. `block hash`: `(string, required)` the hash of the block.<br />2. `verbose`: `(boolean, optional, default=true)` specifies the block is returned as a JSON object instead of hex-encoded string.<br />3. `verbosetx`: `(boolean, optional, default=false)` specifies that each transaction is returned as a JSON object and only applies if the `verbose` flag is true.|
+|Parameters|1. block hash (string, required) - the hash of the block<br />2. verbose (boolean, optional, default=true) - specifies the block is returned as a JSON object instead of hex-encoded string<br />3. verbosetx (boolean, optional, default=false) - specifies that each transaction is returned as a JSON object and only applies if the `verbose` flag is true.<font color="orange">**This parameter is a btcd extension**</font>|
 |Description|Returns information about a block given its hash.|
 |Returns (verbose=false)|`"data" (string) hex-encoded bytes of the serialized block`|
-|Returns (verbose=true, verbosetx=false)|`(json object)`<br />`hash`: `(string)` the hash of the block (same as provided).<br />`confirmations`: `(numeric)` the number of confirmations.<br />`size`: `(numeric)` the size of the block.<br />`height`: `(numeric)` the height of the block in the block chain.<br />`version`: `(numeric)` the block version.<br />`merkleroot`: `(string)` root hash of the merkle tree.<br />`stakeroot`: `(string)` root hash of the stake tree.<br />`tx`: `(json array of string)` the transaction hashes.<br />`stx`: `(json array of string)` the stake transaction hashes.<br />`time`: `(numeric)` the block time in seconds since 1 Jan 1970 GMT.<br />`nonce`: `(numeric)` the block nonce.<br />`votebits`: `(numeric)` the block voting results.<br />`finalstate`: `(string)` the final lottery state.<br />`voters`: `(numeric)` the number of votes.<br />`freshstake`: `(numeric)` the number of ticket purchases.<br />`revocations`: `(numeric)` the number of ticket revocations.<br />`poolsize`: `(numeric)` the total number of valid spendble tickets as of the block.<br />`bits`: `(numeric)` the bits which represent the block difficulty.<br />`sbits`: `(numeric)` the bits which represent the stake difficulty.<br />`difficulty`: `(numeric)` the proof-of-work difficulty as a multiple of the minimum difficulty.<br />`chainwork`: `(string)` the total number of hashes expected to produce the chain up to the block in hex.<br />`extradata`: `(string)` extra data for the block including the extra nonce used by proof-of-work miners.<br />`stakeversion`: `(string)` block stake version.<br />`previousblockhash`: `(string)` the hash of the previous block.<br />`nextblockhash`: `(string)` the hash of the next block (only if there is one).<br /><br />`{"hash": "blockhash", "confirmations": n, "size": n, "height": n, "version": n, "merkleroot": "hash", "stakeroot": "hash", "tx": ["transactionhash", ...], "stx": ["transactionhash", ...], "time": n, "nonce": n, "votebits": n, "finalstate": "state", "voters": n, "freshstake": n, "revocations": n, "poolsize": n, "bits": n, "sbits": n.nn, "difficulty": n.nn, "chainwork": "workhex", "extradata": "data", "stakeversion": n, previousblockhash": "hash", "nextblockhash": "hash"}`|
-|Example Return (verbose=false)|Newlines added for display purposes. The actual return does not contain newlines.<br/> `"01000000b926d1870d6f88760a8b10db0d4439e5cd74f3827fd4b6827443000000000000`<br />`35cade3c4cd99e7547d1dffe8474855dd363dff69b395428810466c985d067c800000000`<br />`000000000000000000000000000000000000000000000000000000000100000000000000`<br />`0000000000000000ffff011b00c2eb0b00000000020000007e01000080d8b856bac0f231`<br />`c84e3a6b6ad536d301000000000000000000000000000000000000000000000000000000`<br />`010100000001000000000000000000000000000000000000000000000000000000000000`<br />`0000ffffffff00ffffffff03fa1a981200000000000017a914f5916158e3e2c4551c1796`<br />`708db8367207ed13bb8700000000000000000000266a2402000000000000000000000000`<br />`000000000000000000000000000000ffa310d9a6a9588edea1906f0000000000001976a9`<br />`148ffe7a49ecf0f4858e7a52155302177398d2296988ac000000000000000001d8bc2882`<br />`0000000000000000ffffffff0800002f646372642f00"`<br />|
-|Example Return (verbose=true, verbosetx=false)|`"hash": "000000000000c41019872ff7db8fd2e9bfa05f42d3f8fee8e895e8c1e5b8dcba", "confirmations": 283285,"size": 382, "height": 2, "version": 1, "merkleroot": "c867d085c96604812854399bf6df63d35d857484fedfd147759ed94c3cdeca35", "stakeroot": "000000000000000000000000000000000000000000000000000000000000000", tx": ["ba8d2fcb5c705a1e5cbeda0db9dd30a521e360efd3aef75e862b2b69e0a673af", ...], "time": 1454954624, "nonce": 837992634, "votebits": 1, "finalstate": "000000000000", "voters": 0, "freshstake": 0, "revocations": 0, "poolsize": 0, "bits": "1d00ffff", "sbits": 2, "difficulty": 32767.74999809, "chainwork": "00000000000000000000000000000000000000000000000000018000c0006000", "extradata": "c84e3a6b6ad536d3010000000000000000000000000000000000000000000000", "stakeversion": 0, "previousblockhash": "000000000000437482b6d47f82f374cde539440ddb108b0a76886f0d87d126b9", "nextblockhash": "00000000000108ac3e3f51a0f4424dd757a3b0485da0ec96592f637f27bd1cf5"}`|
+|Returns (verbose=true, verbosetx=false)|`{ (json object)`<br />&nbsp;&nbsp;`"hash": "blockhash",  (string) the hash of the block (same as provided)`<br />&nbsp;&nbsp;`"confirmations": n,  (numeric) the number of confirmations`<br />&nbsp;&nbsp;`"strippedsize", n (numeric) the size of the block without witness data`<br />&nbsp;&nbsp;`"size": n,  (numeric) the size of the block`<br />&nbsp;&nbsp;`"weight": n, (numeric) value of the weight metric`<br />&nbsp;&nbsp;`"height": n,  (numeric) the height of the block in the block chain`<br />&nbsp;&nbsp;`"version": n,  (numeric) the block version`<br />&nbsp;&nbsp;`"merkleroot": "hash",  (string) root hash of the merkle tree`<br />&nbsp;&nbsp;`"tx": [ (json array of string) the transaction hashes`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"transactionhash",  (string) hash of the parent transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;`...`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"time": n,  (numeric) the block time in seconds since 1 Jan 1970 GMT`<br />&nbsp;&nbsp;`"nonce": n,  (numeric) the block nonce`<br />&nbsp;&nbsp;`"bits", n,  (numeric) the bits which represent the block difficulty`<br />&nbsp;&nbsp;`difficulty: n.nn,  (numeric) the proof-of-work difficulty as a multiple of the minimum difficulty`<br />&nbsp;&nbsp;`"previousblockhash": "hash",  (string) the hash of the previous block`<br />&nbsp;&nbsp;`"nextblockhash": "hash",  (string) the hash of the next block (only if there is one)`<br />`}`|
+|Returns (verbose=true, verbosetx=true)|`{ (json object)`<br />&nbsp;&nbsp;`"hash": "blockhash",  (string) the hash of the block (same as provided)`<br />&nbsp;&nbsp;`"confirmations": n,  (numeric) the number of confirmations`<br />&nbsp;&nbsp;`"strippedsize", n (numeric) the size of the block without witness data`<br />&nbsp;&nbsp;`"size": n,  (numeric) the size of the block`<br />&nbsp;&nbsp;`"weight": n, (numeric) value of the weight metric`<br />&nbsp;&nbsp;`"height": n,  (numeric) the height of the block in the block chain`<br />&nbsp;&nbsp;`"version": n,  (numeric) the block version`<br />&nbsp;&nbsp;`"merkleroot": "hash",  (string) root hash of the merkle tree`<br />&nbsp;&nbsp;`"rawtx": [ (array of json objects) the transactions as json objects`<br />&nbsp;&nbsp;&nbsp;&nbsp;`(see getrawtransaction json object details)`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"time": n,  (numeric) the block time in seconds since 1 Jan 1970 GMT`<br />&nbsp;&nbsp;`"nonce": n,  (numeric) the block nonce`<br />&nbsp;&nbsp;`"bits", n,  (numeric) the bits which represent the block difficulty`<br />&nbsp;&nbsp;`difficulty: n.nn,  (numeric) the proof-of-work difficulty as a multiple of the minimum difficulty`<br />&nbsp;&nbsp;`"previousblockhash": "hash",  (string) the hash of the previous block`<br />&nbsp;&nbsp;`"nextblockhash": "hash",  (string) the hash of the next block`<br />`}`|
+|Example Return (verbose=false)|`"010000000000000000000000000000000000000000000000000000000000000000000000`<br />`3ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49`<br />`ffff001d1dac2b7c01010000000100000000000000000000000000000000000000000000`<br />`00000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f`<br />`4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f`<br />`6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104`<br />`678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f`<br />`4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000"`<br /><font color="orange">**Newlines added for display purposes.  The actual return does not contain newlines.**</font>|
+|Example Return (verbose=true, verbosetx=false)|`{`<br />&nbsp;&nbsp;`"hash": "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",`<br />&nbsp;&nbsp;`"confirmations": 277113,`<br />&nbsp;&nbsp;`"size": 285,`<br />&nbsp;&nbsp;`"height": 0,`<br />&nbsp;&nbsp;`"version": 1,`<br />&nbsp;&nbsp;`"merkleroot": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",`<br />&nbsp;&nbsp;`"tx": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"`<br />&nbsp;&nbsp;`],`<br />&nbsp;&nbsp;`"time": 1231006505,`<br />&nbsp;&nbsp;`"nonce": 2083236893,`<br />&nbsp;&nbsp;`"bits": "1d00ffff",`<br />&nbsp;&nbsp;`"difficulty": 1,`<br />&nbsp;&nbsp;`"previousblockhash": "0000000000000000000000000000000000000000000000000000000000000000",`<br />&nbsp;&nbsp;`"nextblockhash": "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048"`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -315,37 +310,12 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|getblockheader|
-|Parameters|1.  `block hash`: `(string, required)` the hash of the block.<br />2. `verbose`: `(boolean, optional, default=true)` specifies the block header is returned as a JSON object instead of a hex-encoded string.|
+|Parameters|1. block hash (string, required) - the hash of the block<br />2. verbose (boolean, optional, default=true) - specifies the block header is returned as a JSON object instead of a hex-encoded string|
 |Description|Returns hex-encoded bytes of the serialized block header.|
 |Returns (verbose=false)|`"data" (string) hex-encoded bytes of the serialized block`|
-|Returns (verbose=true)|`(json object)`<br />`hash`: `(string)` the hash of the block (same as provided).<br />`confirmations`: `(numeric)` the number of confirmations.<br />`version`: `(numeric)` the block version.<br />`merkleroot`: `(string)` root hash of the merkle tree.<br />`stakeroot`: `(string)` root hash of the stake tree.<br />`votebits`: `(numeric)` the block voting results.<br />`finalstate`: `(string)` the final lottery state.<br />`voters`: `(numeric)` the number of votes.<br />`freshstake`: `(numeric)` the number of ticket purchases.<br />`revocations`: `(numeric)` the number of ticket revocations.<br />`poolsize`: `(numeric)` the total number of valid spendble tickets as of the block.<br />`bits`: `(numeric)` the bits which represent the block difficulty.<br />`sbits`: `(numeric)` the bits which represent the stake difficulty.<br />`height`: `(numeric)` the height of the block in the block chain.<br />`size`: `(numeric)` the size of the block.<br />`time`: `(numeric)` the block time in seconds since 1 Jan 1970 GMT.<br />`nonce`: `(numeric)` the block nonce.<br />`extradata`: `(string)` extra data for the block including the extra nonce used by proof-of-work miners.<br />`stakeversion`: `(string)` block stake version.<br />`difficulty`: `(numeric)` the proof-of-work difficulty as a multiple of the minimum difficulty.<br />`chainwork`: `(string)` the total number of hashes expected to produce the chain up to the block in hex.<br />`previousblockhash`: `(string)` the hash of the previous block.<br />`nextblockhash`: `(string)` the hash of the next block (only if there is one).<br /><br />`{"hash": "blockhash", "confirmations": n, "version": n, "merkleroot": "hash", "stakeroot": "hash", "votebits": n, "finalstate": "state", "voters": n, "freshstake": n, "revocations": n, "poolsize": n, "bits": n, "sbits": n.nn, "height": n, "size": n, "time": n, "nonce": n, "extradata": "data", "stakeversion": n, "difficulty": n.nn, "chainwork": "workhex", "previousblockhash": "hash", "nextblockhash": "hash"}`
-|
-|Example Return (verbose=false)|Newlines added for display purposes.  The actual return does not contain newlines.<br />`"0100000094f455952f88b4ff019c6673f3f01541b76e700e0c8a2ab9da00000000000000`<br />`266b9d4672f099e2b36c7adcede6564ee7326ac02b757b065e4a7c69efa44925825ccc8e`<br />`9602af73d03e54ea1ac717f712c869440a1762375f64b9fe3ae2409f01008b736885bab7`<br />`0500000047a60000b494111a6688f80402000000a0860100600c000000a081585ab58b03`<br />`360000000024680140d1ec18000000000000000000000000000000000000000000000000"`|
-|Example Return (verbose=true)|`{"hash": "00000000000004289d9a7b0f7a332fb60a1c221faae89a107ce3ab93eead2f93", "confirmations": 183291, "version": 1, "merkleroot": "2549a4ef697c4a5e067b752bc06a32e74e56e6eddc7a6cb3e299f072469d6b26", "stakeroot":"9f40e23afeb9645f3762170a4469c812f717c71aea543ed073af02968ecc5c82", "votebits": 1, "finalstate": "8b736885bab7", "voters": 5, "freshstake": 0, "revocations": 0, "poolsize": 42567, "bits": "1a1194b4", "sbits": 86.73331302, "height": 100000, "size": 3168, "time": 1484890112, "nonce": 59487578, "stakeversion": 0, "difficulty": 954273.50809769, "chainwork": "00000000000000000000000000000000000000000000001060ad4432c4d6eff1", "previousblockhash": "00000000000000dab92a8a0c0e706eb74115f0f373669c01ffb4882f9555f494",  "nextblockhash": "0000000000000578b08f22fd2bdf5f7fe5b0af1bb4928de5053a3f906b3c8f6b"}`|
-[Return to Overview](#MethodOverview)<br />
-
-***
-<a name="getchaintips"/>
-
-|   |   |
-|---|---|
-|Method|getchaintips|
-|Parameters|None|
-|Description|Returns about all known chain tips the in the block tree.<br /><br />The statuses in the result have the following meanings:<br /><br />`active`: The current best chain tip.<br />`invalid`: The block or one of its ancestors is invalid.<br />`headers-only`: The block or one of its ancestors does not have the full block data available which also means the block can't be validated or connected.<br />`valid-fork`: The block is fully validated which implies it was probably part of the main chain at one point and was reorganized.<br />`valid-headers`: The full block data is available and the header is valid, but the block was never validated which implies it was probably never part of the main chain.|
-|Returns|`(json array of objects)`<br />`height`: `(numeric)` The height of the chain tip.<br />`hash`: `(string)` The block hash of the chain tip.<br />`branchlen`: `(numeric)` The length of the branch that connects the tip to the main chain (0 for the main chain tip).<br />`status`: `(string)`  status of the chain (active, invalid, headers-only, valid-fork, valid-headers).<br /><br />`[{"height": n, "hash": "hash", "branchlen": n, "status": "status"}, ...]`|
-|Example Return|`[{"height": 217033, "hash": "00000000000000161bd5b120ef945faad60fc6e4c32b5caf1d4cabeae9a75346", "branchlen": 0, "status": "active"}, {"height": 213522, "hash": "0000000000000015e27658ce02ba8fa05d8d7ad9c587a5a472e3307773a9b36e", "branchlen": 1, "status": "valid-fork"}]"`|
-[Return to Overview](#MethodOverview)<br />
-
-***
-<a name="getblockchaininfo"/>
-
-|   |   |
-|---|---|
-|Method|getblockchaininfo|
-|Parameters|None|
-|Description|Returns information about the current state of the block chain.|
-|Returns|`(json object)`<br />`chain`: `(string)` The current network name.<br />`blocks`: `(numeric)` The number of blocks in the current best chain.<br />`headers`: `(numeric)` The number of validated block headers that comprise the target best chain.<br />`syncheight`: `(numeric)` The latest known block height being synced to.<br />`bestblockhash`: `(string)` The block hash of the current best chain tip.<br />`difficulty`: `(numeric)` The current network difficulty.<br />`verificationprogress`: `(numeric)` The chain verification progress estimate.<br />`chainwork`: `(string)` Hex encoded total work done for the chain.<br />`initialblockdownload`: `(boolean)` Best guess of whether this node is in the initial block download mode used to catch up the chain when it is far behind.<br />`maxblocksize`: `(numeric)` The maximum allowed block size.<br />`deployments`: `(json array of objects)` Network consensus deployments.<br />`status`: `(string)` The deployment agenda's current status.<br />`since`: `(numeric)` The blockheight of the first block to which the status applies.<br />`starttime`: `(numeric)` The start time of the voting period for the agenda.<br />`expiretime`: `(numeric)` The expiry time of the voting period for the agenda.<br /><br />`{ "chain": "name", "blocks": n, "headers": n, "syncheight": n, "bestblockhash": "hash", "difficulty": n, "verificationprogress": n, "chainwork": "n", "initialblockdownload": bool, "maxblocksize": n, "deployments": {"agenda": { "status": "status", "since": n, "starttime": n, "expiretime": n}, ...}}`|
-|Example Return|`{"chain": "simnet", "blocks": 463, "headers": 463, "syncheight": 0, "bestblockhash": "000043c89f6e227c9d90a5460aff98b662e503b9a394818942bdd60709cbb8aa", "difficulty": 520127421, "verificationprogress": 0, "chainwork": "0x23c0e40", "initialblockdownload": false, "maxblocksize": 1000000, "deployments": {"lnfeatures": {"status": "started", "since": 463, "starttime": 0, "expiretime": 9223372036854775807}, "maxblocksize": {"status": "started", "since": 463, "starttime": 0, "expiretime": 9223372036854775807}, "sdiffalgorithm": {"status": "started", "since": 463, "starttime": 0, "expiretime": 9223372036854775807}}}`|
+|Returns (verbose=true)|`{ (json object)`<br />&nbsp;&nbsp;`"hash": "blockhash", (string) the hash of the block (same as provided)`<br />&nbsp;&nbsp;`"confirmations": n,  (numeric) the number of confirmations`<br />&nbsp;&nbsp;`"height": n, (numeric) the height of the block in the block chain`<br />&nbsp;&nbsp;`"version": n,  (numeric) the block version`<br />&nbsp;&nbsp;`"merkleroot": "hash",  (string) root hash of the merkle tree`<br />&nbsp;&nbsp;`"time": n,  (numeric) the block time in seconds since 1 Jan 1970 GMT`<br />&nbsp;&nbsp;`"nonce": n,  (numeric) the block nonce`<br />&nbsp;&nbsp;`"bits": n,  (numeric) the bits which represent the block difficulty`<br />&nbsp;&nbsp;`"difficulty": n.nn,  (numeric) the proof-of-work difficulty as a multiple of the minimum difficulty`<br />&nbsp;&nbsp;`"previousblockhash": "hash",  (string) the hash of the previous block`<br />&nbsp;&nbsp;`"nextblockhash": "hash",  (string) the hash of the next block (only if there is one)`<br />`}`|
+|Example Return (verbose=false)|`"0200000035ab154183570282ce9afc0b494c9fc6a3cfea05aa8c1add2ecc564900000000`<br />`38ba3d78e4500a5a7570dbe61960398add4410d278b21cd9708e6d9743f374d544fc0552`<br />`27f1001c29c1ea3b"`<br /><font color="orange">**Newlines added for display purposes.  The actual return does not contain newlines.**</font>|
+|Example Return (verbose=true)|`{`<br />&nbsp;&nbsp;`"hash": "00000000009e2958c15ff9290d571bf9459e93b19765c6801ddeccadbb160a1e",`<br />&nbsp;&nbsp;`"confirmations": 392076,`<br />&nbsp;&nbsp;`"height": 100000,`<br />&nbsp;&nbsp;`"version": 2,`<br />&nbsp;&nbsp;`"merkleroot": "d574f343976d8e70d91cb278d21044dd8a396019e6db70755a0a50e4783dba38",`<br />&nbsp;&nbsp;`"time": 1376123972,`<br />&nbsp;&nbsp;`"nonce": 1005240617,`<br />&nbsp;&nbsp;`"bits": "1c00f127",`<br />&nbsp;&nbsp;`"difficulty": 271.75767393,`<br />&nbsp;&nbsp;`"previousblockhash": "000000004956cc2edd1a8caa05eacfa3c69f4c490bfc9ace820257834115ab35",`<br />&nbsp;&nbsp;`"nextblockhash": "0000000000629d100db387f37d0f37c51118f250fb0946310a8c37316cbc4028"`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -355,7 +325,7 @@ the method name for further details such as parameter and return information.
 |---|---|
 |Method|getconnectioncount|
 |Parameters|None|
-|Description|Returns the number of active connections to other peers.|
+|Description|Returns the number of active connections to other peers|
 |Returns|numeric|
 |Example Return|`8`|
 [Return to Overview](#MethodOverview)<br />
@@ -402,10 +372,11 @@ the method name for further details such as parameter and return information.
 |Method|getinfo|
 |Parameters|None|
 |Description|Returns a JSON object containing various state info.|
-|Notes|NOTE: Since pfcd does NOT contain wallet functionality, wallet-related fields are not returned.  See getinfo in pfcwallet for a version which includes that information.|
-|Returns|`(json object)`<br />`version`: `(numeric)` the version of the server.<br />`protocolversion`: `(numeric)` the latest supported protocol version.<br />`blocks`: `(numeric)` the number of blocks processed.<br />`timeoffset`: `(numeric)` the time offset.<br />`connections`: `(numeric)` the number of connected peers.<br />`proxy`: `(string)` the proxy used by the server<br />`difficulty`: `(numeric)` the current target difficulty.<br />`testnet`: `(boolean)` whether or not server is using testnet.<br />`relayfee`: `(numeric)` the minimum relay fee for non-free transactions in PFC/KB.<br /><br />`{"version": n,"protocolversion": n, "blocks": n, "timeoffset": n, "connections": n, "proxy": "host:port", "difficulty": n.nn, "testnet": true or false, "relayfee": n.nn}`|
-| Example Return |`{"version": 70000, "protocolversion": 70001, "blocks": 298963, "timeoffset": 0, "connections": 17, "proxy": "", "difficulty": 8000872135.97, "testnet": false,"relayfee": 0.00001}`|
+|Notes|NOTE: Since btcd does NOT contain wallet functionality, wallet-related fields are not returned.  See getinfo in btcwallet for a version which includes that information.|
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"version": n,  (numeric) the version of the server`<br />&nbsp;&nbsp;`"protocolversion": n,  (numeric) the latest supported protocol version`<br />&nbsp;&nbsp;`"blocks": n,  (numeric) the number of blocks processed`<br />&nbsp;&nbsp;`"timeoffset": n,  (numeric) the time offset`<br />&nbsp;&nbsp;`"connections": n,  (numeric) the number of connected peers`<br />&nbsp;&nbsp;`"proxy": "host:port",  (string) the proxy used by the server`<br />&nbsp;&nbsp;`"difficulty": n.nn,  (numeric) the current target difficulty`<br />&nbsp;&nbsp;`"testnet": true or false,  (boolean) whether or not server is using testnet`<br />&nbsp;&nbsp;`"relayfee": n.nn,  (numeric) the minimum relay fee for non-free transactions in PFC/KB`<br />`}`|
+|Example Return|`{`<br />&nbsp;&nbsp;`"version": 70000`<br />&nbsp;&nbsp;`"protocolversion": 70001,  `<br />&nbsp;&nbsp;`"blocks": 298963,`<br />&nbsp;&nbsp;`"timeoffset": 0,`<br />&nbsp;&nbsp;`"connections": 17,`<br />&nbsp;&nbsp;`"proxy": "",`<br />&nbsp;&nbsp;`"difficulty": 8000872135.97,`<br />&nbsp;&nbsp;`"testnet": false,`<br />&nbsp;&nbsp;`"relayfee": 0.00001,`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
+
 ***
 <a name="getmempoolinfo"/>
 
@@ -414,8 +385,8 @@ the method name for further details such as parameter and return information.
 |Method|getmempoolinfo|
 |Parameters|None|
 |Description|Returns a JSON object containing mempool-related information.|
-|Returns|`(json object)`<br />`bytes`: `(numeric)` size in bytes of the mempool<br />`size`: `(numeric)` number of transactions in the mempool<br /><br />`{"bytes": n, "size": n}`
-|Example Return|`{"bytes": 310768, "size": 157}`|
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"bytes": n,  (numeric) size in bytes of the mempool`<br />&nbsp;&nbsp;`"size": n,  (numeric) number of transactions in the mempool`<br />`}`|
+Example Return|`{`<br />&nbsp;&nbsp;`"bytes": 310768,`<br />&nbsp;&nbsp;`"size": 157,`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -426,8 +397,8 @@ the method name for further details such as parameter and return information.
 |Method|getmininginfo|
 |Parameters|None|
 |Description|Returns a JSON object containing mining-related information.|
-|Returns|`(json object)`<br />`blocks`: `(numeric)` latest best block.<br />`currentblocksize`: `(numeric)` size of the latest best block.<br />`currentblocktx`: `(numeric)` number of transactions in the latest best block.<br />`difficulty`: `(numeric)` current target difficulty.<br />`stakedifficulty`: `(numeric)` Stake difficulty required for the next block.<br />`errors`: `(string)` any current errors.<br />`generate`: `(boolean)` whether or not server is set to generate coins.<br />`genproclimit`:  `(numeric)` number of processors to use for coin generation (-1 when disabled).<br />`hashespersec`: `(numeric)` recent hashes per second performance measurement while generating coins.<br />`networkhashps`: `(numeric)` estimated network hashes per second for the most recent blocks.<br />`pooledtx`:  `(numeric)` number of transactions in the memory pool.<br />`testnet`: `(boolean)` whether or not server is using testnet.<br /><br />`{"blocks": n, "currentblocksize": n, "currentblocktx": n, "difficulty": n.nn,  "stakedifficulty": n, "errors": "errors", "generate": true or false,  "genproclimit": n, "hashespersec": n, "networkhashps": n, "pooledtx": n,  "testnet": true or false }`|
-|Example Return|`{"blocks": 236526, "currentblocksize": 185, "currentblocktx": 1, "difficulty": 256, "errors": "", "generate": false, "genproclimit": -1, "hashespersec": 0, "networkhashps": 33081554756, "pooledtx": 8, "testnet": true }`|
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"blocks": n,  (numeric) latest best block`<br />&nbsp;&nbsp;`"currentblocksize": n,  (numeric) size of the latest best block`<br />&nbsp;&nbsp;`"currentblockweight": n,  (numeric) weight of the latest best block`<br />&nbsp;&nbsp;`"currentblocktx": n,  (numeric) number of transactions in the latest best block`<br />&nbsp;&nbsp;`"difficulty": n.nn,  (numeric) current target difficulty`<br />&nbsp;&nbsp;`"errors": "errors",  (string) any current errors`<br />&nbsp;&nbsp;`"generate": true or false,  (boolean) whether or not server is set to generate coins`<br />&nbsp;&nbsp;`"genproclimit": n,  (numeric) number of processors to use for coin generation (-1 when disabled)`<br />&nbsp;&nbsp;`"hashespersec": n,  (numeric) recent hashes per second performance measurement while generating coins`<br />&nbsp;&nbsp;`"networkhashps": n,  (numeric) estimated network hashes per second for the most recent blocks`<br />&nbsp;&nbsp;`"pooledtx": n,  (numeric) number of transactions in the memory pool`<br />&nbsp;&nbsp;`"testnet": true or false,  (boolean) whether or not server is using testnet`<br />`}`|
+|Example Return|`{`<br />&nbsp;&nbsp;`"blocks": 236526,`<br />&nbsp;&nbsp;`"currentblocksize": 185,`<br />&nbsp;&nbsp;`"currentblockweight": 740,`<br />&nbsp;&nbsp;`"currentblocktx": 1,`<br />&nbsp;&nbsp;`"difficulty": 256,`<br />&nbsp;&nbsp;`"errors": "",`<br />&nbsp;&nbsp;`"generate": false,`<br />&nbsp;&nbsp;`"genproclimit": -1,`<br />&nbsp;&nbsp;`"hashespersec": 0,`<br />&nbsp;&nbsp;`"networkhashps": 33081554756,`<br />&nbsp;&nbsp;`"pooledtx": 8,`<br />&nbsp;&nbsp;`"testnet": true,`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -438,8 +409,8 @@ the method name for further details such as parameter and return information.
 |Method|getnettotals|
 |Parameters|None|
 |Description|Returns a JSON object containing network traffic statistics.|
-|Returns|`(json object)`<br />`totalbytesrecv`: `(numeric)` total bytes received.<br />`totalbytessent`: `(numeric)` total bytes sent.<br />`timemillis`: `(numeric)` number of milliseconds since 1 Jan 1970 GMT.<br /><br />`{"totalbytesrecv": n, "totalbytessent": n, "timemillis": n }`|
-|Example Return|`{"totalbytesrecv": 1150990, "totalbytessent": 206739, "timemillis": 1391626433845 }`|
+|Returns|`{`<br />&nbsp;&nbsp;`"totalbytesrecv": n,  (numeric) total bytes received`<br />&nbsp;&nbsp;`"totalbytessent": n,  (numeric) total bytes sent`<br />&nbsp;&nbsp;`"timemillis": n  (numeric) number of milliseconds since 1 Jan 1970 GMT`<br />`}`|
+|Example Return|`{`<br />&nbsp;&nbsp;`"totalbytesrecv": 1150990,`<br />&nbsp;&nbsp;`"totalbytessent": 206739,`<br />&nbsp;&nbsp;`"timemillis": 1391626433845`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -448,7 +419,7 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|getnetworkhashps|
-|Parameters|1. `blocks`: `(numeric, optional, default=120)` The number of blocks, or -1 for blocks since last difficulty change.<br />2. `height`: `(numeric, optional, default=-1)` Perform estimate ending with this height or -1 for current best chain block height.|
+|Parameters|1. blocks (numeric, optional, default=120) - The number of blocks, or -1 for blocks since last difficulty change<br />2. height (numeric, optional, default=-1) - Perform estimate ending with this height or -1 for current best chain block height|
 |Description|Returns the estimated network hashes per second for the block heights provided by the parameters.|
 |Returns|numeric|
 |Example Return|`6573971939`|
@@ -462,8 +433,8 @@ the method name for further details such as parameter and return information.
 |Method|getpeerinfo|
 |Parameters|None|
 |Description|Returns data about each connected network peer as an array of json objects.|
-|Returns|`(json array)`<br />`addr`: `(string)` the ip address and port of the peer.<br />`services`: `(string)` the services supported by the peer.<br />`lastrecv`: `(numeric)` time the last message was received in seconds since 1 Jan 1970 GMT.<br />`lastsend`: `(numeric)` time the last message was sent in seconds since 1 Jan 1970 GMT.<br />`bytessent`: `(numeric)` total bytes sent.<br />`bytesrecv`: `(numeric)` total bytes received.<br />`conntime`:   `(numeric)` time the connection was made in seconds since 1 Jan 1970 GMT.<br />`pingtime`: `(numeric)` number of microseconds the last ping took.<br />`pingwait`: `(numeric)` number of microseconds a queued ping has been waiting for a response.<br />`version`: `(numeric)` the protocol version of the peer.<br />`subver`: `(string)` the user agent of the peer.<br />`inbound`: `(boolean)` whether or not the peer is an inbound connection.<br />`startingheight`: `(numeric)` the latest block height the peer knew about when the connection was established.<br />`currentheight`: `(numeric)` the latest block height the peer is known to have relayed since connected.<br />`syncnode`: `(boolean)` whether or not the peer is the sync peer.<br /><br />`[{"addr": "host:port", "services": "00000001", "lastrecv": n, "lastsend": n,  "bytessent": n, "bytesrecv": n, "conntime": n, "pingtime": n, "pingwait": n,  "version": n, "subver": "useragent", "inbound": true_or_false, "startingheight": n, "currentheight": n, "syncnode": true_or_false }, ...]`|
-|Example Return|`[{"addr": "178.172.xxx.xxx:9708", "services": "00000001", "lastrecv": 1388183523, "lastsend": 1388185470, "bytessent": 287592965, "bytesrecv": 780340, "conntime": 1388182973, "pingtime": 405551, "pingwait": 183023, "version": 70001, "subver": "/pfcd:0.4.0/", "inbound": false, "startingheight": 276921, "currentheight": 276955, "syncnode": true }, ...]`|
+|Returns|`[`<br />&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"addr": "host:port",  (string) the ip address and port of the peer`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"services": "00000001",  (string) the services supported by the peer`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"lastrecv": n,  (numeric) time the last message was received in seconds since 1 Jan 1970 GMT`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"lastsend": n,  (numeric) time the last message was sent in seconds since 1 Jan 1970 GMT`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"bytessent": n,  (numeric) total bytes sent`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"bytesrecv": n,  (numeric) total bytes received`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"conntime": n,  (numeric) time the connection was made in seconds since 1 Jan 1970 GMT`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"pingtime": n,  (numeric) number of microseconds the last ping took`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"pingwait": n,  (numeric) number of microseconds a queued ping has been waiting for a response`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"version": n,  (numeric) the protocol version of the peer`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"subver": "useragent",  (string) the user agent of the peer`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"inbound": true_or_false,  (boolean) whether or not the peer is an inbound connection`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"startingheight": n,  (numeric) the latest block height the peer knew about when the connection was established`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"currentheight": n,  (numeric) the latest block height the peer is known to have relayed since connected`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"syncnode": true_or_false,  (boolean) whether or not the peer is the sync peer`<br />&nbsp;&nbsp;`}, ...`<br />`]`|
+|Example Return|`[`<br />&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"addr": "178.172.xxx.xxx:8333",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"services": "00000001",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"lastrecv": 1388183523,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"lastsend": 1388185470,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"bytessent": 287592965,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"bytesrecv": 780340,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"conntime": 1388182973,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"pingtime": 405551,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"pingwait": 183023,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"version": 70001,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"subver": "/btcd:0.4.0/",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"inbound": false,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"startingheight": 276921,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"currentheight": 276955,`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`"syncnode": true,`<br />&nbsp;&nbsp;`}`<br />`]`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -472,27 +443,12 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|getrawtransaction|
-|Parameters|1. `transaction hash`: `(string, required)` the hash of the transaction.<br />2. `verbose`: `(int, optional, default=0)` specifies the transaction is returned as a JSON object instead of hex-encoded string.|
+|Parameters|1. transaction hash (string, required) - the hash of the transaction<br />2. verbose (int, optional, default=0) - specifies the transaction is returned as a JSON object instead of hex-encoded string|
 |Description|Returns information about a transaction given its hash.|
 |Returns (verbose=0)|`"data" (string) hex-encoded bytes of the serialized transaction`|
-|Returns (verbose=1)|`(json object)`<br />`hex`: `(string)` hex-encoded transaction / hex-encoded bytes of the script.<br />`txid`: `(string)` the hash of the transaction.<br />`version`: `(numeric)` the transaction version.<br />`locktime`: `(numeric)` the transaction lock time.<br />`expiry`: `(numeric)` the transaction expiry.<br />`vin`: `(array of json objects)` the transaction inputs as json objects.<br />`coinbase`: `(string)` the hex-encoded bytes of the signature script.<br />`stakebase`: `(string)` the hash of the stake transaction.<br />`sequence`: `(numeric)` the script sequence number.<br />`txid`: `(string)` the hash of the origin transaction.<br />`vout`: `(numeric)` the index of the output being redeemed from the origin transaction.<br />`scriptSig`: `(json object)` the signature script used to redeem the origin transaction.<br />`asm`: `(string)` disassembly of the script.<br />`sequence`: `(numeric)` the script sequence number.<br />`vout`: `(array of json objects)` the transaction outputs as json objects.<br />`value`: `(numeric)` the value in PFC.<br />`n`: `(numeric)` the index of this transaction output.<br />`scriptPubKey`: `(json object)` the public key script used to pay coins.<br />`reqSigs`: `(numeric)` the number of required signatures.<br />`type`: `(string)` the type of the script (e.g. 'pubkeyhash').<br />`addresses`: `(json array of string)` the PicFight addresses associated with this output.<br />`picfightaddress`:  `(string)` the PicFight address<br />`blockhash`:  `(string)` the hash of the block that contains the transaction.<br />`blockheight`:  `(numeric)` the height of the block that contains the transaction.<br />`blockindex`:  `(numeric)` the index within the array of transactions contained by the block.<br />`confirmations`:  `(numeric)` number of confirmations.<br />`time`: `(numeric)` transaction time in seconds since the epoch.<br />`blocktime`:  `(numeric)` block time in seconds since the epoch.<br /><br />**For coinbase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, vin": [{ "coinbase": "data", "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "picfightaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n, "confirmations": n, "blocktime": n}`<br /><br />**For stakebase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, "vin": [{ "stakebase": "hash", "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "picfightaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n,  "blockindex": n, "confirmations": n, "time": n, blocktime": n}`<br /><br />**For non-coinbase / non-stakebase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, "vin": [{"txid": "hash","vout": n, "scriptSig": {"asm": "asm", "hex": "data"}, "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "picfightaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n,  "blockindex": n, "confirmations": n, "time": n, "blocktime": n}`|
-|Example Return (verbose=0)|Newlines added for display purposes.  The actual return does not contain newlines.<br />`"010000000104be666c7053ef26c6110597dad1c1e81b5e6be53d17a8b9d0b34772054bac60000000`<br />`008c493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f`<br />`022100fbce8d84fcf2839127605818ac6c3e7a1531ebc69277c504599289fb1e9058df0141045a33`<br />`76eeb85e494330b03c1791619d53327441002832f4bd618fd9efa9e644d242d5e1145cb9c2f71965`<br />`656e276633d4ff1a6db5e7153a0a9042745178ebe0f5ffffffff0280841e00000000001976a91406`<br />`f1b6703d3f56427bfcfd372f952d50d04b64bd88ac4dd52700000000001976a9146b63f291c295ee`<br />`abd9aee6be193ab2d019e7ea7088ac00000000`|
-|Example Return (verbose=1)|**For coinbase transactions**<br />`{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...","txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","version": 1,"locktime": 0,"vin": [{"coinbase": "03708203062f503253482f04066d605108f800080100000ea2122f6f7a636f696e4065757374726174756d2f","sequence": 0},...], "vout": [{"value": 25.1394,"n": 0, "scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1, "type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}}, ...]}`<br /><br />**For stakebase transactions**<br />`{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...","txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","version": 1,"locktime": 0,"vin": [{"stakebase": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","sequence": 0},...], "vout": [{"value": 25.1394,"n": 0, "scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1, "type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}}, ...]}`<br /><br />**For non-coinbase / non-stakebase transactions**<br />`{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...","txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","version": 1,"locktime": 0,"vin": [{"txid": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04","scriptSig": {"asm": "3046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f0...","hex": "493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8..."}, "sequence": 4294967295}, ...], "vout": [{"value": 25.1394,"n": 0, "scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1, "type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}}, ...]}`|
-[Return to Overview](#MethodOverview)<br />
-
-***
-<a name="getwork"/>
-
-|   |   |
-|---|---|
-|Method|getwork|
-|Parameters|1. `data`: `(string, optional)` The hex|
-|Description|Returns information about a transaction given its hash.|
-|Notes|Since pfcd does not have the wallet integrated to provide payment addresses, pfcd must be configured via the `--miningaddr` option to provide which payment addresses to pay created blocks to for this RPC to function.
-|Returns (data not specified)|`(json object)`<br />`data`: (string) hex-encoded block data<br />`hash1`: `(string)` (DEPRECATED) hex-encoded formatted hash buffer <br />`midstate`: `(string)` (DEPRECATED) hex-encoded precomputed hash state after hashing first half of the data <br />`target`: `(string)` the hex-encoded little-endian hash target<br /><br />`{"data": "hex", "hash1": "hex", "midstate": "hex", "target": "hex"}`|
-|Returns (data specified)|`true` or `false` (boolean)|
-|Example Return (data not specified)|`{"data": "00000002c39b5d2b7a1e8f7356a1efce26b24bd15d7d906e85341ef9cec99b6a000000006474f...", "hash1": "00000000000000000000000000000000000000000000000000000000000000000000008000000...", "midstate": "ae4a80fc51476e452de855b4e20d5f33418c50fc7cae3b1ecd5badb819b8a584", "target": "0000000000000000000000000000000000000000000000008c96010000000000"}`|
-|Example Return (data specified)|`true`|
+|Returns (verbose=1)|`{ (json object)`<br />&nbsp;&nbsp;`"hex": "data",  (string) hex-encoded transaction`<br />&nbsp;&nbsp;`"txid": "hash",  (string) the hash of the transaction`<br />&nbsp;&nbsp;`"version": n,  (numeric) the transaction version`<br />&nbsp;&nbsp;`"locktime": n,  (numeric) the transaction lock time`<br />&nbsp;&nbsp;`"vin": [  (array of json objects) the transaction inputs as json objects`<br />&nbsp;&nbsp;<font color="orange">For coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"coinbase": "data",  (string) the hex-encoded bytes of the signature script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": n,  (numeric) the script sequence number`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"txinwitness": “data", (string) the witness stack for the input`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;<font color="orange">For non-coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "hash", (string) the hash of the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"vout": n, (numeric) the index of the output being redeemed from the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptSig": { (json object) the signature script used to redeem the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "asm", (string) disassembly of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "data",  (string) hex-encoded bytes of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": n,  (numeric) the script sequence number`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"txinwitness": “data", (string) the witness stack for the input`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}, ...`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"vout": [  (array of json objects) the transaction outputs as json objects`<br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"value": n, (numeric) the value in PFC`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"n": n, (numeric) the index of this transaction output`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptPubKey": { (json object) the public key script used to pay coins`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "asm",  (string) disassembly of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "data", (string) hex-encoded bytes of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"reqSigs": n,  (numeric) the number of required signatures`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"type": "scripttype" (string) the type of the script (e.g. 'pubkeyhash')`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [ (json array of string) the bitcoin addresses associated with this output`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"bitcoinaddress",  (string) the bitcoin address`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`...`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}, ...`<br />&nbsp;&nbsp;`]`<br />`}`|
+|Example Return (verbose=0)|`"010000000104be666c7053ef26c6110597dad1c1e81b5e6be53d17a8b9d0b34772054bac60000000`<br />`008c493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f`<br />`022100fbce8d84fcf2839127605818ac6c3e7a1531ebc69277c504599289fb1e9058df0141045a33`<br />`76eeb85e494330b03c1791619d53327441002832f4bd618fd9efa9e644d242d5e1145cb9c2f71965`<br />`656e276633d4ff1a6db5e7153a0a9042745178ebe0f5ffffffff0280841e00000000001976a91406`<br />`f1b6703d3f56427bfcfd372f952d50d04b64bd88ac4dd52700000000001976a9146b63f291c295ee`<br />`abd9aee6be193ab2d019e7ea7088ac00000000`<br /><font color="orange">**Newlines added for display purposes.  The actual return does not contain newlines.**</font>|
+|Example Return (verbose=1)|`{`<br />&nbsp;&nbsp;`"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...",`<br />&nbsp;&nbsp;`"txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9",`<br />&nbsp;&nbsp;`"version": 1,`<br />&nbsp;&nbsp;`"locktime": 0,`<br />&nbsp;&nbsp;`"vin": [`<br />&nbsp;&nbsp;<font color="orange">For coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"coinbase": "03708203062f503253482f04066d605108f800080100000ea2122f6f7a636f696e4065757374726174756d2f",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;<font color="orange">For non-coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"vout": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptSig": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "3046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f0...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": 4294967295,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"vout": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"value": 25.1394,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"n": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptPubKey": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"reqSigs": 1,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"type": "pubkeyhash"`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;`]`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -501,9 +457,9 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|help|
-|Parameters|1. `command`: `(string, optional)` the command to get help for|
-|Description|Returns a list of all commands or help for a specified command.<br />When no `command` parameter is specified, a list of available commands is returned<br />When `command` is a valid method, the help text for that method is returned.|
-|Returns|`string`|
+|Parameters|1. command (string, optional) - the command to get help for|
+|Description|Returns a list of all commands or help for a specified command.<br />When no `command` parameter is specified, a list of avaialable commands is returned<br />When `command` is a valid method, the help text for that method is returned.|
+|Returns|string|
 |Example Return|getblockcount<br />Returns a numeric for the number of blocks in the longest block chain.|
 [Return to Overview](#MethodOverview)<br />
 
@@ -524,13 +480,13 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|getrawmempool|
-|Parameters|1. `verbose` `(boolean, optional, default=false)`|
+|Parameters|1. verbose (boolean, optional, default=false)|
 |Description|Returns an array of hashes for all of the transactions currently in the memory pool.<br />The `verbose` flag specifies that each transaction is returned as a JSON object.|
-|Notes|Since pfcd does not perform any mining, the priority related fields `startingpriority` and `currentpriority` that are available when the `verbose` flag is set are always 0.|
-|Returns (verbose=false)|`(json array of string)`<br />`transactionhash`: `(string)` hash of the transaction.<br />`["transactionhash", ...]`|
-|Returns (verbose=true)|`(json object)`<br />`size`: `(numeric)` transaction size in bytes.<br />`fee` : `(numeric)` transaction fee in PFC.<br />`time`:  `(numeric)` local time transaction entered pool in seconds since 1 Jan 1970 GMT.<br />`height`: `(numeric)` block height when transaction entered the pool.<br />`startingpriority`: `(numeric)` priority when transaction entered the pool.<br />`currentpriority`: `(numeric)` current priority.<br />`depends`:  `(json array)` unconfirmed transactions used as inputs for this transaction.<br />`transactionhash`: `(string)` hash of the parent transaction.<br /><br />`{"transactionhash": {"size": n,"fee" : n, "time": n,"height": n, "startingpriority": n, "currentpriority": n, "depends": ["transactionhash", ...]}, ...}`|
-|Example Return (verbose=false)|`["3480058a397b6ffcc60f7e3345a61370fded1ca6bef4b58156ed17987f20d4e7","cbfe7c056a358c3a1dbced5a22b06d74b8650055d5195c1c2469e6b63a41514a"]`|
-|Example Return (verbose=true)|`{"1697a19cede08694278f19584e8dcc87945f40c6b59a942dd8906f133ad3f9cc": {"size": 226, "fee" : 0.0001, "time": 1387992789, "height": 276836, "startingpriority": 0, "currentpriority": 0, "depends": ["aa96f672fcc5a1ec6a08a94aa46d6b789799c87bd6542967da25a96b2dee0afb", ...]}`|
+|Notes|<font color="orange">Since btcd does not perform any mining, the priority related fields `startingpriority` and `currentpriority` that are available when the `verbose` flag is set are always 0.</font>|
+|Returns (verbose=false)|`[ (json array of string)`<br />&nbsp;&nbsp;`"transactionhash", (string) hash of the transaction`<br />&nbsp;&nbsp;`...`<br />`]`|
+|Returns (verbose=true)|`{ (json object)`<br />&nbsp;&nbsp;`"transactionhash": { (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"size": n, (numeric) transaction size in bytes`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"vsize": n, (numeric) transaction virtual size`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"fee" : n, (numeric) transaction fee in bitcoins`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"time": n, (numeric) local time transaction entered pool in seconds since 1 Jan 1970 GMT`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"height": n, (numeric) block height when transaction entered the pool`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"startingpriority": n, (numeric) priority when transaction entered the pool`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"currentpriority": n, (numeric) current priority`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"depends": [ (json array) unconfirmed transactions used as inputs for this transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"transactionhash", (string) hash of the parent transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`...`<br />&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`}, ...`<br />`}`|
+|Example Return (verbose=false)|`[`<br />&nbsp;&nbsp;`"3480058a397b6ffcc60f7e3345a61370fded1ca6bef4b58156ed17987f20d4e7",`<br />&nbsp;&nbsp;`"cbfe7c056a358c3a1dbced5a22b06d74b8650055d5195c1c2469e6b63a41514a"`<br />`]`|
+|Example Return (verbose=true)|`{`<br />&nbsp;&nbsp;`"1697a19cede08694278f19584e8dcc87945f40c6b59a942dd8906f133ad3f9cc": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"size": 226,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"fee" : 0.0001,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"time": 1387992789,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"height": 276836,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"startingpriority": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"currentpriority": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"depends": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"aa96f672fcc5a1ec6a08a94aa46d6b789799c87bd6542967da25a96b2dee0afb",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -539,9 +495,9 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|setgenerate|
-|Parameters|1. `generate`: `(boolean, required)` set to `true` to enable generation, `false` to disable it.<br />2. `genproclimit`: `(numeric, optional)` the number of processors (cores) to limit generation to or `-1` for default.|
+|Parameters|1. generate (boolean, required) - `true` to enable generation, `false` to disable it<br />2. genproclimit (numeric, optional) - the number of processors (cores) to limit generation to or `-1` for default|
 |Description|Set the server to generate coins (mine) or not.|
-|Notes|NOTE: Since pfcd does not have the wallet integrated to provide payment addresses, pfcd must be configured via the `--miningaddr` option to provide which payment addresses to pay created blocks to for this RPC to function.|
+|Notes|NOTE: Since btcd does not have the wallet integrated to provide payment addresses, btcd must be configured via the `--miningaddr` option to provide which payment addresses to pay created blocks to for this RPC to function.|
 |Returns|Nothing|
 [Return to Overview](#MethodOverview)<br />
 
@@ -551,9 +507,9 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|sendrawtransaction|
-|Parameters|1. `signedhex`: `(string, required)` serialized, hex-encoded signed transaction.<br />2. `allowhighfees`: `(boolean, optional, default=false)` whether or not to allow insanely high fees.|
+|Parameters|1. signedhex (string, required) serialized, hex-encoded signed transaction<br />2. allowhighfees (boolean, optional, default=false) whether or not to allow insanely high fees|
 |Description|Submits the serialized, hex-encoded transaction to the local peer and relays it to the network.|
-|Notes|pfcd does not yet implement the `allowhighfees` parameter, so it has no effect.|
+|Notes|<font color="orange">btcd does not yet implement the `allowhighfees` parameter, so it has no effect</font>|
 |Returns|`"hash" (string) the hash of the transaction`|
 |Example Return|`"1697a19cede08694278f19584e8dcc87945f40c6b59a942dd8906f133ad3f9cc"`|
 [Return to Overview](#MethodOverview)<br />
@@ -564,9 +520,9 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|submitblock|
-|Parameters|1. `data`: `(string, required)` serialized, hex-encoded block.<br />2. `params`: `(json object, optional, default=nil)` this parameter is currently ignored.|
+|Parameters|1. data (string, required) serialized, hex-encoded block<br />2. params (json object, optional, default=nil) this parameter is currently ignored|
 |Description|Attempts to submit a new serialized, hex-encoded block to the network.|
-|Returns|`Success`: Nothing.<br />`Failure`: `(string)` `"rejected: reason"`|
+|Returns (success)|Success: Nothing<br />Failure: `"rejected: reason"` (string)|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -576,8 +532,8 @@ the method name for further details such as parameter and return information.
 |---|---|
 |Method|stop|
 |Parameters|None|
-|Description|Shutdown pfcd.|
-|Returns|`"pfcd stopping."` (string)|
+|Description|Shutdown btcd.|
+|Returns|`"btcd stopping."` (string)|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -586,9 +542,9 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|validateaddress|
-|Parameters|1. `address`: `(string, required)` PicFight address.|
+|Parameters|1. address (string, required) - bitcoin address|
 |Description|Verify an address is valid.|
-|Returns|`(json object)`<br />`isvalid`: `(bool)` whether or not the address is valid.<br />`address`: `(string)` the PicFight address validated.<br /><br />`{"isvalid": true or false,"address": "picfightaddress"}`|
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"isvalid": true or false,  (bool) whether or not the address is valid.`<br />&nbsp;&nbsp;`"address": "bitcoinaddress", (string) the bitcoin address validated.`<br />}|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -597,22 +553,48 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|verifychain|
-|Parameters|1. `checklevel`: `(numeric, optional, default=3)` how in-depth the verification is (0=least amount of checks, higher levels are clamped to the highest supported level).<br />2. `numblocks`: `(numeric, optional, default=288)` the number of blocks starting from the end of the chain to verify.|
-|Description|Verifies the block chain database. The actual checks performed by the `checklevel` parameter is implementation specific. <br /><br />For pfcd this is: <br />`checklevel=0` - Look up each block and ensure it can be loaded from the database.<br />`checklevel=1` - Perform basic context-free sanity checks on each block.|
-|Notes|Pfcd currently only supports `checklevel` 0 and 1, but the default is still 3 for compatibility.  Per the information in the Parameters section above, higher levels are automatically clamped to the highest supported level, so this means the default is effectively 1 for pfcd.|
-|Returns|`(boolean)` `true` or `false`|
+|Parameters|1. checklevel (numeric, optional, default=3) - how in-depth the verification is (0=least amount of checks, higher levels are clamped to the highest supported level)<br />2. numblocks (numeric, optional, default=288) - the number of blocks starting from the end of the chain to verify|
+|Description|Verifies the block chain database.<br />The actual checks performed by the `checklevel` parameter is implementation specific.  For btcd this is:<br />`checklevel=0` - Look up each block and ensure it can be loaded from the database.<br />`checklevel=1` - Perform basic context-free sanity checks on each block.|
+|Notes|<font color="orange">Btcd currently only supports `checklevel` 0 and 1, but the default is still 3 for compatibility.  Per the information in the Parameters section above, higher levels are automatically clamped to the highest supported level, so this means the default is effectively 1 for btcd.</font>|
+|Returns|`true` or `false` (boolean)|
 |Example Return|`true`|
 [Return to Overview](#MethodOverview)<br />
 
-***
+
+<a name="ExtensionMethods" />
+
+### 6. Extension Methods
+
+<a name="ExtMethodOverview" />
+
+**6.1 Method Overview**<br />
+
+The following is an overview of the RPC methods which are implemented by pfcd, but not the original bitcoind client. Click the method name for further details such as parameter and return information.
+
+|#|Method|Safe for limited user?|Description|
+|---|------|----------|-----------|
+|1|[debuglevel](#debuglevel)|N|Dynamically changes the debug logging level.|
+|2|[getbestblock](#getbestblock)|Y|Get block height and hash of best block in the main chain.|None|
+|3|[getcurrentnet](#getcurrentnet)|Y|Get bitcoin network btcd is running on.|None|
+|4|[searchrawtransactions](#searchrawtransactions)|Y|Query for transactions related to a particular address.|None|
+|5|[node](#node)|N|Attempts to add or remove a peer. |None|
+|6|[generate](#generate)|N|When in simnet or regtest mode, generate a set number of blocks. |None|
+|7|[version](#version)|Y|Returns the JSON-RPC API version.|
+|8|[getheaders](#getheaders)|Y|Returns block headers starting with the first known block hash from the request.|
+
+
+<a name="ExtMethodDetails" />
+
+**6.2 Method Details**<br />
+
 <a name="debuglevel"/>
 
 |   |   |
 |---|---|
 |Method|debuglevel|
-|Parameters|1. `levelspec`: (string) the debug level specification.|
+|Parameters|1. _levelspec_ (string)|
 |Description|Dynamically changes the debug logging level.<br />The levelspec can either a debug level or of the form `<subsystem>=<level>,<subsystem2>=<level2>,...`<br />The valid debug levels are `trace`, `debug`, `info`, `warn`, `error`, and `critical`.<br />The valid subsystems are `AMGR`, `ADXR`, `BCDB`, `BMGR`, `PFCD`, `CHAN`, `DISC`, `PEER`, `RPCS`, `SCRP`, `SRVR`, and `TXMP`.<br />Additionally, the special keyword `show` can be used to get a list of the available subsystems.|
-|Returns|`string`|
+|Returns|string|
 |Example Return|`Done.`|
 |Example `show` Return|`Supported subsystems [AMGR ADXR BCDB BMGR PFCD CHAN DISC PEER RPCS SCRP SRVR TXMP]`|
 [Return to Overview](#ExtMethodOverview)<br />
@@ -626,7 +608,7 @@ the method name for further details such as parameter and return information.
 |Method|getbestblock|
 |Parameters|None|
 |Description|Get block height and hash of best block in the main chain.|
-|Returns|`(json object)`<br />`hash`: `(string)` the hex-encoded bytes of the best block hash.<br />`height`: `(numeric)` the block height of the best block.<br /><br />`{"hash": "data", "height": n}`|
+|Returns|`{ (json object)`<br />&nbsp;`"hash": "data",  (string) the hex-encoded bytes of the best block hash`<br />&nbsp;`"height": n (numeric) the block height of the best block`<br />`}`|
 [Return to Overview](#ExtMethodOverview)<br />
 
 ***
@@ -637,9 +619,9 @@ the method name for further details such as parameter and return information.
 |---|---|
 |Method|getcurrentnet|
 |Parameters|None|
-|Description|Get PicFight network pfcd is running on.|
-|Returns|`numeric`|
-|Example Return|`(mainnet)` `3652501241` <br /> `(testnet)` `118034699`  <br /> `(testnet2)` `1223139429` |
+|Description|Get bitcoin network btcd is running on.|
+|Returns|numeric|
+|Example Return|`3652501241` (mainnet)<br />`118034699` (testnet3)|
 [Return to Overview](#ExtMethodOverview)<br />
 
 ***
@@ -649,10 +631,10 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|searchrawtransactions|
-|Parameters|1. `address`: `(string, required)` PicFight address.<br /> 2. `verbose`: `(int, optional, default=true)` specifies the transaction is returned as a JSON object instead of hex-encoded string.<br />3. `skip`: `(int, optional, default=0)` the number of leading transactions to leave out of the final response.<br /> 4. `count`: `(int, optional, default=100)` the maximum number of transactions to return.<br /> 5. `vinextra`: `(int, optional, default=0)` specify that extra data from previous output will be returned in vin.|
+|Parameters|1. address (string, required) - bitcoin address <br /> 2. verbose (int, optional, default=true) - specifies the transaction is returned as a JSON object instead of hex-encoded string <br />3. skip (int, optional, default=0) - the number of leading transactions to leave out of the final response <br /> 4. count (int, optional, default=100) - the maximum number of transactions to return <br /> 5. vinextra (int, optional, default=0) - Specify that extra data from previous output will be returned in vin <br /> 6. reverse (boolean, optional, default=false) - Specifies that the transactions should be returned in reverse chronological order|
 |Description|Returns raw data for transactions involving the passed address. Returned transactions are pulled from both the database, and transactions currently in the mempool. Transactions pulled from the mempool will have the `"confirmations"` field set to 0. Usage of this RPC requires the optional `--addrindex` flag to be activated, otherwise all responses will simply return with an error stating the address index has not yet been built up. Similarly, until the address index has caught up with the current best height, all requests will return an error response in order to avoid serving stale data.|
-|Returns (verbose=0)|`(json array of strings)`<br />`serializedtx`: `(string)` hex-encoded bytes of the serialized transaction.<br />`["serializedtx", ... ]` |
-|Returns (verbose=1)|`(array of json objects)`<br />`hex`: `(string)` hex-encoded transaction.<br />`txid`: `(string)` the hash of the transaction.<br />`version`: `(numeric)` the transaction version.<br />`locktime`: `(numeric)` the transaction lock time.<br />`expiry`: `(numeric)` the transaction expiry.<br />`vin`: `(json array)` the transaction inputs as json objects.<br />`coinbase`: `(string)` the hex-encoded bytes of the signature script.<br />`stakebase`: `(string)` the hash of the stake transaction.<br />`sequence`:  `(numeric)` the script sequence number.<br />`txid`: `(string)` the hash of the origin transaction.<br />`vout`: `(numeric)` the index of the output being redeemed from the origin transaction.<br />`scriptSig`: `(json object)` the signature script used to redeem the origin transaction.<br />`asm`: `(string)` disassembly of the script.<br />`hex`: `(string)` hex-encoded bytes of the script.<br />`prevOut`: Data from the origin transaction output with index vout.<br />`addresses`:  `(array of string)` previous output addresses.<br />`value`: `(numeric)` previous output value.<br />`sequence`: `(numeric)` the script sequence number.<br />`vout`: `(array of json objects)` the transaction outputs as json objects.<br />`value`: `(numeric)` the value in PFC.<br />`n`: `(numeric)` the index of this transaction output.<br />`scriptPubKey`: `(json object)` the public key script used to pay coins.<br />`asm`: `(string)` disassembly of the script.<br />`hex`: `(string)` hex-encoded bytes of the script.<br />`reqSigs`: `(numeric)` the number of required signatures.<br />`type`: `(string)` the type of the script (e.g. 'pubkeyhash').<br />`addresses`: `(json array of string)` the PicFight addresses associated with this output.<br />`address`:  `(string)` the PicFight address.<br />`blockhash`:  `(string)` the hash of the block that contains the transaction.<br />`blockheight`:  `(numeric)` the height of the block that contains the transaction.<br />`blockindex`:  `(numeric)` the index within the array of transactions contained by the block.<br />`confirmations`:  `(numeric)` number of confirmations.<br />`time`: `(numeric)` transaction time in seconds since the epoch.<br />`blocktime`:  `(numeric)` block time in seconds since the epoch.<br /><br />**For coinbase transactions**<br />`[{"hex": "data", "txid": "hash", "version": n, "locktime": n,"vin": [{"coinbase": "data",  "sequence": n},{"txid": "hash", "vout": n, "scriptSig": {"asm": "asm", "hex": "data"}, "prevOut": {"addresses": ["value", ...], "value": n.nnn}, "sequence": n}, ...],"vout": [{ "value": n, "n": n, "scriptPubKey": {"asm": "asm", "hex": "data", "reqSigs": n, "type": "scripttype", "addresses": ["address", ...]}}, ...], "blockhash": "hash", "blockheight": n, confirmations": n, "time": n, "blocktime": n},...]`<br /><br />**For stakebase transactions**<br />`[{"hex": "data", "txid": "hash", "version": n, "locktime": n,"vin": [{"stakebase": "hash",  "sequence": n},{"txid": "hash", "vout": n, "scriptSig": {"asm": "asm", "hex": "data"}, "prevOut": {"addresses": ["value", ...], "value": n.nnn}, "sequence": n}, ...],"vout": [{ "value": n,"n": n, "scriptPubKey": {"asm": "asm", "hex": "data", "reqSigs": n, "type": "scripttype", "addresses": ["address", ...]}}, ...], "blockhash": "hash", "blockheight": n, "blockindex": n, confirmations": n, "time": n, "blocktime": n},...]`<br /><br />**For non-coinbase / non-stakebase transactions**<br />`[{"hex": "data", "txid": "hash", "version": n, "locktime": n,"vin": [{"txid": "hash", "vout": n, "scriptSig": {"asm": "asm", "hex": "data"}, "prevOut": {"addresses": ["value",...], "value": n.nnn}, "sequence": n}, ...],"vout": [{ "value": n,"n": n, "scriptPubKey": {"asm": "asm", "hex": "data", "reqSigs": n, "type": "scripttype", "addresses": ["address", ...]}}, ...], "blockhash":"hash", "blockheight": n, "blockindex": n, confirmations": n, "time": n, "blocktime": n},...]`|
+|Returns (verbose=0)|`[ (json array of strings)` <br/>&nbsp;&nbsp; `"serializedtx", ... hex-encoded bytes of the serialized transaction` <br/>`]` |
+|Returns (verbose=1)|`[ (array of json objects)` <br/> &nbsp;&nbsp; `{ (json object)`<br />&nbsp;&nbsp;`"hex": "data",  (string) hex-encoded transaction`<br />&nbsp;&nbsp;`"txid": "hash",  (string) the hash of the transaction`<br />&nbsp;&nbsp;`"version": n,  (numeric) the transaction version`<br />&nbsp;&nbsp;`"locktime": n,  (numeric) the transaction lock time`<br />&nbsp;&nbsp;`"vin": [  (array of json objects) the transaction inputs as json objects`<br />&nbsp;&nbsp;<font color="orange">For coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"coinbase": "data",  (string) the hex-encoded bytes of the signature script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txinwitness": “data", (string) the witness stack for the input`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": n,  (numeric) the script sequence number`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;<font color="orange">For non-coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "hash", (string) the hash of the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"vout": n, (numeric) the index of the output being redeemed from the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptSig": { (json object) the signature script used to redeem the origin transaction`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "asm", (string) disassembly of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "data",  (string) hex-encoded bytes of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"prevOut": { (json object) Data from the origin transaction output with index vout.`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": ["value",...], (array of string) previous output addresses`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"value": n.nnn,             (numeric)         previous output value`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txinwitness": “data", (string) the witness stack for the input`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": n,  (numeric) the script sequence number`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}, ...`<br />&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`"vout": [  (array of json objects) the transaction outputs as json objects`<br />&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"value": n, (numeric) the value in PFC`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"n": n, (numeric) the index of this transaction output`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptPubKey": { (json object) the public key script used to pay coins`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "asm",  (string) disassembly of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "data", (string) hex-encoded bytes of the script`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"reqSigs": n,  (numeric) the number of required signatures`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"type": "scripttype" (string) the type of the script (e.g. 'pubkeyhash')`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [ (json array of string) the bitcoin addresses associated with this output`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"address",  (string) the bitcoin address`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`...`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`}, ...`<br /> &nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp; `"blockhash":"hash" Hash of the block the transaction is part of.` <br /> &nbsp;&nbsp; `"confirmations":n,  Number of numeric confirmations of block.` <br /> &nbsp;&nbsp;&nbsp;`"time":t, Transaction time in seconds since the epoch.` <br /> &nbsp;&nbsp;&nbsp;`"blocktime":t, Block time in seconds since the epoch.`<br />`},...`<br/> `]`|
 [Return to Overview](#ExtMethodOverview)<br />
 
 ***
@@ -662,7 +644,7 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|node|
-|Parameters|1. `command`: `(string, required)`  `connect` to add a peer (defaults to temporary), `remove` to remove a persistent peer, or `disconnect` to remove all matching non-persistent peers.<br /> 2. `peer`: `(string, required)` ip address and port, or ID of the peer to operate on.<br /> 3. `connection type`: `(string, optional)` `perm` indicates the peer should be added as a permanent peer, `temp` indicates a connection should only be attempted once. |
+|Parameters|1. command (string, required) - `connect` to add a peer (defaults to temporary), `remove` to remove a persistent peer, or `disconnect` to remove all matching non-persistent peers <br /> 2. peer (string, required) - ip address and port, or ID of the peer to operate on<br /> 3. connection type (string, optional) - `perm` indicates the peer should be added as a permanent peer, `temp` indicates a connection should only be attempted once. |
 |Description|Attempts to add or remove a peer.|
 |Returns|Nothing|
 [Return to Overview](#MethodOverview)<br />
@@ -674,61 +656,79 @@ the method name for further details such as parameter and return information.
 |   |   |
 |---|---|
 |Method|generate|
-|Parameters|1. `numblocks`: `(int, required)` The number of blocks to generate. |
+|Parameters|1. numblocks (int, required) - The number of blocks to generate |
 |Description|When in simnet or regtest mode, generates `numblocks` blocks. If blocks arrive from elsewhere, they are built upon but don't count toward the number of blocks to generate. Only generated blocks are returned. This RPC call will exit with an error if the server is already CPU mining, and will prevent the server from CPU mining for another command while it runs. |
-|Returns|`(json array of strings)`<br/> `blockhash`: hash of the generated block.<br/>`["blockhash", ...]` |
-[Return to Overview](#MethodOverview)<br />
-
-<a name="getstakeversions"/>
-
-|   |   |
-|---|---|
-|Method|getstakeversions|
-|Parameters|1. `hash`: `(string, required)` The start block hash. <br /> 2. `count`: `(numeric, required)` The number of blocks that will be returned. |
-|Description| Returns the stake versions statistics. |
-|Returns|`stakeversions`: `(array of object)` Array of stake versions per block. <br /> `hash`: `(string)` hash of the block. <br /> `height`: `(numeric)` Height of the block. <br /> `blockversion`: `(numeric)` the block version. <br /> `stakeversion`: `(numeric)` the stake version of the block. <br /> `votes`: `(array of object)` the version and bits of each vote in the block. <br /> `version`: `(numeric)` the version of the vote. <br /> `bits`: `(numeric)` the bits assigned by the vote. <br /><br /> `{"stakeversions": [{ "hash": "value", "height": n, "blockversion": n, "stakeversion": n,"votes": [{ "version": n, "bits": n },...]},...]}` |
+|Returns|`[ (json array of strings)` <br/>&nbsp;&nbsp; `"blockhash", ... hash of the generated block` <br/>`]` |
 [Return to Overview](#MethodOverview)<br />
 
 ***
 
-<a name="WSMethods" />
+<a name="version"/>
 
-### 6. Websocket Methods (Websocket-specific)
+|   |   |
+|---|---|
+|Method|version|
+|Parameters|None|
+|Description|Returns the version of the JSON-RPC API built into this release of btcd.|
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"btcdjsonrpcapi": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"versionstring": "x.y.z",  (string) the version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"major": x,  (numeric) the major version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"minor": y,  (numeric) the minor version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"patch": z,  (numeric) the patch version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"prerelease": "",  (string) prerelease info for the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"buildmetadata": ""  (string) metadata about the server build`<br />&nbsp;&nbsp;`}`<br />`}`|
+|Example Return|`{`<br />&nbsp;&nbsp;`"btcdjsonrpcapi": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"versionstring": "1.0.0",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"major": 1,  `<br />&nbsp;&nbsp;&nbsp;&nbsp;`"minor": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"patch": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"prerelease": "",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"buildmetadata": ""`<br />&nbsp;&nbsp;`}`<br />`}`|
+[Return to Overview](#MethodOverview)<br />
 
-<a name="WSMethodOverview" />
+***
 
-**6.1 Method Overview**<br />
+<a name="getheaders"/>
+
+|   |   |
+|---|---|
+|Method|getheaders|
+|Parameters|1. Block Locators (JSON array, required)<br />&nbsp;`[ (json array of strings)`<br />&nbsp;&nbsp;`"blocklocator", (string) the known block hash`<br />&nbsp;&nbsp;`...`<br />&nbsp;`]`<br />2. hashstop (string) - last desired block's hash|
+|Description|Returns block headers starting with the first known block hash from the request.|
+|Returns|`[ (json array of strings)`<br />&nbsp;&nbsp;`"blockheader",`<br />&nbsp;&nbsp;`...`<br />`]`|
+|Example Return|`[`<br />&nbsp;&nbsp;`"0000002099417930b2ae09feda10e38b58c0f6bb44b4d60fa33f0e000000000000000000d53...",`<br />&nbsp;&nbsp;`"000000203ba25a173bfd24d09e0c76002a910b685ca297bd09a17b020000000000000000702..."`<br />`]`|
+[Return to Overview](#MethodOverview)<br />
+
+***
+
+<a name="WSExtMethods" />
+
+### 7. Websocket Extension Methods (Websocket-specific)
+
+<a name="WSExtMethodOverview" />
+
+**7.1 Method Overview**<br />
 
 The following is an overview of the RPC method requests available exclusively to Websocket clients.  All of these RPC methods are available to the limited
 user.  Click the method name for further details such as parameter and return information.
 
 |#|Method|Description|Notifications|
 |---|------|-----------|-------------|
-|1|[authenticate](#authenticate)|Authenticate the connection against the username and passphrase configured for the RPC server.<br /><br />NOTE: This is only required if an HTTP Authorization header is not being used.|None|
-|2|[notifyblocks](#notifyblocks)|Send notifications when a block is connected or disconnected from the best chain.|[blockconnected](#blockconnected) and [blockdisconnected](#blockdisconnected)|
+|1|[authenticate](#authenticate)|Authenticate the connection against the username and passphrase configured for the RPC server.<br /><font color="orange">NOTE: This is only required if an HTTP Authorization header is not being used.</font>|None|
+|2|[notifyblocks](#notifyblocks)|Send notifications when a block is connected or disconnected from the best chain.|[blockconnected](#blockconnected), [blockdisconnected](#blockdisconnected), [filteredblockconnected](#filteredblockconnected), and [filteredblockdisconnected](#filteredblockdisconnected)|
 |3|[stopnotifyblocks](#stopnotifyblocks)|Cancel registered notifications for whenever a block is connected or disconnected from the main (best) chain. |None|
-|4|[notifyreceived](#notifyreceived)|Send notifications when a txout spends to an address.|[recvtx](#recvtx) and [redeemingtx](#redeemingtx)|
-|5|[stopnotifyreceived](#stopnotifyreceived)|Cancel registered notifications for when a txout spends to any of the passed addresses.|None|
-|6|[notifyspent](#notifyspent)|Send notification when a txout is spent.|[redeemingtx](#redeemingtx)|
-|7|[stopnotifyspent](#stopnotifyspent)|Cancel registered spending notifications for each passed outpoint.|None|
-|8|[loadtxfilter](#loadtxfilter)|Load, add to, or reload a websocket client's transaction filter for mempool transactions, new blocks and rescanblocks.|[relevanttxaccepted](#relevanttxaccepted)|
-|9|[rescan](#rescan)|Rescan block chain for transactions to addresses and spent transaction outpoints.|[recvtx](#recvtx), [redeemingtx](#redeemingtx), [rescanprogress](#rescanprogress), and [rescanfinished](#rescanfinished) |
-|10|[notifynewtransactions](#notifynewtransactions)|Send notifications for all new transactions as they are accepted into the mempool.|[txaccepted](#txaccepted) or [txacceptedverbose](#txacceptedverbose)|
-|11|[stopnotifynewtransactions](#stopnotifynewtransactions)|Stop sending either a txaccepted or a txacceptedverbose notification when a new transaction is accepted into the mempool.|None|
-|12|[session](#session)|Return details regarding a websocket client's current connection.|None|
+|4|[notifyreceived](#notifyreceived)|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Send notifications when a txout spends to an address.|[recvtx](#recvtx) and [redeemingtx](#redeemingtx)|
+|5|[stopnotifyreceived](#stopnotifyreceived)|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Cancel registered notifications for when a txout spends to any of the passed addresses.|None|
+|6|[notifyspent](#notifyspent)|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Send notification when a txout is spent.|[redeemingtx](#redeemingtx)|
+|7|[stopnotifyspent](#stopnotifyspent)|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Cancel registered spending notifications for each passed outpoint.|None|
+|8|[rescan](#rescan)|*DEPRECATED, for similar functionality see [rescanblocks](#rescanblocks)*<br />Rescan block chain for transactions to addresses and spent transaction outpoints.|[recvtx](#recvtx), [redeemingtx](#redeemingtx), [rescanprogress](#rescanprogress), and [rescanfinished](#rescanfinished) |
+|9|[notifynewtransactions](#notifynewtransactions)|Send notifications for all new transactions as they are accepted into the mempool.|[txaccepted](#txaccepted) or [txacceptedverbose](#txacceptedverbose)|
+|10|[stopnotifynewtransactions](#stopnotifynewtransactions)|Stop sending either a txaccepted or a txacceptedverbose notification when a new transaction is accepted into the mempool.|None|
+|11|[session](#session)|Return details regarding a websocket client's current connection.|None|
+|12|[loadtxfilter](#loadtxfilter)|Load, add to, or reload a websocket client's transaction filter for mempool transactions, new blocks and rescanblocks.|[relevanttxaccepted](#relevanttxaccepted)|
+|13|[rescanblocks](#rescanblocks)|Rescan blocks for transactions matching the loaded transaction filter.|None|
+
 <a name="WSExtMethodDetails" />
 
-**6.2 Method Details**<br />
+**7.2 Method Details**<br />
 
 <a name="authenticate"/>
 
 |   |   |
 |---|---|
 |Method|authenticate|
-|Parameters|1. `username`: `(string, required)`<br />2. `passphrase`: `(string, required)`|
-|Description|Authenticate the connection against the username and password configured for the RPC server. Invoking any other method before authenticating with this command will close the connection.<br /><br />NOTE: This is only required if an HTTP Authorization header is not being used.|
-|Returns|`Success`: `Nothing`<br />`Failure`: `Nothing` `(websocket disconnected)`|
-[Return to Overview](#WSMethodOverview)<br />
+|Parameters|1. username (string, required)<br />2. passphrase (string, required)|
+|Description|Authenticate the connection against the username and password configured for the RPC server.<br />  Invoking any other method before authenticating with this command will close the connection.<br /><font color="orange">NOTE: This is only required if an HTTP Authorization header is not being used.</font>|
+|Returns|Success: Nothing<br />Failure: Nothing (websocket disconnected)|
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
@@ -737,13 +737,14 @@ user.  Click the method name for further details such as parameter and return in
 |   |   |
 |---|---|
 |Method|notifyblocks|
-|Notifications|[blockconnected](#blockconnected) and [blockdisconnected](#blockdisconnected)|
+|Notifications|[blockconnected](#blockconnected), [blockdisconnected](#blockdisconnected), [filteredblockconnected](#filteredblockconnected), and [filteredblockdisconnected](#filteredblockdisconnected)|
 |Parameters|None|
 |Description|Request notifications for whenever a block is connected or disconnected from the main (best) chain.<br />NOTE: If a client subscribes to both block and transaction (recvtx and redeemingtx) notifications, the blockconnected notification will be sent after all transaction notifications have been sent.  This allows clients to know when all relevant transactions for a block have been received.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
+
 <a name="stopnotifyblocks"/>
 
 |   |   |
@@ -753,7 +754,7 @@ user.  Click the method name for further details such as parameter and return in
 |Parameters|None|
 |Description|Cancel sending notifications for whenever a block is connected or disconnected from the main (best) chain.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
@@ -763,10 +764,10 @@ user.  Click the method name for further details such as parameter and return in
 |---|---|
 |Method|notifyreceived|
 |Notifications|[recvtx](#recvtx) and [redeemingtx](#redeemingtx)|
-|Parameters|1. `Addresses`: `(JSON array, required)`<br />`picfightaddress`: `(string)` the PicFight address.<br /><br />`["picfightaddress", ...]`|
-|Description|Send a recvtx notification when a transaction added to mempool or appears in a newly-attached block contains a txout pkScript sending to any of the passed addresses.  Matching outpoints are automatically registered for redeemingtx notifications.|
+|Parameters|1. Addresses (JSON array, required)<br />&nbsp;`[ (json array of strings)`<br />&nbsp;&nbsp;`"bitcoinaddress", (string) the bitcoin address`<br />&nbsp;&nbsp;`...`<br />&nbsp;`]`|
+|Description|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Send a recvtx notification when a transaction added to mempool or appears in a newly-attached block contains a txout pkScript sending to any of the passed addresses.  Matching outpoints are automatically registered for redeemingtx notifications.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
@@ -776,10 +777,10 @@ user.  Click the method name for further details such as parameter and return in
 |---|---|
 |Method|stopnotifyreceived|
 |Notifications|None|
-|Parameters|1. `Addresses`: `(JSON array, required)`<br />`picfightaddress`: `(string)` the PicFight address.<br /><br />`["picfightaddress", ...]`|
-|Description|Cancel registered receive notifications for each passed address.|
+|Parameters|1. Addresses (JSON array, required)<br />&nbsp;`[ (json array of strings)`<br />&nbsp;&nbsp;`"bitcoinaddress", (string) the bitcoin address`<br />&nbsp;&nbsp;`...`<br />&nbsp;`]`|
+|Description|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Cancel registered receive notifications for each passed address.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
@@ -789,10 +790,10 @@ user.  Click the method name for further details such as parameter and return in
 |---|---|
 |Method|notifyspent|
 |Notifications|[redeemingtx](#redeemingtx)|
-|Parameters|1. `Outpoints`: `(json array, required)`<br /> `hash`: `(string)` the hex-encoded bytes of the outpoint hash.<br />`index`: `(numeric)` the txout index of the outpoint.<br /><br />`[{"hash":"data", "index":n }, ...]`|
-|Description|Send a redeemingtx notification when a transaction spending an outpoint appears in mempool (if relayed to this pfcd instance) and when such a transaction first appears in a newly-attached block.|
+|Parameters|1. Outpoints (JSON array, required)<br />&nbsp;`[ (JSON array)`<br />&nbsp;&nbsp;`{ (JSON object)`<br />&nbsp;&nbsp;&nbsp;`"hash":"data", (string) the hex-encoded bytes of the outpoint hash`<br />&nbsp;&nbsp;&nbsp;`"index":n (numeric) the txout index of the outpoint`<br />&nbsp;&nbsp;`},`<br />&nbsp;&nbsp;`...`<br />&nbsp;`]`|
+|Description|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Send a redeemingtx notification when a transaction spending an outpoint appears in mempool (if relayed to this btcd instance) and when such a transaction first appears in a newly-attached block.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
@@ -802,40 +803,25 @@ user.  Click the method name for further details such as parameter and return in
 |---|---|
 |Method|stopnotifyspent|
 |Notifications|None|
-|Parameters|1. `Outpoints`: `(json array, required)`<br />`hash`: `(string)` the hex-encoded bytes of the outpoint hash.<br />`index`: `(numeric)` the txout index of the outpoint.<br /><br />`[{"hash":"data", "index":n }, ...]`|
-|Description|Cancel registered spending notifications for each passed outpoint.|
+|Parameters|1. Outpoints (JSON array, required)<br />&nbsp;`[ (JSON array)`<br />&nbsp;&nbsp;`{ (JSON object)`<br />&nbsp;&nbsp;&nbsp;`"hash":"data", (string) the hex-encoded bytes of the outpoint hash`<br />&nbsp;&nbsp;&nbsp;`"index":n (numeric) the txout index of the outpoint`<br />&nbsp;&nbsp;`},`<br />&nbsp;&nbsp;`...`<br />&nbsp;`]`|
+|Description|*DEPRECATED, for similar functionality see [loadtxfilter](#loadtxfilter)*<br />Cancel registered spending notifications for each passed outpoint.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
-<a name="loadtxfilter"/>
-
- |   |   |
- |---|---|
- |Method|loadtxfilter|
- |Notifications|[relevanttxaccepted](#relevanttxaccepted)|
- |Parameters|1. `Reload`: `(boolean, required)` load a new filter instead of adding data to an existing one.<br />2. `Addresses`: `(json array, required)` array of addresses to add to the transaction filter<br />3. `Outpoints`: `(JSON array, required)` array of outpoints to add to the transaction filter.|
- |Description|Load, add to, or reload a websocket client's transaction filter for mempool transactions, new blocks and [rescanblocks](#rescanblocks).|
- |Returns|Nothing|
- [Return to Overview](#WSMethodOverview)<br />
-
- ***
-
 <a name="rescan"/>
 
- |   |   |
- |---|---|
- |Method|rescan|
- |Notifications|None|
- |Parameters|1.`Blockhashes`: `(JSON array, required)` list of hashes to rescan. Each next block must be a child of the previous.|
- |Description|Rescan blocks for transactions matching the loaded transaction filter.|
- |Returns|`(json array)`<br /> `hash`: `(string)` hash of the matching block.<br />`transactions`: `(json array)` list of matching transactions, serialized and hex-encoded.<br />`serializedtx`: `(string)` serialized and hex-encoded transaction.<br /><br />`[{"hash": "data", "transactions": [serializedtx,...]}, ...]`|
- |Example Return|`[{"hash": "0000002099417930b2ae09feda10e38b58c0f6bb44b4d60fa33f0e000000000000000000d53...", "transactions": ["493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8...", ...]}, ...]`|
-  [Return to Overview](#WSMethodOverview)<br />
+|   |   |
+|---|---|
+|Method|rescan|
+|Notifications|[recvtx](#recvtx), [redeemingtx](#redeemingtx), [rescanprogress](#rescanprogress), and [rescanfinished](#rescanfinished)|
+|Parameters|1. BeginBlock (string, required) block hash to begin rescanning from<br />2. Addresses (JSON array, required)<br />&nbsp;`[ (json array of strings)`<br />&nbsp;&nbsp;`"bitcoinaddress", (string) the bitcoin address`<br />&nbsp;&nbsp;`...` <br />&nbsp;`]`<br />3. Outpoints (JSON array, required)<br />&nbsp;`[ (JSON array)`<br />&nbsp;&nbsp;`{ (JSON object)`<br />&nbsp;&nbsp;&nbsp;`"hash":"data", (string) the hex-encoded bytes of the outpoint hash`<br />&nbsp;&nbsp;&nbsp;`"index":n (numeric) the txout index of the outpoint`<br />&nbsp;&nbsp;`},`<br />&nbsp;&nbsp;`...`<br />&nbsp;`]`<br />4. EndBlock (string, optional) hash of final block to rescan|
+|Description|*DEPRECATED, for similar functionality see [rescanblocks](#rescanblocks)*<br />Rescan block chain for transactions to addresses, starting at block BeginBlock and ending at EndBlock.  The current known UTXO set for all passed addresses at height BeginBlock should included in the Outpoints argument.  If EndBlock is omitted, the rescan continues through the best block in the main chain.  Additionally, if no EndBlock is provided, the client is automatically registered for transaction notifications for all rescanned addresses and the final UTXO set.  Rescan results are sent as recvtx and redeemingtx notifications.  This call returns once the rescan completes.|
+|Returns|Nothing|
+[Return to Overview](#WSExtMethodOverview)<br />
 
-  ***
-
+***
 
 <a name="notifynewtransactions"/>
 
@@ -843,10 +829,10 @@ user.  Click the method name for further details such as parameter and return in
 |---|---|
 |Method|notifynewtransactions|
 |Notifications|[txaccepted](#txaccepted) or [txacceptedverbose](#txacceptedverbose)|
-|Parameters|1. `verbose`: `(boolean, optional, default=false)` specifies which type of notification to receive.  If verbose is true, then the caller receives [txacceptedverbose](#txacceptedverbose), otherwise the caller receives [txaccepted](#txaccepted)|
+|Parameters|1. verbose (boolean, optional, default=false) - specifies which type of notification to receive.  If verbose is true, then the caller receives [txacceptedverbose](#txacceptedverbose), otherwise the caller receives [txaccepted](#txaccepted)|
 |Description|Send either a [txaccepted](#txaccepted) or a [txacceptedverbose](#txacceptedverbose) notification when a new transaction is accepted into the mempool.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
@@ -859,7 +845,7 @@ user.  Click the method name for further details such as parameter and return in
 |Parameters|None|
 |Description|Stop sending either a [txaccepted](#txaccepted) or a [txacceptedverbose](#txacceptedverbose) notification when a new transaction is accepted into the mempool.|
 |Returns|Nothing|
-[Return to Overview](#WSMethodOverview)<br />
+[Return to Overview](#WSExtMethodOverview)<br />
 
 ***
 
@@ -871,37 +857,66 @@ user.  Click the method name for further details such as parameter and return in
 |Notifications|None|
 |Parameters|None|
 |Description|Return a JSON object with details regarding a websocket client's current connection to the RPC server.  This currently only includes the session ID, a random unsigned 64-bit integer that is created for each newly connected client.  Session IDs may be used to verify that the current connection was not lost and subsequently reestablished.|
-|Returns|`(json object)`<br />`sessionid`: `(numeric)` the session ID.<br /><br />`{"sessionid": n}`|
-|Example Return|`{"sessionid": 67089679842}`|
-[Return to Overview](#WSMethodOverview)<br />
+|Returns|`{ (json object)`<br />&nbsp;&nbsp;`"sessionid": n  (numeric) the session ID`<br />`}`|
+|Example Return|`{`<br />&nbsp;&nbsp;`"sessionid": 67089679842`<br />`}`|
+[Return to Overview](#WSExtMethodOverview)<br />
+
+***
+
+<a name="loadtxfilter"/>
+
+|   |   |
+|---|---|
+|Method|loadtxfilter|
+|Notifications|[relevanttxaccepted](#relevanttxaccepted)|
+|Parameters|1. Reload (boolean, required) - Load a new filter instead of adding data to an existing one<br />2. Addresses (JSON array, required) - Array of addresses to add to the transaction filter<br />3. Outpoints (JSON array, required) - Array of outpoints to add to the transaction filter|
+|Description|Load, add to, or reload a websocket client's transaction filter for mempool transactions, new blocks and [rescanblocks](#rescanblocks).|
+|Returns|Nothing|
+[Return to Overview](#WSExtMethodOverview)<br />
+
+***
+
+<a name="rescanblocks"/>
+
+|   |   |
+|---|---|
+|Method|rescanblocks|
+|Notifications|None|
+|Parameters|1. Blockhashes (JSON array, required) - List of hashes to rescan.  Each next block must be a child of the previous.|
+|Description|Rescan blocks for transactions matching the loaded transaction filter.|
+|Returns|`[ (JSON array)`<br />&nbsp;&nbsp;`{ (JSON object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"hash": "data", (string) Hash of the matching block.`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"transactions": [ (JSON array) List of matching transactions, serialized and hex-encoded.`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"serializedtx" (string) Serialized and hex-encoded transaction.`<br />&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`}`<br />`]`|
+|Example Return|`[`<br />&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"hash": "0000002099417930b2ae09feda10e38b58c0f6bb44b4d60fa33f0e000000000000000000d53...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"transactions": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8..."`<br />&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`}`<br />`]`|
 
 
 <a name="Notifications" />
 
-### 7. Notifications (Websocket-specific)
+### 8. Notifications (Websocket-specific)
 
-pfcd uses standard JSON-RPC notifications to notify clients of changes, rather than requiring clients to poll pfcd for updates.  JSON-RPC notifications are a subset of requests, but do not contain an ID.  The notification type is categorized by the `method` field and additional details are sent as a JSON array in the `params` field.
+btcd uses standard JSON-RPC notifications to notify clients of changes, rather than requiring clients to poll btcd for updates.  JSON-RPC notifications are a subset of requests, but do not contain an ID.  The notification type is categorized by the `method` field and additional details are sent as a JSON array in the `params` field.
 
 <a name="NotificationOverview" />
 
-**7.1 Notification Overview**<br />
+**8.1 Notification Overview**<br />
 
 The following is an overview of the JSON-RPC notifications used for Websocket connections.  Click the method name for further details of the context(s) in which they are sent and their parameters.
 
 |#|Method|Description|Request|
 |---|------|-----------|-------|
-|1|[blockconnected](#blockconnected)|Block connected to the main chain.|[notifyblocks](#notifyblocks)|
-|2|[blockdisconnected](#blockdisconnected)|Block disconnected from the main chain.|[notifyblocks](#notifyblocks)|
-|3|[recvtx](#recvtx)|Processed a transaction output spending to a wallet address.|[notifyreceived](#notifyreceived) and [rescan](#rescan)|
-|4|[redeemingtx](#redeemingtx)|Processed a transaction that spends a registered outpoint.|[notifyspent](#notifyspent) and [rescan](#rescan)|
+|1|[blockconnected](#blockconnected)|*DEPRECATED, for similar functionality see [filteredblockconnected](#filteredblockconnected)*<br />Block connected to the main chain.|[notifyblocks](#notifyblocks)|
+|2|[blockdisconnected](#blockdisconnected)|*DEPRECATED, for similar functionality see [filteredblockdisconnected](#filteredblockdisconnected)*<br />Block disconnected from the main chain.|[notifyblocks](#notifyblocks)|
+|3|[recvtx](#recvtx)|*DEPRECATED, for similar functionality see [relevanttxaccepted](#relevanttxaccepted) and [filteredblockconnected](#filteredblockconnected)*<br />Processed a transaction output spending to a wallet address.|[notifyreceived](#notifyreceived) and [rescan](#rescan)|
+|4|[redeemingtx](#redeemingtx)|*DEPRECATED, for similar functionality see [relevanttxaccepted](#relevanttxaccepted) and [filteredblockconnected](#filteredblockconnected)*<br />Processed a transaction that spends a registered outpoint.|[notifyspent](#notifyspent) and [rescan](#rescan)|
 |5|[txaccepted](#txaccepted)|Received a new transaction after requesting simple notifications of all new transactions accepted into the mempool.|[notifynewtransactions](#notifynewtransactions)|
 |6|[txacceptedverbose](#txacceptedverbose)|Received a new transaction after requesting verbose notifications of all new transactions accepted into the mempool.|[notifynewtransactions](#notifynewtransactions)|
-|7|[rescanprogress](#rescanprogress)|A rescan operation that is underway has made progress.|[rescan](#rescan)|
-|8|[rescanfinished](#rescanfinished)|A rescan operation has completed.|[rescan](#rescan)|
+|7|[rescanprogress](#rescanprogress)|*DEPRECATED, notifications not used by [rescanblocks](#rescanblocks)*<br />A rescan operation that is underway has made progress.|[rescan](#rescan)|
+|8|[rescanfinished](#rescanfinished)|*DEPRECATED, notifications not used by [rescanblocks](#rescanblocks)*<br />A rescan operation has completed.|[rescan](#rescan)|
+|9|[relevanttxaccepted](#relevanttxaccepted)|A transaction matching the tx filter has been accepted into the mempool.|[loadtxfilter](#loadtxfilter)|
+|10|[filteredblockconnected](#filteredblockconnected)|Block connected to the main chain; contains any transactions that match the client's tx filter.|[notifyblocks](#notifyblocks), [loadtxfilter](#loadtxfilter)|
+|11|[filteredblockdisconnected](#filteredblockdisconnected)|Block disconnected from the main chain.|[notifyblocks](#notifyblocks), [loadtxfilter](#loadtxfilter)|
 
 <a name="NotificationDetails" />
 
-**7.2 Notification Details**<br />
+**8.2 Notification Details**<br />
 
 <a name="blockconnected"/>
 
@@ -909,9 +924,9 @@ The following is an overview of the JSON-RPC notifications used for Websocket co
 |---|---|
 |Method|blockconnected|
 |Request|[notifyblocks](#notifyblocks)|
-|Parameters|1. `BlockHash`: `(string)` hex-encoded bytes of the attached block hash.<br />2. `BlockHeight`: `(numeric)` height of the attached block.<br />3. `BlockTime`: `(numeric)` unix time of the attached block.|
-|Description|Notifies when a block has been added to the main chain.  Notification is sent to all connected clients.|
-|Example|Example blockconnected notification for mainnet block 280330 (newlines added for readability):<br /><br />`{"jsonrpc": "1.0", "method": "blockconnected", "params": ["000000000000000004cbdfe387f4df44b914e464ca79838a8ab777b3214dbffd", 280330, 1389636265],"id": null}`|
+|Parameters|1. BlockHash (string) hex-encoded bytes of the attached block hash<br />2. BlockHeight (numeric) height of the attached block<br />3. BlockTime (numeric) unix time of the attached block|
+|Description|*DEPRECATED, for similar functionality see [filteredblockconnected](#filteredblockconnected)*<br />Notifies when a block has been added to the main chain.  Notification is sent to all connected clients.|
+|Example|Example blockconnected notification for mainnet block 280330 (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "blockconnected",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"000000000000000004cbdfe387f4df44b914e464ca79838a8ab777b3214dbffd",`<br />&nbsp;&nbsp;&nbsp;`280330,`<br />&nbsp;&nbsp;&nbsp;`1389636265`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 ***
@@ -922,9 +937,9 @@ The following is an overview of the JSON-RPC notifications used for Websocket co
 |---|---|
 |Method|blockdisconnected|
 |Request|[notifyblocks](#notifyblocks)|
-|Parameters|1. `BlockHash`: `(string)` hex-encoded bytes of the disconnected block hash.<br />2. `BlockHeight`: `(numeric)` height of the disconnected block.<br />3. `BlockTime`: `(numeric)` unix time of the disconnected block.|
-|Description|Notifies when a block has been removed from the main chain.  Notification is sent to all connected clients.|
-|Example|Example blockdisconnected notification for mainnet block 280330 (newlines added for readability):<br /><br />`{"jsonrpc": "1.0","method": "blockdisconnected", "params":["000000000000000004cbdfe387f4df44b914e464ca79838a8ab777b3214dbffd", 280330,1389636265],"id": null}`|
+|Parameters|1. BlockHash (string) hex-encoded bytes of the disconnected block hash<br />2. BlockHeight (numeric) height of the disconnected block<br />3. BlockTime (numeric) unix time of the disconnected block|
+|Description|*DEPRECATED, for similar functionality see [filteredblockdisconnected](#filteredblockdisconnected)*<br />Notifies when a block has been removed from the main chain.  Notification is sent to all connected clients.|
+|Example|Example blockdisconnected notification for mainnet block 280330 (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "blockdisconnected",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"000000000000000004cbdfe387f4df44b914e464ca79838a8ab777b3214dbffd",`<br />&nbsp;&nbsp;&nbsp;`280330,`<br />&nbsp;&nbsp;&nbsp;`1389636265`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 ***
@@ -935,21 +950,22 @@ The following is an overview of the JSON-RPC notifications used for Websocket co
 |---|---|
 |Method|recvtx|
 |Request|[rescan](#rescan) or [notifyreceived](#notifyreceived)|
-|Parameters|1. `Transaction`: `(string)` full transaction encoded as a hex string.<br />2. `Block details`: `(object, optional)` details about a block and the index of the transaction within a block, if the transaction is mined.|
-|Description|Notifies a client when a transaction is processed that contains at least a single output with a pkScript sending to a requested address.  If multiple outputs send to requested addresses, a single notification is sent.  If a mempool (unmined) transaction is processed, the block details object (second parameter) is excluded.|
-|Example|Example recvtx notification for mainnet transaction `61d3696de4c888730cbe06b0ad8ecb6d72d6108e893895aa9bc067bd7eba3fad` when processed by mempool (newlines added for readability):<br /><br />`{"jsonrpc": "1.0", "method": "recvtx", "params": ["010000000114d9ff358894c486b4ae11c2a8cf7851b1df64c53d2e511278eff17c22fb737300000000...], "id": null }`<br /><br />The recvtx notification for the same txout, after the transaction was mined into block `276425`:<br /><br />`{"jsonrpc": "1.0","method": "recvtx", "params": ["010000000114d9ff358894c486b4ae11c2a8cf7851b1df64c53d2e511278eff17c22fb737300000000...", {"height": 276425, "hash": "000000000000000325474bb799b9e591f965ca4461b72cb7012b808db92bb2fc", "index": 684, "time": 1387737310 }], "id": null }`|
+|Parameters|1. Transaction (string) full transaction encoded as a hex string<br />2. Block details (object, optional) details about a block and the index of the transaction within a block, if the transaction is mined|
+|Description|*DEPRECATED, for similar functionality see [relevanttxaccepted](#relevanttxaccepted) and [filteredblockconnected](#filteredblockconnected)*<br />Notifies a client when a transaction is processed that contains at least a single output with a pkScript sending to a requested address.  If multiple outputs send to requested addresses, a single notification is sent.  If a mempool (unmined) transaction is processed, the block details object (second parameter) is excluded.|
+|Example|Example recvtx notification for mainnet transaction 61d3696de4c888730cbe06b0ad8ecb6d72d6108e893895aa9bc067bd7eba3fad when processed by mempool (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "recvtx",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"010000000114d9ff358894c486b4ae11c2a8cf7851b1df64c53d2e511278eff17c22fb737300000000..."`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`<br />The recvtx notification for the same txout, after the transaction was mined into block 276425:<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "recvtx",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"010000000114d9ff358894c486b4ae11c2a8cf7851b1df64c53d2e511278eff17c22fb737300000000...",`<br />&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"height": 276425,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"hash": "000000000000000325474bb799b9e591f965ca4461b72cb7012b808db92bb2fc",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"index": 684,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"time": 1387737310`<br />&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 ***
+
 <a name="redeemingtx"/>
 
 |   |   |
 |---|---|
 |Method|redeemingtx|
 |Requests|[notifyspent](#notifyspent) and [rescan](#rescan)|
-|Parameters|1. `Transaction`: `(string)` full transaction encoded as a hex string.<br />2. `Block details`: `(object, optional)` details about a block and the index of the transaction within a block, if the transaction is mined.|
-|Description|Notifies a client when an registered outpoint is spent by a transaction accepted to mempool and/or mined into a block.|
-|Example|Example redeemingtx notification for mainnet outpoint `61d3696de4c888730cbe06b0ad8ecb6d72d6108e893895aa9bc067bd7eba3fad:0` after being spent by transaction `4ad0c16ac973ff675dec1f3e5f1273f1c45be2a63554343f21b70240a1e43ece` (newlines added for readability):<br /><br />`{"jsonrpc": "1.0", "method": "redeemingtx", "params": ["0100000003ad3fba7ebd67c09baa9538898e10d6726dcb8eadb006be0c7388c8e46d69d3610000000..."],"id": null}`<br /><br />The redeemingtx notification for the same txout, after the spending transaction was mined into block `279143`:<br /><br />`{"jsonrpc": "1.0", "method": "recvtx", "params": ["0100000003ad3fba7ebd67c09baa9538898e10d6726dcb8eadb006be0c7388c8e46d69d3610000000...", {"height": 279143, "hash": "00000000000000017188b968a371bab95aa43522665353b646e41865abae02a4", "index": 6, "time": 1389115004 }], "id": null }`|
+|Parameters|1. Transaction (string) full transaction encoded as a hex string<br />2. Block details (object, optional) details about a block and the index of the transaction within a block, if the transaction is mined|
+|Description|*DEPRECATED, for similar functionality see [relevanttxaccepted](#relevanttxaccepted) and [filteredblockconnected](#filteredblockconnected)*<br />Notifies a client when an registered outpoint is spent by a transaction accepted to mempool and/or mined into a block.|
+|Example|Example redeemingtx notification for mainnet outpoint 61d3696de4c888730cbe06b0ad8ecb6d72d6108e893895aa9bc067bd7eba3fad:0 after being spent by transaction 4ad0c16ac973ff675dec1f3e5f1273f1c45be2a63554343f21b70240a1e43ece (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "redeemingtx",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"0100000003ad3fba7ebd67c09baa9538898e10d6726dcb8eadb006be0c7388c8e46d69d3610000000..."`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`<br />The redeemingtx notification for the same txout, after the spending transaction was mined into block 279143:<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "recvtx",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"0100000003ad3fba7ebd67c09baa9538898e10d6726dcb8eadb006be0c7388c8e46d69d3610000000...",`<br />&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"height": 279143,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"hash": "00000000000000017188b968a371bab95aa43522665353b646e41865abae02a4",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"index": 6,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"time": 1389115004`<br />&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 ***
@@ -960,9 +976,9 @@ The following is an overview of the JSON-RPC notifications used for Websocket co
 |---|---|
 |Method|txaccepted|
 |Request|[notifynewtransactions](#notifynewtransactions)|
-|Parameters|1. `TxId`: `(string)` hex-encoded bytes of the transaction hash.<br />2. `Amount`: `(numeric)` sum of the value of all the transaction outpoints.|
+|Parameters|1. TxHash (string) hex-encoded bytes of the transaction hash<br />2. Amount (numeric) sum of the value of all the transaction outpoints|
 |Description|Notifies when a new transaction has been accepted and the client has requested standard transaction details.|
-|Example|Example txaccepted notification for mainnet transaction id `16c54c9d02fe570b9d41b518c0daefae81cc05c69bbe842058e84c6ed5826261` (newlines added for readability):<br /><br />`{"jsonrpc": "1.0", "method": "txaccepted", "params": ["16c54c9d02fe570b9d41b518c0daefae81cc05c69bbe842058e84c6ed5826261", 55838384], "id": null}`|
+|Example|Example txaccepted notification for mainnet transaction id "16c54c9d02fe570b9d41b518c0daefae81cc05c69bbe842058e84c6ed5826261" (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "txaccepted",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"16c54c9d02fe570b9d41b518c0daefae81cc05c69bbe842058e84c6ed5826261",`<br />&nbsp;&nbsp;&nbsp;`55838384`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 ***
@@ -973,9 +989,9 @@ The following is an overview of the JSON-RPC notifications used for Websocket co
 |---|---|
 |Method|txacceptedverbose|
 |Request|[notifynewtransactions](#notifynewtransactions)|
-|Parameters|1. `RawTx`: `(json object)` the transaction as a json object (see getrawtransaction json object details).|
+|Parameters|1. RawTx (json object) the transaction as a json object (see getrawtransaction json object details)|
 |Description|Notifies when a new transaction has been accepted and the client has requested verbose transaction details.|
-|Example|Example txacceptedverbose notification (newlines added for readability):<br /><br />**For coinbase transactions**<br />`{"jsonrpc": "1.0", "method": "txacceptedverbose", "params": [{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...", "txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9", "version": 1, "locktime": 0, "vin": [{"coinbase": "03708203062f503253482f04066d605108f800080100000ea2122f6f7a636f696e4065757374726174756d2f", "sequence": 0}, ...], "vout": [{"value": 25.1394, "n": 0,"scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1,"type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}]}], "id": null}`<br /><br />**For non-coinbase transactions**<br />`{"jsonrpc": "1.0", "method": "txacceptedverbose", "params": [{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...", "txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9", "version": 1, "locktime": 0, "vin": [{"txid": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04","vout": 0, "scriptSig": {"asm": "3046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f0...", "hex": "493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8..."}, "sequence": 4294967295}, ...], "vout": [{"value": 25.1394, "n": 0,"scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1,"type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}]}], "id": null}`|
+|Example|Example txacceptedverbose notification (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "txacceptedverbose",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"version": 1,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"locktime": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"vin": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;<font color="orange">For coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`{ (json object)`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"coinbase": "03708203062f503253482f04066d605108f800080100000ea2122f6f7a636f696e4065757374726174756d2f",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;<font color="orange">For non-coinbase transactions:</font><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"txid": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"vout": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptSig": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "3046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f0...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8...",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"sequence": 4294967295,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`],`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"vout": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`{`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"value": 25.1394,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"n": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"scriptPubKey": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"reqSigs": 1,`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"type": "pubkeyhash"`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"addresses": [`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`"1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh",`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;&nbsp;`}`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 ***
@@ -986,9 +1002,9 @@ The following is an overview of the JSON-RPC notifications used for Websocket co
 |---|---|
 |Method|rescanprogress|
 |Request|[rescan](#rescan)|
-|Parameters|1. `Hash`: `(string)` hash of the last processed block.<br />2. `Height`: `(numeric)` height of the last processed block.<br />3. `Time`: `(numeric)` UNIX time of the last processed block.|
-|Description|Notifies a client with the current progress at periodic intervals when a long-running [rescan](#rescan) is underway.|
-|Example|`{"jsonrpc": "1.0", "method": "rescanprogress", "params": ["0000000000000ea86b49e11843b2ad937ac89ae74a963c7edd36e0147079b89d", 127213, 1306533807], "id": null }`|
+|Parameters|1. Hash (string) hash of the last processed block<br />2. Height (numeric) height of the last processed block<br />3. Time (numeric) UNIX time of the last processed block|
+|Description|*DEPRECATED, notifications not used by [rescanblocks](#rescanblocks)*<br />Notifies a client with the current progress at periodic intervals when a long-running [rescan](#rescan) is underway.|
+|Example|`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "rescanprogress",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"0000000000000ea86b49e11843b2ad937ac89ae74a963c7edd36e0147079b89d",`<br />&nbsp;&nbsp;&nbsp;`127213,`<br />&nbsp;&nbsp;&nbsp;`1306533807`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 ***
@@ -999,15 +1015,53 @@ The following is an overview of the JSON-RPC notifications used for Websocket co
 |---|---|
 |Method|rescanfinished|
 |Request|[rescan](#rescan)|
-|Parameters|1. `Hash`: `(string)` hash of the last rescanned block.<br />2. `Height`: `(numeric)` height of the last rescanned block.<br />3. `Time`: `(numeric)` UNIX time of the last rescanned block.|
-|Description|Notifies a client that the [rescan](#rescan) has completed and no further notifications will be sent.|
-|Example|`{"jsonrpc": "1.0", "method": "rescanfinished", "params": ["0000000000000ea86b49e11843b2ad937ac89ae74a963c7edd36e0147079b89d", 127213, 1306533807], "id": null }`|
+|Parameters|1. Hash (string) hash of the last rescanned block<br />2. Height (numeric) height of the last rescanned block<br />3. Time (numeric) UNIX time of the last rescanned block |
+|Description|*DEPRECATED, notifications not used by [rescanblocks](#rescanblocks)*<br />Notifies a client that the [rescan](#rescan) has completed and no further notifications will be sent.|
+|Example|`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "rescanfinished",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`"0000000000000ea86b49e11843b2ad937ac89ae74a963c7edd36e0147079b89d",`<br />&nbsp;&nbsp;&nbsp;`127213,`<br />&nbsp;&nbsp;&nbsp;`1306533807`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
+[Return to Overview](#NotificationOverview)<br />
+
+***
+
+<a name="relevanttxaccepted"/>
+
+|   |   |
+|---|---|
+|Method|relevanttxaccepted|
+|Request|[loadtxfilter](#loadtxfilter)|
+|Parameters|1. Transaction (string) hex-encoded serialized transaction matching the client's filter loaded ith [loadtxfilter](#loadtxfilter)|
+|Description|Notifies a client that a transaction matching the client's tx filter has been accepted into he mempool.|
+|Example|Example `relevanttxaccepted` notification (newlines added for readability):<br />`{`<br >&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "relevanttxaccepted",`<br />&nbsp;`"params": [`<br >&nbsp;&nbsp;`"01000000014221abdcca25c8a3b0c044034875dece048c77d567a806f0c2e7e0f5e25a8f100..."`<br >&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
+
+***
+
+<a name="filteredblockconnected"/>
+
+|   |   |
+|---|---|
+|Method|filteredblockconnected|
+|Request|[notifyblocks](#notifyblocks), [loadtxfilter](#loadtxfilter)|
+|Parameters|1. BlockHeight (numeric) height of the attached block<br />2. Header (string) hex-encoded serialized header of the attached block<br />3. Transactions (JSON array) hex-encoded serialized transactions matching the filter for the client connection loaded with [loadtxfilter](#loadtxfilter)|
+|Description|Notifies when a block has been added to the main chain.  Notification is sent to all connected clients.|
+|Example|Example filteredblockconnected notification for mainnet block 280330 (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "filteredblockconnected",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`280330,`<br />&nbsp;&nbsp;&nbsp;`"0200000052d1e8813f697293e41942aa230e7e4fcc44832d78a1372202000000000000006aa...",`<br />&nbsp;&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"01000000014221abdcca25c8a3b0c044034875dece048c77d567a806f0c2e7e0f5e25a8f100..."`<br />&nbsp;&nbsp;&nbsp;`]`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
+[Return to Overview](#NotificationOverview)<br />
+
+***
+
+<a name="filteredblockdisconnected"/>
+
+|   |   |
+|---|---|
+|Method|filteredblockdisconnected|
+|Request|[notifyblocks](#notifyblocks), [loadtxfilter](#loadtxfilter)|
+|Parameters|1. BlockHeight (numeric) height of the disconnected block<br />2. Header (string) hex-encoded serialized header of the disconnected block|
+|Description|Notifies when a block has been removed from the main chain.  Notification is sent to all connected clients.|
+|Example|Example blockdisconnected notification for mainnet block 280330 (newlines added for readability):<br />`{`<br />&nbsp;`"jsonrpc": "1.0",`<br />&nbsp;`"method": "blockdisconnected",`<br />&nbsp;`"params":`<br />&nbsp;&nbsp;`[`<br />&nbsp;&nbsp;&nbsp;`280330,`<br />&nbsp;&nbsp;&nbsp;`"0200000052d1e8813f697293e41942aa230e7e4fcc44832d78a1372202000000000000006aa..."`<br />&nbsp;&nbsp;`],`<br />&nbsp;`"id": null`<br />`}`|
 [Return to Overview](#NotificationOverview)<br />
 
 
 <a name="ExampleCode" />
 
-### 8. Example Code
+### 9. Example Code
 
 This section provides example code for interacting with the JSON-RPC API in
 various languages.
@@ -1017,10 +1071,10 @@ various languages.
 
 <a name="ExampleGoApp" />
 
-**8.1 Go**
+**9.1 Go**
 
 This section provides examples of using the RPC interface using Go and the
-[rpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) package.
+[btcrpcclient](https://github.com/btcsuite/btcrpcclient) package.
 
 * [Using getblockcount to Retrieve the Current Block Height](#ExampleGetBlockCount)
 * [Using getblock to Retrieve the Genesis Block](#ExampleGetBlock)
@@ -1029,31 +1083,30 @@ This section provides examples of using the RPC interface using Go and the
 
 <a name="ExampleGetBlockCount" />
 
-**8.1.1 Using getblockcount to Retrieve the Current Block Height**<br />
+**9.1.1 Using getblockcount to Retrieve the Current Block Height**<br />
 
 The following is an example Go application which uses the
-[rpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) package to connect with
-a pfcd instance via Websockets, issues [getblockcount](#getblockcount) to
+[btcrpcclient](https://github.com/btcsuite/btcrpcclient) package to connect with
+a btcd instance via Websockets, issues [getblockcount](#getblockcount) to
 retrieve the current block height, and displays it.
 
 ```Go
 package main
 
 import (
+	"github.com/btcsuite/btcrpcclient"
+	"github.com/picfight/pfcutil"
 	"io/ioutil"
 	"log"
 	"path/filepath"
-
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/rpcclient"
 )
 
 func main() {
 	// Load the certificate for the TLS connection which is automatically
-	// generated by pfcd when it starts the RPC server and doesn't already
+	// generated by btcd when it starts the RPC server and doesn't already
 	// have one.
-	pfcdHomeDir := pfcutil.AppDataDir("pfcd", false)
-	certs, err := ioutil.ReadFile(filepath.Join(pfcdHomeDir, "rpc.cert"))
+	btcdHomeDir := pfcutil.AppDataDir("pfcd", false)
+	certs, err := ioutil.ReadFile(filepath.Join(btcdHomeDir, "rpc.cert"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1061,14 +1114,14 @@ func main() {
 	// Create a new RPC client using websockets.  Since this example is
 	// not long-lived, the connection will be closed as soon as the program
 	// exits.
-	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:9709",
+	connCfg := &btcrpcclient.ConnConfig{
+		Host:         "localhost:8334",
 		Endpoint:     "ws",
 		User:         "yourrpcuser",
 		Pass:         "yourrpcpass",
 		Certificates: certs,
 	}
-	client, err := rpcclient.New(connCfg, nil)
+	client, err := btcrpcclient.New(connCfg, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1086,38 +1139,38 @@ func main() {
 Which results in:
 
 ```bash
-Block count: 203528
+Block count: 276978
 ```
 
 <a name="ExampleGetBlock" />
 
-**8.1.2 Using getblock to Retrieve the Genesis Block**<br />
+**9.1.2 Using getblock to Retrieve the Genesis Block**<br />
 
 The following is an example Go application which uses the
-[rpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) package to connect with
-a pfcd instance via Websockets, issues [getblock](#getblock) to retrieve
+[btcrpcclient](https://github.com/btcsuite/btcrpcclient) package to connect with
+a btcd instance via Websockets, issues [getblock](#getblock) to retrieve
 information about the Genesis block, and display a few details about it.
 
 ```Go
 package main
 
 import (
+	"github.com/btcsuite/btcrpcclient"
+	"github.com/picfight/pfcutil"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/wire"
 	"io/ioutil"
 	"log"
 	"path/filepath"
 	"time"
-
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/rpcclient"
 )
 
 func main() {
 	// Load the certificate for the TLS connection which is automatically
-	// generated by pfcd when it starts the RPC server and doesn't already
+	// generated by btcd when it starts the RPC server and doesn't already
 	// have one.
-	pfcdHomeDir := pfcutil.AppDataDir("pfcd", false)
-	certs, err := ioutil.ReadFile(filepath.Join(pfcdHomeDir, "rpc.cert"))
+	btcdHomeDir := pfcutil.AppDataDir("pfcd", false)
+	certs, err := ioutil.ReadFile(filepath.Join(btcdHomeDir, "rpc.cert"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1125,14 +1178,14 @@ func main() {
 	// Create a new RPC client using websockets.  Since this example is
 	// not long-lived, the connection will be closed as soon as the program
 	// exits.
-	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:9709",
+	connCfg := &btcrpcclient.ConnConfig{
+		Host:         "localhost:18334",
 		Endpoint:     "ws",
 		User:         "yourrpcuser",
 		Pass:         "yourrpcpass",
 		Certificates: certs,
 	}
-	client, err := rpcclient.New(connCfg, nil)
+	client, err := btcrpcclient.New(connCfg, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1141,7 +1194,7 @@ func main() {
 	// Query the RPC server for the genesis block using the "getblock"
 	// command with the verbose flag set to true and the verboseTx flag
 	// set to false.
-	genesisHashStr := "298e5cc3d985bfe7f81dc135f360abe089edd4396b86d2de66b0cef42b21d980"
+	genesisHashStr := "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
 	blockHash, err := chainhash.NewHashFromStr(genesisHashStr)
 	if err != nil {
 		log.Fatal(err)
@@ -1167,25 +1220,25 @@ func main() {
 Which results in:
 
 ```bash
-Hash: 298e5cc3d985bfe7f81dc135f360abe089edd4396b86d2de66b0cef42b21d980
+Hash: 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
 Previous Block: 0000000000000000000000000000000000000000000000000000000000000000
-Next Block: 000000000000437482b6d47f82f374cde539440ddb108b0a76886f0d87d126b9
-Merkle root: 66aa7491b9adce110585ccab7e3fb5fe280de174530cca10eba2c6c3df01c10d
-Timestamp: 2016-02-08 18:00:00 +0000 UTC
-Confirmations: 203529
-Difficulty: 32767.749998
-Size (in bytes): 0
+Next Block: 00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048
+Merkle root: 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+Timestamp: 2009-01-03 18:15:05 +0000 UTC
+Confirmations: 277290
+Difficulty: 1.000000
+Size (in bytes): 285
 Num transactions: 1
 ```
 
 <a name="ExampleNotifyBlocks" />
 
-**8.1.3 Using notifyblocks to Receive blockconnected and blockdisconnected
+**9.1.3 Using notifyblocks to Receive blockconnected and blockdisconnected
 Notifications (Websocket-specific)**<br />
 
 The following is an example Go application which uses the
-[rpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) package to connect with
-a pfcd instance via Websockets and registers for
+[btcrpcclient](https://github.com/btcsuite/btcrpcclient) package to connect with
+a btcd instance via Websockets and registers for
 [blockconnected](#blockconnected) and [blockdisconnected](#blockdisconnected)
 notifications with [notifyblocks](#notifyblocks).  It also sets up handlers for
 the notifications.
@@ -1194,46 +1247,46 @@ the notifications.
 package main
 
 import (
+	"github.com/btcsuite/btcrpcclient"
+	"github.com/picfight/pfcutil"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/wire"
 	"io/ioutil"
 	"log"
 	"path/filepath"
 	"time"
-
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/rpcclient"
 )
 
 func main() {
 	// Setup handlers for blockconnected and blockdisconnected
 	// notifications.
-	ntfnHandlers := rpcclient.NotificationHandlers{
-		OnBlockConnected: func(blockHeader []byte, transactions [][]byte) {
-			log.Printf("Block connected: %x (%d txs)", blockHeader, len(transactions))
-
+	ntfnHandlers := btcrpcclient.NotificationHandlers{
+		OnBlockConnected: func(hash *chainhash.Hash, height int32) {
+			log.Printf("Block connected: %v (%d)", hash, height)
 		},
-		OnBlockDisconnected: func(blockHeader []byte) {
-			log.Printf("Block disconnected: %x", blockHeader)
+		OnBlockDisconnected: func(hash *chainhash.Hash, height int32) {
+			log.Printf("Block disconnected: %v", hash, height)
 		},
 	}
 
 	// Load the certificate for the TLS connection which is automatically
-	// generated by pfcd when it starts the RPC server and doesn't already
+	// generated by btcd when it starts the RPC server and doesn't already
 	// have one.
-	pfcdHomeDir := pfcutil.AppDataDir("pfcd", false)
-	certs, err := ioutil.ReadFile(filepath.Join(pfcdHomeDir, "rpc.cert"))
+	btcdHomeDir := pfcutil.AppDataDir("pfcd", false)
+	certs, err := ioutil.ReadFile(filepath.Join(btcdHomeDir, "rpc.cert"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create a new RPC client using websockets.
-	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:9709",
+	connCfg := &btcrpcclient.ConnConfig{
+		Host:         "localhost:8334",
 		Endpoint:     "ws",
 		User:         "yourrpcuser",
 		Pass:         "yourrpcpass",
 		Certificates: certs,
 	}
-	client, err := rpcclient.New(connCfg, &ntfnHandlers)
+	client, err := btcrpcclient.New(connCfg, &ntfnHandlers)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1263,50 +1316,46 @@ func main() {
 Example output:
 
 ```
-Client shutdown in 10 seconds...
-Block connected: 050000008478546af6812f4b3cb2148b5967b2dab78c3438d31821760f000000000000002c5f513f6ed478b90a7fc3525bbd64d16ab9b577c6b01861a1e9438f42e22ad95369522fdb6d393edf7eff3f0b33e93b60361fef1ec678843faae2caec0b782701003406e68c8961050013004aa00000e21668193dcd2d0302000000a21d03002bed00003b125d5a005fd38e00000000f1ea07e25fff20eb000000000000000000000000000000000000000005000000 (0 txs)
-Client shutting down...
-Client shutdown complete.
+2014/05/12 20:33:17 Client shutdown in 10 seconds...
+2014/05/12 20:33:19 Block connected: 000000000000000007dff1f95f7b3f5eac2892a4123069517caf34e2c417650d (300461)
+2014/05/12 20:33:27 Client shutting down...
+2014/05/12 20:31:27 Client shutdown complete.
 ```
 
 <a name="ExampleNodeJsCode" />
 
-### 8.2. Example node.js Code
+### 9.2. Example node.js Code
 
 <a name="ExampleNotifyBlocks" />
 
-**8.2.1 Using notifyblocks to be Notified of Block Connects and Disconnects**<br />
+**9.2.1 Using notifyblocks to be Notified of Block Connects and Disconnects**<br />
 
 The following is example node.js code which uses [ws](https://github.com/einaros/ws)
-(can be installed with `npm install ws`) to connect with a pfcd instance,
+(can be installed with `npm install ws`) to connect with a btcd instance,
 issues [notifyblocks](#notifyblocks) to register for
 [blockconnected](#blockconnected) and [blockdisconnected](#blockdisconnected)
 notifications, and displays all incoming messages.
-
-This code has only been confirmed to work as of node.js 8.11.1 LTS.  It might
-not work with earlier versions.
 
 ```javascript
 var fs = require('fs');
 var WebSocket = require('ws');
 
 // Load the certificate for the TLS connection which is automatically
-// generated by pfcd when it starts the RPC server and doesn't already
+// generated by btcd when it starts the RPC server and doesn't already
 // have one.
-var cert = fs.readFileSync('/path/to/pfcd/appdata/rpc.cert');
+var cert = fs.readFileSync('/path/to/btcd/appdata/rpc.cert');
 var user = "yourusername";
 var password = "yourpassword";
 
 
-// Initiate the websocket connection.  The pfcd generated certificate acts as
+// Initiate the websocket connection.  The btcd generated certificate acts as
 // its own certificate authority, so it needs to be specified in the 'ca' array
 // for the certificate to properly validate.
-var ws = new WebSocket('wss://127.0.0.1:9709/ws', {
+var ws = new WebSocket('wss://127.0.0.1:8334/ws', {
   headers: {
-    'Authorization': 'Basic '+Buffer.from(user+':'+password).toString('base64')
+    'Authorization': 'Basic '+new Buffer(user+':'+password).toString('base64')
   },
   cert: cert,
-  ecdhCurve: 'secp521r1', // Required for node.js v8.11.1 LTS, not for v10.1.0.
   ca: [cert]
 });
 ws.on('open', function() {

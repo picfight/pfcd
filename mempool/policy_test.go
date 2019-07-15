@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,18 +6,15 @@ package mempool
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 // TestCalcMinRequiredTxRelayFee tests the calcMinRequiredTxRelayFee API.
@@ -30,30 +26,30 @@ func TestCalcMinRequiredTxRelayFee(t *testing.T) {
 		want     int64          // Expected fee.
 	}{
 		{
-			// Ensure combination of size and fee that are less than
-			// 1000 produce a non-zero fee.
+			// Ensure combination of size and fee that are less than 1000
+			// produce a non-zero fee.
 			"250 bytes with relay fee of 3",
 			250,
 			3,
 			3,
 		},
 		{
-			"1000 bytes with default minimum relay fee",
-			1000,
+			"100 bytes with default minimum relay fee",
+			100,
 			DefaultMinRelayTxFee,
-			1e4,
+			100,
 		},
 		{
 			"max standard tx size with default minimum relay fee",
-			maxStandardTxSize,
+			maxStandardTxWeight / 4,
 			DefaultMinRelayTxFee,
-			1e6,
+			100000,
 		},
 		{
-			"max standard tx size with max relay fee",
-			maxStandardTxSize,
-			pfcutil.MaxAmount,
-			pfcutil.MaxAmount,
+			"max standard tx size with max satoshi relay fee",
+			maxStandardTxWeight / 4,
+			pfcutil.MaxSatoshi,
+			pfcutil.MaxSatoshi,
 		},
 		{
 			"1500 bytes with 5000 relay fee",
@@ -102,8 +98,13 @@ func TestCalcMinRequiredTxRelayFee(t *testing.T) {
 func TestCheckPkScriptStandard(t *testing.T) {
 	var pubKeys [][]byte
 	for i := 0; i < 4; i++ {
-		pk := secp256k1.NewPrivateKey(big.NewInt(0))
-		pubKeys = append(pubKeys, (*secp256k1.PublicKey)(&pk.PublicKey).SerializeCompressed())
+		pk, err := pfcec.NewPrivateKey(pfcec.S256())
+		if err != nil {
+			t.Fatalf("TestCheckPkScriptStandard NewPrivateKey failed: %v",
+				err)
+			return
+		}
+		pubKeys = append(pubKeys, pk.PubKey().SerializeCompressed())
 	}
 
 	tests := []struct {
@@ -191,8 +192,8 @@ func TestCheckPkScriptStandard(t *testing.T) {
 				"failed: %v", test.name, err)
 			continue
 		}
-		scriptClass := txscript.GetScriptClass(0, script)
-		got := checkPkScriptStandard(0, script, scriptClass)
+		scriptClass := txscript.GetScriptClass(script)
+		got := checkPkScriptStandard(script, scriptClass)
 		if (test.isStandard && got != nil) ||
 			(!test.isStandard && got == nil) {
 
@@ -205,9 +206,11 @@ func TestCheckPkScriptStandard(t *testing.T) {
 
 // TestDust tests the isDust API.
 func TestDust(t *testing.T) {
-	pkScript := []byte{0x76, 0xa9, 0x14, 0xb1, 0x2d, 0x0f, 0xca,
-		0xeb, 0x46, 0x14, 0xa3, 0x4b, 0x1e, 0x88, 0x61, 0xe7,
-		0x55, 0x4f, 0xd4, 0x13, 0xf7, 0xa6, 0x47, 0x88, 0xac}
+	pkScript := []byte{0x76, 0xa9, 0x21, 0x03, 0x2f, 0x7e, 0x43,
+		0x0a, 0xa4, 0xc9, 0xd1, 0x59, 0x43, 0x7e, 0x84, 0xb9,
+		0x75, 0xdc, 0x76, 0xd9, 0x00, 0x3b, 0xf0, 0x92, 0x2c,
+		0xf3, 0xaa, 0x45, 0x28, 0x46, 0x4b, 0xab, 0x78, 0x0d,
+		0xba, 0x5e, 0x88, 0xac}
 
 	tests := []struct {
 		name     string // test description
@@ -218,64 +221,40 @@ func TestDust(t *testing.T) {
 		{
 			// Any value is allowed with a zero relay fee.
 			"zero value with zero relay fee",
-			wire.TxOut{Value: 0, Version: 0, PkScript: pkScript},
+			wire.TxOut{Value: 0, PkScript: pkScript},
 			0,
-			true,
+			false,
 		},
 		{
 			// Zero value is dust with any relay fee"
 			"zero value with very small tx fee",
-			wire.TxOut{Value: 0, Version: 0, PkScript: pkScript},
+			wire.TxOut{Value: 0, PkScript: pkScript},
 			1,
 			true,
 		},
 		{
-			"25 byte public key script with value 602, relay fee 1e3",
-			wire.TxOut{Value: 602, Version: 0, PkScript: pkScript},
+			"38 byte public key script with value 584",
+			wire.TxOut{Value: 584, PkScript: pkScript},
 			1000,
 			true,
 		},
 		{
-			"25 byte public key script with value 603, relay fee 1e3",
-			wire.TxOut{Value: 603, Version: 0, PkScript: pkScript},
+			"38 byte public key script with value 585",
+			wire.TxOut{Value: 585, PkScript: pkScript},
 			1000,
-			false,
-		},
-		{
-			"25 byte public key script with value 60299, relay fee 1e5",
-			wire.TxOut{Value: 60299, Version: 0, PkScript: pkScript},
-			1e5,
-			true,
-		},
-		{
-			"25 byte public key script with value 60300, relay fee 1e5",
-			wire.TxOut{Value: 60300, Version: 0, PkScript: pkScript},
-			1e5,
-			false,
-		},
-		{
-			"25 byte public key script with value 6029, relay fee 1e4",
-			wire.TxOut{Value: 6029, Version: 0, PkScript: pkScript},
-			1e4,
-			true,
-		},
-		{
-			"25 byte public key script with value 6030, relay fee 1e4",
-			wire.TxOut{Value: 6030, Version: 0, PkScript: pkScript},
-			1e4,
 			false,
 		},
 		{
 			// Maximum allowed value is never dust.
-			"max amount is never dust",
-			wire.TxOut{Value: pfcutil.MaxAmount, Version: 0, PkScript: pkScript},
-			pfcutil.MaxAmount,
+			"max satoshi amount is never dust",
+			wire.TxOut{Value: pfcutil.MaxSatoshi, PkScript: pkScript},
+			pfcutil.MaxSatoshi,
 			false,
 		},
 		{
 			// Maximum int64 value causes overflow.
 			"maximum int64 value",
-			wire.TxOut{Value: 1<<63 - 1, Version: 0, PkScript: pkScript},
+			wire.TxOut{Value: 1<<63 - 1, PkScript: pkScript},
 			1<<63 - 1,
 			true,
 		},
@@ -283,7 +262,7 @@ func TestDust(t *testing.T) {
 			// Unspendable pkScript due to an invalid public key
 			// script.
 			"unspendable pkScript",
-			wire.TxOut{Value: 5000, Version: 0, PkScript: []byte{0x01}},
+			wire.TxOut{Value: 5000, PkScript: []byte{0x01}},
 			0, // no relay fee
 			true,
 		},
@@ -300,28 +279,21 @@ func TestDust(t *testing.T) {
 
 // TestCheckTransactionStandard tests the checkTransactionStandard API.
 func TestCheckTransactionStandard(t *testing.T) {
-	// maxTxVersion is used as the maximum support transaction version for
-	// the policy in these tests.
-	const maxTxVersion = 1
-
 	// Create some dummy, but otherwise standard, data for transactions.
 	prevOutHash, err := chainhash.NewHashFromStr("01")
 	if err != nil {
-		t.Fatalf("NewHashFromStr: unexpected error: %v", err)
+		t.Fatalf("NewShaHashFromStr: unexpected error: %v", err)
 	}
-	dummyPrevOut := wire.OutPoint{Hash: *prevOutHash, Index: 1, Tree: 0}
+	dummyPrevOut := wire.OutPoint{Hash: *prevOutHash, Index: 1}
 	dummySigScript := bytes.Repeat([]byte{0x00}, 65)
 	dummyTxIn := wire.TxIn{
 		PreviousOutPoint: dummyPrevOut,
-		Sequence:         wire.MaxTxInSequenceNum,
-		ValueIn:          0,
-		BlockHeight:      0,
-		BlockIndex:       0,
 		SignatureScript:  dummySigScript,
+		Sequence:         wire.MaxTxInSequenceNum,
 	}
 	addrHash := [20]byte{0x01}
 	addr, err := pfcutil.NewAddressPubKeyHash(addrHash[:],
-		&chaincfg.RegNetParams, pfcec.STEcdsaSecp256k1)
+		&chaincfg.TestNet3Params)
 	if err != nil {
 		t.Fatalf("NewAddressPubKeyHash: unexpected error: %v", err)
 	}
@@ -330,22 +302,20 @@ func TestCheckTransactionStandard(t *testing.T) {
 		t.Fatalf("PayToAddrScript: unexpected error: %v", err)
 	}
 	dummyTxOut := wire.TxOut{
-		Value:    100000000, // 1 BTC
-		Version:  0,
+		Value:    100000000, // 1 PFC
 		PkScript: dummyPkScript,
 	}
 
 	tests := []struct {
 		name       string
 		tx         wire.MsgTx
-		height     int64
+		height     int32
 		isStandard bool
 		code       wire.RejectCode
 	}{
 		{
 			name: "Typical pay-to-pubkey-hash transaction",
 			tx: wire.MsgTx{
-				SerType:  wire.TxSerializeFull,
 				Version:  1,
 				TxIn:     []*wire.TxIn{&dummyTxIn},
 				TxOut:    []*wire.TxOut{&dummyTxOut},
@@ -355,23 +325,9 @@ func TestCheckTransactionStandard(t *testing.T) {
 			isStandard: true,
 		},
 		{
-			name: "Transaction serialize type not full",
-			tx: wire.MsgTx{
-				SerType:  wire.TxSerializeNoWitness,
-				Version:  1,
-				TxIn:     []*wire.TxIn{&dummyTxIn},
-				TxOut:    []*wire.TxOut{&dummyTxOut},
-				LockTime: 0,
-			},
-			height:     300000,
-			isStandard: false,
-			code:       wire.RejectNonstandard,
-		},
-		{
 			name: "Transaction version too high",
 			tx: wire.MsgTx{
-				SerType:  wire.TxSerializeFull,
-				Version:  maxTxVersion + 1,
+				Version:  wire.TxVersion + 1,
 				TxIn:     []*wire.TxIn{&dummyTxIn},
 				TxOut:    []*wire.TxOut{&dummyTxOut},
 				LockTime: 0,
@@ -383,7 +339,6 @@ func TestCheckTransactionStandard(t *testing.T) {
 		{
 			name: "Transaction is not finalized",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn: []*wire.TxIn{{
 					PreviousOutPoint: dummyPrevOut,
@@ -400,13 +355,12 @@ func TestCheckTransactionStandard(t *testing.T) {
 		{
 			name: "Transaction size is too large",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn:    []*wire.TxIn{&dummyTxIn},
 				TxOut: []*wire.TxOut{{
 					Value: 0,
 					PkScript: bytes.Repeat([]byte{0x00},
-						maxStandardTxSize+1),
+						(maxStandardTxWeight/4)+1),
 				}},
 				LockTime: 0,
 			},
@@ -417,7 +371,6 @@ func TestCheckTransactionStandard(t *testing.T) {
 		{
 			name: "Signature script size is too large",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn: []*wire.TxIn{{
 					PreviousOutPoint: dummyPrevOut,
@@ -435,7 +388,6 @@ func TestCheckTransactionStandard(t *testing.T) {
 		{
 			name: "Signature script that does more than push data",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn: []*wire.TxIn{{
 					PreviousOutPoint: dummyPrevOut,
@@ -453,7 +405,6 @@ func TestCheckTransactionStandard(t *testing.T) {
 		{
 			name: "Valid but non standard public key script",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn:    []*wire.TxIn{&dummyTxIn},
 				TxOut: []*wire.TxOut{{
@@ -467,21 +418,11 @@ func TestCheckTransactionStandard(t *testing.T) {
 			code:       wire.RejectNonstandard,
 		},
 		{
-			name: "More than four nulldata outputs",
+			name: "More than one nulldata output",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn:    []*wire.TxIn{&dummyTxIn},
 				TxOut: []*wire.TxOut{{
-					Value:    0,
-					PkScript: []byte{txscript.OP_RETURN},
-				}, {
-					Value:    0,
-					PkScript: []byte{txscript.OP_RETURN},
-				}, {
-					Value:    0,
-					PkScript: []byte{txscript.OP_RETURN},
-				}, {
 					Value:    0,
 					PkScript: []byte{txscript.OP_RETURN},
 				}, {
@@ -497,7 +438,6 @@ func TestCheckTransactionStandard(t *testing.T) {
 		{
 			name: "Dust output",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn:    []*wire.TxIn{&dummyTxIn},
 				TxOut: []*wire.TxOut{{
@@ -513,7 +453,6 @@ func TestCheckTransactionStandard(t *testing.T) {
 		{
 			name: "One nulldata output with 0 amount (standard)",
 			tx: wire.MsgTx{
-				SerType: wire.TxSerializeFull,
 				Version: 1,
 				TxIn:    []*wire.TxIn{&dummyTxIn},
 				TxOut: []*wire.TxOut{{
@@ -527,13 +466,11 @@ func TestCheckTransactionStandard(t *testing.T) {
 		},
 	}
 
-	medianTime := time.Now()
+	pastMedianTime := time.Now()
 	for _, test := range tests {
 		// Ensure standardness is as expected.
-		tx := pfcutil.NewTx(&test.tx)
-		err := checkTransactionStandard(tx, stake.DetermineTxType(&test.tx),
-			test.height, medianTime, DefaultMinRelayTxFee,
-			maxTxVersion)
+		err := checkTransactionStandard(pfcutil.NewTx(&test.tx),
+			test.height, pastMedianTime, DefaultMinRelayTxFee, 1)
 		if err == nil && test.isStandard {
 			// Test passes since function returned standard for a
 			// transaction which is intended to be standard.

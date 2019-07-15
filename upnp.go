@@ -50,10 +50,10 @@ import (
 type NAT interface {
 	// Get the external address from outside the NAT.
 	GetExternalAddress() (addr net.IP, err error)
-	// Add a port mapping for protocol ("udp" or "tcp") from externalport to
+	// Add a port mapping for protocol ("udp" or "tcp") from external port to
 	// internal port with description lasting for timeout.
 	AddPortMapping(protocol string, externalPort, internalPort int, description string, timeout int) (mappedExternalPort int, err error)
-	// Remove a previously added port mapping from externalport to
+	// Remove a previously added port mapping from external port to
 	// internal port.
 	DeletePortMapping(protocol string, externalPort, internalPort int) (err error)
 }
@@ -239,22 +239,22 @@ func getServiceURL(rootURL string) (url string, err error) {
 	}
 	a := &root.Device
 	if a.DeviceType != "urn:schemas-upnp-org:device:InternetGatewayDevice:1" {
-		err = errors.New("no internet gateway device")
+		err = errors.New("no InternetGatewayDevice")
 		return
 	}
 	b := getChildDevice(a, "urn:schemas-upnp-org:device:WANDevice:1")
 	if b == nil {
-		err = errors.New("no WAN device")
+		err = errors.New("no WANDevice")
 		return
 	}
 	c := getChildDevice(b, "urn:schemas-upnp-org:device:WANConnectionDevice:1")
 	if c == nil {
-		err = errors.New("no WAN connection device")
+		err = errors.New("no WANConnectionDevice")
 		return
 	}
 	d := getChildService(c, "urn:schemas-upnp-org:service:WANIPConnection:1")
 	if d == nil {
-		err = errors.New("no WAN IP connection")
+		err = errors.New("no WANIPConnection")
 		return
 	}
 	url = combineURL(rootURL, d.ControlURL)
@@ -314,7 +314,7 @@ func soapRequest(url, function, message string) (replyXML []byte, err error) {
 
 	if r.StatusCode >= 400 {
 		// log.Stderr(function, r.StatusCode)
-		err = errors.New("error " + strconv.Itoa(r.StatusCode) + " for " + function)
+		err = errors.New("Error " + strconv.Itoa(r.StatusCode) + " for " + function)
 		r = nil
 		return
 	}

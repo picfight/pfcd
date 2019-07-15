@@ -1,81 +1,72 @@
-// Copyright (c) 2018 The Decred developers
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
-
 package main
 
 import (
-	"flag"
+	"io/ioutil"
 	"os"
-	"strings"
+	"path/filepath"
+	"regexp"
+	"runtime"
 	"testing"
 )
 
-// In order to test command line arguments and environment variables, append
-// the flags to the os.Args variable like so:
-//   os.Args = append(os.Args, "--altdnsnames=\"hostname1,hostname2\"")
-//
-// For environment variables, use the following to set the variable before the
-// func that loads the configuration is called:
-//   os.Setenv("PFCD_ALT_DNSNAMES", "hostname1,hostname2")
-//
-// These args and env variables will then get parsed during configuration load.
+var (
+	rpcuserRegexp = regexp.MustCompile("(?m)^rpcuser=.+$")
+	rpcpassRegexp = regexp.MustCompile("(?m)^rpcpass=.+$")
+)
 
-// TestLoadConfig ensures that basic configuration loading succeeds.
-func TestLoadConfig(t *testing.T) {
-	_, _, err := loadConfig()
+func TestCreateDefaultConfigFile(t *testing.T) {
+	// find out where the sample config lives
+	_, path, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("Failed finding config file path")
+	}
+	sampleConfigFile := filepath.Join(filepath.Dir(path), "sample-pfcd.conf")
+
+	// Setup a temporary directory
+	tmpDir, err := ioutil.TempDir("", "pfcd")
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed creating a temporary directory: %v", err)
 	}
-}
+	testpath := filepath.Join(tmpDir, "test.conf")
 
-// TestDefaultAltDNSNames ensures that there are no additional hostnames added
-// by default during the configuration load phase.
-func TestDefaultAltDNSNames(t *testing.T) {
-	cfg, _, err := loadConfig()
+	// copy config file to location of btcd binary
+	data, err := ioutil.ReadFile(sampleConfigFile)
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed reading sample config file: %v", err)
 	}
-	if len(cfg.AltDNSNames) != 0 {
-		t.Fatalf("Invalid default value for altdnsnames: %s", cfg.AltDNSNames)
-	}
-}
-
-// TestAltDNSNamesWithEnv ensures the PFCD_ALT_DNSNAMES environment variable is
-// parsed into a slice of additional hostnames as intended.
-func TestAltDNSNamesWithEnv(t *testing.T) {
-	os.Setenv("PFCD_ALT_DNSNAMES", "hostname1,hostname2")
-	cfg, _, err := loadConfig()
+	appPath, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed obtaining app path: %v", err)
 	}
-	hostnames := strings.Join(cfg.AltDNSNames, ",")
-	if hostnames != "hostname1,hostname2" {
-		t.Fatalf("altDNSNames should be %s but was %s", "hostname1,hostname2",
-			hostnames)
-	}
-}
-
-// TestAltDNSNamesWithArg ensures the altdnsnames configuration option parses
-// additional hostnames into a slice of hostnames as intended.
-func TestAltDNSNamesWithArg(t *testing.T) {
-	old := os.Args
-	os.Args = append(os.Args, "--altdnsnames=\"hostname1,hostname2\"")
-	cfg, _, err := loadConfig()
+	tmpConfigFile := filepath.Join(appPath, "sample-pfcd.conf")
+	err = ioutil.WriteFile(tmpConfigFile, data, 0644)
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed copying sample config file: %v", err)
 	}
-	hostnames := strings.Join(cfg.AltDNSNames, ",")
-	if hostnames != "hostname1,hostname2" {
-		t.Fatalf("altDNSNames should be %s but was %s", "hostname1,hostname2",
-			hostnames)
-	}
-	os.Args = old
-}
 
-// init parses the -test.* flags from the command line arguments list and then
-// removes them to allow go-flags tests to succeed.
-func init() {
-	flag.Parse()
-	os.Args = os.Args[:1]
+	// Clean-up
+	defer func() {
+		os.Remove(testpath)
+		os.Remove(tmpConfigFile)
+		os.Remove(tmpDir)
+	}()
+
+	err = createDefaultConfigFile(testpath)
+
+	if err != nil {
+		t.Fatalf("Failed to create a default config file: %v", err)
+	}
+
+	content, err := ioutil.ReadFile(testpath)
+	if err != nil {
+		t.Fatalf("Failed to read generated default config file: %v", err)
+	}
+
+	if !rpcuserRegexp.Match(content) {
+		t.Error("Could not find rpcuser in generated default config file.")
+	}
+
+	if !rpcpassRegexp.Match(content) {
+		t.Error("Could not find rpcpass in generated default config file.")
+	}
 }

@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -225,7 +224,7 @@ func (iter *Iterator) Prev() bool {
 	// When there is no left node walk the parents until the parent's left
 	// node is not equal to the previous child.  This will be the previous
 	// node.
-	if iter.node.left == nil {
+	for iter.node.left == nil {
 		parent := iter.parents.Pop()
 		for parent != nil && parent.left == iter.node {
 			iter.node = parent

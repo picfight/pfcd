@@ -1,5 +1,4 @@
-// Copyright (c) 2013-2015 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2013-2016 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -231,7 +230,7 @@ func TestScriptBuilderAddData(t *testing.T) {
 		// other operators.
 		{
 			name:     "push data len 521",
-			data:     bytes.Repeat([]byte{0x49}, 4097),
+			data:     bytes.Repeat([]byte{0x49}, 521),
 			expected: nil,
 		},
 		{

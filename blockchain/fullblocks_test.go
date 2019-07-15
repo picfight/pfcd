@@ -1,5 +1,5 @@
-// Copyright (c) 2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
+// Copyright (c) 2016 The Decred developers
+// Copyright (c) 2016-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,8 +8,8 @@ package blockchain_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/picfight/pfcd/blockchain"
@@ -17,18 +17,32 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
+	_ "github.com/picfight/pfcd/database/ffldb"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 const (
 	// testDbType is the database backend type to use for the tests.
 	testDbType = "ffldb"
 
+	// testDbRoot is the root directory used to create all test databases.
+	testDbRoot = "testdbs"
+
 	// blockDataNet is the expected network in the test block data.
 	blockDataNet = wire.MainNet
 )
+
+// filesExists returns whether or not the named file or directory exists.
+func fileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
 
 // isSupportedDbType returns whether or not the passed database type is
 // currently supported.
@@ -68,18 +82,20 @@ func chainSetup(dbName string, params *chaincfg.Params) (*blockchain.BlockChain,
 			db.Close()
 		}
 	} else {
-		// Create the directory for test database.
-		dbPath, err := ioutil.TempDir("", dbName)
-		if err != nil {
-			err := fmt.Errorf("unable to create test db path: %v",
-				err)
-			return nil, nil, err
+		// Create the root directory for test databases.
+		if !fileExists(testDbRoot) {
+			if err := os.MkdirAll(testDbRoot, 0700); err != nil {
+				err := fmt.Errorf("unable to create test db "+
+					"root: %v", err)
+				return nil, nil, err
+			}
 		}
 
 		// Create a new database to store the accepted blocks into.
+		dbPath := filepath.Join(testDbRoot, dbName)
+		_ = os.RemoveAll(dbPath)
 		ndb, err := database.Create(testDbType, dbPath, blockDataNet)
 		if err != nil {
-			os.RemoveAll(dbPath)
 			return nil, nil, fmt.Errorf("error creating db: %v", err)
 		}
 		db = ndb
@@ -89,6 +105,7 @@ func chainSetup(dbName string, params *chaincfg.Params) (*blockchain.BlockChain,
 		teardown = func() {
 			db.Close()
 			os.RemoveAll(dbPath)
+			os.RemoveAll(testDbRoot)
 		}
 	}
 
@@ -100,16 +117,15 @@ func chainSetup(dbName string, params *chaincfg.Params) (*blockchain.BlockChain,
 	chain, err := blockchain.New(&blockchain.Config{
 		DB:          db,
 		ChainParams: &paramsCopy,
+		Checkpoints: nil,
 		TimeSource:  blockchain.NewMedianTime(),
 		SigCache:    txscript.NewSigCache(1000),
 	})
-
 	if err != nil {
 		teardown()
 		err := fmt.Errorf("failed to create chain instance: %v", err)
 		return nil, nil, err
 	}
-
 	return chain, teardown, nil
 }
 
@@ -123,9 +139,10 @@ func TestFullBlocks(t *testing.T) {
 
 	// Create a new database and chain instance to run tests against.
 	chain, teardownFunc, err := chainSetup("fullblocktest",
-		&chaincfg.RegNetParams)
+		&chaincfg.RegressionNetParams)
 	if err != nil {
-		t.Fatalf("Failed to setup chain instance: %v", err)
+		t.Errorf("Failed to setup chain instance: %v", err)
+		return
 	}
 	defer teardownFunc()
 
@@ -133,12 +150,13 @@ func TestFullBlocks(t *testing.T) {
 	// instance and ensures that it was accepted according to the flags
 	// specified in the test.
 	testAcceptedBlock := func(item fullblocktests.AcceptedBlock) {
-		blockHeight := item.Block.Header.Height
+		blockHeight := item.Height
 		block := pfcutil.NewBlock(item.Block)
+		block.SetHeight(blockHeight)
 		t.Logf("Testing block %s (hash %s, height %d)",
 			item.Name, block.Hash(), blockHeight)
 
-		forkLen, isOrphan, err := chain.ProcessBlock(block,
+		isMainChain, isOrphan, err := chain.ProcessBlock(block,
 			blockchain.BFNone)
 		if err != nil {
 			t.Fatalf("block %q (hash %s, height %d) should "+
@@ -148,7 +166,6 @@ func TestFullBlocks(t *testing.T) {
 
 		// Ensure the main chain and orphan flags match the values
 		// specified in the test.
-		isMainChain := !isOrphan && forkLen == 0
 		if isMainChain != item.IsMainChain {
 			t.Fatalf("block %q (hash %s, height %d) unexpected main "+
 				"chain flag -- got %v, want %v", item.Name,
@@ -167,8 +184,9 @@ func TestFullBlocks(t *testing.T) {
 	// instance and ensures that it was rejected with the reject code
 	// specified in the test.
 	testRejectedBlock := func(item fullblocktests.RejectedBlock) {
-		blockHeight := item.Block.Header.Height
+		blockHeight := item.Height
 		block := pfcutil.NewBlock(item.Block)
+		block.SetHeight(blockHeight)
 		t.Logf("Testing block %s (hash %s, height %d)",
 			item.Name, block.Hash(), blockHeight)
 
@@ -200,19 +218,18 @@ func TestFullBlocks(t *testing.T) {
 	// provided test instance and ensures that it failed to decode with a
 	// message error.
 	testRejectedNonCanonicalBlock := func(item fullblocktests.RejectedNonCanonicalBlock) {
-		headerLen := wire.MaxBlockHeaderPayload
-		if headerLen > len(item.RawBlock) {
-			headerLen = len(item.RawBlock)
+		headerLen := len(item.RawBlock)
+		if headerLen > 80 {
+			headerLen = 80
 		}
-		blockHeader := item.RawBlock[0:headerLen]
-		blockHash := chainhash.HashH(chainhash.HashB(blockHeader))
+		blockHash := chainhash.DoubleHashH(item.RawBlock[0:headerLen])
 		blockHeight := item.Height
 		t.Logf("Testing block %s (hash %s, height %d)", item.Name,
 			blockHash, blockHeight)
 
 		// Ensure there is an error due to deserializing the block.
 		var msgBlock wire.MsgBlock
-		err := msgBlock.BtcDecode(bytes.NewReader(item.RawBlock), 0)
+		err := msgBlock.PfcDecode(bytes.NewReader(item.RawBlock), 0, wire.BaseEncoding)
 		if _, ok := err.(*wire.MessageError); !ok {
 			t.Fatalf("block %q (hash %s, height %d) should have "+
 				"failed to decode", item.Name, blockHash,
@@ -224,8 +241,9 @@ func TestFullBlocks(t *testing.T) {
 	// provided test instance and ensures that it was either accepted as an
 	// orphan or rejected with a rule violation.
 	testOrphanOrRejectedBlock := func(item fullblocktests.OrphanOrRejectedBlock) {
-		blockHeight := item.Block.Header.Height
+		blockHeight := item.Height
 		block := pfcutil.NewBlock(item.Block)
+		block.SetHeight(blockHeight)
 		t.Logf("Testing block %s (hash %s, height %d)",
 			item.Name, block.Hash(), blockHeight)
 
@@ -251,15 +269,16 @@ func TestFullBlocks(t *testing.T) {
 	// testExpectedTip ensures the current tip of the blockchain is the
 	// block specified in the provided test instance.
 	testExpectedTip := func(item fullblocktests.ExpectedTip) {
-		blockHeight := item.Block.Header.Height
+		blockHeight := item.Height
 		block := pfcutil.NewBlock(item.Block)
+		block.SetHeight(blockHeight)
 		t.Logf("Testing tip for block %s (hash %s, height %d)",
 			item.Name, block.Hash(), blockHeight)
 
 		// Ensure hash and height match.
 		best := chain.BestSnapshot()
 		if best.Hash != item.Block.BlockHash() ||
-			best.Height != int64(blockHeight) {
+			best.Height != blockHeight {
 
 			t.Fatalf("block %q (hash %s, height %d) should be "+
 				"the current tip -- got (hash %s, height %d)",

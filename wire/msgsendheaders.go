@@ -1,5 +1,4 @@
 // Copyright (c) 2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -18,13 +17,13 @@ import (
 // starting with SendHeadersVersion.
 type MsgSendHeaders struct{}
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgSendHeaders) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgSendHeaders) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	if pver < SendHeadersVersion {
 		str := fmt.Sprintf("sendheaders message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgSendHeaders.BtcDecode", str)
+		return messageError("MsgSendHeaders.PfcDecode", str)
 	}
 
 	return nil
@@ -32,7 +31,7 @@ func (msg *MsgSendHeaders) BtcDecode(r io.Reader, pver uint32) error {
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgSendHeaders) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgSendHeaders) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < SendHeadersVersion {
 		str := fmt.Sprintf("sendheaders message invalid for protocol "+
 			"version %d", pver)

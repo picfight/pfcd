@@ -1,5 +1,5 @@
-// Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
+// Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -9,13 +9,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/gcs"
-	"github.com/picfight/pfcd/gcs/blockcf"
 	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
 )
 
@@ -139,22 +135,47 @@ func (r FutureGetBlockVerboseResult) Receive() (*pfcjson.GetBlockVerboseResult, 
 // the returned instance.
 //
 // See GetBlockVerbose for the blocking version and more details.
-func (c *Client) GetBlockVerboseAsync(blockHash *chainhash.Hash, verboseTx bool) FutureGetBlockVerboseResult {
+func (c *Client) GetBlockVerboseAsync(blockHash *chainhash.Hash) FutureGetBlockVerboseResult {
 	hash := ""
 	if blockHash != nil {
 		hash = blockHash.String()
 	}
 
-	cmd := pfcjson.NewGetBlockCmd(hash, pfcjson.Bool(true), &verboseTx)
+	cmd := pfcjson.NewGetBlockCmd(hash, pfcjson.Bool(true), nil)
 	return c.sendCmd(cmd)
 }
 
 // GetBlockVerbose returns a data structure from the server with information
 // about a block given its hash.
 //
+// See GetBlockVerboseTx to retrieve transaction data structures as well.
 // See GetBlock to retrieve a raw block instead.
-func (c *Client) GetBlockVerbose(blockHash *chainhash.Hash, verboseTx bool) (*pfcjson.GetBlockVerboseResult, error) {
-	return c.GetBlockVerboseAsync(blockHash, verboseTx).Receive()
+func (c *Client) GetBlockVerbose(blockHash *chainhash.Hash) (*pfcjson.GetBlockVerboseResult, error) {
+	return c.GetBlockVerboseAsync(blockHash).Receive()
+}
+
+// GetBlockVerboseTxAsync returns an instance of a type that can be used to get
+// the result of the RPC at some future time by invoking the Receive function on
+// the returned instance.
+//
+// See GetBlockVerboseTx or the blocking version and more details.
+func (c *Client) GetBlockVerboseTxAsync(blockHash *chainhash.Hash) FutureGetBlockVerboseResult {
+	hash := ""
+	if blockHash != nil {
+		hash = blockHash.String()
+	}
+
+	cmd := pfcjson.NewGetBlockCmd(hash, pfcjson.Bool(true), pfcjson.Bool(true))
+	return c.sendCmd(cmd)
+}
+
+// GetBlockVerboseTx returns a data structure from the server with information
+// about a block and its transactions given its hash.
+//
+// See GetBlockVerbose if only transaction hashes are preferred.
+// See GetBlock to retrieve a raw block instead.
+func (c *Client) GetBlockVerboseTx(blockHash *chainhash.Hash) (*pfcjson.GetBlockVerboseResult, error) {
+	return c.GetBlockVerboseTxAsync(blockHash).Receive()
 }
 
 // FutureGetBlockCountResult is a future promise to deliver the result of a
@@ -230,31 +251,28 @@ func (c *Client) GetDifficulty() (float64, error) {
 	return c.GetDifficultyAsync().Receive()
 }
 
-// FutureGetBlockChainInfoResult is a future promise to deliver the result of a
+// FutureGetBlockChainInfoResult is a promise to deliver the result of a
 // GetBlockChainInfoAsync RPC invocation (or an applicable error).
 type FutureGetBlockChainInfoResult chan *response
 
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
+// Receive waits for the response promised by the future and returns chain info
+// result provided by the server.
 func (r FutureGetBlockChainInfoResult) Receive() (*pfcjson.GetBlockChainInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal result as a getblockchaininfo result object.
-	var blockchainInfoRes pfcjson.GetBlockChainInfoResult
-	err = json.Unmarshal(res, &blockchainInfoRes)
-	if err != nil {
+	var chainInfo pfcjson.GetBlockChainInfoResult
+	if err := json.Unmarshal(res, &chainInfo); err != nil {
 		return nil, err
 	}
-
-	return &blockchainInfoRes, nil
+	return &chainInfo, nil
 }
 
 // GetBlockChainInfoAsync returns an instance of a type that can be used to get
-// the result of the RPC at some future time by invoking the Receive function on
-// the returned instance.
+// the result of the RPC at some future time by invoking the Receive function
+// on the returned instance.
 //
 // See GetBlockChainInfo for the blocking version and more details.
 func (c *Client) GetBlockChainInfoAsync() FutureGetBlockChainInfoResult {
@@ -262,8 +280,9 @@ func (c *Client) GetBlockChainInfoAsync() FutureGetBlockChainInfoResult {
 	return c.sendCmd(cmd)
 }
 
-// GetBlockChainInfo returns information about the current state of the block
-// chain.
+// GetBlockChainInfo returns information related to the processing state of
+// various chain-specific details such as the current difficulty from the tip
+// of the main chain.
 func (c *Client) GetBlockChainInfo() (*pfcjson.GetBlockChainInfoResult, error) {
 	return c.GetBlockChainInfoAsync().Receive()
 }
@@ -317,7 +336,7 @@ func (r FutureGetBlockHeaderResult) Receive() (*wire.BlockHeader, error) {
 		return nil, err
 	}
 
-	// Unmarshal the result as a string.
+	// Unmarshal result as a string.
 	var bhHex string
 	err = json.Unmarshal(res, &bhHex)
 	if err != nil {
@@ -336,7 +355,7 @@ func (r FutureGetBlockHeaderResult) Receive() (*wire.BlockHeader, error) {
 		return nil, err
 	}
 
-	return &bh, nil
+	return &bh, err
 }
 
 // GetBlockHeaderAsync returns an instance of a type that can be used to get the
@@ -344,128 +363,106 @@ func (r FutureGetBlockHeaderResult) Receive() (*wire.BlockHeader, error) {
 // returned instance.
 //
 // See GetBlockHeader for the blocking version and more details.
-func (c *Client) GetBlockHeaderAsync(hash *chainhash.Hash) FutureGetBlockHeaderResult {
-	cmd := pfcjson.NewGetBlockHeaderCmd(hash.String(), pfcjson.Bool(false))
+func (c *Client) GetBlockHeaderAsync(blockHash *chainhash.Hash) FutureGetBlockHeaderResult {
+	hash := ""
+	if blockHash != nil {
+		hash = blockHash.String()
+	}
+
+	cmd := pfcjson.NewGetBlockHeaderCmd(hash, pfcjson.Bool(false))
 	return c.sendCmd(cmd)
 }
 
-// GetBlockHeader returns the hash of the block in the best block chain at the
-// given height.
-func (c *Client) GetBlockHeader(hash *chainhash.Hash) (*wire.BlockHeader, error) {
-	return c.GetBlockHeaderAsync(hash).Receive()
+// GetBlockHeader returns the blockheader from the server given its hash.
+//
+// See GetBlockHeaderVerbose to retrieve a data structure with information about the
+// block instead.
+func (c *Client) GetBlockHeader(blockHash *chainhash.Hash) (*wire.BlockHeader, error) {
+	return c.GetBlockHeaderAsync(blockHash).Receive()
 }
 
 // FutureGetBlockHeaderVerboseResult is a future promise to deliver the result of a
-// GetBlockHeaderAsync RPC invocation (or an applicable error).
+// GetBlockAsync RPC invocation (or an applicable error).
 type FutureGetBlockHeaderVerboseResult chan *response
 
-// Receive waits for the response promised by the future and returns a data
-// structure of the block header requested from the server given its hash.
+// Receive waits for the response promised by the future and returns the
+// data structure of the blockheader requested from the server given its hash.
 func (r FutureGetBlockHeaderVerboseResult) Receive() (*pfcjson.GetBlockHeaderVerboseResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal the result
+	// Unmarshal result as a string.
 	var bh pfcjson.GetBlockHeaderVerboseResult
 	err = json.Unmarshal(res, &bh)
 	if err != nil {
 		return nil, err
 	}
+
 	return &bh, nil
 }
 
-// GetBlockHeaderVerboseAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
+// GetBlockHeaderVerboseAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
 //
-// See GetBlockHeaderVerbose for the blocking version and more details.
-func (c *Client) GetBlockHeaderVerboseAsync(hash *chainhash.Hash) FutureGetBlockHeaderVerboseResult {
-	cmd := pfcjson.NewGetBlockHeaderCmd(hash.String(), pfcjson.Bool(true))
+// See GetBlockHeader for the blocking version and more details.
+func (c *Client) GetBlockHeaderVerboseAsync(blockHash *chainhash.Hash) FutureGetBlockHeaderVerboseResult {
+	hash := ""
+	if blockHash != nil {
+		hash = blockHash.String()
+	}
+
+	cmd := pfcjson.NewGetBlockHeaderCmd(hash, pfcjson.Bool(true))
 	return c.sendCmd(cmd)
 }
 
-// GetBlockHeaderVerbose returns a data structure of the block header from the
-// server given its hash.
+// GetBlockHeaderVerbose returns a data structure with information about the
+// blockheader from the server given its hash.
 //
-// See GetBlockHeader to retrieve a raw block header instead.
-func (c *Client) GetBlockHeaderVerbose(hash *chainhash.Hash) (*pfcjson.GetBlockHeaderVerboseResult, error) {
-	return c.GetBlockHeaderVerboseAsync(hash).Receive()
+// See GetBlockHeader to retrieve a blockheader instead.
+func (c *Client) GetBlockHeaderVerbose(blockHash *chainhash.Hash) (*pfcjson.GetBlockHeaderVerboseResult, error) {
+	return c.GetBlockHeaderVerboseAsync(blockHash).Receive()
 }
 
-// FutureGetBlockSubsidyResult is a future promise to deliver the result of a
-// GetBlockSubsidyAsync RPC invocation (or an applicable error).
-type FutureGetBlockSubsidyResult chan *response
+// FutureGetMempoolEntryResult is a future promise to deliver the result of a
+// GetMempoolEntryAsync RPC invocation (or an applicable error).
+type FutureGetMempoolEntryResult chan *response
 
 // Receive waits for the response promised by the future and returns a data
-// structure of the block subsidy requested from the server given its height
-// and number of voters.
-func (r FutureGetBlockSubsidyResult) Receive() (*pfcjson.GetBlockSubsidyResult, error) {
+// structure with information about the transaction in the memory pool given
+// its hash.
+func (r FutureGetMempoolEntryResult) Receive() (*pfcjson.GetMempoolEntryResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal the result
-	var bs pfcjson.GetBlockSubsidyResult
-	err = json.Unmarshal(res, &bs)
+	// Unmarshal the result as an array of strings.
+	var mempoolEntryResult pfcjson.GetMempoolEntryResult
+	err = json.Unmarshal(res, &mempoolEntryResult)
 	if err != nil {
 		return nil, err
 	}
-	return &bs, nil
+
+	return &mempoolEntryResult, nil
 }
 
-// GetBlockSubsidyAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
+// GetMempoolEntryAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
 //
-// See GetBlockSubsidy for the blocking version and more details.
-func (c *Client) GetBlockSubsidyAsync(height int64, voters uint16) FutureGetBlockSubsidyResult {
-	cmd := pfcjson.NewGetBlockSubsidyCmd(height, voters)
+// See GetMempoolEntry for the blocking version and more details.
+func (c *Client) GetMempoolEntryAsync(txHash string) FutureGetMempoolEntryResult {
+	cmd := pfcjson.NewGetMempoolEntryCmd(txHash)
 	return c.sendCmd(cmd)
 }
 
-// GetBlockSubsidy returns a data structure of the block subsidy
-// from the server given its height and number of voters.
-func (c *Client) GetBlockSubsidy(height int64, voters uint16) (*pfcjson.GetBlockSubsidyResult, error) {
-	return c.GetBlockSubsidyAsync(height, voters).Receive()
-}
-
-// FutureGetCoinSupplyResult is a future promise to deliver the result of a
-// GetCoinSupplyAsync RPC invocation (or an applicable error).
-type FutureGetCoinSupplyResult chan *response
-
-// Receive waits for the response promised by the future and returns the
-// current coin supply
-func (r FutureGetCoinSupplyResult) Receive() (pfcutil.Amount, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return 0, err
-	}
-
-	// Unmarshal the result
-	var cs int64
-	err = json.Unmarshal(res, &cs)
-	if err != nil {
-		return 0, err
-	}
-	return pfcutil.Amount(cs), nil
-}
-
-// GetCoinSupplyAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See GetCoinSupply for the blocking version and more details.
-func (c *Client) GetCoinSupplyAsync() FutureGetCoinSupplyResult {
-	cmd := pfcjson.NewGetCoinSupplyCmd()
-	return c.sendCmd(cmd)
-}
-
-// GetCoinSupply returns the current coin supply
-func (c *Client) GetCoinSupply() (pfcutil.Amount, error) {
-	return c.GetCoinSupplyAsync().Receive()
+// GetMempoolEntry returns a data structure with information about the
+// transaction in the memory pool given its hash.
+func (c *Client) GetMempoolEntry(txHash string) (*pfcjson.GetMempoolEntryResult, error) {
+	return c.GetMempoolEntryAsync(txHash).Receive()
 }
 
 // FutureGetRawMempoolResult is a future promise to deliver the result of a
@@ -505,19 +502,17 @@ func (r FutureGetRawMempoolResult) Receive() ([]*chainhash.Hash, error) {
 // returned instance.
 //
 // See GetRawMempool for the blocking version and more details.
-func (c *Client) GetRawMempoolAsync(txType pfcjson.GetRawMempoolTxTypeCmd) FutureGetRawMempoolResult {
-	cmd := pfcjson.NewGetRawMempoolCmd(pfcjson.Bool(false),
-		pfcjson.String(string(txType)))
+func (c *Client) GetRawMempoolAsync() FutureGetRawMempoolResult {
+	cmd := pfcjson.NewGetRawMempoolCmd(pfcjson.Bool(false))
 	return c.sendCmd(cmd)
 }
 
-// GetRawMempool returns the hashes of all transactions in the memory pool for
-// the given txType.
+// GetRawMempool returns the hashes of all transactions in the memory pool.
 //
 // See GetRawMempoolVerbose to retrieve data structures with information about
 // the transactions instead.
-func (c *Client) GetRawMempool(txType pfcjson.GetRawMempoolTxTypeCmd) ([]*chainhash.Hash, error) {
-	return c.GetRawMempoolAsync(txType).Receive()
+func (c *Client) GetRawMempool() ([]*chainhash.Hash, error) {
+	return c.GetRawMempoolAsync().Receive()
 }
 
 // FutureGetRawMempoolVerboseResult is a future promise to deliver the result of
@@ -548,9 +543,8 @@ func (r FutureGetRawMempoolVerboseResult) Receive() (map[string]pfcjson.GetRawMe
 // function on the returned instance.
 //
 // See GetRawMempoolVerbose for the blocking version and more details.
-func (c *Client) GetRawMempoolVerboseAsync(txType pfcjson.GetRawMempoolTxTypeCmd) FutureGetRawMempoolVerboseResult {
-	cmd := pfcjson.NewGetRawMempoolCmd(pfcjson.Bool(true),
-		pfcjson.String(string(txType)))
+func (c *Client) GetRawMempoolVerboseAsync() FutureGetRawMempoolVerboseResult {
+	cmd := pfcjson.NewGetRawMempoolCmd(pfcjson.Bool(true))
 	return c.sendCmd(cmd)
 }
 
@@ -559,8 +553,45 @@ func (c *Client) GetRawMempoolVerboseAsync(txType pfcjson.GetRawMempoolTxTypeCmd
 // the memory pool.
 //
 // See GetRawMempool to retrieve only the transaction hashes instead.
-func (c *Client) GetRawMempoolVerbose(txType pfcjson.GetRawMempoolTxTypeCmd) (map[string]pfcjson.GetRawMempoolVerboseResult, error) {
-	return c.GetRawMempoolVerboseAsync(txType).Receive()
+func (c *Client) GetRawMempoolVerbose() (map[string]pfcjson.GetRawMempoolVerboseResult, error) {
+	return c.GetRawMempoolVerboseAsync().Receive()
+}
+
+// FutureEstimateFeeResult is a future promise to deliver the result of a
+// EstimateFeeAsync RPC invocation (or an applicable error).
+type FutureEstimateFeeResult chan *response
+
+// Receive waits for the response promised by the future and returns the info
+// provided by the server.
+func (r FutureEstimateFeeResult) Receive() (float64, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return -1, err
+	}
+
+	// Unmarshal result as a getinfo result object.
+	var fee float64
+	err = json.Unmarshal(res, &fee)
+	if err != nil {
+		return -1, err
+	}
+
+	return fee, nil
+}
+
+// EstimateFeeAsync returns an instance of a type that can be used to get the result
+// of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See EstimateFee for the blocking version and more details.
+func (c *Client) EstimateFeeAsync(numBlocks int64) FutureEstimateFeeResult {
+	cmd := pfcjson.NewEstimateFeeCmd(numBlocks)
+	return c.sendCmd(cmd)
+}
+
+// EstimateFee provides an estimated fee  in bitcoins per kilobyte.
+func (c *Client) EstimateFee(numBlocks int64) (float64, error) {
+	return c.EstimateFeeAsync(numBlocks).Receive()
 }
 
 // FutureVerifyChainResult is a future promise to deliver the result of a
@@ -586,42 +617,6 @@ func (r FutureVerifyChainResult) Receive() (bool, error) {
 	return verified, nil
 }
 
-// FutureGetChainTipsResult is a future promise to deliver the result of a
-// GetChainTipsAsync RPC invocation (or an applicable error).
-type FutureGetChainTipsResult chan *response
-
-// Receive waits for the response promised by the future and returns slice of
-// all known tips in the block tree.
-func (r FutureGetChainTipsResult) Receive() ([]pfcjson.GetChainTipsResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal the result.
-	var chainTips []pfcjson.GetChainTipsResult
-	err = json.Unmarshal(res, &chainTips)
-	if err != nil {
-		return nil, err
-	}
-	return chainTips, nil
-}
-
-// GetChainTipsAsync returns an instance of a type that can be used to get the
-// result of the RPC at some future time by invoking the Receive function on the
-// returned instance.
-//
-// See GetChainTips for the blocking version and more details.
-func (c *Client) GetChainTipsAsync() FutureGetChainTipsResult {
-	cmd := pfcjson.NewGetChainTipsCmd()
-	return c.sendCmd(cmd)
-}
-
-// GetChainTips returns all known tips in the block tree.
-func (c *Client) GetChainTips() ([]pfcjson.GetChainTipsResult, error) {
-	return c.GetChainTipsAsync().Receive()
-}
-
 // VerifyChainAsync returns an instance of a type that can be used to get the
 // result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
@@ -645,7 +640,7 @@ func (c *Client) VerifyChain() (bool, error) {
 // the returned instance.
 //
 // See VerifyChainLevel for the blocking version and more details.
-func (c *Client) VerifyChainLevelAsync(checkLevel int64) FutureVerifyChainResult {
+func (c *Client) VerifyChainLevelAsync(checkLevel int32) FutureVerifyChainResult {
 	cmd := pfcjson.NewVerifyChainCmd(&checkLevel, nil)
 	return c.sendCmd(cmd)
 }
@@ -659,7 +654,7 @@ func (c *Client) VerifyChainLevelAsync(checkLevel int64) FutureVerifyChainResult
 //
 // See VerifyChain to use the default check level and VerifyChainBlocks to
 // override the number of blocks to verify.
-func (c *Client) VerifyChainLevel(checkLevel int64) (bool, error) {
+func (c *Client) VerifyChainLevel(checkLevel int32) (bool, error) {
 	return c.VerifyChainLevelAsync(checkLevel).Receive()
 }
 
@@ -668,7 +663,7 @@ func (c *Client) VerifyChainLevel(checkLevel int64) (bool, error) {
 // the returned instance.
 //
 // See VerifyChainBlocks for the blocking version and more details.
-func (c *Client) VerifyChainBlocksAsync(checkLevel, numBlocks int64) FutureVerifyChainResult {
+func (c *Client) VerifyChainBlocksAsync(checkLevel, numBlocks int32) FutureVerifyChainResult {
 	cmd := pfcjson.NewVerifyChainCmd(&checkLevel, &numBlocks)
 	return c.sendCmd(cmd)
 }
@@ -684,7 +679,7 @@ func (c *Client) VerifyChainBlocksAsync(checkLevel, numBlocks int64) FutureVerif
 // current longest chain.
 //
 // See VerifyChain and VerifyChainLevel to use defaults.
-func (c *Client) VerifyChainBlocks(checkLevel, numBlocks int64) (bool, error) {
+func (c *Client) VerifyChainBlocks(checkLevel, numBlocks int32) (bool, error) {
 	return c.VerifyChainBlocksAsync(checkLevel, numBlocks).Receive()
 }
 
@@ -737,72 +732,124 @@ func (c *Client) GetTxOut(txHash *chainhash.Hash, index uint32, mempool bool) (*
 	return c.GetTxOutAsync(txHash, index, mempool).Receive()
 }
 
-// FutureRescanResult is a future promise to deliver the result of a
-// RescanAsynnc RPC invocation (or an applicable error).
-type FutureRescanResult chan *response
+// FutureRescanBlocksResult is a future promise to deliver the result of a
+// RescanBlocksAsync RPC invocation (or an applicable error).
+//
+// NOTE: This is a btcsuite extension ported from
+// github.com/decred/dcrrpcclient.
+type FutureRescanBlocksResult chan *response
 
 // Receive waits for the response promised by the future and returns the
-// discovered rescan data.
-func (r FutureRescanResult) Receive() (*pfcjson.RescanResult, error) {
+// discovered rescanblocks data.
+//
+// NOTE: This is a btcsuite extension ported from
+// github.com/decred/dcrrpcclient.
+func (r FutureRescanBlocksResult) Receive() ([]pfcjson.RescannedBlock, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	var rescanResult *pfcjson.RescanResult
-	err = json.Unmarshal(res, &rescanResult)
+	var rescanBlocksResult []pfcjson.RescannedBlock
+	err = json.Unmarshal(res, &rescanBlocksResult)
 	if err != nil {
 		return nil, err
 	}
 
-	return rescanResult, nil
+	return rescanBlocksResult, nil
 }
 
-// RescanAsync returns an instance of a type that can be used to get the result
-// of the RPC at some future time by invoking the Receive function on the
+// RescanBlocksAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
 //
-// See Rescan for the blocking version and more details.
-func (c *Client) RescanAsync(blockHashes []chainhash.Hash) FutureRescanResult {
-	concatenatedBlockHashes := make([]byte, chainhash.HashSize*len(blockHashes))
+// See RescanBlocks for the blocking version and more details.
+//
+// NOTE: This is a btcsuite extension ported from
+// github.com/decred/dcrrpcclient.
+func (c *Client) RescanBlocksAsync(blockHashes []chainhash.Hash) FutureRescanBlocksResult {
+	strBlockHashes := make([]string, len(blockHashes))
 	for i := range blockHashes {
-		copy(concatenatedBlockHashes[i*chainhash.HashSize:], blockHashes[i][:])
+		strBlockHashes[i] = blockHashes[i].String()
 	}
 
-	cmd := pfcjson.NewRescanCmd(hex.EncodeToString(concatenatedBlockHashes))
+	cmd := pfcjson.NewRescanBlocksCmd(strBlockHashes)
 	return c.sendCmd(cmd)
 }
 
-// Rescan rescans the blocks identified by blockHashes, in order, using the
-// client's loaded transaction filter.  The blocks do not need to be on the main
-// chain, but they do need to be adjacent to each other.
-func (c *Client) Rescan(blockHashes []chainhash.Hash) (*pfcjson.RescanResult, error) {
-	return c.RescanAsync(blockHashes).Receive()
+// RescanBlocks rescans the blocks identified by blockHashes, in order, using
+// the client's loaded transaction filter.  The blocks do not need to be on the
+// main chain, but they do need to be adjacent to each other.
+//
+// NOTE: This is a btcsuite extension ported from
+// github.com/decred/dcrrpcclient.
+func (c *Client) RescanBlocks(blockHashes []chainhash.Hash) ([]pfcjson.RescannedBlock, error) {
+	return c.RescanBlocksAsync(blockHashes).Receive()
+}
+
+// FutureInvalidateBlockResult is a future promise to deliver the result of a
+// InvalidateBlockAsync RPC invocation (or an applicable error).
+type FutureInvalidateBlockResult chan *response
+
+// Receive waits for the response promised by the future and returns the raw
+// block requested from the server given its hash.
+func (r FutureInvalidateBlockResult) Receive() error {
+	_, err := receiveFuture(r)
+
+	return err
+}
+
+// InvalidateBlockAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See InvalidateBlock for the blocking version and more details.
+func (c *Client) InvalidateBlockAsync(blockHash *chainhash.Hash) FutureInvalidateBlockResult {
+	hash := ""
+	if blockHash != nil {
+		hash = blockHash.String()
+	}
+
+	cmd := pfcjson.NewInvalidateBlockCmd(hash)
+	return c.sendCmd(cmd)
+}
+
+// InvalidateBlock invalidates a specific block.
+func (c *Client) InvalidateBlock(blockHash *chainhash.Hash) error {
+	return c.InvalidateBlockAsync(blockHash).Receive()
 }
 
 // FutureGetCFilterResult is a future promise to deliver the result of a
 // GetCFilterAsync RPC invocation (or an applicable error).
 type FutureGetCFilterResult chan *response
 
-// Receive waits for the response promised by the future and returns the
-// discovered rescan data.
-func (r FutureGetCFilterResult) Receive() (*gcs.Filter, error) {
+// Receive waits for the response promised by the future and returns the raw
+// filter requested from the server given its block hash.
+func (r FutureGetCFilterResult) Receive() (*wire.MsgCFilter, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
+	// Unmarshal result as a string.
 	var filterHex string
 	err = json.Unmarshal(res, &filterHex)
 	if err != nil {
 		return nil, err
 	}
-	filterNBytes, err := hex.DecodeString(filterHex)
+
+	// Decode the serialized cf hex to raw bytes.
+	serializedFilter, err := hex.DecodeString(filterHex)
 	if err != nil {
 		return nil, err
 	}
 
-	return gcs.FromNBytes(blockcf.P, filterNBytes)
+	// Assign the filter bytes to the correct field of the wire message.
+	// We aren't going to set the block hash or extended flag, since we
+	// don't actually get that back in the RPC response.
+	var msgCFilter wire.MsgCFilter
+	msgCFilter.Data = serializedFilter
+	return &msgCFilter, nil
 }
 
 // GetCFilterAsync returns an instance of a type that can be used to get the
@@ -810,23 +857,20 @@ func (r FutureGetCFilterResult) Receive() (*gcs.Filter, error) {
 // returned instance.
 //
 // See GetCFilter for the blocking version and more details.
-func (c *Client) GetCFilterAsync(blockHash *chainhash.Hash, filterType wire.FilterType) FutureGetCFilterResult {
-	var ft string
-	switch filterType {
-	case wire.GCSFilterRegular:
-		ft = "regular"
-	case wire.GCSFilterExtended:
-		ft = "extended"
-	default:
-		return futureError(errors.New("unknown filter type"))
+func (c *Client) GetCFilterAsync(blockHash *chainhash.Hash,
+	filterType wire.FilterType) FutureGetCFilterResult {
+	hash := ""
+	if blockHash != nil {
+		hash = blockHash.String()
 	}
 
-	cmd := pfcjson.NewGetCFilterCmd(blockHash.String(), ft)
+	cmd := pfcjson.NewGetCFilterCmd(hash, filterType)
 	return c.sendCmd(cmd)
 }
 
-// GetCFilter returns the committed filter of type filterType for a block.
-func (c *Client) GetCFilter(blockHash *chainhash.Hash, filterType wire.FilterType) (*gcs.Filter, error) {
+// GetCFilter returns a raw filter from the server given its block hash.
+func (c *Client) GetCFilter(blockHash *chainhash.Hash,
+	filterType wire.FilterType) (*wire.MsgCFilter, error) {
 	return c.GetCFilterAsync(blockHash, filterType).Receive()
 }
 
@@ -834,45 +878,52 @@ func (c *Client) GetCFilter(blockHash *chainhash.Hash, filterType wire.FilterTyp
 // GetCFilterHeaderAsync RPC invocation (or an applicable error).
 type FutureGetCFilterHeaderResult chan *response
 
-// Receive waits for the response promised by the future and returns the
-// discovered rescan data.
-func (r FutureGetCFilterHeaderResult) Receive() (*chainhash.Hash, error) {
+// Receive waits for the response promised by the future and returns the raw
+// filter header requested from the server given its block hash.
+func (r FutureGetCFilterHeaderResult) Receive() (*wire.MsgCFHeaders, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	var filterHeaderHex string
-	err = json.Unmarshal(res, &filterHeaderHex)
+	// Unmarshal result as a string.
+	var headerHex string
+	err = json.Unmarshal(res, &headerHex)
 	if err != nil {
 		return nil, err
 	}
 
-	return chainhash.NewHashFromStr(filterHeaderHex)
+	// Assign the decoded header into a hash
+	headerHash, err := chainhash.NewHashFromStr(headerHex)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assign the hash to a headers message and return it.
+	msgCFHeaders := wire.MsgCFHeaders{PrevFilterHeader: *headerHash}
+	return &msgCFHeaders, nil
+
 }
 
 // GetCFilterHeaderAsync returns an instance of a type that can be used to get
-// the result of the RPC at some future time by invoking the Receive function on
-// the returned instance.
+// the result of the RPC at some future time by invoking the Receive function
+// on the returned instance.
 //
 // See GetCFilterHeader for the blocking version and more details.
-func (c *Client) GetCFilterHeaderAsync(blockHash *chainhash.Hash, filterType wire.FilterType) FutureGetCFilterHeaderResult {
-	var ft string
-	switch filterType {
-	case wire.GCSFilterRegular:
-		ft = "regular"
-	case wire.GCSFilterExtended:
-		ft = "extended"
-	default:
-		return futureError(errors.New("unknown filter type"))
+func (c *Client) GetCFilterHeaderAsync(blockHash *chainhash.Hash,
+	filterType wire.FilterType) FutureGetCFilterHeaderResult {
+	hash := ""
+	if blockHash != nil {
+		hash = blockHash.String()
 	}
 
-	cmd := pfcjson.NewGetCFilterHeaderCmd(blockHash.String(), ft)
+	cmd := pfcjson.NewGetCFilterHeaderCmd(hash, filterType)
 	return c.sendCmd(cmd)
 }
 
-// GetCFilterHeader returns the committed filter header hash of type filterType
-// for a block.
-func (c *Client) GetCFilterHeader(blockHash *chainhash.Hash, filterType wire.FilterType) (*chainhash.Hash, error) {
+// GetCFilterHeader returns a raw filter header from the server given its block
+// hash.
+func (c *Client) GetCFilterHeader(blockHash *chainhash.Hash,
+	filterType wire.FilterType) (*wire.MsgCFHeaders, error) {
 	return c.GetCFilterHeaderAsync(blockHash, filterType).Receive()
 }

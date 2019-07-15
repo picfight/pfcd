@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -100,28 +99,28 @@ func ipNet(ip string, ones, bits int) net.IPNet {
 	return net.IPNet{IP: net.ParseIP(ip), Mask: net.CIDRMask(ones, bits)}
 }
 
-// isIPv4 returns whether or not the given address is an IPv4 address.
-func isIPv4(na *wire.NetAddress) bool {
+// IsIPv4 returns whether or not the given address is an IPv4 address.
+func IsIPv4(na *wire.NetAddress) bool {
 	return na.IP.To4() != nil
 }
 
-// isLocal returns whether or not the given address is a local address.
-func isLocal(na *wire.NetAddress) bool {
+// IsLocal returns whether or not the given address is a local address.
+func IsLocal(na *wire.NetAddress) bool {
 	return na.IP.IsLoopback() || zero4Net.Contains(na.IP)
 }
 
-// isOnionCatTor returns whether or not the passed address is in the IPv6 range
+// IsOnionCatTor returns whether or not the passed address is in the IPv6 range
 // used by bitcoin to support Tor (fd87:d87e:eb43::/48).  Note that this range
 // is the same range used by OnionCat, which is part of the RFC4193 unique local
 // IPv6 range.
-func isOnionCatTor(na *wire.NetAddress) bool {
+func IsOnionCatTor(na *wire.NetAddress) bool {
 	return onionCatNet.Contains(na.IP)
 }
 
-// isRFC1918 returns whether or not the passed address is part of the IPv4
+// IsRFC1918 returns whether or not the passed address is part of the IPv4
 // private network address space as defined by RFC1918 (10.0.0.0/8,
 // 172.16.0.0/12, or 192.168.0.0/16).
-func isRFC1918(na *wire.NetAddress) bool {
+func IsRFC1918(na *wire.NetAddress) bool {
 	for _, rfc := range rfc1918Nets {
 		if rfc.Contains(na.IP) {
 			return true
@@ -130,58 +129,58 @@ func isRFC1918(na *wire.NetAddress) bool {
 	return false
 }
 
-// isRFC2544 returns whether or not the passed address is part of the IPv4
+// IsRFC2544 returns whether or not the passed address is part of the IPv4
 // address space as defined by RFC2544 (198.18.0.0/15)
-func isRFC2544(na *wire.NetAddress) bool {
+func IsRFC2544(na *wire.NetAddress) bool {
 	return rfc2544Net.Contains(na.IP)
 }
 
-// isRFC3849 returns whether or not the passed address is part of the IPv6
+// IsRFC3849 returns whether or not the passed address is part of the IPv6
 // documentation range as defined by RFC3849 (2001:DB8::/32).
-func isRFC3849(na *wire.NetAddress) bool {
+func IsRFC3849(na *wire.NetAddress) bool {
 	return rfc3849Net.Contains(na.IP)
 }
 
-// isRFC3927 returns whether or not the passed address is part of the IPv4
+// IsRFC3927 returns whether or not the passed address is part of the IPv4
 // autoconfiguration range as defined by RFC3927 (169.254.0.0/16).
-func isRFC3927(na *wire.NetAddress) bool {
+func IsRFC3927(na *wire.NetAddress) bool {
 	return rfc3927Net.Contains(na.IP)
 }
 
-// isRFC3964 returns whether or not the passed address is part of the IPv6 to
+// IsRFC3964 returns whether or not the passed address is part of the IPv6 to
 // IPv4 encapsulation range as defined by RFC3964 (2002::/16).
-func isRFC3964(na *wire.NetAddress) bool {
+func IsRFC3964(na *wire.NetAddress) bool {
 	return rfc3964Net.Contains(na.IP)
 }
 
-// isRFC4193 returns whether or not the passed address is part of the IPv6
+// IsRFC4193 returns whether or not the passed address is part of the IPv6
 // unique local range as defined by RFC4193 (FC00::/7).
-func isRFC4193(na *wire.NetAddress) bool {
+func IsRFC4193(na *wire.NetAddress) bool {
 	return rfc4193Net.Contains(na.IP)
 }
 
-// isRFC4380 returns whether or not the passed address is part of the IPv6
+// IsRFC4380 returns whether or not the passed address is part of the IPv6
 // teredo tunneling over UDP range as defined by RFC4380 (2001::/32).
-func isRFC4380(na *wire.NetAddress) bool {
+func IsRFC4380(na *wire.NetAddress) bool {
 	return rfc4380Net.Contains(na.IP)
 }
 
-// isRFC4843 returns whether or not the passed address is part of the IPv6
+// IsRFC4843 returns whether or not the passed address is part of the IPv6
 // ORCHID range as defined by RFC4843 (2001:10::/28).
-func isRFC4843(na *wire.NetAddress) bool {
+func IsRFC4843(na *wire.NetAddress) bool {
 	return rfc4843Net.Contains(na.IP)
 }
 
-// isRFC4862 returns whether or not the passed address is part of the IPv6
+// IsRFC4862 returns whether or not the passed address is part of the IPv6
 // stateless address autoconfiguration range as defined by RFC4862 (FE80::/64).
-func isRFC4862(na *wire.NetAddress) bool {
+func IsRFC4862(na *wire.NetAddress) bool {
 	return rfc4862Net.Contains(na.IP)
 }
 
-// isRFC5737 returns whether or not the passed address is part of the IPv4
+// IsRFC5737 returns whether or not the passed address is part of the IPv4
 // documentation address space as defined by RFC5737 (192.0.2.0/24,
 // 198.51.100.0/24, 203.0.113.0/24)
-func isRFC5737(na *wire.NetAddress) bool {
+func IsRFC5737(na *wire.NetAddress) bool {
 	for _, rfc := range rfc5737Net {
 		if rfc.Contains(na.IP) {
 			return true
@@ -191,29 +190,29 @@ func isRFC5737(na *wire.NetAddress) bool {
 	return false
 }
 
-// isRFC6052 returns whether or not the passed address is part of the IPv6
+// IsRFC6052 returns whether or not the passed address is part of the IPv6
 // well-known prefix range as defined by RFC6052 (64:FF9B::/96).
-func isRFC6052(na *wire.NetAddress) bool {
+func IsRFC6052(na *wire.NetAddress) bool {
 	return rfc6052Net.Contains(na.IP)
 }
 
-// isRFC6145 returns whether or not the passed address is part of the IPv6 to
+// IsRFC6145 returns whether or not the passed address is part of the IPv6 to
 // IPv4 translated address range as defined by RFC6145 (::FFFF:0:0:0/96).
-func isRFC6145(na *wire.NetAddress) bool {
+func IsRFC6145(na *wire.NetAddress) bool {
 	return rfc6145Net.Contains(na.IP)
 }
 
-// isRFC6598 returns whether or not the passed address is part of the IPv4
+// IsRFC6598 returns whether or not the passed address is part of the IPv4
 // shared address space specified by RFC6598 (100.64.0.0/10)
-func isRFC6598(na *wire.NetAddress) bool {
+func IsRFC6598(na *wire.NetAddress) bool {
 	return rfc6598Net.Contains(na.IP)
 }
 
-// isValid returns whether or not the passed address is valid.  The address is
+// IsValid returns whether or not the passed address is valid.  The address is
 // considered invalid under the following circumstances:
 // IPv4: It is either a zero or all bits set address.
 // IPv6: It is either a zero or RFC3849 documentation address.
-func isValid(na *wire.NetAddress) bool {
+func IsValid(na *wire.NetAddress) bool {
 	// IsUnspecified returns if address is 0, so only all bits set, and
 	// RFC3849 need to be explicitly checked.
 	return na.IP != nil && !(na.IP.IsUnspecified() ||
@@ -224,10 +223,10 @@ func isValid(na *wire.NetAddress) bool {
 // the public internet.  This is true as long as the address is valid and is not
 // in any reserved ranges.
 func IsRoutable(na *wire.NetAddress) bool {
-	return isValid(na) && !(isRFC1918(na) || isRFC2544(na) ||
-		isRFC3927(na) || isRFC4862(na) || isRFC3849(na) ||
-		isRFC4843(na) || isRFC5737(na) || isRFC6598(na) ||
-		isLocal(na) || (isRFC4193(na) && !isOnionCatTor(na)))
+	return IsValid(na) && !(IsRFC1918(na) || IsRFC2544(na) ||
+		IsRFC3927(na) || IsRFC4862(na) || IsRFC3849(na) ||
+		IsRFC4843(na) || IsRFC5737(na) || IsRFC6598(na) ||
+		IsLocal(na) || (IsRFC4193(na) && !IsOnionCatTor(na)))
 }
 
 // GroupKey returns a string representing the network group an address is part
@@ -236,27 +235,27 @@ func IsRoutable(na *wire.NetAddress) bool {
 // onion address for Tor address, and the string "unroutable" for an unroutable
 // address.
 func GroupKey(na *wire.NetAddress) string {
-	if isLocal(na) {
+	if IsLocal(na) {
 		return "local"
 	}
 	if !IsRoutable(na) {
 		return "unroutable"
 	}
-	if isIPv4(na) {
+	if IsIPv4(na) {
 		return na.IP.Mask(net.CIDRMask(16, 32)).String()
 	}
-	if isRFC6145(na) || isRFC6052(na) {
+	if IsRFC6145(na) || IsRFC6052(na) {
 		// last four bytes are the ip address
 		ip := na.IP[12:16]
 		return ip.Mask(net.CIDRMask(16, 32)).String()
 	}
 
-	if isRFC3964(na) {
+	if IsRFC3964(na) {
 		ip := na.IP[2:6]
 		return ip.Mask(net.CIDRMask(16, 32)).String()
 
 	}
-	if isRFC4380(na) {
+	if IsRFC4380(na) {
 		// teredo tunnels have the last 4 bytes as the v4 address XOR
 		// 0xff.
 		ip := net.IP(make([]byte, 4))
@@ -265,7 +264,7 @@ func GroupKey(na *wire.NetAddress) string {
 		}
 		return ip.Mask(net.CIDRMask(16, 32)).String()
 	}
-	if isOnionCatTor(na) {
+	if IsOnionCatTor(na) {
 		// group is keyed off the first 4 bits of the actual onion key.
 		return fmt.Sprintf("tor:%d", na.IP[6]&((1<<4)-1))
 	}

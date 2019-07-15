@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -16,7 +15,7 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/database"
 	"github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/picfight/pfcutil"
 )
 
 // dbType is the database type name for this driver.
@@ -210,7 +209,7 @@ func TestPersistence(t *testing.T) {
 	db.Close()
 	db, err = database.Open(dbType, dbPath, blockDataNet)
 	if err != nil {
-		t.Errorf("failed to open test database (%s) %v", dbType, err)
+		t.Errorf("Failed to open test database (%s) %v", dbType, err)
 		return
 	}
 	defer db.Close()
@@ -225,7 +224,7 @@ func TestPersistence(t *testing.T) {
 
 		bucket1 := metadataBucket.Bucket(bucket1Key)
 		if bucket1 == nil {
-			return fmt.Errorf("bucket1: unexpected nil bucket")
+			return fmt.Errorf("Bucket1: unexpected nil bucket")
 		}
 
 		for k, v := range storeValues {
@@ -264,7 +263,7 @@ func TestInterface(t *testing.T) {
 	_ = os.RemoveAll(dbPath)
 	db, err := database.Create(dbType, dbPath, blockDataNet)
 	if err != nil {
-		t.Errorf("failed to create test database (%s) %v", dbType, err)
+		t.Errorf("Failed to create test database (%s) %v", dbType, err)
 		return
 	}
 	defer os.RemoveAll(dbPath)

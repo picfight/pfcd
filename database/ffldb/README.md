@@ -1,14 +1,15 @@
 ffldb
 =====
 
-[![Build Status](http://img.shields.io/travis/picfight/pfcd.svg)](https://travis-ci.org/picfight/pfcd)
+[![Build Status](https://travis-ci.org/picfight/pfcd.png?branch=master)](https://travis-ci.org/picfight/pfcd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/database/ffldb)
+[![GoDoc](https://godoc.org/github.com/picfight/pfcd/database/ffldb?status.png)](http://godoc.org/github.com/picfight/pfcd/database/ffldb)
+=======
 
 Package ffldb implements a driver for the database package that uses leveldb for
 the backing metadata and flat files for block storage.
 
-This driver is the recommended driver for use with pfcd.  It makes use leveldb
+This driver is the recommended driver for use with btcd.  It makes use leveldb
 for the metadata, flat files for block storage, and checksums in key areas to
 ensure data integrity.
 

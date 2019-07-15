@@ -5,30 +5,28 @@ mempool
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/mempool)
 
-Package mempool provides a policy-enforced pool of unmined PicFight transactions.
+Package mempool provides a policy-enforced pool of unmined bitcoin transactions.
 
-A key responsibility of the PicFight network is mining transactions – regular
-transactions and stake transactions – into blocks.  In order to facilitate
-this, the mining process relies on having a readily-available source of
-transactions to include in a block that is being solved.
+A key responsbility of the bitcoin network is mining user-generated transactions
+into blocks.  In order to facilitate this, the mining process relies on having a
+readily-available source of transactions to include in a block that is being
+solved.
 
 At a high level, this package satisfies that requirement by providing an
 in-memory pool of fully validated transactions that can also optionally be
 further filtered based upon a configurable policy.
 
-The Policy configuration options has flags that control whether or not
-"standard" transactions and old votes are accepted into the mempool.
-In essence, a "standard" transaction is one that satisfies a fairly
-strict set of requirements that are largely intended to help provide
-fair use of the system to all users.  It is important to note that
-what is considered to be a "standard" transaction changes over time
-as policy and consensus rules evolve. For some insight, at the time
-of this writing, an example of _some_ of the criteria that are required
-for a transaction to be considered standard are that it is of the
-most-recently supported version, finalized, does not exceed a specific size,
-and only consists of specific script forms.
+One of the policy configuration options controls whether or not "standard"
+transactions are accepted.  In essence, a "standard" transaction is one that
+satisfies a fairly strict set of requirements that are largely intended to help
+provide fair use of the system to all users.  It is important to note that what
+is considered a "standard" transaction changes over time.  For some insight, at
+the time of this writing, an example of _some_ of the criteria that are required
+for a transaction to be considered standard are that it is of the most-recently
+supported version, finalized, does not exceed a specific size, and only consists
+of specific script forms.
 
-Since this package does not deal with other PicFight specifics such as network
+Since this package does not deal with other bitcoin specifics such as network
 communication and transaction relay, it returns a list of transactions that were
 accepted which gives the caller a high level of flexibility in how they want to
 proceed.  Typically, this will involve things such as relaying the transactions
@@ -36,9 +34,9 @@ to other peers on the network and notifying the mining process that new
 transactions are available.
 
 This package has intentionally been designed so it can be used as a standalone
-package for any projects needing the ability create an in-memory pool of PicFight
+package for any projects needing the ability create an in-memory pool of bitcoin
 transactions that are not only valid by consensus rules, but also adhere to a
-configurable policy
+configurable policy.
 
 ## Feature Overview
 
@@ -52,8 +50,6 @@ be an exhaustive list.
   - Reject invalid transactions according to the network consensus rules
   - Full script execution and validation with signature cache support
   - Individual transaction query support
-- Stake transaction support (ticket purchases, votes and revocations)
-  - Option to accept or reject old votes
 - Orphan transaction support (transactions that spend from unknown outputs)
   - Configurable limits (see transaction acceptance policy)
   - Automatic addition of orphan transactions that are no longer orphans as new

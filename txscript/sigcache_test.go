@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,35 +6,32 @@ package txscript
 
 import (
 	"crypto/rand"
-	"math/big"
 	"testing"
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
+	"github.com/picfight/pfcd/pfcec"
 )
 
 // genRandomSig returns a random message, a signature of the message under the
 // public key and the public key. This function is used to generate randomized
 // test data.
-func genRandomSig() (*chainhash.Hash, *secp256k1.Signature, *secp256k1.PublicKey, error) {
-	privBytes, pubX, pubY, err := secp256k1.GenerateKey(rand.Reader)
+func genRandomSig() (*chainhash.Hash, *pfcec.Signature, *pfcec.PublicKey, error) {
+	privKey, err := pfcec.NewPrivateKey(pfcec.S256())
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	priv := secp256k1.NewPrivateKey(new(big.Int).SetBytes(privBytes))
-	pub := secp256k1.NewPublicKey(pubX, pubY)
 
 	var msgHash chainhash.Hash
 	if _, err := rand.Read(msgHash[:]); err != nil {
 		return nil, nil, nil, err
 	}
 
-	sig, err := priv.Sign(msgHash[:])
+	sig, err := privKey.Sign(msgHash[:])
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return &msgHash, sig, pub, nil
+	return &msgHash, sig, privKey.PubKey(), nil
 }
 
 // TestSigCacheAddExists tests the ability to add, and later check the
@@ -53,8 +49,8 @@ func TestSigCacheAddExists(t *testing.T) {
 	sigCache.Add(*msg1, sig1, key1)
 
 	// The previously added triplet should now be found within the sigcache.
-	sig1Copy, _ := secp256k1.ParseSignature(sig1.Serialize())
-	key1Copy, _ := secp256k1.ParsePubKey(key1.SerializeCompressed())
+	sig1Copy, _ := pfcec.ParseSignature(sig1.Serialize(), pfcec.S256())
+	key1Copy, _ := pfcec.ParsePubKey(key1.SerializeCompressed(), pfcec.S256())
 	if !sigCache.Exists(*msg1, sig1Copy, key1Copy) {
 		t.Errorf("previously added item not found in signature cache")
 	}
@@ -76,8 +72,9 @@ func TestSigCacheAddEvictEntry(t *testing.T) {
 		}
 
 		sigCache.Add(*msg, sig, key)
-		sigCopy, _ := secp256k1.ParseSignature(sig.Serialize())
-		keyCopy, _ := secp256k1.ParsePubKey(key.SerializeCompressed())
+
+		sigCopy, _ := pfcec.ParseSignature(sig.Serialize(), pfcec.S256())
+		keyCopy, _ := pfcec.ParsePubKey(key.SerializeCompressed(), pfcec.S256())
 		if !sigCache.Exists(*msg, sigCopy, keyCopy) {
 			t.Errorf("previously added item not found in signature" +
 				"cache")
@@ -105,8 +102,8 @@ func TestSigCacheAddEvictEntry(t *testing.T) {
 	}
 
 	// The entry added above should be found within the sigcache.
-	sigNewCopy, _ := secp256k1.ParseSignature(sigNew.Serialize())
-	keyNewCopy, _ := secp256k1.ParsePubKey(keyNew.SerializeCompressed())
+	sigNewCopy, _ := pfcec.ParseSignature(sigNew.Serialize(), pfcec.S256())
+	keyNewCopy, _ := pfcec.ParsePubKey(keyNew.SerializeCompressed(), pfcec.S256())
 	if !sigCache.Exists(*msgNew, sigNewCopy, keyNewCopy) {
 		t.Fatalf("previously added item not found in signature cache")
 	}
@@ -128,8 +125,8 @@ func TestSigCacheAddMaxEntriesZeroOrNegative(t *testing.T) {
 	sigCache.Add(*msg1, sig1, key1)
 
 	// The generated triplet should not be found.
-	sig1Copy, _ := secp256k1.ParseSignature(sig1.Serialize())
-	key1Copy, _ := secp256k1.ParsePubKey(key1.SerializeCompressed())
+	sig1Copy, _ := pfcec.ParseSignature(sig1.Serialize(), pfcec.S256())
+	key1Copy, _ := pfcec.ParsePubKey(key1.SerializeCompressed(), pfcec.S256())
 	if sigCache.Exists(*msg1, sig1Copy, key1Copy) {
 		t.Errorf("previously added signature found in sigcache, but" +
 			"shouldn't have been")

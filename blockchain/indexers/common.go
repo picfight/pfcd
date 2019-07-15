@@ -1,5 +1,4 @@
 // Copyright (c) 2016 The btcsuite developers
-// Copyright (c) 2016-2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -14,7 +13,7 @@ import (
 
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/picfight/pfcutil"
 )
 
 var (
@@ -42,9 +41,6 @@ type Indexer interface {
 	// Name returns the human-readable name of the index.
 	Name() string
 
-	// Return the current version of the index.
-	Version() uint32
-
 	// Create is invoked when the indexer manager determines the index needs
 	// to be created for the first time.
 	Create(dbTx database.Tx) error
@@ -54,20 +50,17 @@ type Indexer interface {
 	// every load, including the case the index was just created.
 	Init() error
 
-	// ConnectBlock is invoked when the index manager is notified that a new
-	// block has been connected to the main chain.
-	ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error
+	// ConnectBlock is invoked when a new block has been connected to the
+	// main chain. The set of output spent within a block is also passed in
+	// so indexers can access the pevious output scripts input spent if
+	// required.
+	ConnectBlock(database.Tx, *pfcutil.Block, []blockchain.SpentTxOut) error
 
-	// DisconnectBlock is invoked when the index manager is notified that a
-	// block has been disconnected from the main chain.
-	DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error
-}
-
-// IndexDropper provides a method to remove an index from the database. Indexers
-// may implement this for a more efficient way of deleting themselves from the
-// database rather than simply dropping a bucket.
-type IndexDropper interface {
-	DropIndex(db database.DB, interrupt <-chan struct{}) error
+	// DisconnectBlock is invoked when a block has been disconnected from
+	// the main chain. The set of outputs scripts that were spent within
+	// this block is also returned so indexers can clean up the prior index
+	// state for this block
+	DisconnectBlock(database.Tx, *pfcutil.Block, []blockchain.SpentTxOut) error
 }
 
 // AssertError identifies an error that indicates an internal code consistency
@@ -103,14 +96,6 @@ type internalBucket interface {
 	Get(key []byte) []byte
 	Put(key []byte, value []byte) error
 	Delete(key []byte) error
-}
-
-// approvesParent returns whether or not the vote bits in the header of the
-// passed block indicate the regular transaction tree of the parent block should
-// be considered valid.
-func approvesParent(block *pfcutil.Block) bool {
-	return pfcutil.IsFlagSet16(block.MsgBlock().Header.VoteBits,
-		pfcutil.BlockValid)
 }
 
 // interruptRequested returns true when the provided channel has been closed.

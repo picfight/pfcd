@@ -1,5 +1,4 @@
 // Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -15,12 +14,12 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/database"
 	_ "github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/picfight/pfcutil"
 )
 
 // This example demonstrates how to create a new chain instance and use
-// ProcessBlock to attempt to attempt add a block to the chain.  As the package
-// overview documentation describes, this includes all of the PicFight consensus
+// ProcessBlock to attempt to add a block to the chain.  As the package
+// overview documentation describes, this includes all of the Bitcoin consensus
 // rules.  This example intentionally attempts to insert a duplicate genesis
 // block to illustrate how an invalid block is handled.
 func ExampleBlockChain_ProcessBlock() {
@@ -60,27 +59,24 @@ func ExampleBlockChain_ProcessBlock() {
 	// cause an error by trying to process the genesis block which already
 	// exists.
 	genesisBlock := pfcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
-	forkLen, isOrphan, err := chain.ProcessBlock(genesisBlock,
+	isMainChain, isOrphan, err := chain.ProcessBlock(genesisBlock,
 		blockchain.BFNone)
 	if err != nil {
-		fmt.Printf("Failed to create chain instance: %v\n", err)
+		fmt.Printf("Failed to process block: %v\n", err)
 		return
 	}
-	isMainChain := !isOrphan && forkLen == 0
 	fmt.Printf("Block accepted. Is it on the main chain?: %v", isMainChain)
 	fmt.Printf("Block accepted. Is it an orphan?: %v", isOrphan)
 
-	// This output is dependent on the genesis block, and needs to be
-	// updated if the mainnet genesis block is updated.
 	// Output:
-	// Failed to process block: already have block 267a53b5ee86c24a48ec37aee4f4e7c0c4004892b7259e695e9f5b321f1ab9d2
+	// Failed to process block: already have block 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
 }
 
 // This example demonstrates how to convert the compact "bits" in a block header
 // which represent the target difficulty to a big integer and display it using
 // the typical hex notation.
 func ExampleCompactToBig() {
-	// Convert the bits from block 300000 in the main PicFight block chain.
+	// Convert the bits from block 300000 in the main block chain.
 	bits := uint32(419465580)
 	targetDifficulty := blockchain.CompactToBig(bits)
 

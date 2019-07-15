@@ -1,7 +1,127 @@
 ============================================================================
-User visible changes for pfcd
-  A full-node PicFight implementation written in Go
+User visible changes for btcd
+  A full-node bitcoin implementation written in Go
 ============================================================================
+
+Changes in 0.12.0 (Fri Nov 20 2015)
+  - Protocol and network related changes:
+    - Add a new checkpoint at block height 382320 (#555)
+    - Implement BIP0065 which includes support for version 4 blocks, a new
+      consensus opcode (OP_CHECKLOCKTIMEVERIFY) that enforces transaction
+      lock times, and a double-threshold switchover mechanism (#535, #459,
+      #455)
+    - Implement BIP0111 which provides a new bloom filter service flag and
+      hence provides support for protocol version 70011 (#499)
+    - Add a new parameter --nopeerbloomfilters to allow disabling bloom
+      filter support (#499)
+    - Reject non-canonically encoded variable length integers (#507)
+    - Add mainnet peer discovery DNS seed (seed.bitcoin.jonasschnelli.ch)
+      (#496)
+    - Correct reconnect handling for persistent peers (#463, #464)
+    - Ignore requests for block headers if not fully synced (#444)
+    - Add CLI support for specifying the zone id on IPv6 addresses (#538)
+    - Fix a couple of issues where the initial block sync could stall (#518,
+      #229, #486)
+    - Fix an issue which prevented the --onion option from working as
+      intended (#446)
+  - Transaction relay (memory pool) changes:
+    - Require transactions to only include signatures encoded with the
+    canonical 'low-s' encoding (#512)
+    - Add a new parameter --minrelaytxfee to allow the minimum transaction
+      fee in PFC/kB to be overridden (#520)
+    - Retain memory pool transactions when they redeem another one that is
+      removed when a block is accepted (#539)
+    - Do not send reject messages for a transaction if it is valid but
+      causes an orphan transaction which depends on it to be determined
+      as invalid (#546)
+    - Refrain from attempting to add orphans to the memory pool multiple
+      times when the transaction they redeem is added (#551)
+    - Modify minimum transaction fee calculations to scale based on bytes
+      instead of full kilobyte boundaries (#521, #537)
+  - Implement signature cache:
+    - Provides a limited memory cache of validated signatures which is a
+      huge optimization when verifying blocks for transactions that are
+      already in the memory pool (#506)
+    - Add a new parameter '--sigcachemaxsize' which allows the size of the
+      new cache to be manually changed if desired (#506)
+  - Mining support changes:
+    - Notify getblocktemplate long polling clients when a block is pushed
+      via submitblock (#488)
+    - Speed up getblocktemplate by making use of the new signature cache
+      (#506)
+  - RPC changes:
+    - Implement getmempoolinfo command (#453)
+    - Implement getblockheader command (#461)
+    - Modify createrawtransaction command to accept a new optional parameter
+      'locktime' (#529)
+    - Modify listunspent result to include the 'spendable' field (#440)
+    - Modify getinfo command to include 'errors' field (#511)
+    - Add timestamps to blockconnected and blockdisconnected notifications
+      (#450)
+    - Several modifications to searchrawtranscations command:
+      - Accept a new optional parameter 'vinextra' which causes the results
+        to include information about the outputs referenced by a transaction's
+        inputs (#485, #487)
+      - Skip entries in the mempool too (#495)
+      - Accept a new optional parameter 'reverse' to return the results in
+        reverse order (most recent to oldest) (#497)
+      - Accept a new optional parameter 'filteraddrs' which causes the
+        results to only include inputs and outputs which involve the
+        provided addresses (#516)
+    - Change the notification order to notify clients about mined
+      transactions (recvtx, redeemingtx) before the blockconnected
+      notification (#449)
+    - Update verifymessage RPC to use the standard algorithm so it is
+      compatible with other implementations (#515)
+    - Improve ping statistics by pinging on an interval (#517)
+  - Websocket changes:
+    - Implement session command which returns a per-session unique id (#500,
+      #503)
+  - btcctl utility changes:
+    - Add getmempoolinfo command (#453)
+    - Add getblockheader command (#461)
+    - Add getwalletinfo command (#471)
+  - Notable developer-related package changes:
+    - Introduce a new peer package which acts a common base for creating and
+      concurrently managing bitcoin network peers (#445)
+    - Various cleanup of the new peer package (#528, #531, #524, #534,
+      #549)
+    - Blocks heights now consistently use int32 everywhere (#481)
+    - The BlockHeader type in the wire package now provides the PfcDecode
+      and BtcEncode methods (#467)
+    - Update wire package to recognize BIP0064 (getutxo) service bit (#489)
+    - Export LockTimeThreshold constant from txscript package (#454)
+    - Export MaxDataCarrierSize constant from txscript package (#466)
+    - Provide new IsUnspendable function from the txscript package (#478)
+    - Export variable length string functions from the wire package (#514)
+    - Export DNS Seeds for each network from the chaincfg package (#544)
+    - Preliminary work towards separating the memory pool into a separate
+      package (#525, #548)
+  - Misc changes:
+    - Various documentation updates (#442, #462, #465, #460, #470, #473,
+      #505, #530, #545)
+    - Add installation instructions for gentoo (#542)
+    - Ensure an error is shown if OS limits can't be set at startup (#498)
+    - Tighten the standardness checks for multisig scripts (#526)
+    - Test coverage improvement (#468, #494, #527, #543, #550)
+    - Several optimizations (#457, #474, #475, #476, #508, #509)
+    - Minor code cleanup and refactoring (#472, #479, #482, #519, #540)
+  - Contributors (alphabetical order):
+    - Ben Echols
+    - Bruno Clermont
+    - danda
+    - Daniel Krawisz
+    - Dario Nieuwenhuis
+    - Dave Collins
+    - David Hill
+    - Javed Khan
+    - Jonathan Gillham
+    - Joseph Becher
+    - Josh Rickmar
+    - Justus Ranvier
+    - Mawuli Adzoe
+    - Olaoluwa Osuntokun
+    - Rune T. Aune
 
 Changes in 0.11.1 (Wed May 27 2015)
   - Protocol and network related changes:
@@ -24,7 +144,7 @@ Changes in 0.11.1 (Wed May 27 2015)
     - Add gettxoutproof command (#428)
     - Add verifytxoutproof command (#428)
   - Notable developer-related package changes:
-    - The btcec package now provides the ability to perform ECDH
+    - The pfcec package now provides the ability to perform ECDH
       encryption and decryption (#375)
     - The block and header validation in the blockchain package has been
       split to help pave the way toward concurrent downloads (#386)
@@ -88,9 +208,9 @@ Changes in 0.11.0 (Wed May 06 2015)
       be read from stdin (#348)
     - Add generate command
   - Notable developer-related package changes:
-    - The new version 2 btcjson package has now replaced the deprecated
+    - The new version 2 pfcjson package has now replaced the deprecated
       version 1 package (#368)
-    - The btcec package now performs all signing using RFC6979 deterministic
+    - The pfcec package now performs all signing using RFC6979 deterministic
       signatures (#358, #360)
     - The txscript package has been significantly cleaned up and had a few
       API changes (#387, #388, #389, #390, #391, #392, #393, #395, #396,
@@ -144,44 +264,44 @@ Changes in 0.10.0 (Sun Mar 01 2015)
       for version 3 blocks which are compatible with BIP0066
     - Allow getblocktemplate to serve blocks when the current time is
       less than the minimum allowed time for a generated block template
-      (https://github.com/btcsuite/btcd/issues/209)
+      (https://github.com/picfight/pfcd/issues/209)
   - Crypto changes:
     - Optimize scalar multiplication by the base point by using a
       pre-computed table which results in approximately a 35% speedup
-     (https://github.com/btcsuite/btcec/issues/2)
+     (https://github.com/btcsuite/pfcec/issues/2)
     - Optimize general scalar multiplication by using the secp256k1
       endomorphism which results in approximately a 17-20% speedup
-     (https://github.com/btcsuite/btcec/issues/1)
+     (https://github.com/btcsuite/pfcec/issues/1)
     - Optimize general scalar multiplication by using non-adjacent form
       which results in approximately an additional 8% speedup
-     (https://github.com/btcsuite/btcec/issues/3)
+     (https://github.com/btcsuite/pfcec/issues/3)
   - Implement optional address indexing:
     - Add a new parameter --addrindex which will enable the creation of an
       address index which can be queried to determine all transactions which
       involve a given address
-      (https://github.com/btcsuite/btcd/issues/190)
+      (https://github.com/picfight/pfcd/issues/190)
     - Add a new logging subsystem for address index related operations
     - Support new searchrawtransactions RPC
-      (https://github.com/btcsuite/btcd/issues/185)
+      (https://github.com/picfight/pfcd/issues/185)
   - RPC changes:
     - Require TLS version 1.2 as the minimum version for all TLS connections
     - Provide support for disabling TLS when only listening on localhost
-      (https://github.com/btcsuite/btcd/pull/192)
+      (https://github.com/picfight/pfcd/pull/192)
     - Modify help output for all commands to provide much more consistent
       and detailed information
     - Correct case in getrawtransaction which would refuse to serve certain
       transactions with invalid scripts
-      (https://github.com/btcsuite/btcd/issues/210)
+      (https://github.com/picfight/pfcd/issues/210)
     - Correct error handling in the getrawtransaction RPC which could lead
       to a crash in rare cases
-      (https://github.com/btcsuite/btcd/issues/196)
+      (https://github.com/picfight/pfcd/issues/196)
     - Update getinfo RPC to include the appropriate 'timeoffset' calculated
       from the median network time
     - Modify listreceivedbyaddress result type to include txids field so it
       is compatible
     - Add 'iswatchonly' field to validateaddress result
     - Add 'startingpriority' and 'currentpriority' fields to getrawmempool
-      (https://github.com/btcsuite/btcd/issues/178)
+      (https://github.com/picfight/pfcd/issues/178)
     - Don't omit the 'confirmations' field from getrawtransaction when it is
       zero
   - Websocket changes:
@@ -197,7 +317,7 @@ Changes in 0.10.0 (Sun Mar 01 2015)
       dumping all of the commands
     - Make the usage syntax much more consistent and correct a few cases of
       misnamed fields
-      (https://github.com/btcsuite/btcd/issues/305)
+      (https://github.com/picfight/pfcd/issues/305)
     - Improve usage errors to show the specific parameter number, reason,
       and error code
     - Only show the usage for specific command is shown when a valid command
@@ -216,14 +336,14 @@ Changes in 0.10.0 (Sun Mar 01 2015)
     - Remove utility in favor of the RPC getblock method
   - Notable developer-related package changes:
     - Many of the core packages have been relocated into the btcd repository
-      (https://github.com/btcsuite/btcd/issues/214)
-    - A new version of the btcjson package that has been completely
+      (https://github.com/picfight/pfcd/issues/214)
+    - A new version of the pfcjson package that has been completely
       redesigned from the ground up based based upon how the project has
       evolved and lessons learned while using it since it was first written
-      is now available in the btcjson/v2/btcjson directory
+      is now available in the pfcjson/v2/pfcjson directory
       - This will ultimately replace the current version so anyone making
         use of this package will need to update their code accordingly
-    - The btcec package now provides better facilities for working directly
+    - The pfcec package now provides better facilities for working directly
       with its public and private keys without having to mix elements from
       the ecdsa package
     - Update the script builder to ensure all rules specified by BIP0062 are
@@ -233,21 +353,21 @@ Changes in 0.10.0 (Sun Mar 01 2015)
       and using that data to calculate an offset against the local time
   - Misc changes:
     - Fix a slow memory leak due to tickers not being stopped
-      (https://github.com/btcsuite/btcd/issues/189)
+      (https://github.com/picfight/pfcd/issues/189)
     - Fix an issue where a mix of orphans and SPV clients could trigger a
       condition where peers would no longer be served
-      (https://github.com/btcsuite/btcd/issues/231)
+      (https://github.com/picfight/pfcd/issues/231)
     - The RPC username and password can now contain symbols which previously
       conflicted with special symbols used in URLs
     - Improve handling of obtaining random nonces to prevent cases where it
       could error when not enough entropy was available
     - Improve handling of home directory creation errors such as in the case
-      of unmounted symlinks (https://github.com/btcsuite/btcd/issues/193)
+      of unmounted symlinks (https://github.com/picfight/pfcd/issues/193)
     - Improve the error reporting for rejected transactions to include the
       inputs which are missing and/or being double spent
     - Update sample config file with new options and correct a comment
       regarding the fact the RPC server only listens on localhost by default
-      (https://github.com/btcsuite/btcd/issues/218)
+      (https://github.com/picfight/pfcd/issues/218)
     - Update the continuous integration builds to run several tools which
       help keep code quality high
     - Significant amount of internal code cleanup and improvements
@@ -335,7 +455,7 @@ Changes in 0.9.0 (Sat Sep 20 2014)
     - Accept --simnet flag which automatically selects the appropriate port
       and TLS certificates needed to communicate with btcd and btcwallet on
       the simulation test network
-    - Fix createrawtransaction command to send amounts denominated in BTC
+    - Fix createrawtransaction command to send amounts denominated in PFC
     - Add estimatefee command
     - Add estimatepriority command
     - Add getmininginfo command
@@ -348,9 +468,9 @@ Changes in 0.9.0 (Sat Sep 20 2014)
       and TLS certificates needed to communicate with btcd and btcwallet on
       the simulation test network
   - Notable developer-related package changes:
-    - Provide a new bloom package in btcutil which allows creating and
+    - Provide a new bloom package in pfcutil which allows creating and
       working with BIP0037 bloom filters
-    - Provide a new hdkeychain package in btcutil which allows working with
+    - Provide a new hdkeychain package in pfcutil which allows working with
       BIP0032 hierarchical deterministic key chains
     - Introduce a new btcnet package which houses network parameters
     - Provide new simnet network (--simnet) which is useful for private
@@ -393,7 +513,7 @@ Changes in 0.8.0-beta (Sun May 25 2014)
     - Reduce max bytes allowed for a standard nulldata transaction to 40 for
       compatibility with the reference client
     - Introduce a new btcnet package which houses all of the network params
-      for each network (mainnet, testnet, regtest) to ultimately enable
+      for each network (mainnet, testnet3, regtest) to ultimately enable
       easier addition and tweaking of networks without needing to change
       several packages
     - Fix several script discrepancies found by reference client test data
@@ -410,7 +530,7 @@ Changes in 0.8.0-beta (Sun May 25 2014)
     - Provide options to control block template creation settings
     - Support the getwork RPC
     - Allow address identifiers to apply to more than one network since both
-      testnet and the regression test network unfortunately use the same
+      testnet3 and the regression test network unfortunately use the same
       identifier
   - RPC changes:
     - Set the content type for HTTP POST RPC connections to application/json
@@ -450,8 +570,8 @@ Changes in 0.8.0-beta (Sun May 25 2014)
   - btcctl utility changes:
     - Add createencryptedwallet command
     - Add getblockchaininfo command
-    - Add importwallet commmand
-    - Add addmultisigaddress commmand
+    - Add importwallet command
+    - Add addmultisigaddress command
     - Add setgenerate command
     - Accept --testnet and --wallet flags which automatically select
       the appropriate port and TLS certificates needed to communicate
@@ -649,7 +769,7 @@ Changes in 0.5.0 (Mon Jan 13 2014)
     - Update getblock to support new optional verbose flag
     - Update raw transactions to fully match the reference client including
       support for all transaction types and address types
-    - Correct getrawmempool fee field to return BTC instead of Satoshi
+    - Correct getrawmempool fee field to return PFC instead of Satoshi
     - Correct getpeerinfo service flag to return 8 digit string so it
       matches the reference client
     - Correct verifychain to return a boolean

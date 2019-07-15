@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/decred/slog"
+	"github.com/btcsuite/btclog"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
@@ -25,7 +24,7 @@ const (
 // log is a logger that is initialized with no output filters.  This
 // means the package will not perform any logging by default until the caller
 // requests it.
-var log slog.Logger
+var log btclog.Logger
 
 // The default amount of logging is none.
 func init() {
@@ -35,11 +34,11 @@ func init() {
 // DisableLog disables all library log output.  Logging output is disabled
 // by default until UseLogger is called.
 func DisableLog() {
-	log = slog.Disabled
+	log = btclog.Disabled
 }
 
 // UseLogger uses a specified Logger to output package logging info.
-func UseLogger(logger slog.Logger) {
+func UseLogger(logger btclog.Logger) {
 	log = logger
 }
 
@@ -92,8 +91,12 @@ func invSummary(invList []*wire.InvVect) string {
 		switch iv.Type {
 		case wire.InvTypeError:
 			return fmt.Sprintf("error %s", iv.Hash)
+		case wire.InvTypeWitnessBlock:
+			return fmt.Sprintf("witness block %s", iv.Hash)
 		case wire.InvTypeBlock:
 			return fmt.Sprintf("block %s", iv.Hash)
+		case wire.InvTypeWitnessTx:
+			return fmt.Sprintf("witness tx %s", iv.Hash)
 		case wire.InvTypeTx:
 			return fmt.Sprintf("tx %s", iv.Hash)
 		}
@@ -162,6 +165,9 @@ func messageSummary(msg wire.Message) string {
 	case *wire.MsgPong:
 		// No summary - perhaps add nonce.
 
+	case *wire.MsgAlert:
+		// No summary.
+
 	case *wire.MsgMemPool:
 		// No summary.
 
@@ -192,6 +198,14 @@ func messageSummary(msg wire.Message) string {
 
 	case *wire.MsgHeaders:
 		return fmt.Sprintf("num %d", len(msg.Headers))
+
+	case *wire.MsgGetCFHeaders:
+		return fmt.Sprintf("start_height=%d, stop_hash=%v",
+			msg.StartHeight, msg.StopHash)
+
+	case *wire.MsgCFHeaders:
+		return fmt.Sprintf("stop_hash=%v, num_filter_hashes=%d",
+			msg.StopHash, len(msg.FilterHashes))
 
 	case *wire.MsgReject:
 		// Ensure the variable length strings don't contain any

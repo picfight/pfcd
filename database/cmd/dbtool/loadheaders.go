@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -42,7 +41,7 @@ func (cmd *headersCmd) Execute(args []string) error {
 	// the database would keep a metadata index of its own.
 	blockIdxName := []byte("ffldb-blockidx")
 	if !headersCfg.Bulk {
-		return db.View(func(tx database.Tx) error {
+		err = db.View(func(tx database.Tx) error {
 			totalHdrs := 0
 			blockIdxBucket := tx.Metadata().Bucket(blockIdxName)
 			blockIdxBucket.ForEach(func(k, v []byte) error {
@@ -66,10 +65,11 @@ func (cmd *headersCmd) Execute(args []string) error {
 				time.Since(startTime))
 			return nil
 		})
+		return err
 	}
 
 	// Bulk load headers.
-	return db.View(func(tx database.Tx) error {
+	err = db.View(func(tx database.Tx) error {
 		blockIdxBucket := tx.Metadata().Bucket(blockIdxName)
 		hashes := make([]chainhash.Hash, 0, 500000)
 		blockIdxBucket.ForEach(func(k, v []byte) error {
@@ -89,4 +89,5 @@ func (cmd *headersCmd) Execute(args []string) error {
 			time.Since(startTime))
 		return nil
 	})
+	return err
 }

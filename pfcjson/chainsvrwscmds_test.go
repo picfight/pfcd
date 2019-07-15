@@ -1,9 +1,9 @@
-// Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
+// Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson
+package pfcjson_test
 
 import (
 	"bytes"
@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestChainSvrWsCmds tests all of the chain server websocket-specific commands
@@ -31,128 +33,198 @@ func TestChainSvrWsCmds(t *testing.T) {
 		{
 			name: "authenticate",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("authenticate", "user", "pass")
+				return pfcjson.NewCmd("authenticate", "user", "pass")
 			},
 			staticCmd: func() interface{} {
-				return NewAuthenticateCmd("user", "pass")
+				return pfcjson.NewAuthenticateCmd("user", "pass")
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"authenticate","params":["user","pass"],"id":1}`,
-			unmarshalled: &AuthenticateCmd{Username: "user", Passphrase: "pass"},
-		},
-		{
-			name: "notifywinningtickets",
-			newCmd: func() (interface{}, error) {
-				return NewCmd("notifywinningtickets")
-			},
-			staticCmd: func() interface{} {
-				return NewNotifyWinningTicketsCmd()
-			},
-			marshalled:   `{"jsonrpc":"1.0","method":"notifywinningtickets","params":[],"id":1}`,
-			unmarshalled: &NotifyWinningTicketsCmd{},
-		},
-		{
-			name: "notifyspentandmissedtickets",
-			newCmd: func() (interface{}, error) {
-				return NewCmd("notifyspentandmissedtickets")
-			},
-			staticCmd: func() interface{} {
-				return NewNotifySpentAndMissedTicketsCmd()
-			},
-			marshalled:   `{"jsonrpc":"1.0","method":"notifyspentandmissedtickets","params":[],"id":1}`,
-			unmarshalled: &NotifySpentAndMissedTicketsCmd{},
-		},
-		{
-			name: "notifynewtickets",
-			newCmd: func() (interface{}, error) {
-				return NewCmd("notifynewtickets")
-			},
-			staticCmd: func() interface{} {
-				return NewNotifyNewTicketsCmd()
-			},
-			marshalled:   `{"jsonrpc":"1.0","method":"notifynewtickets","params":[],"id":1}`,
-			unmarshalled: &NotifyNewTicketsCmd{},
-		},
-		{
-			name: "notifystakedifficulty",
-			newCmd: func() (interface{}, error) {
-				return NewCmd("notifystakedifficulty")
-			},
-			staticCmd: func() interface{} {
-				return NewNotifyStakeDifficultyCmd()
-			},
-			marshalled:   `{"jsonrpc":"1.0","method":"notifystakedifficulty","params":[],"id":1}`,
-			unmarshalled: &NotifyStakeDifficultyCmd{},
+			unmarshalled: &pfcjson.AuthenticateCmd{Username: "user", Passphrase: "pass"},
 		},
 		{
 			name: "notifyblocks",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("notifyblocks")
+				return pfcjson.NewCmd("notifyblocks")
 			},
 			staticCmd: func() interface{} {
-				return NewNotifyBlocksCmd()
+				return pfcjson.NewNotifyBlocksCmd()
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"notifyblocks","params":[],"id":1}`,
-			unmarshalled: &NotifyBlocksCmd{},
+			unmarshalled: &pfcjson.NotifyBlocksCmd{},
 		},
 		{
 			name: "stopnotifyblocks",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("stopnotifyblocks")
+				return pfcjson.NewCmd("stopnotifyblocks")
 			},
 			staticCmd: func() interface{} {
-				return NewStopNotifyBlocksCmd()
+				return pfcjson.NewStopNotifyBlocksCmd()
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"stopnotifyblocks","params":[],"id":1}`,
-			unmarshalled: &StopNotifyBlocksCmd{},
+			unmarshalled: &pfcjson.StopNotifyBlocksCmd{},
 		},
 		{
 			name: "notifynewtransactions",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("notifynewtransactions")
+				return pfcjson.NewCmd("notifynewtransactions")
 			},
 			staticCmd: func() interface{} {
-				return NewNotifyNewTransactionsCmd(nil)
+				return pfcjson.NewNotifyNewTransactionsCmd(nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"notifynewtransactions","params":[],"id":1}`,
-			unmarshalled: &NotifyNewTransactionsCmd{
-				Verbose: Bool(false),
+			unmarshalled: &pfcjson.NotifyNewTransactionsCmd{
+				Verbose: pfcjson.Bool(false),
 			},
 		},
 		{
 			name: "notifynewtransactions optional",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("notifynewtransactions", true)
+				return pfcjson.NewCmd("notifynewtransactions", true)
 			},
 			staticCmd: func() interface{} {
-				return NewNotifyNewTransactionsCmd(Bool(true))
+				return pfcjson.NewNotifyNewTransactionsCmd(pfcjson.Bool(true))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"notifynewtransactions","params":[true],"id":1}`,
-			unmarshalled: &NotifyNewTransactionsCmd{
-				Verbose: Bool(true),
+			unmarshalled: &pfcjson.NotifyNewTransactionsCmd{
+				Verbose: pfcjson.Bool(true),
 			},
 		},
 		{
 			name: "stopnotifynewtransactions",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("stopnotifynewtransactions")
+				return pfcjson.NewCmd("stopnotifynewtransactions")
 			},
 			staticCmd: func() interface{} {
-				return NewStopNotifyNewTransactionsCmd()
+				return pfcjson.NewStopNotifyNewTransactionsCmd()
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"stopnotifynewtransactions","params":[],"id":1}`,
-			unmarshalled: &StopNotifyNewTransactionsCmd{},
+			unmarshalled: &pfcjson.StopNotifyNewTransactionsCmd{},
+		},
+		{
+			name: "notifyreceived",
+			newCmd: func() (interface{}, error) {
+				return pfcjson.NewCmd("notifyreceived", []string{"1Address"})
+			},
+			staticCmd: func() interface{} {
+				return pfcjson.NewNotifyReceivedCmd([]string{"1Address"})
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"notifyreceived","params":[["1Address"]],"id":1}`,
+			unmarshalled: &pfcjson.NotifyReceivedCmd{
+				Addresses: []string{"1Address"},
+			},
+		},
+		{
+			name: "stopnotifyreceived",
+			newCmd: func() (interface{}, error) {
+				return pfcjson.NewCmd("stopnotifyreceived", []string{"1Address"})
+			},
+			staticCmd: func() interface{} {
+				return pfcjson.NewStopNotifyReceivedCmd([]string{"1Address"})
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"stopnotifyreceived","params":[["1Address"]],"id":1}`,
+			unmarshalled: &pfcjson.StopNotifyReceivedCmd{
+				Addresses: []string{"1Address"},
+			},
+		},
+		{
+			name: "notifyspent",
+			newCmd: func() (interface{}, error) {
+				return pfcjson.NewCmd("notifyspent", `[{"hash":"123","index":0}]`)
+			},
+			staticCmd: func() interface{} {
+				ops := []pfcjson.OutPoint{{Hash: "123", Index: 0}}
+				return pfcjson.NewNotifySpentCmd(ops)
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"notifyspent","params":[[{"hash":"123","index":0}]],"id":1}`,
+			unmarshalled: &pfcjson.NotifySpentCmd{
+				OutPoints: []pfcjson.OutPoint{{Hash: "123", Index: 0}},
+			},
+		},
+		{
+			name: "stopnotifyspent",
+			newCmd: func() (interface{}, error) {
+				return pfcjson.NewCmd("stopnotifyspent", `[{"hash":"123","index":0}]`)
+			},
+			staticCmd: func() interface{} {
+				ops := []pfcjson.OutPoint{{Hash: "123", Index: 0}}
+				return pfcjson.NewStopNotifySpentCmd(ops)
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"stopnotifyspent","params":[[{"hash":"123","index":0}]],"id":1}`,
+			unmarshalled: &pfcjson.StopNotifySpentCmd{
+				OutPoints: []pfcjson.OutPoint{{Hash: "123", Index: 0}},
+			},
 		},
 		{
 			name: "rescan",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("rescan", "0000000000000000000000000000000000000000000000000000000000000123")
+				return pfcjson.NewCmd("rescan", "123", `["1Address"]`, `[{"hash":"0000000000000000000000000000000000000000000000000000000000000123","index":0}]`)
 			},
 			staticCmd: func() interface{} {
-				return NewRescanCmd("0000000000000000000000000000000000000000000000000000000000000123")
+				addrs := []string{"1Address"}
+				ops := []pfcjson.OutPoint{{
+					Hash:  "0000000000000000000000000000000000000000000000000000000000000123",
+					Index: 0,
+				}}
+				return pfcjson.NewRescanCmd("123", addrs, ops, nil)
 			},
-			marshalled: `{"jsonrpc":"1.0","method":"rescan","params":["0000000000000000000000000000000000000000000000000000000000000123"],"id":1}`,
-			unmarshalled: &RescanCmd{
-				BlockHashes: "0000000000000000000000000000000000000000000000000000000000000123",
+			marshalled: `{"jsonrpc":"1.0","method":"rescan","params":["123",["1Address"],[{"hash":"0000000000000000000000000000000000000000000000000000000000000123","index":0}]],"id":1}`,
+			unmarshalled: &pfcjson.RescanCmd{
+				BeginBlock: "123",
+				Addresses:  []string{"1Address"},
+				OutPoints:  []pfcjson.OutPoint{{Hash: "0000000000000000000000000000000000000000000000000000000000000123", Index: 0}},
+				EndBlock:   nil,
+			},
+		},
+		{
+			name: "rescan optional",
+			newCmd: func() (interface{}, error) {
+				return pfcjson.NewCmd("rescan", "123", `["1Address"]`, `[{"hash":"123","index":0}]`, "456")
+			},
+			staticCmd: func() interface{} {
+				addrs := []string{"1Address"}
+				ops := []pfcjson.OutPoint{{Hash: "123", Index: 0}}
+				return pfcjson.NewRescanCmd("123", addrs, ops, pfcjson.String("456"))
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"rescan","params":["123",["1Address"],[{"hash":"123","index":0}],"456"],"id":1}`,
+			unmarshalled: &pfcjson.RescanCmd{
+				BeginBlock: "123",
+				Addresses:  []string{"1Address"},
+				OutPoints:  []pfcjson.OutPoint{{Hash: "123", Index: 0}},
+				EndBlock:   pfcjson.String("456"),
+			},
+		},
+		{
+			name: "loadtxfilter",
+			newCmd: func() (interface{}, error) {
+				return pfcjson.NewCmd("loadtxfilter", false, `["1Address"]`, `[{"hash":"0000000000000000000000000000000000000000000000000000000000000123","index":0}]`)
+			},
+			staticCmd: func() interface{} {
+				addrs := []string{"1Address"}
+				ops := []pfcjson.OutPoint{{
+					Hash:  "0000000000000000000000000000000000000000000000000000000000000123",
+					Index: 0,
+				}}
+				return pfcjson.NewLoadTxFilterCmd(false, addrs, ops)
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"loadtxfilter","params":[false,["1Address"],[{"hash":"0000000000000000000000000000000000000000000000000000000000000123","index":0}]],"id":1}`,
+			unmarshalled: &pfcjson.LoadTxFilterCmd{
+				Reload:    false,
+				Addresses: []string{"1Address"},
+				OutPoints: []pfcjson.OutPoint{{Hash: "0000000000000000000000000000000000000000000000000000000000000123", Index: 0}},
+			},
+		},
+		{
+			name: "rescanblocks",
+			newCmd: func() (interface{}, error) {
+				return pfcjson.NewCmd("rescanblocks", `["0000000000000000000000000000000000000000000000000000000000000123"]`)
+			},
+			staticCmd: func() interface{} {
+				blockhashes := []string{"0000000000000000000000000000000000000000000000000000000000000123"}
+				return pfcjson.NewRescanBlocksCmd(blockhashes)
+			},
+			marshalled: `{"jsonrpc":"1.0","method":"rescanblocks","params":[["0000000000000000000000000000000000000000000000000000000000000123"]],"id":1}`,
+			unmarshalled: &pfcjson.RescanBlocksCmd{
+				BlockHashes: []string{"0000000000000000000000000000000000000000000000000000000000000123"},
 			},
 		},
 	}
@@ -161,7 +233,7 @@ func TestChainSvrWsCmds(t *testing.T) {
 	for i, test := range tests {
 		// Marshal the command as created by the new static command
 		// creation function.
-		marshalled, err := MarshalCmd("1.0", testID, test.staticCmd())
+		marshalled, err := pfcjson.MarshalCmd(testID, test.staticCmd())
 		if err != nil {
 			t.Errorf("MarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -185,7 +257,7 @@ func TestChainSvrWsCmds(t *testing.T) {
 
 		// Marshal the command as created by the generic new command
 		// creation function.
-		marshalled, err = MarshalCmd("1.0", testID, cmd)
+		marshalled, err = pfcjson.MarshalCmd(testID, cmd)
 		if err != nil {
 			t.Errorf("MarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -199,7 +271,7 @@ func TestChainSvrWsCmds(t *testing.T) {
 			continue
 		}
 
-		var request Request
+		var request pfcjson.Request
 		if err := json.Unmarshal(marshalled, &request); err != nil {
 			t.Errorf("Test #%d (%s) unexpected error while "+
 				"unmarshalling JSON-RPC request: %v", i,
@@ -207,7 +279,7 @@ func TestChainSvrWsCmds(t *testing.T) {
 			continue
 		}
 
-		cmd, err = UnmarshalCmd(&request)
+		cmd, err = pfcjson.UnmarshalCmd(&request)
 		if err != nil {
 			t.Errorf("UnmarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)

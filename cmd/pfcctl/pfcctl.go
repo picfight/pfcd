@@ -51,7 +51,6 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
-
 	if len(args) < 1 {
 		usage("No command specified")
 		os.Exit(1)
@@ -113,7 +112,7 @@ func main() {
 		// type.
 		if jerr, ok := err.(pfcjson.Error); ok {
 			fmt.Fprintf(os.Stderr, "%s command: %v (code: %s)\n",
-				method, err, jerr.Code)
+				method, err, jerr.ErrorCode)
 			commandUsage(method)
 			os.Exit(1)
 		}
@@ -128,7 +127,7 @@ func main() {
 
 	// Marshal the command into a JSON-RPC byte slice in preparation for
 	// sending it to the RPC server.
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", 1, cmd)
+	marshalledJSON, err := pfcjson.MarshalCmd(1, cmd)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

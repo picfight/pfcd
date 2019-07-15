@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -23,14 +22,13 @@ const (
 	// Failures related to improper API usage.
 	// ---------------------------------------
 
+	// ErrInvalidFlags is returned when the passed flags to NewEngine
+	// contain an invalid combination.
+	ErrInvalidFlags
+
 	// ErrInvalidIndex is returned when an out-of-bounds index is passed to
 	// a function.
 	ErrInvalidIndex
-
-	// ErrInvalidSigHashSingleIndex is returned when an attempt is
-	// made to sign an input with the SigHashSingle hash type and an
-	// index that is greater than or equal to the number of outputs.
-	ErrInvalidSigHashSingleIndex
 
 	// ErrUnsupportedAddress is returned when a concrete type that
 	// implements a pfcutil.Address is not a supported type.
@@ -44,11 +42,6 @@ const (
 	// specified number of required signatures is larger than the number of
 	// provided public keys.
 	ErrTooManyRequiredSigs
-
-	// ErrMalformedCoinbaseNullData is returned when the nulldata output
-	// of a coinbase transaction that is used to ensure the coinbase has a
-	// unique hash is not properly formed.
-	ErrMalformedCoinbaseNullData
 
 	// ErrTooMuchNullData is returned from NullDataScript when the length of
 	// the provided data exceeds MaxDataCarrierSize.
@@ -108,13 +101,13 @@ const (
 	// number of public keys.
 	ErrInvalidSignatureCount
 
-	// ErrNumOutOfRange is returned when the argument for an opcode that
+	// ErrNumberTooBig is returned when the argument for an opcode that
 	// expects numeric input is larger than the expected maximum number of
 	// bytes.  For the most part, opcodes that deal with stack manipulation
 	// via offsets, arithmetic, numeric comparison, and boolean logic are
 	// those that this applies to.  However, any opcode that expects numeric
 	// input may fail with this code.
-	ErrNumOutOfRange
+	ErrNumberTooBig
 
 	// --------------------------------------------
 	// Failures related to verification operations.
@@ -147,10 +140,6 @@ const (
 	// Failures related to improper use of opcodes.
 	// --------------------------------------------
 
-	// ErrP2SHStakeOpCodes is returned when one or more stake opcodes are
-	// found in the redeem script of a pay-to-script-hash script.
-	ErrP2SHStakeOpCodes
-
 	// ErrDisabledOpcode is returned when a disabled opcode is encountered
 	// in a script.
 	ErrDisabledOpcode
@@ -173,44 +162,13 @@ const (
 	// an OP_IF or OP_NOTIF was previously encountered.
 	ErrUnbalancedConditional
 
-	// ErrNegativeSubstrIdx is returned when an OP_SUBSTR, OP_LEFT, or
-	// OP_RIGHT opcode encounters a negative index.
-	ErrNegativeSubstrIdx
-
-	// ErrOverflowSubstrIdx is returned when an OP_SUBSTR, OP_LEFT, or
-	// OP_RIGHT opcode encounters an index that is larger than the max
-	// allowed index that can operate on the string or the start index
-	// is greater than the end index for OP_SUBSTR.
-	ErrOverflowSubstrIdx
-
-	// ErrNegativeRotation is returned when an OP_ROTL or OP_ROTR attempts
-	// to perform a rotation with a negative rotation count.
-	ErrNegativeRotation
-
-	// ErrOverflowRotation is returned when an OP_ROTL or OP_ROTR opcode
-	// encounters a rotation count that is larger than the maximum allowed
-	// value for a uint32 bit rotation.
-	ErrOverflowRotation
-
-	// ErrDivideByZero is returned when an OP_DIV of OP_MOD attempts to
-	// divide by zero.
-	ErrDivideByZero
-
-	// ErrNegativeRotation is returned when an OP_LSHIFT or OP_RSHIFT opcode
-	// attempts to perform a shift with a negative count.
-	ErrNegativeShift
-
-	// ErrOverflowShift is returned when an OP_LSHIFT or OP_RSHIFT opcode
-	// encounters a shift count that is larger than the maximum allowed value
-	// for a shift.
-	ErrOverflowShift
-
 	// ---------------------------------
 	// Failures related to malleability.
 	// ---------------------------------
 
-	// ErrMinimalData is returned when the script contains push operations
-	// that do not use the minimal opcode required.
+	// ErrMinimalData is returned when the ScriptVerifyMinimalData flag
+	// is set and the script contains push operations that do not use
+	// the minimal opcode required.
 	ErrMinimalData
 
 	// ErrInvalidSigHashType is returned when a signature hash type is not
@@ -283,9 +241,9 @@ const (
 	// canonically-encoded DER signature has too much padding for S.
 	ErrSigTooMuchSPadding
 
-	// ErrSigHighS is returned when a signature that should be a
-	// canonically-encoded DER signature has an S value that is higher than
-	// the curve half order.
+	// ErrSigHighS is returned when the ScriptVerifyLowS flag is set and the
+	// script contains any signatures whose S values are higher than the
+	// half order.
 	ErrSigHighS
 
 	// ErrNotPushOnly is returned when a script that is required to only
@@ -294,13 +252,33 @@ const (
 	// bip16 is active and when the ScriptVerifySigPushOnly flag is set.
 	ErrNotPushOnly
 
-	// ErrPubKeyType is returned when the script contains invalid public keys.
+	// ErrSigNullDummy is returned when the ScriptStrictMultiSig flag is set
+	// and a multisig script has anything other than 0 for the extra dummy
+	// argument.
+	ErrSigNullDummy
+
+	// ErrPubKeyType is returned when the ScriptVerifyStrictEncoding
+	// flag is set and the script contains invalid public keys.
 	ErrPubKeyType
 
 	// ErrCleanStack is returned when the ScriptVerifyCleanStack flag
 	// is set, and after evalution, the stack does not contain only a
 	// single element.
 	ErrCleanStack
+
+	// ErrNullFail is returned when the ScriptVerifyNullFail flag is
+	// set and signatures are not empty on failed checksig or checkmultisig
+	// operations.
+	ErrNullFail
+
+	// ErrWitnessMalleated is returned if ScriptVerifyWitness is set and a
+	// native p2wsh program is encountered which has a non-empty sigScript.
+	ErrWitnessMalleated
+
+	// ErrWitnessMalleatedP2SH is returned if ScriptVerifyWitness if set
+	// and the validation logic for nested p2sh encounters a sigScript
+	// which isn't *exactyl* a datapush of the witness program.
+	ErrWitnessMalleatedP2SH
 
 	// -------------------------------
 	// Failures related to soft forks.
@@ -320,6 +298,46 @@ const (
 	// reached.
 	ErrUnsatisfiedLockTime
 
+	// ErrMinimalIf is returned if ScriptVerifyWitness is set and the
+	// operand of an OP_IF/OP_NOF_IF are not either an empty vector or
+	// [0x01].
+	ErrMinimalIf
+
+	// ErrDiscourageUpgradableWitnessProgram is returned if
+	// ScriptVerifyWitness is set and the versino of an executing witness
+	// program is outside the set of currently defined witness program
+	// vesions.
+	ErrDiscourageUpgradableWitnessProgram
+
+	// ----------------------------------------
+	// Failures related to segregated witness.
+	// ----------------------------------------
+
+	// ErrWitnessProgramEmpty is returned if ScriptVerifyWitness is set and
+	// the witness stack itself is empty.
+	ErrWitnessProgramEmpty
+
+	// ErrWitnessProgramMismatch is returned if ScriptVerifyWitness is set
+	// and the witness itself for a p2wkh witness program isn't *exactly* 2
+	// items or if the witness for a p2wsh isn't the sha255 of the witness
+	// script.
+	ErrWitnessProgramMismatch
+
+	// ErrWitnessProgramWrongLength is returned if ScriptVerifyWitness is
+	// set and the length of the witness program violates the length as
+	// dictated by the current witness version.
+	ErrWitnessProgramWrongLength
+
+	// ErrWitnessUnexpected is returned if ScriptVerifyWitness is set and a
+	// transaction includes witness data but doesn't spend an which is a
+	// witness program (nested or native).
+	ErrWitnessUnexpected
+
+	// ErrWitnessPubKeyType is returned if ScriptVerifyWitness is set and
+	// the public key used in either a check-sig or check-multi-sig isn't
+	// serialized in a compressed format.
+	ErrWitnessPubKeyType
+
 	// numErrorCodes is the maximum error code number used in tests.  This
 	// entry MUST be the last entry in the enum.
 	numErrorCodes
@@ -327,68 +345,70 @@ const (
 
 // Map of ErrorCode values back to their constant names for pretty printing.
 var errorCodeStrings = map[ErrorCode]string{
-	ErrInternal:                  "ErrInternal",
-	ErrInvalidIndex:              "ErrInvalidIndex",
-	ErrInvalidSigHashSingleIndex: "ErrInvalidSigHashSingleIndex",
-	ErrUnsupportedAddress:        "ErrUnsupportedAddress",
-	ErrNotMultisigScript:         "ErrNotMultisigScript",
-	ErrTooManyRequiredSigs:       "ErrTooManyRequiredSigs",
-	ErrMalformedCoinbaseNullData: "ErrMalformedCoinbaseNullData",
-	ErrTooMuchNullData:           "ErrTooMuchNullData",
-	ErrEarlyReturn:               "ErrEarlyReturn",
-	ErrEmptyStack:                "ErrEmptyStack",
-	ErrEvalFalse:                 "ErrEvalFalse",
-	ErrScriptUnfinished:          "ErrScriptUnfinished",
-	ErrInvalidProgramCounter:     "ErrInvalidProgramCounter",
-	ErrScriptTooBig:              "ErrScriptTooBig",
-	ErrElementTooBig:             "ErrElementTooBig",
-	ErrTooManyOperations:         "ErrTooManyOperations",
-	ErrStackOverflow:             "ErrStackOverflow",
-	ErrInvalidPubKeyCount:        "ErrInvalidPubKeyCount",
-	ErrInvalidSignatureCount:     "ErrInvalidSignatureCount",
-	ErrNumOutOfRange:             "ErrNumOutOfRange",
-	ErrVerify:                    "ErrVerify",
-	ErrEqualVerify:               "ErrEqualVerify",
-	ErrNumEqualVerify:            "ErrNumEqualVerify",
-	ErrCheckSigVerify:            "ErrCheckSigVerify",
-	ErrCheckMultiSigVerify:       "ErrCheckMultiSigVerify",
-	ErrP2SHStakeOpCodes:          "ErrP2SHStakeOpCodes",
-	ErrDisabledOpcode:            "ErrDisabledOpcode",
-	ErrReservedOpcode:            "ErrReservedOpcode",
-	ErrMalformedPush:             "ErrMalformedPush",
-	ErrInvalidStackOperation:     "ErrInvalidStackOperation",
-	ErrUnbalancedConditional:     "ErrUnbalancedConditional",
-	ErrNegativeSubstrIdx:         "ErrNegativeSubstrIdx",
-	ErrSigTooMuchSPadding:        "ErrSigTooMuchSPadding",
-	ErrOverflowSubstrIdx:         "ErrOverflowSubstrIdx",
-	ErrNegativeRotation:          "ErrNegativeRotation",
-	ErrOverflowRotation:          "ErrOverflowRotation",
-	ErrDivideByZero:              "ErrDivideByZero",
-	ErrNegativeShift:             "ErrNegativeShift",
-	ErrOverflowShift:             "ErrOverflowShift",
-	ErrMinimalData:               "ErrMinimalData",
-	ErrInvalidSigHashType:        "ErrInvalidSigHashType",
-	ErrSigTooShort:               "ErrSigTooShort",
-	ErrSigTooLong:                "ErrSigTooLong",
-	ErrSigInvalidSeqID:           "ErrSigInvalidSeqID",
-	ErrSigInvalidDataLen:         "ErrSigInvalidDataLen",
-	ErrSigMissingSTypeID:         "ErrSigMissingSTypeID",
-	ErrSigMissingSLen:            "ErrSigMissingSLen",
-	ErrSigInvalidSLen:            "ErrSigInvalidSLen",
-	ErrSigInvalidRIntID:          "ErrSigInvalidRIntID",
-	ErrSigZeroRLen:               "ErrSigZeroRLen",
-	ErrSigNegativeR:              "ErrSigNegativeR",
-	ErrSigTooMuchRPadding:        "ErrSigTooMuchRPadding",
-	ErrSigInvalidSIntID:          "ErrSigInvalidSIntID",
-	ErrSigZeroSLen:               "ErrSigZeroSLen",
-	ErrSigNegativeS:              "ErrSigNegativeS",
-	ErrSigHighS:                  "ErrSigHighS",
-	ErrNotPushOnly:               "ErrNotPushOnly",
-	ErrPubKeyType:                "ErrPubKeyType",
-	ErrCleanStack:                "ErrCleanStack",
-	ErrDiscourageUpgradableNOPs:  "ErrDiscourageUpgradableNOPs",
-	ErrNegativeLockTime:          "ErrNegativeLockTime",
-	ErrUnsatisfiedLockTime:       "ErrUnsatisfiedLockTime",
+	ErrInternal:                           "ErrInternal",
+	ErrInvalidFlags:                       "ErrInvalidFlags",
+	ErrInvalidIndex:                       "ErrInvalidIndex",
+	ErrUnsupportedAddress:                 "ErrUnsupportedAddress",
+	ErrNotMultisigScript:                  "ErrNotMultisigScript",
+	ErrTooManyRequiredSigs:                "ErrTooManyRequiredSigs",
+	ErrTooMuchNullData:                    "ErrTooMuchNullData",
+	ErrEarlyReturn:                        "ErrEarlyReturn",
+	ErrEmptyStack:                         "ErrEmptyStack",
+	ErrEvalFalse:                          "ErrEvalFalse",
+	ErrScriptUnfinished:                   "ErrScriptUnfinished",
+	ErrInvalidProgramCounter:              "ErrInvalidProgramCounter",
+	ErrScriptTooBig:                       "ErrScriptTooBig",
+	ErrElementTooBig:                      "ErrElementTooBig",
+	ErrTooManyOperations:                  "ErrTooManyOperations",
+	ErrStackOverflow:                      "ErrStackOverflow",
+	ErrInvalidPubKeyCount:                 "ErrInvalidPubKeyCount",
+	ErrInvalidSignatureCount:              "ErrInvalidSignatureCount",
+	ErrNumberTooBig:                       "ErrNumberTooBig",
+	ErrVerify:                             "ErrVerify",
+	ErrEqualVerify:                        "ErrEqualVerify",
+	ErrNumEqualVerify:                     "ErrNumEqualVerify",
+	ErrCheckSigVerify:                     "ErrCheckSigVerify",
+	ErrCheckMultiSigVerify:                "ErrCheckMultiSigVerify",
+	ErrDisabledOpcode:                     "ErrDisabledOpcode",
+	ErrReservedOpcode:                     "ErrReservedOpcode",
+	ErrMalformedPush:                      "ErrMalformedPush",
+	ErrInvalidStackOperation:              "ErrInvalidStackOperation",
+	ErrUnbalancedConditional:              "ErrUnbalancedConditional",
+	ErrMinimalData:                        "ErrMinimalData",
+	ErrInvalidSigHashType:                 "ErrInvalidSigHashType",
+	ErrSigTooShort:                        "ErrSigTooShort",
+	ErrSigTooLong:                         "ErrSigTooLong",
+	ErrSigInvalidSeqID:                    "ErrSigInvalidSeqID",
+	ErrSigInvalidDataLen:                  "ErrSigInvalidDataLen",
+	ErrSigMissingSTypeID:                  "ErrSigMissingSTypeID",
+	ErrSigMissingSLen:                     "ErrSigMissingSLen",
+	ErrSigInvalidSLen:                     "ErrSigInvalidSLen",
+	ErrSigInvalidRIntID:                   "ErrSigInvalidRIntID",
+	ErrSigZeroRLen:                        "ErrSigZeroRLen",
+	ErrSigNegativeR:                       "ErrSigNegativeR",
+	ErrSigTooMuchRPadding:                 "ErrSigTooMuchRPadding",
+	ErrSigInvalidSIntID:                   "ErrSigInvalidSIntID",
+	ErrSigZeroSLen:                        "ErrSigZeroSLen",
+	ErrSigNegativeS:                       "ErrSigNegativeS",
+	ErrSigTooMuchSPadding:                 "ErrSigTooMuchSPadding",
+	ErrSigHighS:                           "ErrSigHighS",
+	ErrNotPushOnly:                        "ErrNotPushOnly",
+	ErrSigNullDummy:                       "ErrSigNullDummy",
+	ErrPubKeyType:                         "ErrPubKeyType",
+	ErrCleanStack:                         "ErrCleanStack",
+	ErrNullFail:                           "ErrNullFail",
+	ErrDiscourageUpgradableNOPs:           "ErrDiscourageUpgradableNOPs",
+	ErrNegativeLockTime:                   "ErrNegativeLockTime",
+	ErrUnsatisfiedLockTime:                "ErrUnsatisfiedLockTime",
+	ErrWitnessProgramEmpty:                "ErrWitnessProgramEmpty",
+	ErrWitnessProgramMismatch:             "ErrWitnessProgramMismatch",
+	ErrWitnessProgramWrongLength:          "ErrWitnessProgramWrongLength",
+	ErrWitnessMalleated:                   "ErrWitnessMalleated",
+	ErrWitnessMalleatedP2SH:               "ErrWitnessMalleatedP2SH",
+	ErrWitnessUnexpected:                  "ErrWitnessUnexpected",
+	ErrMinimalIf:                          "ErrMinimalIf",
+	ErrWitnessPubKeyType:                  "ErrWitnessPubKeyType",
+	ErrDiscourageUpgradableWitnessProgram: "ErrDiscourageUpgradableWitnessProgram",
 }
 
 // String returns the ErrorCode as a human-readable name.
@@ -430,26 +450,4 @@ func scriptError(c ErrorCode, desc string) Error {
 func IsErrorCode(err error, c ErrorCode) bool {
 	serr, ok := err.(Error)
 	return ok && serr.ErrorCode == c
-}
-
-// IsDERSigError returns whether or not the provided error is a script error
-// with one of the error codes which are caused due to encountering a signature
-// that is not a canonically-encoded DER signature.
-func IsDERSigError(err error) bool {
-	serr, ok := err.(Error)
-	if !ok {
-		return false
-	}
-
-	switch serr.ErrorCode {
-	case ErrSigTooShort, ErrSigTooLong, ErrSigInvalidSeqID,
-		ErrSigInvalidDataLen, ErrSigMissingSTypeID, ErrSigMissingSLen,
-		ErrSigInvalidSLen, ErrSigInvalidRIntID, ErrSigZeroRLen, ErrSigNegativeR,
-		ErrSigTooMuchRPadding, ErrSigInvalidSIntID, ErrSigZeroSLen,
-		ErrSigNegativeS, ErrSigTooMuchSPadding, ErrSigHighS:
-
-		return true
-	}
-
-	return false
 }

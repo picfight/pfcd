@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -9,21 +8,21 @@
 package ffldb
 
 import (
-	"bytes"
 	"compress/bzip2"
 	"encoding/binary"
-	"encoding/gob"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/btcsuite/goleveldb/leveldb"
 	ldberrors "github.com/btcsuite/goleveldb/leveldb/errors"
+	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 var (
@@ -32,7 +31,7 @@ var (
 
 	// blockDataFile is the path to a file containing the first 256 blocks
 	// of the block chain.
-	blockDataFile = filepath.Join("..", "testdata", "blocks0to168.bz2")
+	blockDataFile = filepath.Join("..", "testdata", "blocks1-256.bz2")
 
 	// errSubTestFail is used to signal that a sub test returned false.
 	errSubTestFail = fmt.Errorf("sub test failure")
@@ -40,7 +39,7 @@ var (
 
 // loadBlocks loads the blocks contained in the testdata directory and returns
 // a slice of them.
-func loadBlocks(t *testing.T, dataFile string, network wire.CurrencyNet) ([]*pfcutil.Block, error) {
+func loadBlocks(t *testing.T, dataFile string, network wire.BitcoinNet) ([]*pfcutil.Block, error) {
 	// Open the file that contains the blocks for reading.
 	fi, err := os.Open(dataFile)
 	if err != nil {
@@ -53,31 +52,55 @@ func loadBlocks(t *testing.T, dataFile string, network wire.CurrencyNet) ([]*pfc
 				err)
 		}
 	}()
+	dr := bzip2.NewReader(fi)
 
-	bcStream := bzip2.NewReader(fi)
+	// Set the first block as the genesis block.
+	blocks := make([]*pfcutil.Block, 0, 256)
+	genesis := pfcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+	blocks = append(blocks, genesis)
 
-	// Create a buffer of the read file.
-	bcBuf := new(bytes.Buffer)
-	bcBuf.ReadFrom(bcStream)
-
-	// Create decoder from the buffer and a map to store the data.
-	bcDecoder := gob.NewDecoder(bcBuf)
-	blockChain := make(map[int64][]byte)
-
-	// Decode the blockchain into the map.
-	if err := bcDecoder.Decode(&blockChain); err != nil {
-		t.Errorf("error decoding test blockchain: %v", err.Error())
-	}
-
-	// Fetch blocks 1 to 168 and perform various tests.
-	blocks := make([]*pfcutil.Block, 169)
-	for i := 0; i <= 168; i++ {
-		bl, err := pfcutil.NewBlockFromBytes(blockChain[int64(i)])
+	// Load the remaining blocks.
+	for height := 1; ; height++ {
+		var net uint32
+		err := binary.Read(dr, binary.LittleEndian, &net)
+		if err == io.EOF {
+			// Hit end of file at the expected offset.  No error.
+			break
+		}
 		if err != nil {
-			t.Errorf("NewBlockFromBytes error: %v", err.Error())
+			t.Errorf("Failed to load network type for block %d: %v",
+				height, err)
+			return nil, err
+		}
+		if net != uint32(network) {
+			t.Errorf("Block doesn't match network: %v expects %v",
+				net, network)
+			return nil, err
 		}
 
-		blocks[i] = bl
+		var blockLen uint32
+		err = binary.Read(dr, binary.LittleEndian, &blockLen)
+		if err != nil {
+			t.Errorf("Failed to load block size for block %d: %v",
+				height, err)
+			return nil, err
+		}
+
+		// Read the block.
+		blockBytes := make([]byte, blockLen)
+		_, err = io.ReadFull(dr, blockBytes)
+		if err != nil {
+			t.Errorf("Failed to load block %d: %v", height, err)
+			return nil, err
+		}
+
+		// Deserialize and store the block.
+		block, err := pfcutil.NewBlockFromBytes(blockBytes)
+		if err != nil {
+			t.Errorf("Failed to parse block %v: %v", height, err)
+			return nil, err
+		}
+		blocks = append(blocks, block)
 	}
 
 	return blocks, nil

@@ -1,16 +1,14 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package txscript
 
 import (
-	"bytes"
 	"sync"
 
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/pfcec"
 )
 
 // sigCacheEntry represents an entry in the SigCache. Entries within the
@@ -20,8 +18,8 @@ import (
 // match. In the occasion that two sigHashes collide, the newer sigHash will
 // simply overwrite the existing entry.
 type sigCacheEntry struct {
-	sig    chainec.Signature
-	pubKey chainec.PublicKey
+	sig    *pfcec.Signature
+	pubKey *pfcec.PublicKey
 }
 
 // SigCache implements an ECDSA signature verification cache with a randomized
@@ -57,15 +55,12 @@ func NewSigCache(maxEntries uint) *SigCache {
 //
 // NOTE: This function is safe for concurrent access. Readers won't be blocked
 // unless there exists a writer, adding an entry to the SigCache.
-func (s *SigCache) Exists(sigHash chainhash.Hash, sig chainec.Signature, pubKey chainec.PublicKey) bool {
+func (s *SigCache) Exists(sigHash chainhash.Hash, sig *pfcec.Signature, pubKey *pfcec.PublicKey) bool {
 	s.RLock()
 	entry, ok := s.validSigs[sigHash]
 	s.RUnlock()
 
-	return ok &&
-		bytes.Equal(entry.pubKey.SerializeCompressed(),
-			pubKey.SerializeCompressed()) &&
-		bytes.Equal(entry.sig.Serialize(), sig.Serialize())
+	return ok && entry.pubKey.IsEqual(pubKey) && entry.sig.IsEqual(sig)
 }
 
 // Add adds an entry for a signature over 'sigHash' under public key 'pubKey'
@@ -75,7 +70,7 @@ func (s *SigCache) Exists(sigHash chainhash.Hash, sig chainec.Signature, pubKey 
 //
 // NOTE: This function is safe for concurrent access. Writers will block
 // simultaneous readers until function execution has concluded.
-func (s *SigCache) Add(sigHash chainhash.Hash, sig chainec.Signature, pubKey chainec.PublicKey) {
+func (s *SigCache) Add(sigHash chainhash.Hash, sig *pfcec.Signature, pubKey *pfcec.PublicKey) {
 	s.Lock()
 	defer s.Unlock()
 

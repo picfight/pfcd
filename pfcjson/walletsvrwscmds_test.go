@@ -1,9 +1,8 @@
 // Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson
+package pfcjson_test
 
 import (
 	"bytes"
@@ -11,6 +10,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestWalletSvrWsCmds tests all of the wallet server websocket-specific
@@ -31,93 +32,93 @@ func TestWalletSvrWsCmds(t *testing.T) {
 		{
 			name: "createencryptedwallet",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("createencryptedwallet", "pass")
+				return pfcjson.NewCmd("createencryptedwallet", "pass")
 			},
 			staticCmd: func() interface{} {
-				return NewCreateEncryptedWalletCmd("pass")
+				return pfcjson.NewCreateEncryptedWalletCmd("pass")
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"createencryptedwallet","params":["pass"],"id":1}`,
-			unmarshalled: &CreateEncryptedWalletCmd{Passphrase: "pass"},
+			unmarshalled: &pfcjson.CreateEncryptedWalletCmd{Passphrase: "pass"},
 		},
 		{
 			name: "exportwatchingwallet",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("exportwatchingwallet")
+				return pfcjson.NewCmd("exportwatchingwallet")
 			},
 			staticCmd: func() interface{} {
-				return NewExportWatchingWalletCmd(nil, nil)
+				return pfcjson.NewExportWatchingWalletCmd(nil, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"exportwatchingwallet","params":[],"id":1}`,
-			unmarshalled: &ExportWatchingWalletCmd{
+			unmarshalled: &pfcjson.ExportWatchingWalletCmd{
 				Account:  nil,
-				Download: Bool(false),
+				Download: pfcjson.Bool(false),
 			},
 		},
 		{
 			name: "exportwatchingwallet optional1",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("exportwatchingwallet", "acct")
+				return pfcjson.NewCmd("exportwatchingwallet", "acct")
 			},
 			staticCmd: func() interface{} {
-				return NewExportWatchingWalletCmd(String("acct"), nil)
+				return pfcjson.NewExportWatchingWalletCmd(pfcjson.String("acct"), nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"exportwatchingwallet","params":["acct"],"id":1}`,
-			unmarshalled: &ExportWatchingWalletCmd{
-				Account:  String("acct"),
-				Download: Bool(false),
+			unmarshalled: &pfcjson.ExportWatchingWalletCmd{
+				Account:  pfcjson.String("acct"),
+				Download: pfcjson.Bool(false),
 			},
 		},
 		{
 			name: "exportwatchingwallet optional2",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("exportwatchingwallet", "acct", true)
+				return pfcjson.NewCmd("exportwatchingwallet", "acct", true)
 			},
 			staticCmd: func() interface{} {
-				return NewExportWatchingWalletCmd(String("acct"),
-					Bool(true))
+				return pfcjson.NewExportWatchingWalletCmd(pfcjson.String("acct"),
+					pfcjson.Bool(true))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"exportwatchingwallet","params":["acct",true],"id":1}`,
-			unmarshalled: &ExportWatchingWalletCmd{
-				Account:  String("acct"),
-				Download: Bool(true),
+			unmarshalled: &pfcjson.ExportWatchingWalletCmd{
+				Account:  pfcjson.String("acct"),
+				Download: pfcjson.Bool(true),
 			},
 		},
 		{
 			name: "getunconfirmedbalance",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("getunconfirmedbalance")
+				return pfcjson.NewCmd("getunconfirmedbalance")
 			},
 			staticCmd: func() interface{} {
-				return NewGetUnconfirmedBalanceCmd(nil)
+				return pfcjson.NewGetUnconfirmedBalanceCmd(nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getunconfirmedbalance","params":[],"id":1}`,
-			unmarshalled: &GetUnconfirmedBalanceCmd{
+			unmarshalled: &pfcjson.GetUnconfirmedBalanceCmd{
 				Account: nil,
 			},
 		},
 		{
 			name: "getunconfirmedbalance optional1",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("getunconfirmedbalance", "acct")
+				return pfcjson.NewCmd("getunconfirmedbalance", "acct")
 			},
 			staticCmd: func() interface{} {
-				return NewGetUnconfirmedBalanceCmd(String("acct"))
+				return pfcjson.NewGetUnconfirmedBalanceCmd(pfcjson.String("acct"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"getunconfirmedbalance","params":["acct"],"id":1}`,
-			unmarshalled: &GetUnconfirmedBalanceCmd{
-				Account: String("acct"),
+			unmarshalled: &pfcjson.GetUnconfirmedBalanceCmd{
+				Account: pfcjson.String("acct"),
 			},
 		},
 		{
 			name: "listaddresstransactions",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("listaddresstransactions", `["1Address"]`)
+				return pfcjson.NewCmd("listaddresstransactions", `["1Address"]`)
 			},
 			staticCmd: func() interface{} {
-				return NewListAddressTransactionsCmd([]string{"1Address"}, nil)
+				return pfcjson.NewListAddressTransactionsCmd([]string{"1Address"}, nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listaddresstransactions","params":[["1Address"]],"id":1}`,
-			unmarshalled: &ListAddressTransactionsCmd{
+			unmarshalled: &pfcjson.ListAddressTransactionsCmd{
 				Addresses: []string{"1Address"},
 				Account:   nil,
 			},
@@ -125,54 +126,54 @@ func TestWalletSvrWsCmds(t *testing.T) {
 		{
 			name: "listaddresstransactions optional1",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("listaddresstransactions", `["1Address"]`, "acct")
+				return pfcjson.NewCmd("listaddresstransactions", `["1Address"]`, "acct")
 			},
 			staticCmd: func() interface{} {
-				return NewListAddressTransactionsCmd([]string{"1Address"},
-					String("acct"))
+				return pfcjson.NewListAddressTransactionsCmd([]string{"1Address"},
+					pfcjson.String("acct"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listaddresstransactions","params":[["1Address"],"acct"],"id":1}`,
-			unmarshalled: &ListAddressTransactionsCmd{
+			unmarshalled: &pfcjson.ListAddressTransactionsCmd{
 				Addresses: []string{"1Address"},
-				Account:   String("acct"),
+				Account:   pfcjson.String("acct"),
 			},
 		},
 		{
 			name: "listalltransactions",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("listalltransactions")
+				return pfcjson.NewCmd("listalltransactions")
 			},
 			staticCmd: func() interface{} {
-				return NewListAllTransactionsCmd(nil)
+				return pfcjson.NewListAllTransactionsCmd(nil)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listalltransactions","params":[],"id":1}`,
-			unmarshalled: &ListAllTransactionsCmd{
+			unmarshalled: &pfcjson.ListAllTransactionsCmd{
 				Account: nil,
 			},
 		},
 		{
 			name: "listalltransactions optional",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("listalltransactions", "acct")
+				return pfcjson.NewCmd("listalltransactions", "acct")
 			},
 			staticCmd: func() interface{} {
-				return NewListAllTransactionsCmd(String("acct"))
+				return pfcjson.NewListAllTransactionsCmd(pfcjson.String("acct"))
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"listalltransactions","params":["acct"],"id":1}`,
-			unmarshalled: &ListAllTransactionsCmd{
-				Account: String("acct"),
+			unmarshalled: &pfcjson.ListAllTransactionsCmd{
+				Account: pfcjson.String("acct"),
 			},
 		},
 		{
 			name: "recoveraddresses",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("recoveraddresses", "acct", 10)
+				return pfcjson.NewCmd("recoveraddresses", "acct", 10)
 			},
 			staticCmd: func() interface{} {
-				return NewRecoverAddressesCmd("acct", 10)
+				return pfcjson.NewRecoverAddressesCmd("acct", 10)
 			},
 			marshalled: `{"jsonrpc":"1.0","method":"recoveraddresses","params":["acct",10],"id":1}`,
-			unmarshalled: &RecoverAddressesCmd{
+			unmarshalled: &pfcjson.RecoverAddressesCmd{
 				Account: "acct",
 				N:       10,
 			},
@@ -180,13 +181,13 @@ func TestWalletSvrWsCmds(t *testing.T) {
 		{
 			name: "walletislocked",
 			newCmd: func() (interface{}, error) {
-				return NewCmd("walletislocked")
+				return pfcjson.NewCmd("walletislocked")
 			},
 			staticCmd: func() interface{} {
-				return NewWalletIsLockedCmd()
+				return pfcjson.NewWalletIsLockedCmd()
 			},
 			marshalled:   `{"jsonrpc":"1.0","method":"walletislocked","params":[],"id":1}`,
-			unmarshalled: &WalletIsLockedCmd{},
+			unmarshalled: &pfcjson.WalletIsLockedCmd{},
 		},
 	}
 
@@ -194,7 +195,7 @@ func TestWalletSvrWsCmds(t *testing.T) {
 	for i, test := range tests {
 		// Marshal the command as created by the new static command
 		// creation function.
-		marshalled, err := MarshalCmd("1.0", testID, test.staticCmd())
+		marshalled, err := pfcjson.MarshalCmd(testID, test.staticCmd())
 		if err != nil {
 			t.Errorf("MarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -218,7 +219,7 @@ func TestWalletSvrWsCmds(t *testing.T) {
 
 		// Marshal the command as created by the generic new command
 		// creation function.
-		marshalled, err = MarshalCmd("1.0", testID, cmd)
+		marshalled, err = pfcjson.MarshalCmd(testID, cmd)
 		if err != nil {
 			t.Errorf("MarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -232,7 +233,7 @@ func TestWalletSvrWsCmds(t *testing.T) {
 			continue
 		}
 
-		var request Request
+		var request pfcjson.Request
 		if err := json.Unmarshal(marshalled, &request); err != nil {
 			t.Errorf("Test #%d (%s) unexpected error while "+
 				"unmarshalling JSON-RPC request: %v", i,
@@ -240,7 +241,7 @@ func TestWalletSvrWsCmds(t *testing.T) {
 			continue
 		}
 
-		cmd, err = UnmarshalCmd(&request)
+		cmd, err = pfcjson.UnmarshalCmd(&request)
 		if err != nil {
 			t.Errorf("UnmarshalCmd #%d (%s) unexpected error: %v", i,
 				test.name, err)

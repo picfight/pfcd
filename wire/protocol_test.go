@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -15,9 +14,14 @@ func TestServiceFlagStringer(t *testing.T) {
 	}{
 		{0, "0x0"},
 		{SFNodeNetwork, "SFNodeNetwork"},
+		{SFNodeGetUTXO, "SFNodeGetUTXO"},
 		{SFNodeBloom, "SFNodeBloom"},
+		{SFNodeWitness, "SFNodeWitness"},
+		{SFNodeXthin, "SFNodeXthin"},
+		{SFNodeBit5, "SFNodeBit5"},
 		{SFNodeCF, "SFNodeCF"},
-		{0xffffffff, "SFNodeNetwork|SFNodeBloom|SFNodeCF|0xfffffff8"},
+		{SFNode2X, "SFNode2X"},
+		{0xffffffff, "SFNodeNetwork|SFNodeGetUTXO|SFNodeBloom|SFNodeWitness|SFNodeXthin|SFNodeBit5|SFNodeCF|SFNode2X|0xffffff00"},
 	}
 
 	t.Logf("Running %d tests", len(tests))
@@ -31,16 +35,17 @@ func TestServiceFlagStringer(t *testing.T) {
 	}
 }
 
-// TestCurrencyNetStringer tests the stringized output for PicFight net types.
-func TestCurrencyNetStringer(t *testing.T) {
+// TestBitcoinNetStringer tests the stringized output for bitcoin net types.
+func TestBitcoinNetStringer(t *testing.T) {
 	tests := []struct {
-		in   CurrencyNet
+		in   BitcoinNet
 		want string
 	}{
 		{MainNet, "MainNet"},
+		{TestNet, "TestNet"},
 		{TestNet3, "TestNet3"},
 		{SimNet, "SimNet"},
-		{0xffffffff, "Unknown CurrencyNet (4294967295)"},
+		{0xffffffff, "Unknown BitcoinNet (4294967295)"},
 	}
 
 	t.Logf("Running %d tests", len(tests))

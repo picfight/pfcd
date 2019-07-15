@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,7 +9,7 @@ package database
 
 import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/picfight/pfcutil"
 )
 
 // Cursor represents a cursor over key/value pairs and nested buckets of a
@@ -338,10 +337,10 @@ type Tx interface {
 	// FetchBlockRegion returns the raw serialized bytes for the given
 	// block region.
 	//
-	// For example, it is possible to directly extract transactions and/or
-	// scripts from a block with this function.  Depending on the backend
-	// implementation, this can provide significant savings by avoiding the
-	// need to load entire blocks.
+	// For example, it is possible to directly extract Bitcoin transactions
+	// and/or scripts from a block with this function.  Depending on the
+	// backend implementation, this can provide significant savings by
+	// avoiding the need to load entire blocks.
 	//
 	// The raw bytes are in the format returned by Serialize on a
 	// wire.MsgBlock and the Offset field in the provided BlockRegion is
@@ -365,9 +364,9 @@ type Tx interface {
 	// FetchBlockRegions returns the raw serialized bytes for the given
 	// block regions.
 	//
-	// For example, it is possible to directly extract transactions and/or
-	// scripts from various blocks with this function.  Depending on the
-	// backend implementation, this can provide significant savings by
+	// For example, it is possible to directly extract Bitcoin transactions
+	// and/or scripts from various blocks with this function.  Depending on
+	// the backend implementation, this can provide significant savings by
 	// avoiding the need to load entire blocks.
 	//
 	// The raw bytes are in the format returned by Serialize on a
@@ -409,10 +408,10 @@ type Tx interface {
 	Rollback() error
 }
 
-// DB provides a generic interface that is used to store blocks and related
-// metadata.  This interface is intended to be agnostic to the actual mechanism
-// used for backend data storage.  The RegisterDriver function can be used to
-// add a new backend data storage method.
+// DB provides a generic interface that is used to store bitcoin blocks and
+// related metadata.  This interface is intended to be agnostic to the actual
+// mechanism used for backend data storage.  The RegisterDriver function can be
+// used to add a new backend data storage method.
 //
 // This interface is divided into two distinct categories of functionality.
 //

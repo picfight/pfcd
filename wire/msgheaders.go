@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,10 +10,10 @@ import (
 )
 
 // MaxBlockHeadersPerMsg is the maximum number of block headers that can be in
-// a single PicFight headers message.
+// a single bitcoin headers message.
 const MaxBlockHeadersPerMsg = 2000
 
-// MsgHeaders implements the Message interface and represents a PicFight headers
+// MsgHeaders implements the Message interface and represents a bitcoin headers
 // message.  It is used to deliver block header information in response
 // to a getheaders message (MsgGetHeaders).  The maximum number of block headers
 // per message is currently 2000.  See MsgGetHeaders for details on requesting
@@ -35,9 +34,9 @@ func (msg *MsgHeaders) AddBlockHeader(bh *BlockHeader) error {
 	return nil
 }
 
-// BtcDecode decodes r using the PicFight protocol encoding into the receiver.
+// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgHeaders) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgHeaders) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	count, err := ReadVarInt(r, pver)
 	if err != nil {
 		return err
@@ -47,7 +46,7 @@ func (msg *MsgHeaders) BtcDecode(r io.Reader, pver uint32) error {
 	if count > MaxBlockHeadersPerMsg {
 		str := fmt.Sprintf("too many block headers for message "+
 			"[count %v, max %v]", count, MaxBlockHeadersPerMsg)
-		return messageError("MsgHeaders.BtcDecode", str)
+		return messageError("MsgHeaders.PfcDecode", str)
 	}
 
 	// Create a contiguous slice of headers to deserialize into in order to
@@ -70,7 +69,7 @@ func (msg *MsgHeaders) BtcDecode(r io.Reader, pver uint32) error {
 		if txCount > 0 {
 			str := fmt.Sprintf("block headers may not contain "+
 				"transactions [count %v]", txCount)
-			return messageError("MsgHeaders.BtcDecode", str)
+			return messageError("MsgHeaders.PfcDecode", str)
 		}
 		msg.AddBlockHeader(bh)
 	}
@@ -78,9 +77,9 @@ func (msg *MsgHeaders) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the PicFight protocol encoding.
+// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgHeaders) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgHeaders) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Limit to max block headers per message.
 	count := len(msg.Headers)
 	if count > MaxBlockHeadersPerMsg {
@@ -128,7 +127,7 @@ func (msg *MsgHeaders) MaxPayloadLength(pver uint32) uint32 {
 		MaxBlockHeadersPerMsg)
 }
 
-// NewMsgHeaders returns a new PicFight headers message that conforms to the
+// NewMsgHeaders returns a new bitcoin headers message that conforms to the
 // Message interface.  See MsgHeaders for details.
 func NewMsgHeaders() *MsgHeaders {
 	return &MsgHeaders{

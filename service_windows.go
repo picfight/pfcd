@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -14,59 +13,58 @@ import (
 	"github.com/btcsuite/winsvc/eventlog"
 	"github.com/btcsuite/winsvc/mgr"
 	"github.com/btcsuite/winsvc/svc"
-	"github.com/picfight/pfcd/internal/version"
 )
 
 const (
-	// svcName is the name of pfcd service.
-	svcName = "pfcdsvc"
+	// svcName is the name of btcd service.
+	svcName = "btcdsvc"
 
 	// svcDisplayName is the service name that will be shown in the windows
 	// services list.  Not the svcName is the "real" name which is used
 	// to control the service.  This is only for display purposes.
-	svcDisplayName = "Pfcd Service"
+	svcDisplayName = "Btcd Service"
 
 	// svcDesc is the description of the service.
-	svcDesc = "Downloads and stays synchronized with the PicFight block " +
+	svcDesc = "Downloads and stays synchronized with the bitcoin block " +
 		"chain and provides chain services to applications."
 )
 
 // elog is used to send messages to the Windows event log.
 var elog *eventlog.Log
 
-// logServiceStartOfDay logs information about pfcd when the main server has
+// logServiceStartOfDay logs information about btcd when the main server has
 // been started to the Windows event log.
 func logServiceStartOfDay(srvr *server) {
 	var message string
-	message += fmt.Sprintf("Version %s\n", version.String())
-	message += fmt.Sprintf("Configuration directory: %s\n", cfg.HomeDir)
+	message += fmt.Sprintf("Version %s\n", version())
+	message += fmt.Sprintf("Configuration directory: %s\n", defaultHomeDir)
 	message += fmt.Sprintf("Configuration file: %s\n", cfg.ConfigFile)
 	message += fmt.Sprintf("Data directory: %s\n", cfg.DataDir)
 
 	elog.Info(1, message)
 }
 
-// pfcdService houses the main service handler which handles all service
-// updates and launching pfcdMain.
-type pfcdService struct{}
+// btcdService houses the main service handler which handles all service
+// updates and launching btcdMain.
+type btcdService struct{}
 
 // Execute is the main entry point the winsvc package calls when receiving
 // information from the Windows service control manager.  It launches the
-// long-running pfcdMain (which is the real meat of pfcd), handles service
+// long-running btcdMain (which is the real meat of btcd), handles service
 // change requests, and notifies the service control manager of changes.
-func (s *pfcdService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (bool, uint32) {
+func (s *btcdService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (bool, uint32) {
 	// Service start is pending.
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
 
-	// Start pfcdMain in a separate goroutine so the service can start
+	// Start btcdMain in a separate goroutine so the service can start
 	// quickly.  Shutdown (along with a potential error) is reported via
 	// doneChan.  serverChan is notified with the main server instance once
 	// it is started so it can be gracefully stopped.
 	doneChan := make(chan error)
 	serverChan := make(chan *server)
 	go func() {
-		err := pfcdMain(serverChan)
+		err := btcdMain(serverChan)
 		doneChan <- err
 	}()
 
@@ -112,7 +110,7 @@ loop:
 	return false, 0
 }
 
-// installService attempts to install the pfcd service.  Typically this should
+// installService attempts to install the btcd service.  Typically this should
 // be done by the msi installer, but it is provided here since it can be useful
 // for development.
 func installService() error {
@@ -161,7 +159,7 @@ func installService() error {
 	return eventlog.InstallAsEventCreate(svcName, eventsSupported)
 }
 
-// removeService attempts to uninstall the pfcd service.  Typically this should
+// removeService attempts to uninstall the btcd service.  Typically this should
 // be done by the msi uninstaller, but it is provided here since it can be
 // useful for development.  Not the eventlog entry is intentionally not removed
 // since it would invalidate any existing event log messages.
@@ -184,7 +182,7 @@ func removeService() error {
 	return service.Delete()
 }
 
-// startService attempts to start the pfcd service.
+// startService attempts to start the btcd service.
 func startService() error {
 	// Connect to the windows service manager.
 	serviceManager, err := mgr.Connect()
@@ -293,7 +291,7 @@ func serviceMain() (bool, error) {
 	}
 	defer elog.Close()
 
-	err = svc.Run(svcName, &pfcdService{})
+	err = svc.Run(svcName, &btcdService{})
 	if err != nil {
 		elog.Error(1, fmt.Sprintf("Service start failed: %v", err))
 		return true, err

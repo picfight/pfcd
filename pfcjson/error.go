@@ -1,5 +1,4 @@
 // Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -97,16 +96,16 @@ func (e ErrorCode) String() string {
 // a JSON-RPC Response.  The caller can use type assertions to determine the
 // specific error and access the ErrorCode field.
 type Error struct {
-	Code    ErrorCode // Describes the kind of error
-	Message string    // Human readable description of the issue
+	ErrorCode   ErrorCode // Describes the kind of error
+	Description string    // Human readable description of the issue
 }
 
 // Error satisfies the error interface and prints human-readable errors.
 func (e Error) Error() string {
-	return e.Message
+	return e.Description
 }
 
 // makeError creates an Error given a set of arguments.
 func makeError(c ErrorCode, desc string) Error {
-	return Error{Code: c, Message: desc}
+	return Error{ErrorCode: c, Description: desc}
 }

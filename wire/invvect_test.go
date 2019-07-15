@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -139,6 +138,102 @@ func TestInvVectWire(t *testing.T) {
 			blockInvVect,
 			blockInvVectEncoded,
 			ProtocolVersion,
+		},
+
+		// Protocol version BIP0035Version error inventory vector.
+		{
+			errInvVect,
+			errInvVect,
+			errInvVectEncoded,
+			BIP0035Version,
+		},
+
+		// Protocol version BIP0035Version tx inventory vector.
+		{
+			txInvVect,
+			txInvVect,
+			txInvVectEncoded,
+			BIP0035Version,
+		},
+
+		// Protocol version BIP0035Version block inventory vector.
+		{
+			blockInvVect,
+			blockInvVect,
+			blockInvVectEncoded,
+			BIP0035Version,
+		},
+
+		// Protocol version BIP0031Version error inventory vector.
+		{
+			errInvVect,
+			errInvVect,
+			errInvVectEncoded,
+			BIP0031Version,
+		},
+
+		// Protocol version BIP0031Version tx inventory vector.
+		{
+			txInvVect,
+			txInvVect,
+			txInvVectEncoded,
+			BIP0031Version,
+		},
+
+		// Protocol version BIP0031Version block inventory vector.
+		{
+			blockInvVect,
+			blockInvVect,
+			blockInvVectEncoded,
+			BIP0031Version,
+		},
+
+		// Protocol version NetAddressTimeVersion error inventory vector.
+		{
+			errInvVect,
+			errInvVect,
+			errInvVectEncoded,
+			NetAddressTimeVersion,
+		},
+
+		// Protocol version NetAddressTimeVersion tx inventory vector.
+		{
+			txInvVect,
+			txInvVect,
+			txInvVectEncoded,
+			NetAddressTimeVersion,
+		},
+
+		// Protocol version NetAddressTimeVersion block inventory vector.
+		{
+			blockInvVect,
+			blockInvVect,
+			blockInvVectEncoded,
+			NetAddressTimeVersion,
+		},
+
+		// Protocol version MultipleAddressVersion error inventory vector.
+		{
+			errInvVect,
+			errInvVect,
+			errInvVectEncoded,
+			MultipleAddressVersion,
+		},
+
+		// Protocol version MultipleAddressVersion tx inventory vector.
+		{
+			txInvVect,
+			txInvVect,
+			txInvVectEncoded,
+			MultipleAddressVersion,
+		},
+
+		// Protocol version MultipleAddressVersion block inventory vector.
+		{
+			blockInvVect,
+			blockInvVect,
+			blockInvVectEncoded,
+			MultipleAddressVersion,
 		},
 	}
 

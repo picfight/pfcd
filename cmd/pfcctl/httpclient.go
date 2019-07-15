@@ -10,9 +10,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/picfight/pfcd/pfcjson"
-
 	"github.com/btcsuite/go-socks/socks"
+	"github.com/picfight/pfcd/pfcjson"
 )
 
 // newHTTPClient returns a new HTTP client that is configured according to the
@@ -37,22 +36,17 @@ func newHTTPClient(cfg *config) (*http.Client, error) {
 
 	// Configure TLS if needed.
 	var tlsConfig *tls.Config
-	if !cfg.NoTLS {
-		tlsConfig = &tls.Config{
-			InsecureSkipVerify: cfg.TLSSkipVerify,
+	if !cfg.NoTLS && cfg.RPCCert != "" {
+		pem, err := ioutil.ReadFile(cfg.RPCCert)
+		if err != nil {
+			return nil, err
 		}
-		if !cfg.TLSSkipVerify && cfg.RPCCert != "" {
-			pem, err := ioutil.ReadFile(cfg.RPCCert)
-			if err != nil {
-				return nil, err
-			}
 
-			pool := x509.NewCertPool()
-			if ok := pool.AppendCertsFromPEM(pem); !ok {
-				return nil, fmt.Errorf("invalid certificate file: %v",
-					cfg.RPCCert)
-			}
-			tlsConfig.RootCAs = pool
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(pem)
+		tlsConfig = &tls.Config{
+			RootCAs:            pool,
+			InsecureSkipVerify: cfg.TLSSkipVerify,
 		}
 	}
 
@@ -78,9 +72,6 @@ func sendPostRequest(marshalledJSON []byte, cfg *config) ([]byte, error) {
 		protocol = "https"
 	}
 	url := protocol + "://" + cfg.RPCServer
-	if cfg.PrintJSON {
-		fmt.Println(string(marshalledJSON))
-	}
 	bodyReader := bytes.NewReader(marshalledJSON)
 	httpRequest, err := http.NewRequest("POST", url, bodyReader)
 	if err != nil {
@@ -122,11 +113,6 @@ func sendPostRequest(marshalledJSON []byte, cfg *config) ([]byte, error) {
 				http.StatusText(httpResponse.StatusCode))
 		}
 		return nil, fmt.Errorf("%s", respBytes)
-	}
-
-	// If requested, print raw json response.
-	if cfg.PrintJSON {
-		fmt.Println(string(respBytes))
 	}
 
 	// Unmarshal the response.

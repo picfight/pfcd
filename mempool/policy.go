@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2017-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,10 +9,9 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 const (
@@ -21,10 +19,9 @@ const (
 	// that are considered standard in a pay-to-script-hash script.
 	maxStandardP2SHSigOps = 15
 
-	// maxStandardTxSize is the maximum size allowed for transactions that
-	// are considered standard and will therefore be relayed and considered
-	// for mining.
-	maxStandardTxSize = 100000
+	// maxStandardTxCost is the max weight permitted by any transaction
+	// according to the current default policy.
+	maxStandardTxWeight = 400000
 
 	// maxStandardSigScriptSize is the maximum size allowed for a
 	// transaction input signature script to be considered standard.  This
@@ -45,28 +42,17 @@ const (
 	// (1 + 15*74 + 3) + (15*34 + 3) + 23 = 1650
 	maxStandardSigScriptSize = 1650
 
-	// DefaultMinRelayTxFee is the minimum fee in atoms that is required for
-	// a transaction to be treated as free for relay and mining purposes.
-	// It is also used to help determine if a transaction is considered dust
-	// and as a base for calculating minimum required fees for larger
-	// transactions.  This value is in Atoms/1000 bytes.
-	DefaultMinRelayTxFee = pfcutil.Amount(1e4)
+	// DefaultMinRelayTxFee is the minimum fee in satoshi that is required
+	// for a transaction to be treated as free for relay and mining
+	// purposes.  It is also used to help determine if a transaction is
+	// considered dust and as a base for calculating minimum required fees
+	// for larger transactions.  This value is in Satoshi/1000 bytes.
+	DefaultMinRelayTxFee = pfcutil.Amount(1000)
 
 	// maxStandardMultiSigKeys is the maximum number of public keys allowed
 	// in a multi-signature transaction output script for it to be
 	// considered standard.
 	maxStandardMultiSigKeys = 3
-
-	// BaseStandardVerifyFlags defines the script flags that should be used
-	// when executing transaction scripts to enforce additional checks which
-	// are required for the script to be considered standard regardless of
-	// the state of any agenda votes.  The full set of standard verification
-	// flags must include these flags as well as any additional flags that
-	// are conditionally enabled depending on the result of agenda votes.
-	BaseStandardVerifyFlags = txscript.ScriptDiscourageUpgradableNops |
-		txscript.ScriptVerifyCleanStack |
-		txscript.ScriptVerifyCheckLockTimeVerify |
-		txscript.ScriptVerifyCheckSequenceVerify
 )
 
 // calcMinRequiredTxRelayFee returns the minimum transaction fee required for a
@@ -75,9 +61,9 @@ const (
 func calcMinRequiredTxRelayFee(serializedSize int64, minRelayTxFee pfcutil.Amount) int64 {
 	// Calculate the minimum fee for a transaction to be allowed into the
 	// mempool and relayed by scaling the base fee (which is the minimum
-	// free transaction relay fee).  minTxRelayFee is in Atom/KB, so
+	// free transaction relay fee).  minTxRelayFee is in Satoshi/kB so
 	// multiply by serializedSize (which is in bytes) and divide by 1000 to
-	// get minimum Atoms.
+	// get minimum Satoshis.
 	minFee := (serializedSize * int64(minRelayTxFee)) / 1000
 
 	if minFee == 0 && minRelayTxFee > 0 {
@@ -86,8 +72,8 @@ func calcMinRequiredTxRelayFee(serializedSize int64, minRelayTxFee pfcutil.Amoun
 
 	// Set the minimum fee to the maximum possible value if the calculated
 	// fee is not in the valid range for monetary amounts.
-	if minFee < 0 || minFee > pfcutil.MaxAmount {
-		minFee = pfcutil.MaxAmount
+	if minFee < 0 || minFee > pfcutil.MaxSatoshi {
+		minFee = pfcutil.MaxSatoshi
 	}
 
 	return minFee
@@ -103,24 +89,18 @@ func calcMinRequiredTxRelayFee(serializedSize int64, minRelayTxFee pfcutil.Amoun
 // not perform those checks because the script engine already does this more
 // accurately and concisely via the txscript.ScriptVerifyCleanStack and
 // txscript.ScriptVerifySigPushOnly flags.
-func checkInputsStandard(tx *pfcutil.Tx, txType stake.TxType, utxoView *blockchain.UtxoViewpoint) error {
+func checkInputsStandard(tx *pfcutil.Tx, utxoView *blockchain.UtxoViewpoint) error {
 	// NOTE: The reference implementation also does a coinbase check here,
 	// but coinbases have already been rejected prior to calling this
 	// function so no need to recheck.
 
 	for i, txIn := range tx.MsgTx().TxIn {
-		if i == 0 && txType == stake.TxTypeSSGen {
-			continue
-		}
-
 		// It is safe to elide existence and index checks here since
 		// they have already been checked prior to calling this
 		// function.
-		prevOut := txIn.PreviousOutPoint
-		entry := utxoView.LookupEntry(&prevOut.Hash)
-		originPkScriptVer := entry.ScriptVersionByIndex(prevOut.Index)
-		originPkScript := entry.PkScriptByIndex(prevOut.Index)
-		switch txscript.GetScriptClass(originPkScriptVer, originPkScript) {
+		entry := utxoView.LookupEntry(txIn.PreviousOutPoint)
+		originPkScript := entry.PkScript()
+		switch txscript.GetScriptClass(originPkScript) {
 		case txscript.ScriptHashTy:
 			numSigOps := txscript.GetPreciseSigOpCount(
 				txIn.SignatureScript, originPkScript, true)
@@ -147,17 +127,7 @@ func checkInputsStandard(tx *pfcutil.Tx, txType stake.TxType, utxoView *blockcha
 // A standard public key script is one that is a recognized form, and for
 // multi-signature scripts, only contains from 1 to maxStandardMultiSigKeys
 // public keys.
-func checkPkScriptStandard(version uint16, pkScript []byte,
-	scriptClass txscript.ScriptClass) error {
-	// Only default Bitcoin-style script is standard except for
-	// null data outputs.
-	if version != wire.DefaultPkScriptVersion {
-		str := fmt.Sprintf("versions other than default pkscript version " +
-			"are currently non-standard except for provably unspendable " +
-			"outputs")
-		return txRuleError(wire.RejectNonstandard, str)
-	}
-
+func checkPkScriptStandard(pkScript []byte, scriptClass txscript.ScriptClass) error {
 	switch scriptClass {
 	case txscript.MultiSigTy:
 		numPubKeys, numSigs, err := txscript.CalcMultiSigStats(pkScript)
@@ -209,7 +179,7 @@ func checkPkScriptStandard(version uint16, pkScript []byte,
 // minimum transaction relay fee, it is considered dust.
 func isDust(txOut *wire.TxOut, minRelayTxFee pfcutil.Amount) bool {
 	// Unspendable outputs are considered dust.
-	if txscript.IsUnspendable(txOut.Value, txOut.PkScript) {
+	if txscript.IsUnspendable(txOut.PkScript) {
 		return true
 	}
 
@@ -219,55 +189,78 @@ func isDust(txOut *wire.TxOut, minRelayTxFee pfcutil.Amount) bool {
 	//
 	// Pay-to-pubkey-hash bytes breakdown:
 	//
-	//  Output to hash (36 bytes):
-	//   8 value, 2 script version, 1 script len, 25 script [1 OP_DUP,
-	//   1 OP_HASH_160, 1 OP_DATA_20, 20 hash, 1 OP_EQUALVERIFY,
-	//   1 OP_CHECKSIG]
+	//  Output to hash (34 bytes):
+	//   8 value, 1 script len, 25 script [1 OP_DUP, 1 OP_HASH_160,
+	//   1 OP_DATA_20, 20 hash, 1 OP_EQUALVERIFY, 1 OP_CHECKSIG]
 	//
-	//  Input with compressed pubkey (165 bytes):
-	//   37 prev outpoint, 4 sequence, 16 fraud proof, 1 script len,
-	//   107 script [1 OP_DATA_72, 72 sig, 1 OP_DATA_33, 33 compressed
-	//   pubkey]
+	//  Input with compressed pubkey (148 bytes):
+	//   36 prev outpoint, 1 script len, 107 script [1 OP_DATA_72, 72 sig,
+	//   1 OP_DATA_33, 33 compressed pubkey], 4 sequence
 	//
-	//  Input with uncompressed pubkey (197 bytes):
-	//   37 prev outpoint, 4 sequence, 16 fraud proof, 1 script len,
-	//   139 script [1 OP_DATA_72, 72 sig, 1 OP_DATA_65, 65 uncompressed
-	//   pubkey]
+	//  Input with uncompressed pubkey (180 bytes):
+	//   36 prev outpoint, 1 script len, 139 script [1 OP_DATA_72, 72 sig,
+	//   1 OP_DATA_65, 65 compressed pubkey], 4 sequence
 	//
 	// Pay-to-pubkey bytes breakdown:
 	//
-	//  Output to compressed pubkey (46 bytes):
-	//   8 value, 2 script version, 1 script len, 35 script [1 OP_DATA_33,
+	//  Output to compressed pubkey (44 bytes):
+	//   8 value, 1 script len, 35 script [1 OP_DATA_33,
 	//   33 compressed pubkey, 1 OP_CHECKSIG]
 	//
-	//  Output to uncompressed pubkey (78 bytes):
-	//   8 value, 2 script version, 1 script len, 67 script [1 OP_DATA_65,
-	//   65 uncompressed pubkey, 1 OP_CHECKSIG]
+	//  Output to uncompressed pubkey (76 bytes):
+	//   8 value, 1 script len, 67 script [1 OP_DATA_65, 65 pubkey,
+	//   1 OP_CHECKSIG]
 	//
-	//  Input (131 bytes):
-	//   37 prev outpoint, 4 sequence, 16 fraud proof, 1 script len,
-	//   73 script [1 OP_DATA_72, 72 sig]
+	//  Input (114 bytes):
+	//   36 prev outpoint, 1 script len, 73 script [1 OP_DATA_72,
+	//   72 sig], 4 sequence
+	//
+	// Pay-to-witness-pubkey-hash bytes breakdown:
+	//
+	//  Output to witness key hash (31 bytes);
+	//   8 value, 1 script len, 22 script [1 OP_0, 1 OP_DATA_20,
+	//   20 bytes hash160]
+	//
+	//  Input (67 bytes as the 107 witness stack is discounted):
+	//   36 prev outpoint, 1 script len, 0 script (not sigScript), 107
+	//   witness stack bytes [1 element length, 33 compressed pubkey,
+	//   element length 72 sig], 4 sequence
+	//
 	//
 	// Theoretically this could examine the script type of the output script
 	// and use a different size for the typical input script size for
 	// pay-to-pubkey vs pay-to-pubkey-hash inputs per the above breakdowns,
-	// but the only combinination which is less than the value chosen is
+	// but the only combination which is less than the value chosen is
 	// a pay-to-pubkey script with a compressed pubkey, which is not very
 	// common.
 	//
 	// The most common scripts are pay-to-pubkey-hash, and as per the above
-	// breakdown, the minimum size of a p2pkh input script is 165 bytes.  So
-	// that figure is used.
-	totalSize := txOut.SerializeSize() + 165
+	// breakdown, the minimum size of a p2pkh input script is 148 bytes.  So
+	// that figure is used. If the output being spent is a witness program,
+	// then we apply the witness discount to the size of the signature.
+	//
+	// The segwit analogue to p2pkh is a p2wkh output. This is the smallest
+	// output possible using the new segwit features. The 107 bytes of
+	// witness data is discounted by a factor of 4, leading to a computed
+	// value of 67 bytes of witness data.
+	//
+	// Both cases share a 41 byte preamble required to reference the input
+	// being spent and the sequence number of the input.
+	totalSize := txOut.SerializeSize() + 41
+	if txscript.IsWitnessProgram(txOut.PkScript) {
+		totalSize += (107 / blockchain.WitnessScaleFactor)
+	} else {
+		totalSize += 107
+	}
 
 	// The output is considered dust if the cost to the network to spend the
 	// coins is more than 1/3 of the minimum free transaction relay fee.
-	// minFreeTxRelayFee is in Atom/KB, so multiply by 1000 to convert to
-	// bytes.
+	// minFreeTxRelayFee is in Satoshi/KB, so multiply by 1000 to
+	// convert to bytes.
 	//
 	// Using the typical values for a pay-to-pubkey-hash transaction from
 	// the breakdown above and the default minimum free transaction relay
-	// fee of 10000, this equates to values less than 6030 atoms being
+	// fee of 1000, this equates to values less than 546 satoshi being
 	// considered dust.
 	//
 	// The following is equivalent to (value/totalSize) * (1/3) * 1000
@@ -282,27 +275,22 @@ func isDust(txOut *wire.TxOut, minRelayTxFee pfcutil.Amount) bool {
 // finalized, conforming to more stringent size constraints, having scripts
 // of recognized forms, and not containing "dust" outputs (those that are
 // so small it costs more to process them than they are worth).
-func checkTransactionStandard(tx *pfcutil.Tx, txType stake.TxType, height int64,
-	medianTime time.Time, minRelayTxFee pfcutil.Amount,
-	maxTxVersion uint16) error {
+func checkTransactionStandard(tx *pfcutil.Tx, height int32,
+	medianTimePast time.Time, minRelayTxFee pfcutil.Amount,
+	maxTxVersion int32) error {
 
-	// The transaction must be a currently supported version and serialize
-	// type.
+	// The transaction must be a currently supported version.
 	msgTx := tx.MsgTx()
-	if msgTx.SerType != wire.TxSerializeFull {
-		str := fmt.Sprintf("transaction is not serialized with all "+
-			"required data -- type %v", msgTx.SerType)
-		return txRuleError(wire.RejectNonstandard, str)
-	}
 	if msgTx.Version > maxTxVersion || msgTx.Version < 1 {
 		str := fmt.Sprintf("transaction version %d is not in the "+
-			"valid range of %d-%d", msgTx.Version, 1, maxTxVersion)
+			"valid range of %d-%d", msgTx.Version, 1,
+			maxTxVersion)
 		return txRuleError(wire.RejectNonstandard, str)
 	}
 
 	// The transaction must be finalized to be standard and therefore
 	// considered for inclusion in a block.
-	if !blockchain.IsFinalizedTransaction(tx, height, medianTime) {
+	if !blockchain.IsFinalizedTransaction(tx, height, medianTimePast) {
 		return txRuleError(wire.RejectNonstandard,
 			"transaction is not finalized")
 	}
@@ -311,10 +299,10 @@ func checkTransactionStandard(tx *pfcutil.Tx, txType stake.TxType, height int64,
 	// almost as much to process as the sender fees, limit the maximum
 	// size of a transaction.  This also helps mitigate CPU exhaustion
 	// attacks.
-	serializedLen := msgTx.SerializeSize()
-	if serializedLen > maxStandardTxSize {
-		str := fmt.Sprintf("transaction size of %v is larger than max "+
-			"allowed size of %v", serializedLen, maxStandardTxSize)
+	txWeight := blockchain.GetTransactionWeight(tx)
+	if txWeight > maxStandardTxWeight {
+		str := fmt.Sprintf("weight of transaction %v is larger than max "+
+			"allowed weight of %v", txWeight, maxStandardTxWeight)
 		return txRuleError(wire.RejectNonstandard, str)
 	}
 
@@ -338,22 +326,21 @@ func checkTransactionStandard(tx *pfcutil.Tx, txType stake.TxType, height int64,
 				"script is not push only", i)
 			return txRuleError(wire.RejectNonstandard, str)
 		}
-
 	}
 
 	// None of the output public key scripts can be a non-standard script or
 	// be "dust" (except when the script is a null data script).
 	numNullDataOutputs := 0
 	for i, txOut := range msgTx.TxOut {
-		scriptClass := txscript.GetScriptClass(txOut.Version, txOut.PkScript)
-		err := checkPkScriptStandard(txOut.Version, txOut.PkScript, scriptClass)
+		scriptClass := txscript.GetScriptClass(txOut.PkScript)
+		err := checkPkScriptStandard(txOut.PkScript, scriptClass)
 		if err != nil {
 			// Attempt to extract a reject code from the error so
 			// it can be retained.  When not possible, fall back to
 			// a non standard error.
-			rejectCode, found := extractRejectCode(err)
-			if !found {
-				rejectCode = wire.RejectNonstandard
+			rejectCode := wire.RejectNonstandard
+			if rejCode, found := extractRejectCode(err); found {
+				rejectCode = rejCode
 			}
 			str := fmt.Sprintf("transaction output %d: %v", i, err)
 			return txRuleError(rejectCode, str)
@@ -364,7 +351,7 @@ func checkTransactionStandard(tx *pfcutil.Tx, txType stake.TxType, height int64,
 		// "dust".
 		if scriptClass == txscript.NullDataTy {
 			numNullDataOutputs++
-		} else if txType == stake.TxTypeRegular && isDust(txOut, minRelayTxFee) {
+		} else if isDust(txOut, minRelayTxFee) {
 			str := fmt.Sprintf("transaction output %d: payment "+
 				"of %d is dust", i, txOut.Value)
 			return txRuleError(wire.RejectDust, str)
@@ -372,14 +359,24 @@ func checkTransactionStandard(tx *pfcutil.Tx, txType stake.TxType, height int64,
 	}
 
 	// A standard transaction must not have more than one output script that
-	// only carries data. However, certain types of standard stake transactions
-	// are allowed to have multiple OP_RETURN outputs, so only throw an error here
-	// if the tx is TxTypeRegular.
-	if numNullDataOutputs > maxNullDataOutputs && txType == stake.TxTypeRegular {
-		str := "more than one transaction output in a nulldata script for a " +
-			"regular type tx"
+	// only carries data.
+	if numNullDataOutputs > 1 {
+		str := "more than one transaction output in a nulldata script"
 		return txRuleError(wire.RejectNonstandard, str)
 	}
 
 	return nil
+}
+
+// GetTxVirtualSize computes the virtual size of a given transaction. A
+// transaction's virtual size is based off its weight, creating a discount for
+// any witness data it contains, proportional to the current
+// blockchain.WitnessScaleFactor value.
+func GetTxVirtualSize(tx *pfcutil.Tx) int64 {
+	// vSize := (weight(tx) + 3) / 4
+	//       := (((baseSize * 3) + totalSize) + 3) / 4
+	// We add 3 here as a way to compute the ceiling of the prior arithmetic
+	// to 4. The division by 4 creates a discount for wit witness data.
+	return (blockchain.GetTransactionWeight(tx) + (blockchain.WitnessScaleFactor - 1)) /
+		blockchain.WitnessScaleFactor
 }

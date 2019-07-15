@@ -1,5 +1,5 @@
-// Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
+// Copyright (c) 2015-2018 The btcsuite developers
+// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -24,6 +24,7 @@ func mockRemotePeer() error {
 		UserAgentName:    "peer",  // User agent name to advertise.
 		UserAgentVersion: "1.0.0", // User agent version to advertise.
 		ChainParams:      &chaincfg.SimNetParams,
+		TrickleInterval:  time.Second * 10,
 	}
 
 	// Accept connections on the simnet port.
@@ -70,6 +71,7 @@ func Example_newOutboundPeer() {
 		UserAgentVersion: "1.0.0", // User agent version to advertise.
 		ChainParams:      &chaincfg.SimNetParams,
 		Services:         0,
+		TrickleInterval:  time.Second * 10,
 		Listeners: peer.MessageListeners{
 			OnVersion: func(p *peer.Peer, msg *wire.MsgVersion) *wire.MsgReject {
 				fmt.Println("outbound: received version")

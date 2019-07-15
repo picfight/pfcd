@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -195,10 +194,4 @@ func (e Error) Error() string {
 // be one of the error codes provided by this package.
 func makeError(c ErrorCode, desc string, err error) Error {
 	return Error{ErrorCode: c, Description: desc, Err: err}
-}
-
-// IsError returns whether err is an Error with a matching error code.
-func IsError(err error, code ErrorCode) bool {
-	e, ok := err.(Error)
-	return ok && e.ErrorCode == code
 }

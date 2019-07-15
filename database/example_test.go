@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -14,8 +13,8 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/database"
 	_ "github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 // This example demonstrates creating a new database.
@@ -23,7 +22,7 @@ func ExampleCreate() {
 	// This example assumes the ffldb driver is imported.
 	//
 	// import (
-	// 	"github.com/picfight/pfcd/database2"
+	// 	"github.com/picfight/pfcd/database"
 	// 	_ "github.com/picfight/pfcd/database/ffldb"
 	// )
 
@@ -49,7 +48,7 @@ func Example_basicUsage() {
 	// This example assumes the ffldb driver is imported.
 	//
 	// import (
-	// 	"github.com/picfight/pfcd/database2"
+	// 	"github.com/picfight/pfcd/database"
 	// 	_ "github.com/picfight/pfcd/database/ffldb"
 	// )
 
@@ -115,7 +114,7 @@ func Example_blockStorageAndRetrieval() {
 	// This example assumes the ffldb driver is imported.
 	//
 	// import (
-	// 	"github.com/picfight/pfcd/database2"
+	// 	"github.com/picfight/pfcd/database"
 	// 	_ "github.com/picfight/pfcd/database/ffldb"
 	// )
 
@@ -174,5 +173,5 @@ func Example_blockStorageAndRetrieval() {
 	fmt.Printf("Serialized block size: %d bytes\n", len(loadedBlockBytes))
 
 	// Output:
-	// Serialized block size: 300 bytes
+	// Serialized block size: 285 bytes
 }

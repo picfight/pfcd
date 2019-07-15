@@ -1,5 +1,4 @@
 // Copyright (c) 2016 The btcsuite developers
-// Copyright (c) 2016-2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,22 +10,17 @@ import (
 	"sync"
 
 	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 const (
 	// addrIndexName is the human-readable name for the index.
 	addrIndexName = "address index"
-
-	// addrIndexVersion is the current version of the address index.
-	addrIndexVersion = 2
 
 	// level0MaxEntries is the maximum number of transactions that are
 	// stored in level 0 of an address index entry.  Subsequent levels store
@@ -51,25 +45,27 @@ const (
 	// address index.
 	addrKeyTypePubKeyHash = 0
 
-	// addrKeyTypePubKeyHashEdwards is the address type in an address key
-	// which represents both a pay-to-pubkey-hash and a pay-to-pubkey-alt
-	// address using Schnorr signatures over the Ed25519 curve.  This is
-	// done because both are identical for the purposes of the address
-	// index.
-	addrKeyTypePubKeyHashEdwards = 1
-
-	// addrKeyTypePubKeyHashSchnorr is the address type in an address key
-	// which represents both a pay-to-pubkey-hash and a pay-to-pubkey-alt
-	// address using Schnorr signatures over the secp256k1 curve.  This is
-	// done because both are identical for the purposes of the address
-	// index.
-	addrKeyTypePubKeyHashSchnorr = 2
-
 	// addrKeyTypeScriptHash is the address type in an address key which
 	// represents a pay-to-script-hash address.  This is necessary because
 	// the hash of a pubkey address might be the same as that of a script
 	// hash.
-	addrKeyTypeScriptHash = 3
+	addrKeyTypeScriptHash = 1
+
+	// addrKeyTypePubKeyHash is the address type in an address key which
+	// represents a pay-to-witness-pubkey-hash address. This is required
+	// as the 20-byte data push of a p2wkh witness program may be the same
+	// data push used a p2pkh address.
+	addrKeyTypeWitnessPubKeyHash = 2
+
+	// addrKeyTypeScriptHash is the address type in an address key which
+	// represents a pay-to-witness-script-hash address. This is required,
+	// as p2wsh are distinct from p2sh addresses since they use a new
+	// script template, as well as a 32-byte data push.
+	addrKeyTypeWitnessScriptHash = 3
+
+	// Size of a transaction entry.  It consists of 4 bytes block id + 4
+	// bytes offset + 4 bytes length.
+	txEntrySize = 4 + 4 + 4
 )
 
 var (
@@ -130,15 +126,14 @@ var (
 //
 // The serialized value format is:
 //
-//   [<block id><start offset><tx length><block index>,...]
+//   [<block id><start offset><tx length>,...]
 //
 //   Field           Type      Size
 //   block id        uint32    4 bytes
 //   start offset    uint32    4 bytes
 //   tx length       uint32    4 bytes
-//   block index     uint32    4 bytes
 //   -----
-//   Total: 16 bytes per indexed tx
+//   Total: 12 bytes per indexed tx
 // -----------------------------------------------------------------------------
 
 // fetchBlockHashFunc defines a callback function to use in order to convert a
@@ -147,13 +142,12 @@ type fetchBlockHashFunc func(serializedID []byte) (*chainhash.Hash, error)
 
 // serializeAddrIndexEntry serializes the provided block id and transaction
 // location according to the format described in detail above.
-func serializeAddrIndexEntry(blockID uint32, txLoc wire.TxLoc, blockIndex uint32) []byte {
+func serializeAddrIndexEntry(blockID uint32, txLoc wire.TxLoc) []byte {
 	// Serialize the entry.
-	serialized := make([]byte, txEntrySize)
+	serialized := make([]byte, 12)
 	byteOrder.PutUint32(serialized, blockID)
 	byteOrder.PutUint32(serialized[4:], uint32(txLoc.TxStart))
 	byteOrder.PutUint32(serialized[8:], uint32(txLoc.TxLen))
-	byteOrder.PutUint32(serialized[12:], blockIndex)
 	return serialized
 }
 
@@ -161,7 +155,7 @@ func serializeAddrIndexEntry(blockID uint32, txLoc wire.TxLoc, blockIndex uint32
 // provided region struct according to the format described in detail above and
 // uses the passed block hash fetching function in order to conver the block ID
 // to the associated block hash.
-func deserializeAddrIndexEntry(serialized []byte, entry *TxIndexEntry, fetchBlockHash fetchBlockHashFunc) error {
+func deserializeAddrIndexEntry(serialized []byte, region *database.BlockRegion, fetchBlockHash fetchBlockHashFunc) error {
 	// Ensure there are enough bytes to decode.
 	if len(serialized) < txEntrySize {
 		return errDeserialize("unexpected end of data")
@@ -171,11 +165,9 @@ func deserializeAddrIndexEntry(serialized []byte, entry *TxIndexEntry, fetchBloc
 	if err != nil {
 		return err
 	}
-	region := &entry.BlockRegion
 	region.Hash = hash
 	region.Offset = byteOrder.Uint32(serialized[4:8])
 	region.Len = byteOrder.Uint32(serialized[8:12])
-	entry.BlockIndex = byteOrder.Uint32(serialized[12:16])
 	return nil
 }
 
@@ -190,14 +182,14 @@ func keyForLevel(addrKey [addrKeySize]byte, level uint8) [levelKeySize]byte {
 
 // dbPutAddrIndexEntry updates the address index to include the provided entry
 // according to the level-based scheme described in detail above.
-func dbPutAddrIndexEntry(bucket internalBucket, addrKey [addrKeySize]byte, blockID uint32, txLoc wire.TxLoc, blockIndex uint32) error {
+func dbPutAddrIndexEntry(bucket internalBucket, addrKey [addrKeySize]byte, blockID uint32, txLoc wire.TxLoc) error {
 	// Start with level 0 and its initial max number of entries.
 	curLevel := uint8(0)
 	maxLevelBytes := level0MaxEntries * txEntrySize
 
 	// Simply append the new entry to level 0 and return now when it will
 	// fit.  This is the most common path.
-	newData := serializeAddrIndexEntry(blockID, txLoc, blockIndex)
+	newData := serializeAddrIndexEntry(blockID, txLoc)
 	level0Key := keyForLevel(addrKey, 0)
 	level0Data := bucket.Get(level0Key[:])
 	if len(level0Data)+len(newData) <= maxLevelBytes {
@@ -261,7 +253,7 @@ func dbPutAddrIndexEntry(bucket internalBucket, addrKey [addrKeySize]byte, block
 // the given address key and the number of entries skipped since it could have
 // been less in the case where there are less total entries than the requested
 // number of entries to skip.
-func dbFetchAddrIndexEntries(bucket internalBucket, addrKey [addrKeySize]byte, numToSkip, numRequested uint32, reverse bool, fetchBlockHash fetchBlockHashFunc) ([]TxIndexEntry, uint32, error) {
+func dbFetchAddrIndexEntries(bucket internalBucket, addrKey [addrKeySize]byte, numToSkip, numRequested uint32, reverse bool, fetchBlockHash fetchBlockHashFunc) ([]database.BlockRegion, uint32, error) {
 	// When the reverse flag is not set, all levels need to be fetched
 	// because numToSkip and numRequested are counted from the oldest
 	// transactions (highest level) and thus the total count is needed.
@@ -307,7 +299,7 @@ func dbFetchAddrIndexEntries(bucket internalBucket, addrKey [addrKeySize]byte, n
 
 	// Start the offset after all skipped entries and load the calculated
 	// number.
-	results := make([]TxIndexEntry, numToLoad)
+	results := make([]database.BlockRegion, numToLoad)
 	for i := uint32(0); i < numToLoad; i++ {
 		// Calculate the read offset according to the reverse flag.
 		var offset uint32
@@ -535,26 +527,13 @@ func dbRemoveAddrIndexEntries(bucket internalBucket, addrKey [addrKeySize]byte, 
 
 // addrToKey converts known address types to an addrindex key.  An error is
 // returned for unsupported types.
-func addrToKey(addr pfcutil.Address, params *chaincfg.Params) ([addrKeySize]byte, error) {
+func addrToKey(addr pfcutil.Address) ([addrKeySize]byte, error) {
 	switch addr := addr.(type) {
 	case *pfcutil.AddressPubKeyHash:
-		switch addr.DSA(params) {
-		case pfcec.STEcdsaSecp256k1:
-			var result [addrKeySize]byte
-			result[0] = addrKeyTypePubKeyHash
-			copy(result[1:], addr.Hash160()[:])
-			return result, nil
-		case pfcec.STEd25519:
-			var result [addrKeySize]byte
-			result[0] = addrKeyTypePubKeyHashEdwards
-			copy(result[1:], addr.Hash160()[:])
-			return result, nil
-		case pfcec.STSchnorrSecp256k1:
-			var result [addrKeySize]byte
-			result[0] = addrKeyTypePubKeyHashSchnorr
-			copy(result[1:], addr.Hash160()[:])
-			return result, nil
-		}
+		var result [addrKeySize]byte
+		result[0] = addrKeyTypePubKeyHash
+		copy(result[1:], addr.Hash160()[:])
+		return result, nil
 
 	case *pfcutil.AddressScriptHash:
 		var result [addrKeySize]byte
@@ -562,22 +541,28 @@ func addrToKey(addr pfcutil.Address, params *chaincfg.Params) ([addrKeySize]byte
 		copy(result[1:], addr.Hash160()[:])
 		return result, nil
 
-	case *pfcutil.AddressSecpPubKey:
+	case *pfcutil.AddressPubKey:
 		var result [addrKeySize]byte
 		result[0] = addrKeyTypePubKeyHash
 		copy(result[1:], addr.AddressPubKeyHash().Hash160()[:])
 		return result, nil
 
-	case *pfcutil.AddressEdwardsPubKey:
+	case *pfcutil.AddressWitnessScriptHash:
 		var result [addrKeySize]byte
-		result[0] = addrKeyTypePubKeyHashEdwards
-		copy(result[1:], addr.AddressPubKeyHash().Hash160()[:])
+		result[0] = addrKeyTypeWitnessScriptHash
+
+		// P2WSH outputs utilize a 32-byte data push created by hashing
+		// the script with sha256 instead of hash160. In order to keep
+		// all address entries within the database uniform and compact,
+		// we use a hash160 here to reduce the size of the salient data
+		// push to 20-bytes.
+		copy(result[1:], pfcutil.Hash160(addr.ScriptAddress()))
 		return result, nil
 
-	case *pfcutil.AddressSecSchnorrPubKey:
+	case *pfcutil.AddressWitnessPubKeyHash:
 		var result [addrKeySize]byte
-		result[0] = addrKeyTypePubKeyHashSchnorr
-		copy(result[1:], addr.AddressPubKeyHash().Hash160()[:])
+		result[0] = addrKeyTypeWitnessPubKeyHash
+		copy(result[1:], addr.Hash160()[:])
 		return result, nil
 	}
 
@@ -655,13 +640,6 @@ func (idx *AddrIndex) Name() string {
 	return addrIndexName
 }
 
-// Version returns the current version of the index.
-//
-// This is part of the Indexer interface.
-func (idx *AddrIndex) Version() uint32 {
-	return addrIndexVersion
-}
-
 // Create is invoked when the indexer manager determines the index needs
 // to be created for the first time.  It creates the bucket for the address
 // index.
@@ -681,30 +659,17 @@ type writeIndexData map[[addrKeySize]byte][]int
 // indexPkScript extracts all standard addresses from the passed public key
 // script and maps each of them to the associated transaction using the passed
 // map.
-func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, pkScript []byte, txIdx int, isSStx bool) {
+func (idx *AddrIndex) indexPkScript(data writeIndexData, pkScript []byte, txIdx int) {
 	// Nothing to index if the script is non-standard or otherwise doesn't
 	// contain any addresses.
-	class, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, pkScript,
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(pkScript,
 		idx.chainParams)
-	if err != nil {
-		return
-	}
-
-	if isSStx && class == txscript.NullDataTy {
-		addr, err := stake.AddrFromSStxPkScrCommitment(pkScript, idx.chainParams)
-		if err != nil {
-			return
-		}
-
-		addrs = append(addrs, addr)
-	}
-
-	if len(addrs) == 0 {
+	if err != nil || len(addrs) == 0 {
 		return
 	}
 
 	for _, addr := range addrs {
-		addrKey, err := addrToKey(addr, idx.chainParams)
+		addrKey, err := addrToKey(addr)
 		if err != nil {
 			// Ignore unsupported address types.
 			continue
@@ -724,78 +689,34 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, p
 	}
 }
 
-// indexBlock extracts all of the standard addresses from all of the
-// regular and stake transactions in the passed block and maps each of them to
-// the associated transaction using the passed map.
-func (idx *AddrIndex) indexBlock(data writeIndexData, block *pfcutil.Block, view *blockchain.UtxoViewpoint) {
-	regularTxns := block.Transactions()
-	for txIdx, tx := range regularTxns {
+// indexBlock extract all of the standard addresses from all of the transactions
+// in the passed block and maps each of them to the associated transaction using
+// the passed map.
+func (idx *AddrIndex) indexBlock(data writeIndexData, block *pfcutil.Block,
+	stxos []blockchain.SpentTxOut) {
+
+	stxoIndex := 0
+	for txIdx, tx := range block.Transactions() {
 		// Coinbases do not reference any inputs.  Since the block is
 		// required to have already gone through full validation, it has
-		// already been proven that the first transaction in the block
-		// is a coinbase.
+		// already been proven on the first transaction in the block is
+		// a coinbase.
 		if txIdx != 0 {
-			for _, txIn := range tx.MsgTx().TxIn {
-				// The view should always have the input since
-				// the index contract requires it, however, be
-				// safe and simply ignore any missing entries.
-				origin := &txIn.PreviousOutPoint
-				entry := view.LookupEntry(&origin.Hash)
-				if entry == nil {
-					log.Warnf("Missing input %v for tx %v while "+
-						"indexing block %v (height %v)\n", origin.Hash,
-						tx.Hash(), block.Hash(), block.Height())
-					continue
-				}
+			for range tx.MsgTx().TxIn {
+				// We'll access the slice of all the
+				// transactions spent in this block properly
+				// ordered to fetch the previous input script.
+				pkScript := stxos[stxoIndex].PkScript
+				idx.indexPkScript(data, pkScript, txIdx)
 
-				version := entry.ScriptVersionByIndex(origin.Index)
-				pkScript := entry.PkScriptByIndex(origin.Index)
-				txType := entry.TransactionType()
-				idx.indexPkScript(data, version, pkScript, txIdx,
-					txType == stake.TxTypeSStx)
+				// With an input indexed, we'll advance the
+				// stxo coutner.
+				stxoIndex++
 			}
 		}
 
 		for _, txOut := range tx.MsgTx().TxOut {
-			idx.indexPkScript(data, txOut.Version, txOut.PkScript, txIdx,
-				false)
-		}
-	}
-
-	for txIdx, tx := range block.STransactions() {
-		msgTx := tx.MsgTx()
-		thisTxOffset := txIdx + len(regularTxns)
-
-		isSSGen := stake.IsSSGen(msgTx)
-		for i, txIn := range msgTx.TxIn {
-			// Skip stakebases.
-			if isSSGen && i == 0 {
-				continue
-			}
-
-			// The view should always have the input since
-			// the index contract requires it, however, be
-			// safe and simply ignore any missing entries.
-			origin := &txIn.PreviousOutPoint
-			entry := view.LookupEntry(&origin.Hash)
-			if entry == nil {
-				log.Warnf("Missing input %v for tx %v while "+
-					"indexing block %v (height %v)\n", origin.Hash,
-					tx.Hash(), block.Hash(), block.Height())
-				continue
-			}
-
-			version := entry.ScriptVersionByIndex(origin.Index)
-			pkScript := entry.PkScriptByIndex(origin.Index)
-			txType := entry.TransactionType()
-			idx.indexPkScript(data, version, pkScript, thisTxOffset,
-				txType == stake.TxTypeSStx)
-		}
-
-		isSStx := stake.IsSStx(msgTx)
-		for _, txOut := range msgTx.TxOut {
-			idx.indexPkScript(data, txOut.Version, txOut.PkScript,
-				thisTxOffset, isSStx)
+			idx.indexPkScript(data, txOut.PkScript, txIdx)
 		}
 	}
 }
@@ -805,15 +726,12 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *pfcutil.Block, view
 // the transactions in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
-	// NOTE: The fact that the block can disapprove the regular tree of the
-	// previous block is ignored for this index because even though the
-	// disapproved transactions no longer apply spend semantics, they still
-	// exist within the block and thus have to be processed before the next
-	// block disapproves them.
+func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *pfcutil.Block,
+	stxos []blockchain.SpentTxOut) error {
 
-	// The offset and length of the transactions within the serialized block.
-	txLocs, stakeTxLocs, err := block.TxLoc()
+	// The offset and length of the transactions within the serialized
+	// block.
+	txLocs, err := block.TxLoc()
 	if err != nil {
 		return err
 	}
@@ -826,24 +744,14 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Bloc
 
 	// Build all of the address to transaction mappings in a local map.
 	addrsToTxns := make(writeIndexData)
-	idx.indexBlock(addrsToTxns, block, view)
+	idx.indexBlock(addrsToTxns, block, stxos)
 
 	// Add all of the index entries for each address.
-	stakeIdxsStart := len(txLocs)
 	addrIdxBucket := dbTx.Metadata().Bucket(addrIndexKey)
 	for addrKey, txIdxs := range addrsToTxns {
 		for _, txIdx := range txIdxs {
-			// Adjust the block index and slice of transaction locations to use
-			// based on the regular or stake tree.
-			txLocations := txLocs
-			blockIndex := txIdx
-			if txIdx >= stakeIdxsStart {
-				txLocations = stakeTxLocs
-				blockIndex -= stakeIdxsStart
-			}
-
-			err := dbPutAddrIndexEntry(addrIdxBucket, addrKey, blockID,
-				txLocations[blockIndex], uint32(blockIndex))
+			err := dbPutAddrIndexEntry(addrIdxBucket, addrKey,
+				blockID, txLocs[txIdx])
 			if err != nil {
 				return err
 			}
@@ -858,16 +766,12 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Bloc
 // each transaction in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
-	// NOTE: The fact that the block can disapprove the regular tree of the
-	// previous block is ignored for this index because even though the
-	// disapproved transactions no longer apply spend semantics, they still
-	// exist within the block and thus have to be processed before the next
-	// block disapproves them.
+func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block *pfcutil.Block,
+	stxos []blockchain.SpentTxOut) error {
 
 	// Build all of the address to transaction mappings in a local map.
 	addrsToTxns := make(writeIndexData)
-	idx.indexBlock(addrsToTxns, block, view)
+	idx.indexBlock(addrsToTxns, block, stxos)
 
 	// Remove all of the index entries for each address.
 	bucket := dbTx.Metadata().Bucket(addrIndexKey)
@@ -881,24 +785,24 @@ func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.B
 	return nil
 }
 
-// EntriesForAddress returns a slice of details which identify each transaction,
-// including a block region, that involves the passed address according to the
-// specified number to skip, number requested, and whether or not the results
-// should be reversed.  It also returns the number actually skipped since it
-// could be less in the case where there are not enough entries.
+// TxRegionsForAddress returns a slice of block regions which identify each
+// transaction that involves the passed address according to the specified
+// number to skip, number requested, and whether or not the results should be
+// reversed.  It also returns the number actually skipped since it could be less
+// in the case where there are not enough entries.
 //
 // NOTE: These results only include transactions confirmed in blocks.  See the
 // UnconfirmedTxnsForAddress method for obtaining unconfirmed transactions
 // that involve a given address.
 //
 // This function is safe for concurrent access.
-func (idx *AddrIndex) EntriesForAddress(dbTx database.Tx, addr pfcutil.Address, numToSkip, numRequested uint32, reverse bool) ([]TxIndexEntry, uint32, error) {
-	addrKey, err := addrToKey(addr, idx.chainParams)
+func (idx *AddrIndex) TxRegionsForAddress(dbTx database.Tx, addr pfcutil.Address, numToSkip, numRequested uint32, reverse bool) ([]database.BlockRegion, uint32, error) {
+	addrKey, err := addrToKey(addr)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	var entries []TxIndexEntry
+	var regions []database.BlockRegion
 	var skipped uint32
 	err = idx.db.View(func(dbTx database.Tx) error {
 		// Create closure to lookup the block hash given the ID using
@@ -910,13 +814,13 @@ func (idx *AddrIndex) EntriesForAddress(dbTx database.Tx, addr pfcutil.Address, 
 
 		var err error
 		addrIdxBucket := dbTx.Metadata().Bucket(addrIndexKey)
-		entries, skipped, err = dbFetchAddrIndexEntries(addrIdxBucket,
+		regions, skipped, err = dbFetchAddrIndexEntries(addrIdxBucket,
 			addrKey, numToSkip, numRequested, reverse,
 			fetchBlockHash)
 		return err
 	})
 
-	return entries, skipped, err
+	return regions, skipped, err
 }
 
 // indexUnconfirmedAddresses modifies the unconfirmed (memory-only) address
@@ -924,26 +828,15 @@ func (idx *AddrIndex) EntriesForAddress(dbTx database.Tx, addr pfcutil.Address, 
 // script to the transaction.
 //
 // This function is safe for concurrent access.
-func (idx *AddrIndex) indexUnconfirmedAddresses(scriptVersion uint16, pkScript []byte, tx *pfcutil.Tx, isSStx bool) {
+func (idx *AddrIndex) indexUnconfirmedAddresses(pkScript []byte, tx *pfcutil.Tx) {
 	// The error is ignored here since the only reason it can fail is if the
 	// script fails to parse and it was already validated before being
 	// admitted to the mempool.
-	class, addresses, _, _ := txscript.ExtractPkScriptAddrs(scriptVersion,
-		pkScript, idx.chainParams)
-
-	if isSStx && class == txscript.NullDataTy {
-		addr, err := stake.AddrFromSStxPkScrCommitment(pkScript, idx.chainParams)
-		if err != nil {
-			// Fail if this fails to decode. It should.
-			return
-		}
-
-		addresses = append(addresses, addr)
-	}
-
+	_, addresses, _, _ := txscript.ExtractPkScriptAddrs(pkScript,
+		idx.chainParams)
 	for _, addr := range addresses {
 		// Ignore unsupported address types.
-		addrKey, err := addrToKey(addr, idx.chainParams)
+		addrKey, err := addrToKey(addr)
 		if err != nil {
 			continue
 		}
@@ -983,33 +876,20 @@ func (idx *AddrIndex) AddUnconfirmedTx(tx *pfcutil.Tx, utxoView *blockchain.Utxo
 	// The existence checks are elided since this is only called after the
 	// transaction has already been validated and thus all inputs are
 	// already known to exist.
-	msgTx := tx.MsgTx()
-	isSSGen := stake.IsSSGen(msgTx)
-	for i, txIn := range msgTx.TxIn {
-		// Skip stakebase.
-		if i == 0 && isSSGen {
-			continue
-		}
-
-		entry := utxoView.LookupEntry(&txIn.PreviousOutPoint.Hash)
+	for _, txIn := range tx.MsgTx().TxIn {
+		entry := utxoView.LookupEntry(txIn.PreviousOutPoint)
 		if entry == nil {
 			// Ignore missing entries.  This should never happen
 			// in practice since the function comments specifically
 			// call out all inputs must be available.
 			continue
 		}
-		version := entry.ScriptVersionByIndex(txIn.PreviousOutPoint.Index)
-		pkScript := entry.PkScriptByIndex(txIn.PreviousOutPoint.Index)
-		txType := entry.TransactionType()
-		idx.indexUnconfirmedAddresses(version, pkScript, tx,
-			txType == stake.TxTypeSStx)
+		idx.indexUnconfirmedAddresses(entry.PkScript(), tx)
 	}
 
 	// Index addresses of all created outputs.
-	isSStx := stake.IsSStx(msgTx)
-	for _, txOut := range msgTx.TxOut {
-		idx.indexUnconfirmedAddresses(txOut.Version, txOut.PkScript, tx,
-			isSStx)
+	for _, txOut := range tx.MsgTx().TxOut {
+		idx.indexUnconfirmedAddresses(txOut.PkScript, tx)
 	}
 }
 
@@ -1042,7 +922,7 @@ func (idx *AddrIndex) RemoveUnconfirmedTx(hash *chainhash.Hash) {
 // This function is safe for concurrent access.
 func (idx *AddrIndex) UnconfirmedTxnsForAddress(addr pfcutil.Address) []*pfcutil.Tx {
 	// Ignore unsupported address types.
-	addrKey, err := addrToKey(addr, idx.chainParams)
+	addrKey, err := addrToKey(addr)
 	if err != nil {
 		return nil
 	}
@@ -1083,10 +963,5 @@ func NewAddrIndex(db database.DB, chainParams *chaincfg.Params) *AddrIndex {
 // DropAddrIndex drops the address index from the provided database if it
 // exists.
 func DropAddrIndex(db database.DB, interrupt <-chan struct{}) error {
-	return dropFlatIndex(db, addrIndexKey, addrIndexName, interrupt)
-}
-
-// DropIndex drops the address index from the provided database if it exists.
-func (*AddrIndex) DropIndex(db database.DB, interrupt <-chan struct{}) error {
-	return DropAddrIndex(db, interrupt)
+	return dropIndex(db, addrIndexKey, addrIndexName, interrupt)
 }

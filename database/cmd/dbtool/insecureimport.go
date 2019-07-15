@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -15,8 +14,8 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 // importCmd defines the configuration options for the insecureimport command.
@@ -170,7 +169,7 @@ out:
 		// notify the status handler with the error and bail.
 		serializedBlock, err := bi.readBlock()
 		if err != nil {
-			bi.errChan <- fmt.Errorf("error reading from input "+
+			bi.errChan <- fmt.Errorf("Error reading from input "+
 				"file: %v", err.Error())
 			break out
 		}
@@ -334,7 +333,7 @@ func (cmd *importCmd) Execute(args []string) error {
 
 	// Ensure the specified block file exists.
 	if !fileExists(cmd.InFile) {
-		str := "the specified block file [%v] does not exist"
+		str := "The specified block file [%v] does not exist"
 		return fmt.Errorf(str, cmd.InFile)
 	}
 

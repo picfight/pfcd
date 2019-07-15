@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,8 +7,10 @@ Package database provides a block and metadata storage database.
 
 Overview
 
-This package provides a database layer to store and retrieve block data and
-arbitrary metadata in a simple and efficient manner.
+As of Feb 2016, there are over 400,000 blocks in the Bitcoin block chain and
+and over 112 million transactions (which turns out to be over 60GB of data).
+This package provides a database layer to store and retrieve this data in a
+simple and efficient manner.
 
 The default backend, ffldb, has a strong focus on speed, efficiency, and
 robustness.  It makes use leveldb for the metadata, flat files for block
@@ -18,7 +19,7 @@ storage, and strict checksums in key areas to ensure data integrity.
 A quick overview of the features database provides are as follows:
 
  - Key/value metadata store
- - PicFight block storage
+ - Bitcoin block storage
  - Efficient retrieval of block headers and regions (transactions, scripts, etc)
  - Read-only and read-write transactions with both manual and managed modes
  - Nested buckets
@@ -33,13 +34,10 @@ obtained via the Create and Open functions which take a database type string
 that identifies the specific database driver (backend) to use as well as
 arguments specific to the specified driver.
 
-Namespaces
-
-The Namespace interface is an abstraction that provides facilities for obtaining
-transactions (the Tx interface) that are the basis of all database reads and
-writes.  Unlike some database interfaces that support reading and writing
-without transactions, this interface requires transactions even when only
-reading or writing a single key.
+The interface provides facilities for obtaining transactions (the Tx interface)
+that are the basis of all database reads and writes.  Unlike some database
+interfaces that support reading and writing without transactions, this interface
+requires transactions even when only reading or writing a single key.
 
 The Begin function provides an unmanaged transaction while the View and Update
 functions provide a managed transaction.  These are described in more detail

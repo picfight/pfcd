@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -14,27 +13,29 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/database"
 	_ "github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 var (
-	pfcdHomeDir     = pfcutil.AppDataDir("pfcd", false)
+	btcdHomeDir     = pfcutil.AppDataDir("pfcd", false)
 	knownDbTypes    = database.SupportedDrivers()
 	activeNetParams = &chaincfg.MainNetParams
 
 	// Default global config.
 	cfg = &config{
-		DataDir: filepath.Join(pfcdHomeDir, "data"),
+		DataDir: filepath.Join(btcdHomeDir, "data"),
 		DbType:  "ffldb",
 	}
 )
 
 // config defines the global configuration options.
 type config struct {
-	DataDir string `short:"b" long:"datadir" description:"Location of the pfcd data directory"`
-	DbType  string `long:"dbtype" description:"Database backend to use for the Block Chain"`
-	TestNet bool   `long:"testnet" description:"Use the test network"`
-	SimNet  bool   `long:"simnet" description:"Use the simulation test network"`
+	DataDir        string `short:"b" long:"datadir" description:"Location of the btcd data directory"`
+	DbType         string `long:"dbtype" description:"Database backend to use for the Block Chain"`
+	TestNet3       bool   `long:"testnet" description:"Use the test network"`
+	RegressionTest bool   `long:"regtest" description:"Use the regression test network"`
+	SimNet         bool   `long:"simnet" description:"Use the simulation test network"`
 }
 
 // fileExists reports whether the named file or directory exists.
@@ -58,6 +59,24 @@ func validDbType(dbType string) bool {
 	return false
 }
 
+// netName returns the name used when referring to a bitcoin network.  At the
+// time of writing, btcd currently places blocks for testnet version 3 in the
+// data and log directory "testnet", which does not match the Name field of the
+// chaincfg parameters.  This function can be used to override this directory name
+// as "testnet" when the passed active network matches wire.TestNet3.
+//
+// A proper upgrade to move the data and log directories for this network to
+// "testnet3" is planned for the future, at which point this function can be
+// removed and the network parameter's name used instead.
+func netName(chainParams *chaincfg.Params) string {
+	switch chainParams.Net {
+	case wire.TestNet3:
+		return "testnet"
+	default:
+		return chainParams.Name
+	}
+}
+
 // setupGlobalConfig examine the global configuration options for any conditions
 // which are invalid as well as performs any addition setup necessary after the
 // initial parse.
@@ -66,22 +85,26 @@ func setupGlobalConfig() error {
 	// Count number of network flags passed; assign active network params
 	// while we're at it
 	numNets := 0
-	if cfg.TestNet {
+	if cfg.TestNet3 {
 		numNets++
 		activeNetParams = &chaincfg.TestNet3Params
+	}
+	if cfg.RegressionTest {
+		numNets++
+		activeNetParams = &chaincfg.RegressionNetParams
 	}
 	if cfg.SimNet {
 		numNets++
 		activeNetParams = &chaincfg.SimNetParams
 	}
 	if numNets > 1 {
-		return errors.New("the testnet and simnet params can't be " +
-			"used together -- choose one of the two")
+		return errors.New("The testnet, regtest, and simnet params " +
+			"can't be used together -- choose one of the three")
 	}
 
 	// Validate database type.
 	if !validDbType(cfg.DbType) {
-		str := "the specified database type [%v] is invalid -- " +
+		str := "The specified database type [%v] is invalid -- " +
 			"supported types %v"
 		return fmt.Errorf(str, cfg.DbType, knownDbTypes)
 	}
@@ -92,7 +115,7 @@ func setupGlobalConfig() error {
 	// All data is specific to a network, so namespacing the data directory
 	// means each individual piece of serialized data does not have to
 	// worry about changing names per network and such.
-	cfg.DataDir = filepath.Join(cfg.DataDir, activeNetParams.Name)
+	cfg.DataDir = filepath.Join(cfg.DataDir, netName(activeNetParams))
 
 	return nil
 }

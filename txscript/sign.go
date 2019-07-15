@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2015 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,72 +9,84 @@ import (
 	"fmt"
 
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
+
+// RawTxInWitnessSignature returns the serialized ECDA signature for the input
+// idx of the given transaction, with the hashType appended to it. This
+// function is identical to RawTxInSignature, however the signature generated
+// signs a new sighash digest defined in BIP0143.
+func RawTxInWitnessSignature(tx *wire.MsgTx, sigHashes *TxSigHashes, idx int,
+	amt int64, subScript []byte, hashType SigHashType,
+	key *pfcec.PrivateKey) ([]byte, error) {
+
+	parsedScript, err := parseScript(subScript)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse output script: %v", err)
+	}
+
+	hash, err := calcWitnessSignatureHash(parsedScript, sigHashes, hashType, tx,
+		idx, amt)
+	if err != nil {
+		return nil, err
+	}
+
+	signature, err := key.Sign(hash)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sign tx input: %s", err)
+	}
+
+	return append(signature.Serialize(), byte(hashType)), nil
+}
+
+// WitnessSignature creates an input witness stack for tx to spend PFC sent
+// from a previous output to the owner of privKey using the p2wkh script
+// template. The passed transaction must contain all the inputs and outputs as
+// dictated by the passed hashType. The signature generated observes the new
+// transaction digest algorithm defined within BIP0143.
+func WitnessSignature(tx *wire.MsgTx, sigHashes *TxSigHashes, idx int, amt int64,
+	subscript []byte, hashType SigHashType, privKey *pfcec.PrivateKey,
+	compress bool) (wire.TxWitness, error) {
+
+	sig, err := RawTxInWitnessSignature(tx, sigHashes, idx, amt, subscript,
+		hashType, privKey)
+	if err != nil {
+		return nil, err
+	}
+
+	pk := (*pfcec.PublicKey)(&privKey.PublicKey)
+	var pkData []byte
+	if compress {
+		pkData = pk.SerializeCompressed()
+	} else {
+		pkData = pk.SerializeUncompressed()
+	}
+
+	// A witness script is actually a stack, so we return an array of byte
+	// slices here, rather than a single byte slice.
+	return wire.TxWitness{sig, pkData}, nil
+}
 
 // RawTxInSignature returns the serialized ECDSA signature for the input idx of
 // the given transaction, with hashType appended to it.
 func RawTxInSignature(tx *wire.MsgTx, idx int, subScript []byte,
-	hashType SigHashType, key chainec.PrivateKey) ([]byte, error) {
+	hashType SigHashType, key *pfcec.PrivateKey) ([]byte, error) {
 
-	parsedScript, err := parseScript(subScript)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse output script: %v", err)
-	}
-	hash, err := calcSignatureHash(parsedScript, hashType, tx, idx, nil)
+	hash, err := CalcSignatureHash(subScript, hashType, tx, idx)
 	if err != nil {
 		return nil, err
 	}
-
-	r, s, err := chainec.Secp256k1.Sign(key, hash)
+	signature, err := key.Sign(hash)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign tx input: %s", err)
 	}
-	sig := chainec.Secp256k1.NewSignature(r, s)
 
-	return append(sig.Serialize(), byte(hashType)), nil
+	return append(signature.Serialize(), byte(hashType)), nil
 }
 
-// RawTxInSignatureAlt returns the serialized ECDSA signature for the input idx of
-// the given transaction, with hashType appended to it.
-func RawTxInSignatureAlt(tx *wire.MsgTx, idx int, subScript []byte,
-	hashType SigHashType, key chainec.PrivateKey, sigType pfcec.SignatureType) ([]byte,
-	error) {
-
-	parsedScript, err := parseScript(subScript)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse output script: %v", err)
-	}
-	hash, err := calcSignatureHash(parsedScript, hashType, tx, idx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var sig chainec.Signature
-	switch sigType {
-	case pfcec.STEd25519:
-		r, s, err := chainec.Edwards.Sign(key, hash)
-		if err != nil {
-			return nil, fmt.Errorf("cannot sign tx input: %s", err)
-		}
-		sig = chainec.Edwards.NewSignature(r, s)
-	case pfcec.STSchnorrSecp256k1:
-		r, s, err := chainec.SecSchnorr.Sign(key, hash)
-		if err != nil {
-			return nil, fmt.Errorf("cannot sign tx input: %s", err)
-		}
-		sig = chainec.SecSchnorr.NewSignature(r, s)
-	default:
-		return nil, fmt.Errorf("unknown alt sig type %v", sigType)
-	}
-
-	return append(sig.Serialize(), byte(hashType)), nil
-}
-
-// SignatureScript creates an input signature script for tx to spend coins sent
+// SignatureScript creates an input signature script for tx to spend PFC sent
 // from a previous output to the owner of privKey. tx must include all
 // transaction inputs and outputs, however txin scripts are allowed to be filled
 // or empty. The returned script is calculated to be used as the idx'th txin
@@ -83,75 +94,25 @@ func RawTxInSignatureAlt(tx *wire.MsgTx, idx int, subScript []byte,
 // as the idx'th input. privKey is serialized in either a compressed or
 // uncompressed format based on compress. This format must match the same format
 // used to generate the payment address, or the script validation will fail.
-func SignatureScript(tx *wire.MsgTx, idx int, subscript []byte,
-	hashType SigHashType, privKey chainec.PrivateKey, compress bool) ([]byte,
-	error) {
+func SignatureScript(tx *wire.MsgTx, idx int, subscript []byte, hashType SigHashType, privKey *pfcec.PrivateKey, compress bool) ([]byte, error) {
 	sig, err := RawTxInSignature(tx, idx, subscript, hashType, privKey)
 	if err != nil {
 		return nil, err
 	}
 
-	pubx, puby := privKey.Public()
-	pub := chainec.Secp256k1.NewPublicKey(pubx, puby)
+	pk := (*pfcec.PublicKey)(&privKey.PublicKey)
 	var pkData []byte
 	if compress {
-		pkData = pub.SerializeCompressed()
+		pkData = pk.SerializeCompressed()
 	} else {
-		pkData = pub.SerializeUncompressed()
+		pkData = pk.SerializeUncompressed()
 	}
 
 	return NewScriptBuilder().AddData(sig).AddData(pkData).Script()
 }
 
-// SignatureScriptAlt creates an input signature script for tx to spend coins sent
-// from a previous output to the owner of privKey. tx must include all
-// transaction inputs and outputs, however txin scripts are allowed to be filled
-// or empty. The returned script is calculated to be used as the idx'th txin
-// sigscript for tx. subscript is the PkScript of the previous output being used
-// as the idx'th input. privKey is serialized in the respective format for the
-// ECDSA type. This format must match the same format used to generate the payment
-// address, or the script validation will fail.
-func SignatureScriptAlt(tx *wire.MsgTx, idx int, subscript []byte,
-	hashType SigHashType, privKey chainec.PrivateKey, compress bool,
-	sigType pfcec.SignatureType) ([]byte,
-	error) {
-	sig, err := RawTxInSignatureAlt(tx, idx, subscript, hashType, privKey,
-		sigType)
-	if err != nil {
-		return nil, err
-	}
-
-	pubx, puby := privKey.Public()
-	var pub chainec.PublicKey
-	switch sigType {
-	case pfcec.STEd25519:
-		pub = chainec.Edwards.NewPublicKey(pubx, puby)
-	case pfcec.STSchnorrSecp256k1:
-		pub = chainec.SecSchnorr.NewPublicKey(pubx, puby)
-	}
-	pkData := pub.Serialize()
-
-	return NewScriptBuilder().AddData(sig).AddData(pkData).Script()
-}
-
-// p2pkSignatureScript constructs a pay-to-pubkey signature script.
-func p2pkSignatureScript(tx *wire.MsgTx, idx int, subScript []byte,
-	hashType SigHashType, privKey chainec.PrivateKey) ([]byte, error) {
+func p2pkSignatureScript(tx *wire.MsgTx, idx int, subScript []byte, hashType SigHashType, privKey *pfcec.PrivateKey) ([]byte, error) {
 	sig, err := RawTxInSignature(tx, idx, subScript, hashType, privKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewScriptBuilder().AddData(sig).Script()
-}
-
-// p2pkSignatureScript constructs a pay-to-pubkey signature script for alternative
-// ECDSA types.
-func p2pkSignatureScriptAlt(tx *wire.MsgTx, idx int, subScript []byte,
-	hashType SigHashType, privKey chainec.PrivateKey, sigType pfcec.SignatureType) ([]byte,
-	error) {
-	sig, err := RawTxInSignatureAlt(tx, idx, subScript, hashType, privKey,
-		sigType)
 	if err != nil {
 		return nil, err
 	}
@@ -165,8 +126,10 @@ func p2pkSignatureScriptAlt(tx *wire.MsgTx, idx int, subScript []byte,
 // legal to not be able to sign any of the outputs, no error is returned.
 func signMultiSig(tx *wire.MsgTx, idx int, subScript []byte, hashType SigHashType,
 	addresses []pfcutil.Address, nRequired int, kdb KeyDB) ([]byte, bool) {
-	// No need to add dummy in PicFight.
-	builder := NewScriptBuilder()
+	// We start with a single OP_FALSE to work around the (now standard)
+	// but in the reference implementation that causes a spurious pop at
+	// the end of OP_CHECKMULTISIG.
+	builder := NewScriptBuilder().AddOp(OP_FALSE)
 	signed := 0
 	for _, addr := range addresses {
 		key, _, err := kdb.GetKey(addr)
@@ -183,71 +146,21 @@ func signMultiSig(tx *wire.MsgTx, idx int, subScript []byte, hashType SigHashTyp
 		if signed == nRequired {
 			break
 		}
+
 	}
 
 	script, _ := builder.Script()
 	return script, signed == nRequired
 }
 
-// handleStakeOutSign is a convenience function for reducing code clutter in
-// sign. It handles the signing of stake outputs.
-func handleStakeOutSign(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
-	subScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB,
-	addresses []pfcutil.Address, class ScriptClass, subClass ScriptClass,
-	nrequired int) ([]byte, ScriptClass, []pfcutil.Address, int, error) {
-
-	// look up key for address
-	switch subClass {
-	case PubKeyHashTy:
-		key, compressed, err := kdb.GetKey(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-		txscript, err := SignatureScript(tx, idx, subScript, hashType,
-			key, compressed)
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-		return txscript, class, addresses, nrequired, nil
-	case ScriptHashTy:
-		script, err := sdb.GetScript(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		return script, class, addresses, nrequired, nil
-	}
-
-	return nil, class, nil, 0, fmt.Errorf("unknown subclass for stake output " +
-		"to sign")
-}
-
-// sign is the main signing workhorse. It takes a script, its input transaction,
-// its input index, a database of keys, a database of scripts, and information
-// about the type of signature and returns a signature, script class, the
-// addresses involved, and the number of signatures required.
 func sign(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
-	subScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB,
-	sigType pfcec.SignatureType) ([]byte,
+	subScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB) ([]byte,
 	ScriptClass, []pfcutil.Address, int, error) {
 
-	class, addresses, nrequired, err := ExtractPkScriptAddrs(DefaultScriptVersion,
-		subScript, chainParams)
+	class, addresses, nrequired, err := ExtractPkScriptAddrs(subScript,
+		chainParams)
 	if err != nil {
 		return nil, NonStandardTy, nil, 0, err
-	}
-
-	subClass := class
-	isStakeType := class == StakeSubmissionTy ||
-		class == StakeSubChangeTy ||
-		class == StakeGenTy ||
-		class == StakeRevocationTy
-	if isStakeType {
-		subClass, err = GetStakeOutSubclass(subScript)
-		if err != nil {
-			return nil, 0, nil, 0,
-				fmt.Errorf("unknown stake output subclass encountered")
-		}
 	}
 
 	switch class {
@@ -265,22 +178,6 @@ func sign(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
 		}
 
 		return script, class, addresses, nrequired, nil
-
-	case PubkeyAltTy:
-		// look up key for address
-		key, _, err := kdb.GetKey(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		script, err := p2pkSignatureScriptAlt(tx, idx, subScript, hashType,
-			key, sigType)
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		return script, class, addresses, nrequired, nil
-
 	case PubKeyHashTy:
 		// look up key for address
 		key, compressed, err := kdb.GetKey(addresses[0])
@@ -295,22 +192,6 @@ func sign(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
 		}
 
 		return script, class, addresses, nrequired, nil
-
-	case PubkeyHashAltTy:
-		// look up key for address
-		key, compressed, err := kdb.GetKey(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		script, err := SignatureScriptAlt(tx, idx, subScript, hashType,
-			key, compressed, sigType)
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		return script, class, addresses, nrequired, nil
-
 	case ScriptHashTy:
 		script, err := sdb.GetScript(addresses[0])
 		if err != nil {
@@ -318,32 +199,13 @@ func sign(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
 		}
 
 		return script, class, addresses, nrequired, nil
-
 	case MultiSigTy:
 		script, _ := signMultiSig(tx, idx, subScript, hashType,
 			addresses, nrequired, kdb)
 		return script, class, addresses, nrequired, nil
-
-	case StakeSubmissionTy:
-		return handleStakeOutSign(chainParams, tx, idx, subScript, hashType, kdb,
-			sdb, addresses, class, subClass, nrequired)
-
-	case StakeGenTy:
-		return handleStakeOutSign(chainParams, tx, idx, subScript, hashType, kdb,
-			sdb, addresses, class, subClass, nrequired)
-
-	case StakeRevocationTy:
-		return handleStakeOutSign(chainParams, tx, idx, subScript, hashType, kdb,
-			sdb, addresses, class, subClass, nrequired)
-
-	case StakeSubChangeTy:
-		return handleStakeOutSign(chainParams, tx, idx, subScript, hashType, kdb,
-			sdb, addresses, class, subClass, nrequired)
-
 	case NullDataTy:
 		return nil, class, nil, 0,
 			errors.New("can't sign NULLDATA transactions")
-
 	default:
 		return nil, class, nil, 0,
 			errors.New("can't sign unknown transactions")
@@ -360,7 +222,7 @@ func mergeScripts(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
 	pkScript []byte, class ScriptClass, addresses []pfcutil.Address,
 	nRequired int, sigScript, prevScript []byte) []byte {
 
-	// TODO(oga) the scripthash and multisig paths here are overly
+	// TODO: the scripthash and multisig paths here are overly
 	// inefficient in that they will recompute already known data.
 	// some internal refactoring could probably make this avoid needless
 	// extra calculations.
@@ -381,10 +243,9 @@ func mergeScripts(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
 		// made it.
 		script := sigPops[len(sigPops)-1].data
 
-		// We already know this information somewhere up the stack,
-		// therefore the error is ignored.
+		// We already know this information somewhere up the stack.
 		class, addresses, nrequired, _ :=
-			ExtractPkScriptAddrs(DefaultScriptVersion, script, chainParams)
+			ExtractPkScriptAddrs(script, chainParams)
 
 		// regenerate scripts.
 		sigScript, _ := unparseScript(sigPops)
@@ -474,7 +335,7 @@ sigLoop:
 		tSig := sig[:len(sig)-1]
 		hashType := SigHashType(sig[len(sig)-1])
 
-		pSig, err := chainec.Secp256k1.ParseDERSignature(tSig)
+		pSig, err := pfcec.ParseDERSignature(tSig, pfcec.S256())
 		if err != nil {
 			continue
 		}
@@ -484,27 +345,20 @@ sigLoop:
 		// however, assume no sigs etc are in the script since that
 		// would make the transaction nonstandard and thus not
 		// MultiSigTy, so we just need to hash the full thing.
-		hash, err := calcSignatureHash(pkPops, hashType, tx, idx, nil)
-		if err != nil {
-			// PicFight -- is this the right handling for SIGHASH_SINGLE error ?
-			// TODO make sure this doesn't break anything.
-			continue
-		}
+		hash := calcSignatureHash(pkPops, hashType, tx, idx)
 
 		for _, addr := range addresses {
-			// All multisig addresses should be pubkey addreses
+			// All multisig addresses should be pubkey addresses
 			// it is an error to call this internal function with
 			// bad input.
-			pkaddr := addr.(*pfcutil.AddressSecpPubKey)
+			pkaddr := addr.(*pfcutil.AddressPubKey)
 
 			pubKey := pkaddr.PubKey()
 
 			// If it matches we put it in the map. We only
 			// can take one signature per public key so if we
 			// already have one, we can throw this away.
-			r := pSig.GetR()
-			s := pSig.GetS()
-			if chainec.Secp256k1.Verify(pubKey, hash, r, s) {
+			if pSig.Verify(hash, pubKey) {
 				aStr := addr.EncodeAddress()
 				if _, ok := addrToSig[aStr]; !ok {
 					addrToSig[aStr] = sig
@@ -516,7 +370,7 @@ sigLoop:
 
 	// Extra opcode to handle the extra arg consumed (due to previous bugs
 	// in the reference implementation).
-	builder := NewScriptBuilder() //.AddOp(OP_FALSE)
+	builder := NewScriptBuilder().AddOp(OP_FALSE)
 	doneSigs := 0
 	// This assumes that addresses are in the same order as in the script.
 	for _, addr := range addresses {
@@ -543,14 +397,14 @@ sigLoop:
 // KeyDB is an interface type provided to SignTxOutput, it encapsulates
 // any user state required to get the private keys for an address.
 type KeyDB interface {
-	GetKey(pfcutil.Address) (chainec.PrivateKey, bool, error)
+	GetKey(pfcutil.Address) (*pfcec.PrivateKey, bool, error)
 }
 
 // KeyClosure implements KeyDB with a closure.
-type KeyClosure func(pfcutil.Address) (chainec.PrivateKey, bool, error)
+type KeyClosure func(pfcutil.Address) (*pfcec.PrivateKey, bool, error)
 
 // GetKey implements KeyDB by returning the result of calling the closure.
-func (kc KeyClosure) GetKey(address pfcutil.Address) (chainec.PrivateKey,
+func (kc KeyClosure) GetKey(address pfcutil.Address) (*pfcec.PrivateKey,
 	bool, error) {
 	return kc(address)
 }
@@ -578,28 +432,18 @@ func (sc ScriptClosure) GetScript(address pfcutil.Address) ([]byte, error) {
 // signature script.
 func SignTxOutput(chainParams *chaincfg.Params, tx *wire.MsgTx, idx int,
 	pkScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB,
-	previousScript []byte, sigType pfcec.SignatureType) ([]byte, error) {
+	previousScript []byte) ([]byte, error) {
+
 	sigScript, class, addresses, nrequired, err := sign(chainParams, tx,
-		idx, pkScript, hashType, kdb, sdb, sigType)
+		idx, pkScript, hashType, kdb, sdb)
 	if err != nil {
 		return nil, err
-	}
-
-	isStakeType := class == StakeSubmissionTy ||
-		class == StakeSubChangeTy ||
-		class == StakeGenTy ||
-		class == StakeRevocationTy
-	if isStakeType {
-		class, err = GetStakeOutSubclass(pkScript)
-		if err != nil {
-			return nil, fmt.Errorf("unknown stake output subclass encountered")
-		}
 	}
 
 	if class == ScriptHashTy {
 		// TODO keep the sub addressed and pass down to merge.
 		realSigScript, _, _, _, err := sign(chainParams, tx, idx,
-			sigScript, hashType, kdb, sdb, sigType)
+			sigScript, hashType, kdb, sdb)
 		if err != nil {
 			return nil, err
 		}

@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,18 +10,18 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/decred/slog"
+	"github.com/btcsuite/btclog"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/picfight/pfcd/database"
 )
 
 const (
-	// blockDbNamePrefix is the prefix for the block database.
+	// blockDbNamePrefix is the prefix for the btcd block database.
 	blockDbNamePrefix = "blocks"
 )
 
 var (
-	log             slog.Logger
+	log             btclog.Logger
 	shutdownChannel = make(chan error)
 )
 
@@ -62,11 +61,11 @@ func loadBlockDB() (database.DB, error) {
 // around the fact that deferred functions do not run when os.Exit() is called.
 func realMain() error {
 	// Setup logging.
-	backendLogger := slog.NewBackend(os.Stdout)
+	backendLogger := btclog.NewBackend(os.Stdout)
 	defer os.Stdout.Sync()
 	log = backendLogger.Logger("MAIN")
 	dbLog := backendLogger.Logger("BCDB")
-	dbLog.SetLevel(slog.LevelDebug)
+	dbLog.SetLevel(btclog.LevelDebug)
 	database.UseLogger(dbLog)
 
 	// Setup the parser options and commands.

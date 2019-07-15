@@ -1,240 +1,113 @@
-pfcd
+btcd
 ====
 
 [![Build Status](https://travis-ci.org/picfight/pfcd.png?branch=master)](https://travis-ci.org/picfight/pfcd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd)
-[![Go Report Card](https://goreportcard.com/badge/github.com/picfight/pfcd)](https://goreportcard.com/report/github.com/picfight/pfcd)
 
-## PicFight Overview
+btcd is an alternative full node bitcoin implementation written in Go (golang).
 
-PicFight is a blockchain-based cryptocurrency with a strong focus on community
-input, open governance, and sustainable funding for development. It utilizes a
-hybrid proof-of-work and proof-of-stake mining system to ensure that a small
-group cannot dominate the flow of transactions or make changes to PicFight without
-the input of the community.  A unit of the currency is called a `decred` (PFC).
+This project is currently under active development and is in a Beta state.  It
+is extremely stable and has been in production use since October 2013.
 
-https://picfight.org
+It properly downloads, validates, and serves the block chain using the exact
+rules (including consensus bugs) for block acceptance as Bitcoin Core.  We have
+taken great care to avoid btcd causing a fork to the block chain.  It includes a
+full block validation testing framework which contains all of the 'official'
+block acceptance tests (and some additional ones) that is run on every pull
+request to help ensure it properly follows consensus.  Also, it passes all of
+the JSON test data in the Bitcoin Core code.
 
-## Latest Downloads
+It also properly relays newly mined blocks, maintains a transaction pool, and
+relays individual transactions that have not yet made it into a block.  It
+ensures all individual transactions admitted to the pool follow the rules
+required by the block chain and also includes more strict checks which filter
+transactions based on miner requirements ("standard" transactions).
 
-https://picfight.org/downloads
+One key difference between btcd and Bitcoin Core is that btcd does *NOT* include
+wallet functionality and this was a very intentional design decision.  See the
+blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
+for more details.  This means you can't actually make or receive payments
+directly with btcd.  That functionality is provided by the
+[btcwallet](https://github.com/btcsuite/btcwallet) and
+[Paymetheus](https://github.com/btcsuite/Paymetheus) (Windows-only) projects
+which are both under active development.
 
-## What is pfcd?
+## Requirements
 
-pfcd is a full node implementation of PicFight written in Go (golang).
+[Go](http://golang.org) 1.11 or newer.
 
-It acts as a fully-validating chain daemon for the PicFight cryptocurrency.  pfcd
-maintains the entire past transactional ledger of PicFight and allows relaying of
-transactions to other PicFight nodes around the world.
+## Installation
 
-This software is currently under active development.  It is extremely stable and
-has been in production use since February 2016.
+#### Windows - MSI Available
 
-The software was originally forked from [btcd](https://github.com/btcsuite/btcd),
-which is a bitcoin full node implementation that is still under active
-development.  To gain the benefit of btcd's ongoing upgrades, including improved
-peer and connection handling, database optimization, and other blockchain
-related technology improvements, pfcd is continuously synced with the btcd
-codebase.
+https://github.com/picfight/pfcd/releases
 
-## What is a full node?
+#### Linux/BSD/MacOSX/POSIX - Build from Source
 
-The term 'full node' is short for 'fully-validating node' and refers to software
-that fully validates all transactions and blocks, as opposed to trusting a 3rd
-party.  In addition to validating transactions and blocks, nearly all full nodes
-also participate in relaying transactions and blocks to other full nodes around
-the world, thus forming the peer-to-peer network that is the backbone of the
-PicFight cryptocurrency.
+- Install Go according to the installation instructions here:
+  http://golang.org/doc/install
 
-The full node distinction is important, since full nodes are not the only type
-of software participating in the PicFight peer network. For instance, there are
-'lightweight nodes' which rely on full nodes to serve the transactions, blocks,
-and cryptographic proofs they require to function, as well as relay their
-transactions to the rest of the global network.
+- Ensure Go was installed properly and is a supported version:
 
-## Why run pfcd?
+```bash
+$ go version
+$ go env GOROOT GOPATH
+```
 
-As described in the previous section, the PicFight cryptocurrency relies on having
-a peer-to-peer network of nodes that fully validate all transactions and blocks
-and then relay them to other full nodes.
+NOTE: The `GOROOT` and `GOPATH` above must not be the same path.  It is
+recommended that `GOPATH` is set to a directory in your home directory such as
+`~/goprojects` to avoid write permission issues.  It is also recommended to add
+`$GOPATH/bin` to your `PATH` at this point.
 
-Running a full node with pfcd contributes to the overall security of the
-network, increases the available paths for transactions and blocks to relay,
-and helps ensure there are an adequate number of nodes available to serve
-lightweight clients, such as Simplified Payment Verification (SPV) wallets.
+- Run the following commands to obtain pfcd, all dependencies, and install it:
 
-Without enough full nodes, the network could be unable to expediently serve
-users of lightweight clients which could force them to have to rely on
-centralized services that significantly reduce privacy and are vulnerable to
-censorship.
+```bash
+$ cd $GOPATH/src/github.com/picfight/pfcd
+$ GO111MODULE=on go install -v . ./cmd/...
+```
 
-In terms of individual benefits, since pfcd fully validates every block and
-transaction, it provides the highest security and privacy possible when used in
-conjunction with a wallet that also supports directly connecting to it in full
-validation mode, such as [pfcwallet (CLI)](https://github.com/picfight/pfcwallet)
-and [Pfcredit (GUI)](https://github.com/picfight/pfcredit).
+- btcd (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
+  not already add the bin directory to your system path during Go installation,
+  we recommend you do so now.
 
-## Minimum Recommended Specifications (pfcd only)
+## Updating
 
-* 10 GB disk space (as of September 2018, increases over time)
-* 1GB memory (RAM)
-* ~150MB/day download, ~1.5GB/day upload
-  * Plus one-time initial download of the entire block chain
-* Windows 7/8.x/10 (server preferred), macOS, Linux
-* High uptime
+#### Windows
+
+Install a newer MSI
+
+#### Linux/BSD/MacOSX/POSIX - Build from Source
+
+- Run the following commands to update pfcd, all dependencies, and install it:
+
+```bash
+$ cd $GOPATH/src/github.com/picfight/pfcd
+$ git pull
+$ GO111MODULE=on go install -v . ./cmd/...
+```
 
 ## Getting Started
 
-So, you've decided to help the network by running a full node.  Great!  Running
-pfcd is simple.  All you need to do is install pfcd on a machine that is
-connected to the internet and meets the minimum recommended specifications, and
-launch it.
+btcd has several configuration options available to tweak how it runs, but all
+of the basic operations described in the intro section work with zero
+configuration.
 
-Also, make sure your firewall is configured to allow inbound connections to port
-9108.
+#### Windows (Installed from MSI)
 
-<a name="Installation" />
+Launch btcd from your Start menu.
 
-## Installing and updating
-
-### Binaries (Windows/Linux/macOS)
-
-Binary releases are provided for common operating systems and architectures:
-
-https://picfight.org/downloads
-
-### Build from source (all platforms)
-
-Building or updating from source requires the following build dependencies:
-
-- **Go 1.10 or 1.11**
-
-  Installation instructions can be found here: https://golang.org/doc/install.
-  It is recommended to add `$GOPATH/bin` to your `PATH` at this point.
-
-- **Vgo (Go 1.10 only)**
-
-  The `GO111MODULE` experiment is used to manage project dependencies and
-  provide reproducible builds.  The module experiment is provided by the Go 1.11
-  toolchain, but the Go 1.10 toolchain does not provide any module support.  To
-  perform module-aware builds with Go 1.10,
-  [vgo](https://godoc.org/golang.org/x/vgo) (a drop-in replacement for the go
-  command) must be used instead.
-
-- **Git**
-
-  Installation instructions can be found at https://git-scm.com or
-  https://gitforwindows.org.
-
-To build and install from a checked-out repo, run `go install . ./cmd/...` in
-the repo's root directory.  Some notes:
-
-* Set the `GO111MODULE=on` environment variable if using Go 1.11 and building
-  from within `GOPATH`.
-
-* Replace `go` with `vgo` when using Go 1.10.
-
-* The `pfcd` executable will be installed to `$GOPATH/bin`.  `GOPATH`
-  defaults to `$HOME/go` (or `%USERPROFILE%\go` on Windows) if unset.
-
-
-### Example of obtaining and building from source on Windows 10 with Go 1.11:
-
-```PowerShell
-PS> git clone https://github.com/picfight/pfcd $env:USERPROFILE\src\pfcd
-PS> cd $env:USERPROFILE\src\pfcd
-PS> go install . .\cmd\...
-PS> & "$(go env GOPATH)\bin\pfcd" -V
-
-```
-
-### Example of obtaining and building from source on Linux with Go 1.10:
+#### Linux/BSD/POSIX/Source
 
 ```bash
-$ git clone https://github.com/picfight/pfcd ~/src/pfcd
-$ cd ~/src/pfcd
-$ vgo install . ./cmd/...
-$ $(vgo env GOPATH)/bin/pfcd -V
+$ ./btcd
 ```
 
-## Docker
+## IRC
 
-### Running pfcd
-
-You can run a picfight node from inside a docker container.  To build the image
-yourself, use the following command:
-
-```
-docker build -t picfight/pfcd .
-```
-
-Or you can create an alpine based image (requires Docker 17.05 or higher):
-
-```
-docker build -t picfight/pfcd:alpine -f Dockerfile.alpine .
-```
-
-You can then run the image using:
-
-```
-docker run picfight/pfcd
-```
-
-You may wish to use an external volume to customise your config and persist the
-data in an external volume:
-
-```
-docker run --rm -v /home/user/pfcdata:/root/.pfcd/data picfight/pfcd
-```
-
-For a minimal image, you can use the picfight/pfcd:alpine tag.  This is typically
-a more secure option while also being a much smaller image.
-
-You can run pfcctl from inside the image.  For example, run an image (mounting
-your data from externally) with:
-
-```
-docker run --rm -ti --name=pfcd-1 -v /home/user/.pfcd:/root/.pfcd \
-  picfight/pfcd:alpine
-```
-
-And then run pfcctl commands against it.  For example:
-
-```
-docker exec -ti pfcd-1 pfcctl getbestblock
-```
-
-### Running Tests
-
-All tests and linters may be run in a docker (or podman) container using the
-script `run_tests.sh` by specifying either `docker` or `podman` as the first
-parameter.  This script defaults to using the current latest supported version
-of Go, but it also respects the `GOVERSION` environment variable set to the
-major version of Go to allow testing on a previous version of Go.  Generally,
-PicFight only supports the current and previous major versions of Go.
-
-```
-./run_tests.sh docker
-```
-
-To run the tests locally without docker on the latest supported version of Go:
-
-```
-./run_tests.sh
-```
-
-To run the tests locally without docker on Go 1.10:
-
-```
-GOVERSION=1.10 ./run_tests.sh
-```
-
-## Contact
-
-If you have any further questions you can find us at:
-
-https://picfight.org/community
+- irc.freenode.net
+- channel #btcd
+- [webchat](https://webchat.freenode.net/?channels=btcd)
 
 ## Issue Tracker
 
@@ -243,9 +116,28 @@ is used for this project.
 
 ## Documentation
 
-The documentation for pfcd is a work-in-progress.  It is located in the
-[docs](https://github.com/picfight/pfcd/tree/master/docs) folder.
+The documentation is a work-in-progress.  It is located in the [docs](https://github.com/picfight/pfcd/tree/master/docs) folder.
+
+## GPG Verification Key
+
+All official release tags are signed by Conformal so users can ensure the code
+has not been tampered with and is coming from the btcsuite developers.  To
+verify the signature perform the following:
+
+- Download the Conformal public key:
+  https://raw.githubusercontent.com/picfight/pfcd/master/release/GIT-GPG-KEY-conformal.txt
+
+- Import the public key into your GPG keyring:
+  ```bash
+  gpg --import GIT-GPG-KEY-conformal.txt
+  ```
+
+- Verify the release tag with the following command where `TAG_NAME` is a
+  placeholder for the specific tag:
+  ```bash
+  git tag -v TAG_NAME
+  ```
 
 ## License
 
-pfcd is licensed under the [copyfree](http://copyfree.org) ISC License.
+btcd is licensed under the [copyfree](http://copyfree.org) ISC License.

@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -12,43 +11,28 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
-)
-
-var (
-	// tokenRE is a regular expression used to parse tokens from short form
-	// scripts.  It splits on repeated tokens and spaces.  Repeated tokens are
-	// denoted by being wrapped in angular brackets followed by a suffix which
-	// consists of a number inside braces.
-	tokenRE = regexp.MustCompile(`\<.+?\>\{[0-9]+\}|[^\s]+`)
-
-	// repTokenRE is a regular expression used to parse short form scripts
-	// for a series of tokens repeated a specified number of times.
-	repTokenRE = regexp.MustCompile(`^\<(.+)\>\{([0-9]+)\}$`)
-
-	// repRawRE is a regular expression used to parse short form scripts
-	// for raw data that is to be repeated a specified number of times.
-	repRawRE = regexp.MustCompile(`^(0[xX][0-9a-fA-F]+)\{([0-9]+)\}$`)
-
-	// repQuoteRE is a regular expression used to parse short form scripts for
-	// quoted data that is to be repeated a specified number of times.
-	repQuoteRE = regexp.MustCompile(`^'(.*)'\{([0-9]+)\}$`)
+	"github.com/picfight/pfcutil"
 )
 
 // scriptTestName returns a descriptive test name for the given reference script
 // test data.
-func scriptTestName(test []string) (string, error) {
-	// The test must consist of at least a signature script, public key script,
-	// verification flags, and expected error.  Finally, it may optionally
-	// contain a comment.
-	if len(test) < 4 || len(test) > 5 {
+func scriptTestName(test []interface{}) (string, error) {
+	// Account for any optional leading witness data.
+	var witnessOffset int
+	if _, ok := test[0].([]interface{}); ok {
+		witnessOffset++
+	}
+
+	// In addition to the optional leading witness data, the test must
+	// consist of at least a signature script, public key script, flags,
+	// and expected error.  Finally, it may optionally contain a comment.
+	if len(test) < witnessOffset+4 || len(test) > witnessOffset+5 {
 		return "", fmt.Errorf("invalid test length %d", len(test))
 	}
 
@@ -56,11 +40,11 @@ func scriptTestName(test []string) (string, error) {
 	// construct the name based on the signature script, public key script,
 	// and flags.
 	var name string
-	if len(test) == 5 {
-		name = fmt.Sprintf("test (%s)", test[4])
+	if len(test) == witnessOffset+5 {
+		name = fmt.Sprintf("test (%s)", test[witnessOffset+4])
 	} else {
-		name = fmt.Sprintf("test ([%s, %s, %s])", test[0], test[1],
-			test[2])
+		name = fmt.Sprintf("test ([%s, %s, %s])", test[witnessOffset],
+			test[witnessOffset+1], test[witnessOffset+2])
 	}
 	return name, nil
 }
@@ -73,30 +57,36 @@ func parseHex(tok string) ([]byte, error) {
 	return hex.DecodeString(tok[2:])
 }
 
+// parseWitnessStack parses a json array of witness items encoded as hex into a
+// slice of witness elements.
+func parseWitnessStack(elements []interface{}) ([][]byte, error) {
+	witness := make([][]byte, len(elements))
+	for i, e := range elements {
+		witElement, err := hex.DecodeString(e.(string))
+		if err != nil {
+			return nil, err
+		}
+
+		witness[i] = witElement
+	}
+
+	return witness, nil
+}
+
 // shortFormOps holds a map of opcode names to values for use in short form
 // parsing.  It is declared here so it only needs to be created once.
 var shortFormOps map[string]byte
 
-// parseShortForm parses a string as as used in the reference tests into the
-// script it came from.
+// parseShortForm parses a string as as used in the Bitcoin Core reference tests
+// into the script it came from.
 //
 // The format used for these tests is pretty simple if ad-hoc:
-//   - Opcodes other than the push opcodes and unknown are present as either
-//     OP_NAME or just NAME
+//   - Opcodes other than the push opcodes and unknown are present as
+//     either OP_NAME or just NAME
 //   - Plain numbers are made into push operations
-//   - Numbers beginning with 0x are inserted into the []byte as-is (so 0x14 is
-//     OP_DATA_20)
-//   - Numbers beginning with 0x which have a suffix which consists of a number
-//     in braces (e.g. 0x6161{10}) repeat the raw bytes the specified number of
-//     times and are inserted as-is
+//   - Numbers beginning with 0x are inserted into the []byte as-is (so
+//     0x14 is OP_DATA_20)
 //   - Single quoted strings are pushed as data
-//   - Single quoted strings that have a suffix which consists of a number in
-//     braces (e.g. 'b'{10}) repeat the data the specified number of times and
-//     are pushed as a single data push
-//   - Tokens inside of angular brackets with a suffix which consists of a
-//     number in braces (e.g. <0 0 CHECKMULTSIG>{5}) is parsed as if the tokens
-//     inside the angular brackets were manually repeated the specified number
-//     of times
 //   - Anything else is an error
 func parseShortForm(script string) ([]byte, error) {
 	// Only create the short form opcode map once.
@@ -124,95 +114,36 @@ func parseShortForm(script string) ([]byte, error) {
 		shortFormOps = ops
 	}
 
+	// Split only does one separator so convert all \n and tab into  space.
+	script = strings.Replace(script, "\n", " ", -1)
+	script = strings.Replace(script, "\t", " ", -1)
+	tokens := strings.Split(script, " ")
 	builder := NewScriptBuilder()
 
-	var handleToken func(tok string) error
-	handleToken = func(tok string) error {
-		// Multiple repeated tokens.
-		if m := repTokenRE.FindStringSubmatch(tok); m != nil {
-			count, err := strconv.ParseInt(m[2], 10, 32)
-			if err != nil {
-				return fmt.Errorf("bad token %q", tok)
-			}
-			tokens := tokenRE.FindAllStringSubmatch(m[1], -1)
-			for i := 0; i < int(count); i++ {
-				for _, t := range tokens {
-					if err := handleToken(t[0]); err != nil {
-						return err
-					}
-				}
-			}
-			return nil
+	for _, tok := range tokens {
+		if len(tok) == 0 {
+			continue
 		}
-
-		// Plain number.
+		// if parses as a plain number
 		if num, err := strconv.ParseInt(tok, 10, 64); err == nil {
 			builder.AddInt64(num)
-			return nil
-		}
-
-		// Raw data.
-		if bts, err := parseHex(tok); err == nil {
+			continue
+		} else if bts, err := parseHex(tok); err == nil {
 			// Concatenate the bytes manually since the test code
 			// intentionally creates scripts that are too large and
 			// would cause the builder to error otherwise.
 			if builder.err == nil {
 				builder.script = append(builder.script, bts...)
 			}
-			return nil
-		}
-
-		// Repeated raw bytes.
-		if m := repRawRE.FindStringSubmatch(tok); m != nil {
-			bts, err := parseHex(m[1])
-			if err != nil {
-				return fmt.Errorf("bad token %q", tok)
-			}
-			count, err := strconv.ParseInt(m[2], 10, 32)
-			if err != nil {
-				return fmt.Errorf("bad token %q", tok)
-			}
-
-			// Concatenate the bytes manually since the test code
-			// intentionally creates scripts that are too large and
-			// would cause the builder to error otherwise.
-			bts = bytes.Repeat(bts, int(count))
-			if builder.err == nil {
-				builder.script = append(builder.script, bts...)
-			}
-			return nil
-		}
-
-		// Quoted data.
-		if len(tok) >= 2 && tok[0] == '\'' && tok[len(tok)-1] == '\'' {
+		} else if len(tok) >= 2 &&
+			tok[0] == '\'' && tok[len(tok)-1] == '\'' {
 			builder.AddFullData([]byte(tok[1 : len(tok)-1]))
-			return nil
-		}
-
-		// Repeated quoted data.
-		if m := repQuoteRE.FindStringSubmatch(tok); m != nil {
-			count, err := strconv.ParseInt(m[2], 10, 32)
-			if err != nil {
-				return fmt.Errorf("bad token %q", tok)
-			}
-			data := strings.Repeat(m[1], int(count))
-			builder.AddFullData([]byte(data))
-			return nil
-		}
-
-		// Named opcode.
-		if opcode, ok := shortFormOps[tok]; ok {
+		} else if opcode, ok := shortFormOps[tok]; ok {
 			builder.AddOp(opcode)
-			return nil
+		} else {
+			return nil, fmt.Errorf("bad token %q", tok)
 		}
 
-		return fmt.Errorf("bad token %q", tok)
-	}
-
-	for _, tokens := range tokenRE.FindAllStringSubmatch(script, -1) {
-		if err := handleToken(tokens[0]); err != nil {
-			return nil, err
-		}
 	}
 	return builder.Script()
 }
@@ -233,14 +164,34 @@ func parseScriptFlags(flagStr string) (ScriptFlags, error) {
 			flags |= ScriptVerifyCheckSequenceVerify
 		case "CLEANSTACK":
 			flags |= ScriptVerifyCleanStack
+		case "DERSIG":
+			flags |= ScriptVerifyDERSignatures
 		case "DISCOURAGE_UPGRADABLE_NOPS":
 			flags |= ScriptDiscourageUpgradableNops
+		case "LOW_S":
+			flags |= ScriptVerifyLowS
+		case "MINIMALDATA":
+			flags |= ScriptVerifyMinimalData
 		case "NONE":
 			// Nothing.
+		case "NULLDUMMY":
+			flags |= ScriptStrictMultiSig
+		case "NULLFAIL":
+			flags |= ScriptVerifyNullFail
+		case "P2SH":
+			flags |= ScriptBip16
 		case "SIGPUSHONLY":
 			flags |= ScriptVerifySigPushOnly
-		case "SHA256":
-			flags |= ScriptVerifySHA256
+		case "STRICTENC":
+			flags |= ScriptVerifyStrictEncoding
+		case "WITNESS":
+			flags |= ScriptVerifyWitness
+		case "DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM":
+			flags |= ScriptVerifyDiscourageUpgradeableWitnessProgram
+		case "MINIMALIF":
+			flags |= ScriptVerifyMinimalIf
+		case "WITNESS_PUBKEYTYPE":
+			flags |= ScriptVerifyWitnessPubKeyType
 		default:
 			return flags, fmt.Errorf("invalid flag: %s", flag)
 		}
@@ -255,104 +206,85 @@ func parseExpectedResult(expected string) ([]ErrorCode, error) {
 	switch expected {
 	case "OK":
 		return nil, nil
-	case "ERR_EARLY_RETURN":
-		return []ErrorCode{ErrEarlyReturn}, nil
-	case "ERR_EMPTY_STACK":
-		return []ErrorCode{ErrEmptyStack}, nil
-	case "ERR_EVAL_FALSE":
-		return []ErrorCode{ErrEvalFalse}, nil
-	case "ERR_SCRIPT_SIZE":
-		return []ErrorCode{ErrScriptTooBig}, nil
-	case "ERR_PUSH_SIZE":
-		return []ErrorCode{ErrElementTooBig}, nil
-	case "ERR_OP_COUNT":
-		return []ErrorCode{ErrTooManyOperations}, nil
-	case "ERR_STACK_SIZE":
-		return []ErrorCode{ErrStackOverflow}, nil
-	case "ERR_PUBKEY_COUNT":
-		return []ErrorCode{ErrInvalidPubKeyCount}, nil
-	case "ERR_SIG_COUNT":
-		return []ErrorCode{ErrInvalidSignatureCount}, nil
-	case "ERR_OUT_OF_RANGE":
-		return []ErrorCode{ErrNumOutOfRange}, nil
-	case "ERR_VERIFY":
-		return []ErrorCode{ErrVerify}, nil
-	case "ERR_EQUAL_VERIFY":
-		return []ErrorCode{ErrEqualVerify}, nil
-	case "ERR_DISABLED_OPCODE":
-		return []ErrorCode{ErrDisabledOpcode}, nil
-	case "ERR_RESERVED_OPCODE":
-		return []ErrorCode{ErrReservedOpcode}, nil
-	case "ERR_P2SH_STAKE_OPCODES":
-		return []ErrorCode{ErrP2SHStakeOpCodes}, nil
-	case "ERR_MALFORMED_PUSH":
-		return []ErrorCode{ErrMalformedPush}, nil
-	case "ERR_INVALID_STACK_OPERATION", "ERR_INVALID_ALTSTACK_OPERATION":
-		return []ErrorCode{ErrInvalidStackOperation}, nil
-	case "ERR_UNBALANCED_CONDITIONAL":
-		return []ErrorCode{ErrUnbalancedConditional}, nil
-	case "ERR_NEGATIVE_SUBSTR_INDEX":
-		return []ErrorCode{ErrNegativeSubstrIdx}, nil
-	case "ERR_OVERFLOW_SUBSTR_INDEX":
-		return []ErrorCode{ErrOverflowSubstrIdx}, nil
-	case "ERR_NEGATIVE_ROTATION":
-		return []ErrorCode{ErrNegativeRotation}, nil
-	case "ERR_OVERFLOW_ROTATION":
-		return []ErrorCode{ErrOverflowRotation}, nil
-	case "ERR_DIVIDE_BY_ZERO":
-		return []ErrorCode{ErrDivideByZero}, nil
-	case "ERR_NEGATIVE_SHIFT":
-		return []ErrorCode{ErrNegativeShift}, nil
-	case "ERR_OVERFLOW_SHIFT":
-		return []ErrorCode{ErrOverflowShift}, nil
-	case "ERR_MINIMAL_DATA":
-		return []ErrorCode{ErrMinimalData}, nil
-	case "ERR_SIG_HASH_TYPE":
-		return []ErrorCode{ErrInvalidSigHashType}, nil
-	case "ERR_SIG_TOO_SHORT":
-		return []ErrorCode{ErrSigTooShort}, nil
-	case "ERR_SIG_TOO_LONG":
-		return []ErrorCode{ErrSigTooLong}, nil
-	case "ERR_SIG_INVALID_SEQ_ID":
-		return []ErrorCode{ErrSigInvalidSeqID}, nil
-	case "ERR_SIG_INVALID_DATA_LEN":
-		return []ErrorCode{ErrSigInvalidDataLen}, nil
-	case "ERR_SIG_MISSING_S_TYPE_ID":
-		return []ErrorCode{ErrSigMissingSTypeID}, nil
-	case "ERR_SIG_MISSING_S_LEN":
-		return []ErrorCode{ErrSigMissingSLen}, nil
-	case "ERR_SIG_INVALID_S_LEN":
-		return []ErrorCode{ErrSigInvalidSLen}, nil
-	case "ERR_SIG_INVALID_R_INT_ID":
-		return []ErrorCode{ErrSigInvalidRIntID}, nil
-	case "ERR_SIG_ZERO_R_LEN":
-		return []ErrorCode{ErrSigZeroRLen}, nil
-	case "ERR_SIG_NEGATIVE_R":
-		return []ErrorCode{ErrSigNegativeR}, nil
-	case "ERR_SIG_TOO_MUCH_R_PADDING":
-		return []ErrorCode{ErrSigTooMuchRPadding}, nil
-	case "ERR_SIG_INVALID_S_INT_ID":
-		return []ErrorCode{ErrSigInvalidSIntID}, nil
-	case "ERR_SIG_ZERO_S_LEN":
-		return []ErrorCode{ErrSigZeroSLen}, nil
-	case "ERR_SIG_NEGATIVE_S":
-		return []ErrorCode{ErrSigNegativeS}, nil
-	case "ERR_SIG_TOO_MUCH_S_PADDING":
-		return []ErrorCode{ErrSigTooMuchSPadding}, nil
-	case "ERR_SIG_HIGH_S":
-		return []ErrorCode{ErrSigHighS}, nil
-	case "ERR_SIG_PUSHONLY":
-		return []ErrorCode{ErrNotPushOnly}, nil
-	case "ERR_PUBKEY_TYPE":
+	case "UNKNOWN_ERROR":
+		return []ErrorCode{ErrNumberTooBig, ErrMinimalData}, nil
+	case "PUBKEYTYPE":
 		return []ErrorCode{ErrPubKeyType}, nil
-	case "ERR_CLEAN_STACK":
+	case "SIG_DER":
+		return []ErrorCode{ErrSigTooShort, ErrSigTooLong,
+			ErrSigInvalidSeqID, ErrSigInvalidDataLen, ErrSigMissingSTypeID,
+			ErrSigMissingSLen, ErrSigInvalidSLen,
+			ErrSigInvalidRIntID, ErrSigZeroRLen, ErrSigNegativeR,
+			ErrSigTooMuchRPadding, ErrSigInvalidSIntID,
+			ErrSigZeroSLen, ErrSigNegativeS, ErrSigTooMuchSPadding,
+			ErrInvalidSigHashType}, nil
+	case "EVAL_FALSE":
+		return []ErrorCode{ErrEvalFalse, ErrEmptyStack}, nil
+	case "EQUALVERIFY":
+		return []ErrorCode{ErrEqualVerify}, nil
+	case "NULLFAIL":
+		return []ErrorCode{ErrNullFail}, nil
+	case "SIG_HIGH_S":
+		return []ErrorCode{ErrSigHighS}, nil
+	case "SIG_HASHTYPE":
+		return []ErrorCode{ErrInvalidSigHashType}, nil
+	case "SIG_NULLDUMMY":
+		return []ErrorCode{ErrSigNullDummy}, nil
+	case "SIG_PUSHONLY":
+		return []ErrorCode{ErrNotPushOnly}, nil
+	case "CLEANSTACK":
 		return []ErrorCode{ErrCleanStack}, nil
-	case "ERR_DISCOURAGE_UPGRADABLE_NOPS":
+	case "BAD_OPCODE":
+		return []ErrorCode{ErrReservedOpcode, ErrMalformedPush}, nil
+	case "UNBALANCED_CONDITIONAL":
+		return []ErrorCode{ErrUnbalancedConditional,
+			ErrInvalidStackOperation}, nil
+	case "OP_RETURN":
+		return []ErrorCode{ErrEarlyReturn}, nil
+	case "VERIFY":
+		return []ErrorCode{ErrVerify}, nil
+	case "INVALID_STACK_OPERATION", "INVALID_ALTSTACK_OPERATION":
+		return []ErrorCode{ErrInvalidStackOperation}, nil
+	case "DISABLED_OPCODE":
+		return []ErrorCode{ErrDisabledOpcode}, nil
+	case "DISCOURAGE_UPGRADABLE_NOPS":
 		return []ErrorCode{ErrDiscourageUpgradableNOPs}, nil
-	case "ERR_NEGATIVE_LOCKTIME":
+	case "PUSH_SIZE":
+		return []ErrorCode{ErrElementTooBig}, nil
+	case "OP_COUNT":
+		return []ErrorCode{ErrTooManyOperations}, nil
+	case "STACK_SIZE":
+		return []ErrorCode{ErrStackOverflow}, nil
+	case "SCRIPT_SIZE":
+		return []ErrorCode{ErrScriptTooBig}, nil
+	case "PUBKEY_COUNT":
+		return []ErrorCode{ErrInvalidPubKeyCount}, nil
+	case "SIG_COUNT":
+		return []ErrorCode{ErrInvalidSignatureCount}, nil
+	case "MINIMALDATA":
+		return []ErrorCode{ErrMinimalData}, nil
+	case "NEGATIVE_LOCKTIME":
 		return []ErrorCode{ErrNegativeLockTime}, nil
-	case "ERR_UNSATISFIED_LOCKTIME":
+	case "UNSATISFIED_LOCKTIME":
 		return []ErrorCode{ErrUnsatisfiedLockTime}, nil
+	case "MINIMALIF":
+		return []ErrorCode{ErrMinimalIf}, nil
+	case "DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM":
+		return []ErrorCode{ErrDiscourageUpgradableWitnessProgram}, nil
+	case "WITNESS_PROGRAM_WRONG_LENGTH":
+		return []ErrorCode{ErrWitnessProgramWrongLength}, nil
+	case "WITNESS_PROGRAM_WITNESS_EMPTY":
+		return []ErrorCode{ErrWitnessProgramEmpty}, nil
+	case "WITNESS_PROGRAM_MISMATCH":
+		return []ErrorCode{ErrWitnessProgramMismatch}, nil
+	case "WITNESS_MALLEATED":
+		return []ErrorCode{ErrWitnessMalleated}, nil
+	case "WITNESS_MALLEATED_P2SH":
+		return []ErrorCode{ErrWitnessMalleatedP2SH}, nil
+	case "WITNESS_UNEXPECTED":
+		return []ErrorCode{ErrWitnessUnexpected}, nil
+	case "WITNESS_PUBKEYTYPE":
+		return []ErrorCode{ErrWitnessPubKeyType}, nil
 	}
 
 	return nil, fmt.Errorf("unrecognized expected result in test data: %v",
@@ -360,22 +292,23 @@ func parseExpectedResult(expected string) ([]ErrorCode, error) {
 }
 
 // createSpendTx generates a basic spending transaction given the passed
-// signature and public key scripts.
-func createSpendingTx(sigScript, pkScript []byte) *wire.MsgTx {
-	coinbaseTx := wire.NewMsgTx()
+// signature, witness and public key scripts.
+func createSpendingTx(witness [][]byte, sigScript, pkScript []byte,
+	outputValue int64) *wire.MsgTx {
 
-	outPoint := wire.NewOutPoint(&chainhash.Hash{}, ^uint32(0),
-		wire.TxTreeRegular)
-	txIn := wire.NewTxIn(outPoint, 0, []byte{OP_0, OP_0})
-	txOut := wire.NewTxOut(0, pkScript)
+	coinbaseTx := wire.NewMsgTx(wire.TxVersion)
+
+	outPoint := wire.NewOutPoint(&chainhash.Hash{}, ^uint32(0))
+	txIn := wire.NewTxIn(outPoint, []byte{OP_0, OP_0}, nil)
+	txOut := wire.NewTxOut(outputValue, pkScript)
 	coinbaseTx.AddTxIn(txIn)
 	coinbaseTx.AddTxOut(txOut)
 
-	spendingTx := wire.NewMsgTx()
-	coinbaseTxHash := coinbaseTx.TxHash()
-	outPoint = wire.NewOutPoint(&coinbaseTxHash, 0, wire.TxTreeRegular)
-	txIn = wire.NewTxIn(outPoint, 0, sigScript)
-	txOut = wire.NewTxOut(0, nil)
+	spendingTx := wire.NewMsgTx(wire.TxVersion)
+	coinbaseTxSha := coinbaseTx.TxHash()
+	outPoint = wire.NewOutPoint(&coinbaseTxSha, 0)
+	txIn = wire.NewTxIn(outPoint, sigScript, witness)
+	txOut = wire.NewTxOut(outputValue, nil)
 
 	spendingTx.AddTxIn(txIn)
 	spendingTx.AddTxOut(txOut)
@@ -383,47 +316,105 @@ func createSpendingTx(sigScript, pkScript []byte) *wire.MsgTx {
 	return spendingTx
 }
 
+// scriptWithInputVal wraps a target pkScript with the value of the output in
+// which it is contained. The inputVal is necessary in order to properly
+// validate inputs which spend nested, or native witness programs.
+type scriptWithInputVal struct {
+	inputVal int64
+	pkScript []byte
+}
+
 // testScripts ensures all of the passed script tests execute with the expected
 // results with or without using a signature cache, as specified by the
 // parameter.
-func testScripts(t *testing.T, tests [][]string, useSigCache bool) {
+func testScripts(t *testing.T, tests [][]interface{}, useSigCache bool) {
 	// Create a signature cache to use only if requested.
 	var sigCache *SigCache
 	if useSigCache {
 		sigCache = NewSigCache(10)
 	}
 
-	// "Format is: [scriptSig, scriptPubKey, flags, expectedScriptError, ...
-	//   comments]"
 	for i, test := range tests {
+		// "Format is: [[wit..., amount]?, scriptSig, scriptPubKey,
+		//    flags, expected_scripterror, ... comments]"
+
 		// Skip single line comments.
 		if len(test) == 1 {
 			continue
 		}
 
-		// Construct a name for the test based on the comment and test data.
+		// Construct a name for the test based on the comment and test
+		// data.
 		name, err := scriptTestName(test)
 		if err != nil {
 			t.Errorf("TestScripts: invalid test #%d: %v", i, err)
 			continue
 		}
 
+		var (
+			witness  wire.TxWitness
+			inputAmt pfcutil.Amount
+		)
+
+		// When the first field of the test data is a slice it contains
+		// witness data and everything else is offset by 1 as a result.
+		witnessOffset := 0
+		if witnessData, ok := test[0].([]interface{}); ok {
+			witnessOffset++
+
+			// If this is a witness test, then the final element
+			// within the slice is the input amount, so we ignore
+			// all but the last element in order to parse the
+			// witness stack.
+			strWitnesses := witnessData[:len(witnessData)-1]
+			witness, err = parseWitnessStack(strWitnesses)
+			if err != nil {
+				t.Errorf("%s: can't parse witness; %v", name, err)
+				continue
+			}
+
+			inputAmt, err = pfcutil.NewAmount(witnessData[len(witnessData)-1].(float64))
+			if err != nil {
+				t.Errorf("%s: can't parse input amt: %v",
+					name, err)
+				continue
+			}
+
+		}
+
 		// Extract and parse the signature script from the test fields.
-		scriptSig, err := parseShortForm(test[0])
+		scriptSigStr, ok := test[witnessOffset].(string)
+		if !ok {
+			t.Errorf("%s: signature script is not a string", name)
+			continue
+		}
+		scriptSig, err := parseShortForm(scriptSigStr)
 		if err != nil {
-			t.Errorf("%s: can't parse scriptSig; %v", name, err)
+			t.Errorf("%s: can't parse signature script: %v", name,
+				err)
 			continue
 		}
 
 		// Extract and parse the public key script from the test fields.
-		scriptPubKey, err := parseShortForm(test[1])
+		scriptPubKeyStr, ok := test[witnessOffset+1].(string)
+		if !ok {
+			t.Errorf("%s: public key script is not a string", name)
+			continue
+		}
+		scriptPubKey, err := parseShortForm(scriptPubKeyStr)
 		if err != nil {
-			t.Errorf("%s: can't parse scriptPubkey; %v", name, err)
+			t.Errorf("%s: can't parse public key script: %v", name,
+				err)
 			continue
 		}
 
 		// Extract and parse the script flags from the test fields.
-		flags, err := parseScriptFlags(test[2])
+		flagsStr, ok := test[witnessOffset+2].(string)
+		if !ok {
+			t.Errorf("%s: flags field is not a string", name)
+			continue
+		}
+		flags, err := parseScriptFlags(flagsStr)
 		if err != nil {
 			t.Errorf("%s: %v", name, err)
 			continue
@@ -431,22 +422,29 @@ func testScripts(t *testing.T, tests [][]string, useSigCache bool) {
 
 		// Extract and parse the expected result from the test fields.
 		//
-		// Convert the expected result string into the allowed script error
-		// codes.  This allows txscript to be more fine grained with its errors
-		// than the reference test data by allowing some of the test data errors
-		// to map to more than one possibility.
-		resultStr := test[3]
+		// Convert the expected result string into the allowed script
+		// error codes.  This is necessary because txscript is more
+		// fine grained with its errors than the reference test data, so
+		// some of the reference test data errors map to more than one
+		// possibility.
+		resultStr, ok := test[witnessOffset+3].(string)
+		if !ok {
+			t.Errorf("%s: result field is not a string", name)
+			continue
+		}
 		allowedErrorCodes, err := parseExpectedResult(resultStr)
 		if err != nil {
 			t.Errorf("%s: %v", name, err)
 			continue
 		}
 
-		// Generate a transaction pair such that one spends from the other and
-		// the provided signature and public key scripts are used, then create a
-		// new engine to execute the scripts.
-		tx := createSpendingTx(scriptSig, scriptPubKey)
-		vm, err := NewEngine(scriptPubKey, tx, 0, flags, 0, sigCache)
+		// Generate a transaction pair such that one spends from the
+		// other and the provided signature and public key scripts are
+		// used, then create a new engine to execute the scripts.
+		tx := createSpendingTx(witness, scriptSig, scriptPubKey,
+			int64(inputAmt))
+		vm, err := NewEngine(scriptPubKey, tx, 0, flags, sigCache, nil,
+			int64(inputAmt))
 		if err == nil {
 			err = vm.Execute()
 		}
@@ -459,8 +457,8 @@ func testScripts(t *testing.T, tests [][]string, useSigCache bool) {
 			continue
 		}
 
-		// At this point an error was expected so ensure the result of the
-		// execution matches it.
+		// At this point an error was expected so ensure the result of
+		// the execution matches it.
 		success := false
 		for _, code := range allowedErrorCodes {
 			if IsErrorCode(err, code) {
@@ -474,8 +472,8 @@ func testScripts(t *testing.T, tests [][]string, useSigCache bool) {
 					allowedErrorCodes, serr.ErrorCode)
 				continue
 			}
-			t.Errorf("%s: want error codes %v, got err: %v (%T)", name,
-				allowedErrorCodes, err, err)
+			t.Errorf("%s: want error codes %v, got err: %v (%T)",
+				name, allowedErrorCodes, err, err)
 			continue
 		}
 	}
@@ -489,10 +487,10 @@ func TestScripts(t *testing.T) {
 		t.Fatalf("TestScripts: %v\n", err)
 	}
 
-	var tests [][]string
+	var tests [][]interface{}
 	err = json.Unmarshal(file, &tests)
 	if err != nil {
-		t.Fatalf("TestScripts failed to unmarshal: %v", err)
+		t.Fatalf("TestScripts couldn't Unmarshal: %v", err)
 	}
 
 	// Run all script tests with and without the signature cache.
@@ -517,15 +515,13 @@ func testVecF64ToUint32(f float64) uint32 {
 func TestTxInvalidTests(t *testing.T) {
 	file, err := ioutil.ReadFile("data/tx_invalid.json")
 	if err != nil {
-		t.Errorf("TestTxInvalidTests: %v\n", err)
-		return
+		t.Fatalf("TestTxInvalidTests: %v\n", err)
 	}
 
 	var tests [][]interface{}
 	err = json.Unmarshal(file, &tests)
 	if err != nil {
-		t.Errorf("TestTxInvalidTests couldn't Unmarshal: %v\n", err)
-		return
+		t.Fatalf("TestTxInvalidTests couldn't Unmarshal: %v\n", err)
 	}
 
 	// form is either:
@@ -576,7 +572,7 @@ testloop:
 			continue
 		}
 
-		prevOuts := make(map[wire.OutPoint][]byte)
+		prevOuts := make(map[wire.OutPoint]scriptWithInputVal)
 		for j, iinput := range inputs {
 			input, ok := iinput.([]interface{})
 			if !ok {
@@ -585,7 +581,7 @@ testloop:
 				continue testloop
 			}
 
-			if len(input) != 3 {
+			if len(input) < 3 || len(input) > 4 {
 				t.Errorf("bad test (%dth input wrong length)"+
 					"%d: %v", j, i, test)
 				continue testloop
@@ -627,11 +623,25 @@ testloop:
 				continue testloop
 			}
 
-			prevOuts[*wire.NewOutPoint(prevhash, idx, wire.TxTreeRegular)] = script
+			var inputValue float64
+			if len(input) == 4 {
+				inputValue, ok = input[3].(float64)
+				if !ok {
+					t.Errorf("bad test (%dth input value not int) "+
+						"%d: %v", j, i, test)
+					continue
+				}
+			}
+
+			v := scriptWithInputVal{
+				inputVal: int64(inputValue),
+				pkScript: script,
+			}
+			prevOuts[*wire.NewOutPoint(prevhash, idx)] = v
 		}
 
 		for k, txin := range tx.MsgTx().TxIn {
-			pkScript, ok := prevOuts[txin.PreviousOutPoint]
+			prevOut, ok := prevOuts[txin.PreviousOutPoint]
 			if !ok {
 				t.Errorf("bad test (missing %dth input) %d:%v",
 					k, i, test)
@@ -640,8 +650,8 @@ testloop:
 			// These are meant to fail, so as soon as the first
 			// input fails the transaction has failed. (some of the
 			// test txns have good inputs, too..
-			vm, err := NewEngine(pkScript, tx.MsgTx(), k, flags, 0,
-				nil)
+			vm, err := NewEngine(prevOut.pkScript, tx.MsgTx(), k,
+				flags, nil, nil, prevOut.inputVal)
 			if err != nil {
 				continue testloop
 			}
@@ -661,21 +671,19 @@ testloop:
 func TestTxValidTests(t *testing.T) {
 	file, err := ioutil.ReadFile("data/tx_valid.json")
 	if err != nil {
-		t.Errorf("TestTxValidTests: %v\n", err)
-		return
+		t.Fatalf("TestTxValidTests: %v\n", err)
 	}
 
 	var tests [][]interface{}
 	err = json.Unmarshal(file, &tests)
 	if err != nil {
-		t.Errorf("TestTxValidTests couldn't Unmarshal: %v\n", err)
-		return
+		t.Fatalf("TestTxValidTests couldn't Unmarshal: %v\n", err)
 	}
 
 	// form is either:
 	//   ["this is a comment "]
 	// or:
-	//   [[[previous hash, previous index, previous scriptPubKey]...,]
+	//   [[[previous hash, previous index, previous scriptPubKey, input value]...,]
 	//	serializedTransaction, verifyFlags]
 testloop:
 	for i, test := range tests {
@@ -719,7 +727,7 @@ testloop:
 			continue
 		}
 
-		prevOuts := make(map[wire.OutPoint][]byte)
+		prevOuts := make(map[wire.OutPoint]scriptWithInputVal)
 		for j, iinput := range inputs {
 			input, ok := iinput.([]interface{})
 			if !ok {
@@ -728,7 +736,7 @@ testloop:
 				continue
 			}
 
-			if len(input) != 3 {
+			if len(input) < 3 || len(input) > 4 {
 				t.Errorf("bad test (%dth input wrong length)"+
 					"%d: %v", j, i, test)
 				continue
@@ -770,18 +778,32 @@ testloop:
 				continue
 			}
 
-			prevOuts[*wire.NewOutPoint(prevhash, idx, wire.TxTreeRegular)] = script
+			var inputValue float64
+			if len(input) == 4 {
+				inputValue, ok = input[3].(float64)
+				if !ok {
+					t.Errorf("bad test (%dth input value not int) "+
+						"%d: %v", j, i, test)
+					continue
+				}
+			}
+
+			v := scriptWithInputVal{
+				inputVal: int64(inputValue),
+				pkScript: script,
+			}
+			prevOuts[*wire.NewOutPoint(prevhash, idx)] = v
 		}
 
 		for k, txin := range tx.MsgTx().TxIn {
-			pkScript, ok := prevOuts[txin.PreviousOutPoint]
+			prevOut, ok := prevOuts[txin.PreviousOutPoint]
 			if !ok {
 				t.Errorf("bad test (missing %dth input) %d:%v",
 					k, i, test)
 				continue testloop
 			}
-			vm, err := NewEngine(pkScript, tx.MsgTx(), k, flags, 0,
-				nil)
+			vm, err := NewEngine(prevOut.pkScript, tx.MsgTx(), k,
+				flags, nil, nil, prevOut.inputVal)
 			if err != nil {
 				t.Errorf("test (%d:%v:%d) failed to create "+
 					"script: %v", i, test, k, err)
@@ -798,25 +820,10 @@ testloop:
 	}
 }
 
-// parseSigHashExpectedResult parses the provided expected result string into
-// allowed error codes.  An error is returned if the expected result string is
-// not supported.
-func parseSigHashExpectedResult(expected string) (*ErrorCode, error) {
-	switch expected {
-	case "OK":
-		return nil, nil
-	case "SIGHASH_SINGLE_IDX":
-		code := ErrInvalidSigHashSingleIndex
-		return &code, nil
-	}
-
-	return nil, fmt.Errorf("unrecognized expected result in test data: %v",
-		expected)
-}
-
-// TestCalcSignatureHashReference runs the reference signature hash calculation
-// tests in sighash.json.
-func TestCalcSignatureHashReference(t *testing.T) {
+// TestCalcSignatureHash runs the Bitcoin Core signature hash calculation tests
+// in sighash.json.
+// https://github.com/bitcoin/bitcoin/blob/master/src/test/data/sighash.json
+func TestCalcSignatureHash(t *testing.T) {
 	file, err := ioutil.ReadFile("data/sighash.json")
 	if err != nil {
 		t.Fatalf("TestCalcSignatureHash: %v\n", err)
@@ -825,114 +832,44 @@ func TestCalcSignatureHashReference(t *testing.T) {
 	var tests [][]interface{}
 	err = json.Unmarshal(file, &tests)
 	if err != nil {
-		t.Fatalf("TestCalcSignatureHash couldn't Unmarshal: %v\n", err)
+		t.Fatalf("TestCalcSignatureHash couldn't Unmarshal: %v\n",
+			err)
 	}
 
 	for i, test := range tests {
-		// Skip comment lines.
-		if len(test) == 1 {
+		if i == 0 {
+			// Skip first line -- contains comments only.
 			continue
 		}
-
-		// Ensure test is well formed.
-		if len(test) < 6 || len(test) > 7 {
-			t.Fatalf("Test #%d: wrong length %d", i, len(test))
-		}
-
-		// Extract and parse the transaction from the test fields.
-		txHex, ok := test[0].(string)
-		if !ok {
-			t.Errorf("Test #%d: transaction is not a string", i)
-			continue
-		}
-		rawTx, err := hex.DecodeString(txHex)
-		if err != nil {
-			t.Errorf("Test #%d: unable to parse transaction: %v", i, err)
-			continue
+		if len(test) != 5 {
+			t.Fatalf("TestCalcSignatureHash: Test #%d has "+
+				"wrong length.", i)
 		}
 		var tx wire.MsgTx
-		err = tx.Deserialize(bytes.NewReader(rawTx))
+		rawTx, _ := hex.DecodeString(test[0].(string))
+		err := tx.Deserialize(bytes.NewReader(rawTx))
 		if err != nil {
-			t.Errorf("Test #%d: unable to deserialize transaction: %v", i, err)
+			t.Errorf("TestCalcSignatureHash failed test #%d: "+
+				"Failed to parse transaction: %v", i, err)
 			continue
 		}
 
-		// Extract and parse the script from the test fields.
-		subScriptStr, ok := test[1].(string)
-		if !ok {
-			t.Errorf("Test #%d: script is not a string", i)
-			continue
-		}
-		subScript, err := hex.DecodeString(subScriptStr)
-		if err != nil {
-			t.Errorf("Test #%d: unable to decode script: %v", i,
-				err)
-			continue
-		}
+		subScript, _ := hex.DecodeString(test[1].(string))
 		parsedScript, err := parseScript(subScript)
 		if err != nil {
-			t.Errorf("Test #%d: unable to parse script: %v", i, err)
+			t.Errorf("TestCalcSignatureHash failed test #%d: "+
+				"Failed to parse sub-script: %v", i, err)
 			continue
 		}
 
-		// Extract the input index from the test fields.
-		inputIdxF64, ok := test[2].(float64)
-		if !ok {
-			t.Errorf("Test #%d: input idx is not numeric", i)
-			continue
-		}
+		hashType := SigHashType(testVecF64ToUint32(test[3].(float64)))
+		hash := calcSignatureHash(parsedScript, hashType, &tx,
+			int(test[2].(float64)))
 
-		// Extract and parse the hash type from the test fields.
-		hashTypeF64, ok := test[3].(float64)
-		if !ok {
-			t.Errorf("Test #%d: hash type is not numeric", i)
-			continue
-		}
-		hashType := SigHashType(testVecF64ToUint32(hashTypeF64))
-
-		// Extract and parse the signature hash from the test fields.
-		expectedHashStr, ok := test[4].(string)
-		if !ok {
-			t.Errorf("Test #%d: signature hash is not a string", i)
-			continue
-		}
-		expectedHash, err := hex.DecodeString(expectedHashStr)
-		if err != nil {
-			t.Errorf("Test #%d: unable to sig hash: %v", i, err)
-			continue
-		}
-
-		// Extract and parse the expected result from the test fields.
-		expectedErrStr, ok := test[5].(string)
-		if !ok {
-			t.Errorf("Test #%d: result field is not a string", i)
-			continue
-		}
-		expectedErr, err := parseSigHashExpectedResult(expectedErrStr)
-		if err != nil {
-			t.Errorf("Test #%d: %v", i, err)
-			continue
-		}
-
-		// Calculate the signature hash and verify expected result.
-		hash, err := calcSignatureHash(parsedScript, hashType, &tx,
-			int(inputIdxF64), nil)
-		if (err == nil) != (expectedErr == nil) ||
-			expectedErr != nil && !IsErrorCode(err, *expectedErr) {
-
-			if serr, ok := err.(Error); ok {
-				t.Errorf("Test #%d: want error code %v, got %v", i, expectedErr,
-					serr.ErrorCode)
-				continue
-			}
-			t.Errorf("Test #%d: want error code %v, got err: %v (%T)", i,
-				expectedErr, err, err)
-			continue
-		}
-		if !bytes.Equal(hash, expectedHash) {
-			t.Errorf("Test #%d: signature hash mismatch - got %x, want %x", i,
-				hash, expectedHash)
-			continue
+		expectedHash, _ := chainhash.NewHashFromStr(test[4].(string))
+		if !bytes.Equal(hash, expectedHash[:]) {
+			t.Errorf("TestCalcSignatureHash failed test #%d: "+
+				"Signature hash mismatch.", i)
 		}
 	}
 }

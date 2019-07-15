@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,19 +7,19 @@ package ffldb
 import (
 	"fmt"
 
-	"github.com/decred/slog"
+	"github.com/btcsuite/btclog"
 	"github.com/picfight/pfcd/database"
 	"github.com/picfight/pfcd/wire"
 )
 
-var log = slog.Disabled
+var log = btclog.Disabled
 
 const (
 	dbType = "ffldb"
 )
 
 // parseArgs parses the arguments from the database Open/Create methods.
-func parseArgs(funcName string, args ...interface{}) (string, wire.CurrencyNet, error) {
+func parseArgs(funcName string, args ...interface{}) (string, wire.BitcoinNet, error) {
 	if len(args) != 2 {
 		return "", 0, fmt.Errorf("invalid arguments to %s.%s -- "+
 			"expected database path and block network", dbType,
@@ -33,7 +32,7 @@ func parseArgs(funcName string, args ...interface{}) (string, wire.CurrencyNet, 
 			"expected database path string", dbType, funcName)
 	}
 
-	network, ok := args[1].(wire.CurrencyNet)
+	network, ok := args[1].(wire.BitcoinNet)
 	if !ok {
 		return "", 0, fmt.Errorf("second argument to %s.%s is invalid -- "+
 			"expected block network", dbType, funcName)
@@ -66,7 +65,7 @@ func createDBDriver(args ...interface{}) (database.DB, error) {
 
 // useLogger is the callback provided during driver registration that sets the
 // current logger to the provided one.
-func useLogger(logger slog.Logger) {
+func useLogger(logger btclog.Logger) {
 	log = logger
 }
 

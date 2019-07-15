@@ -1,5 +1,4 @@
-// Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -16,11 +15,9 @@ func TestErrorCodeStringer(t *testing.T) {
 		want string
 	}{
 		{ErrDuplicateBlock, "ErrDuplicateBlock"},
-		{ErrMissingParent, "ErrMissingParent"},
 		{ErrBlockTooBig, "ErrBlockTooBig"},
-		{ErrWrongBlockSize, "ErrWrongBlockSize"},
+		{ErrBlockWeightTooHigh, "ErrBlockWeightTooHigh"},
 		{ErrBlockVersionTooOld, "ErrBlockVersionTooOld"},
-		{ErrBadStakeVersion, "ErrBadStakeVersion"},
 		{ErrInvalidTime, "ErrInvalidTime"},
 		{ErrTimeTooOld, "ErrTimeTooOld"},
 		{ErrTimeTooNew, "ErrTimeTooNew"},
@@ -32,13 +29,13 @@ func TestErrorCodeStringer(t *testing.T) {
 		{ErrForkTooOld, "ErrForkTooOld"},
 		{ErrCheckpointTimeTooOld, "ErrCheckpointTimeTooOld"},
 		{ErrNoTransactions, "ErrNoTransactions"},
-		{ErrTooManyTransactions, "ErrTooManyTransactions"},
 		{ErrNoTxInputs, "ErrNoTxInputs"},
 		{ErrNoTxOutputs, "ErrNoTxOutputs"},
 		{ErrTxTooBig, "ErrTxTooBig"},
 		{ErrBadTxOutValue, "ErrBadTxOutValue"},
 		{ErrDuplicateTxInputs, "ErrDuplicateTxInputs"},
 		{ErrBadTxInput, "ErrBadTxInput"},
+		{ErrBadCheckpoint, "ErrBadCheckpoint"},
 		{ErrMissingTxOut, "ErrMissingTxOut"},
 		{ErrUnfinalizedTx, "ErrUnfinalizedTx"},
 		{ErrDuplicateTx, "ErrDuplicateTx"},
@@ -48,80 +45,20 @@ func TestErrorCodeStringer(t *testing.T) {
 		{ErrBadFees, "ErrBadFees"},
 		{ErrTooManySigOps, "ErrTooManySigOps"},
 		{ErrFirstTxNotCoinbase, "ErrFirstTxNotCoinbase"},
-		{ErrCoinbaseHeight, "ErrCoinbaseHeight"},
 		{ErrMultipleCoinbases, "ErrMultipleCoinbases"},
-		{ErrStakeTxInRegularTree, "ErrStakeTxInRegularTree"},
-		{ErrRegTxInStakeTree, "ErrRegTxInStakeTree"},
 		{ErrBadCoinbaseScriptLen, "ErrBadCoinbaseScriptLen"},
 		{ErrBadCoinbaseValue, "ErrBadCoinbaseValue"},
-		{ErrBadCoinbaseOutpoint, "ErrBadCoinbaseOutpoint"},
-		{ErrBadCoinbaseFraudProof, "ErrBadCoinbaseFraudProof"},
-		{ErrBadCoinbaseAmountIn, "ErrBadCoinbaseAmountIn"},
-		{ErrBadStakebaseAmountIn, "ErrBadStakebaseAmountIn"},
-		{ErrBadStakebaseScriptLen, "ErrBadStakebaseScriptLen"},
-		{ErrBadStakebaseScrVal, "ErrBadStakebaseScrVal"},
+		{ErrMissingCoinbaseHeight, "ErrMissingCoinbaseHeight"},
+		{ErrBadCoinbaseHeight, "ErrBadCoinbaseHeight"},
 		{ErrScriptMalformed, "ErrScriptMalformed"},
 		{ErrScriptValidation, "ErrScriptValidation"},
-		{ErrNotEnoughStake, "ErrNotEnoughStake"},
-		{ErrStakeBelowMinimum, "ErrStakeBelowMinimum"},
-		{ErrNonstandardStakeTx, "ErrNonstandardStakeTx"},
-		{ErrNotEnoughVotes, "ErrNotEnoughVotes"},
-		{ErrTooManyVotes, "ErrTooManyVotes"},
-		{ErrFreshStakeMismatch, "ErrFreshStakeMismatch"},
-		{ErrTooManySStxs, "ErrTooManySStxs"},
-		{ErrInvalidEarlyStakeTx, "ErrInvalidEarlyStakeTx"},
-		{ErrTicketUnavailable, "ErrTicketUnavailable"},
-		{ErrVotesOnWrongBlock, "ErrVotesOnWrongBlock"},
-		{ErrVotesMismatch, "ErrVotesMismatch"},
-		{ErrIncongruentVotebit, "ErrIncongruentVotebit"},
-		{ErrInvalidSSRtx, "ErrInvalidSSRtx"},
-		{ErrRevocationsMismatch, "ErrRevocationsMismatch"},
-		{ErrTooManyRevocations, "ErrTooManyRevocations"},
-		{ErrTicketCommitment, "ErrTicketCommitment"},
-		{ErrInvalidVoteInput, "ErrInvalidVoteInput"},
-		{ErrBadNumPayees, "ErrBadNumPayees"},
-		{ErrBadPayeeScriptVersion, "ErrBadPayeeScriptVersion"},
-		{ErrBadPayeeScriptType, "ErrBadPayeeScriptType"},
-		{ErrMismatchedPayeeHash, "ErrMismatchedPayeeHash"},
-		{ErrBadPayeeValue, "ErrBadPayeeValue"},
-		{ErrSSGenSubsidy, "ErrSSGenSubsidy"},
-		{ErrImmatureTicketSpend, "ErrImmatureTicketSpend"},
-		{ErrTicketInputScript, "ErrTicketInputScript"},
-		{ErrInvalidRevokeInput, "ErrInvalidRevokeInput"},
-		{ErrSSRtxPayees, "ErrSSRtxPayees"},
-		{ErrTxSStxOutSpend, "ErrTxSStxOutSpend"},
-		{ErrRegTxCreateStakeOut, "ErrRegTxCreateStakeOut"},
-		{ErrInvalidFinalState, "ErrInvalidFinalState"},
-		{ErrPoolSize, "ErrPoolSize"},
-		{ErrForceReorgWrongChain, "ErrForceReorgWrongChain"},
-		{ErrForceReorgMissingChild, "ErrForceReorgMissingChild"},
-		{ErrBadStakebaseValue, "ErrBadStakebaseValue"},
-		{ErrDiscordantTxTree, "ErrDiscordantTxTree"},
-		{ErrStakeFees, "ErrStakeFees"},
-		{ErrNoStakeTx, "ErrNoStakeTx"},
-		{ErrBadBlockHeight, "ErrBadBlockHeight"},
-		{ErrBlockOneTx, "ErrBlockOneTx"},
-		{ErrBlockOneInputs, "ErrBlockOneInputs"},
-		{ErrBlockOneOutputs, "ErrBlockOneOutputs"},
-		{ErrNoTax, "ErrNoTax"},
-		{ErrExpiredTx, "ErrExpiredTx"},
-		{ErrExpiryTxSpentEarly, "ErrExpiryTxSpentEarly"},
-		{ErrFraudAmountIn, "ErrFraudAmountIn"},
-		{ErrFraudBlockHeight, "ErrFraudBlockHeight"},
-		{ErrFraudBlockIndex, "ErrFraudBlockIndex"},
-		{ErrZeroValueOutputSpend, "ErrZeroValueOutputSpend"},
-		{ErrInvalidEarlyVoteBits, "ErrInvalidEarlyVoteBits"},
-		{ErrInvalidEarlyFinalState, "ErrInvalidEarlyFinalState"},
-		{ErrKnownInvalidBlock, "ErrKnownInvalidBlock"},
+		{ErrUnexpectedWitness, "ErrUnexpectedWitness"},
+		{ErrInvalidWitnessCommitment, "ErrInvalidWitnessCommitment"},
+		{ErrWitnessCommitmentMismatch, "ErrWitnessCommitmentMismatch"},
+		{ErrPreviousBlockUnknown, "ErrPreviousBlockUnknown"},
 		{ErrInvalidAncestorBlock, "ErrInvalidAncestorBlock"},
-		{ErrInvalidTemplateParent, "ErrInvalidTemplateParent"},
+		{ErrPrevBlockNotBest, "ErrPrevBlockNotBest"},
 		{0xffff, "Unknown ErrorCode (65535)"},
-	}
-
-	// Detect additional error codes that don't have the stringer added.
-	if len(tests)-1 != int(numErrorCodes) {
-		t.Errorf("It appears an error code was added without adding an " +
-			"associated stringer test")
 	}
 
 	t.Logf("Running %d tests", len(tests))
@@ -160,4 +97,38 @@ func TestRuleError(t *testing.T) {
 			continue
 		}
 	}
+}
+
+// TestDeploymentError tests the stringized output for the DeploymentError type.
+func TestDeploymentError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in   DeploymentError
+		want string
+	}{
+		{
+			DeploymentError(0),
+			"deployment ID 0 does not exist",
+		},
+		{
+			DeploymentError(10),
+			"deployment ID 10 does not exist",
+		},
+		{
+			DeploymentError(123),
+			"deployment ID 123 does not exist",
+		},
+	}
+
+	t.Logf("Running %d tests", len(tests))
+	for i, test := range tests {
+		result := test.in.Error()
+		if result != test.want {
+			t.Errorf("Error #%d\n got: %s want: %s", i, result,
+				test.want)
+			continue
+		}
+	}
+
 }

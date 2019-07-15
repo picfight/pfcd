@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2015 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -95,9 +94,9 @@ func (b *ScriptBuilder) AddOps(opcodes []byte) *ScriptBuilder {
 	return b
 }
 
-// CanonicalDataSize returns the number of bytes the canonical encoding of the
+// canonicalDataSize returns the number of bytes the canonical encoding of the
 // data will take.
-func CanonicalDataSize(data []byte) int {
+func canonicalDataSize(data []byte) int {
 	dataLen := len(data)
 
 	// When the data consists of a single number that can be represented
@@ -136,7 +135,7 @@ func (b *ScriptBuilder) addData(data []byte) *ScriptBuilder {
 		b.script = append(b.script, OP_0)
 		return b
 	} else if dataLen == 1 && data[0] <= 16 {
-		b.script = append(b.script, OP_1-1+data[0])
+		b.script = append(b.script, (OP_1-1)+data[0])
 		return b
 	} else if dataLen == 1 && data[0] == 0x81 {
 		b.script = append(b.script, byte(OP_1NEGATE))
@@ -198,7 +197,7 @@ func (b *ScriptBuilder) AddData(data []byte) *ScriptBuilder {
 
 	// Pushes that would cause the script to exceed the largest allowed
 	// script size would result in a non-canonical script.
-	dataSize := CanonicalDataSize(data)
+	dataSize := canonicalDataSize(data)
 	if len(b.script)+dataSize > MaxScriptSize {
 		str := fmt.Sprintf("adding %d bytes of data would exceed the "+
 			"maximum allowed canonical script length of %d",

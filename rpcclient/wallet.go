@@ -1,18 +1,18 @@
-// Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package rpcclient
 
 import (
-	"encoding/hex"
 	"encoding/json"
+	"strconv"
 
+	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 // *****************************
@@ -148,7 +148,7 @@ type FutureListUnspentResult chan *response
 
 // Receive waits for the response promised by the future and returns all
 // unspent wallet transaction outputs returned by the RPC call.  If the
-// future was returned by a call to ListUnspentMinAsync, ListUnspentMinMaxAsync,
+// future wac returned by a call to ListUnspentMinAsync, ListUnspentMinMaxAsync,
 // or ListUnspentMinMaxAddressesAsync, the range may be limited by the
 // parameters of the RPC invocation.
 func (r FutureListUnspentResult) Receive() ([]pfcjson.ListUnspentResult, error) {
@@ -214,14 +214,14 @@ func (c *Client) ListUnspentMinMaxAddressesAsync(minConf, maxConf int, addrs []p
 
 // ListUnspent returns all unspent transaction outputs known to a wallet, using
 // the default number of minimum and maximum number of confirmations as a
-// filter (1 and 9999999, respectively).
+// filter (1 and 999999, respectively).
 func (c *Client) ListUnspent() ([]pfcjson.ListUnspentResult, error) {
 	return c.ListUnspentAsync().Receive()
 }
 
 // ListUnspentMin returns all unspent transaction outputs known to a wallet,
 // using the specified number of minimum conformations and default number of
-// maximum confiramtions (9999999) as a filter.
+// maximum confiramtions (999999) as a filter.
 func (c *Client) ListUnspentMin(minConf int) ([]pfcjson.ListUnspentResult, error) {
 	return c.ListUnspentMinAsync(minConf).Receive()
 }
@@ -338,7 +338,6 @@ func (c *Client) LockUnspentAsync(unlock bool, ops []*wire.OutPoint) FutureLockU
 		outputs[i] = pfcjson.TransactionInput{
 			Txid: op.Hash.String(),
 			Vout: op.Index,
-			Tree: op.Tree,
 		}
 	}
 	cmd := pfcjson.NewLockUnspentCmd(unlock, outputs)
@@ -392,7 +391,7 @@ func (r FutureListLockUnspentResult) Receive() ([]*wire.OutPoint, error) {
 		if err != nil {
 			return nil, err
 		}
-		ops[i] = wire.NewOutPoint(sha, input.Vout, input.Tree) // PicFight TODO
+		ops[i] = wire.NewOutPoint(sha, input.Vout)
 	}
 
 	return ops, nil
@@ -413,6 +412,34 @@ func (c *Client) ListLockUnspentAsync() FutureListLockUnspentResult {
 // LockOutput.
 func (c *Client) ListLockUnspent() ([]*wire.OutPoint, error) {
 	return c.ListLockUnspentAsync().Receive()
+}
+
+// FutureSetTxFeeResult is a future promise to deliver the result of a
+// SetTxFeeAsync RPC invocation (or an applicable error).
+type FutureSetTxFeeResult chan *response
+
+// Receive waits for the response promised by the future and returns the result
+// of setting an optional transaction fee per KB that helps ensure transactions
+// are processed quickly.  Most transaction are 1KB.
+func (r FutureSetTxFeeResult) Receive() error {
+	_, err := receiveFuture(r)
+	return err
+}
+
+// SetTxFeeAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See SetTxFee for the blocking version and more details.
+func (c *Client) SetTxFeeAsync(fee pfcutil.Amount) FutureSetTxFeeResult {
+	cmd := pfcjson.NewSetTxFeeCmd(fee.ToPFC())
+	return c.sendCmd(cmd)
+}
+
+// SetTxFee sets an optional transaction fee per KB that helps ensure
+// transactions are processed quickly.  Most transaction are 1KB.
+func (c *Client) SetTxFee(fee pfcutil.Amount) error {
+	return c.SetTxFeeAsync(fee).Receive()
 }
 
 // FutureSendToAddressResult is a future promise to deliver the result of a
@@ -444,7 +471,7 @@ func (r FutureSendToAddressResult) Receive() (*chainhash.Hash, error) {
 // See SendToAddress for the blocking version and more details.
 func (c *Client) SendToAddressAsync(address pfcutil.Address, amount pfcutil.Amount) FutureSendToAddressResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewSendToAddressCmd(addr, amount.ToCoin(), nil, nil)
+	cmd := pfcjson.NewSendToAddressCmd(addr, amount.ToPFC(), nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -470,7 +497,7 @@ func (c *Client) SendToAddressCommentAsync(address pfcutil.Address,
 	commentTo string) FutureSendToAddressResult {
 
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewSendToAddressCmd(addr, amount.ToCoin(), &comment,
+	cmd := pfcjson.NewSendToAddressCmd(addr, amount.ToPFC(), &comment,
 		&commentTo)
 	return c.sendCmd(cmd)
 }
@@ -523,7 +550,7 @@ func (r FutureSendFromResult) Receive() (*chainhash.Hash, error) {
 // See SendFrom for the blocking version and more details.
 func (c *Client) SendFromAsync(fromAccount string, toAddress pfcutil.Address, amount pfcutil.Amount) FutureSendFromResult {
 	addr := toAddress.EncodeAddress()
-	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(), nil,
+	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToPFC(), nil,
 		nil, nil)
 	return c.sendCmd(cmd)
 }
@@ -547,7 +574,7 @@ func (c *Client) SendFrom(fromAccount string, toAddress pfcutil.Address, amount 
 // See SendFromMinConf for the blocking version and more details.
 func (c *Client) SendFromMinConfAsync(fromAccount string, toAddress pfcutil.Address, amount pfcutil.Amount, minConfirms int) FutureSendFromResult {
 	addr := toAddress.EncodeAddress()
-	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(),
+	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToPFC(),
 		&minConfirms, nil, nil)
 	return c.sendCmd(cmd)
 }
@@ -576,7 +603,7 @@ func (c *Client) SendFromCommentAsync(fromAccount string,
 	comment, commentTo string) FutureSendFromResult {
 
 	addr := toAddress.EncodeAddress()
-	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(),
+	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToPFC(),
 		&minConfirms, &comment, &commentTo)
 	return c.sendCmd(cmd)
 }
@@ -632,7 +659,7 @@ func (r FutureSendManyResult) Receive() (*chainhash.Hash, error) {
 func (c *Client) SendManyAsync(fromAccount string, amounts map[pfcutil.Address]pfcutil.Amount) FutureSendManyResult {
 	convertedAmounts := make(map[string]float64, len(amounts))
 	for addr, amount := range amounts {
-		convertedAmounts[addr.EncodeAddress()] = amount.ToCoin()
+		convertedAmounts[addr.EncodeAddress()] = amount.ToPFC()
 	}
 	cmd := pfcjson.NewSendManyCmd(fromAccount, convertedAmounts, nil, nil)
 	return c.sendCmd(cmd)
@@ -661,7 +688,7 @@ func (c *Client) SendManyMinConfAsync(fromAccount string,
 
 	convertedAmounts := make(map[string]float64, len(amounts))
 	for addr, amount := range amounts {
-		convertedAmounts[addr.EncodeAddress()] = amount.ToCoin()
+		convertedAmounts[addr.EncodeAddress()] = amount.ToPFC()
 	}
 	cmd := pfcjson.NewSendManyCmd(fromAccount, convertedAmounts,
 		&minConfirms, nil)
@@ -695,7 +722,7 @@ func (c *Client) SendManyCommentAsync(fromAccount string,
 
 	convertedAmounts := make(map[string]float64, len(amounts))
 	for addr, amount := range amounts {
-		convertedAmounts[addr.EncodeAddress()] = amount.ToCoin()
+		convertedAmounts[addr.EncodeAddress()] = amount.ToPFC()
 	}
 	cmd := pfcjson.NewSendManyCmd(fromAccount, convertedAmounts,
 		&minConfirms, &comment)
@@ -719,109 +746,6 @@ func (c *Client) SendManyComment(fromAccount string,
 	return c.SendManyCommentAsync(fromAccount, amounts, minConfirms,
 		comment).Receive()
 }
-
-// Begin DECRED FUNCTIONS ---------------------------------------------------------
-//
-// SStx generation RPC call handling
-
-// FuturePurchaseTicketResult a channel for the response promised by the future.
-type FuturePurchaseTicketResult chan *response
-
-// Receive waits for the response promised by the future and returns the hash
-// of the transaction sending multiple amounts to multiple addresses using the
-// provided account as a source of funds.
-func (r FuturePurchaseTicketResult) Receive() ([]*chainhash.Hash, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmashal result as a string slice.
-	var txHashesStr []string
-	err = json.Unmarshal(res, &txHashesStr)
-	if err != nil {
-		return nil, err
-	}
-
-	txHashes := make([]*chainhash.Hash, len(txHashesStr))
-	for i := range txHashesStr {
-		h, err := chainhash.NewHashFromStr(txHashesStr[i])
-		if err != nil {
-			return nil, err
-		}
-		txHashes[i] = h
-	}
-
-	return txHashes, nil
-}
-
-// PurchaseTicketAsync takes an account and a spending limit and returns a
-// future chan to receive the transactions representing the purchased tickets
-// when they come.
-func (c *Client) PurchaseTicketAsync(fromAccount string,
-	spendLimit pfcutil.Amount, minConf *int, ticketAddress pfcutil.Address,
-	numTickets *int, poolAddress pfcutil.Address, poolFees *pfcutil.Amount,
-	expiry *int, ticketFee *pfcutil.Amount) FuturePurchaseTicketResult {
-	// An empty string is used to keep the sendCmd
-	// passing of the command from accidentally
-	// removing certain fields. We fill in the
-	// default values of the other arguments as
-	// well for the same reason.
-
-	minConfVal := 1
-	if minConf != nil {
-		minConfVal = *minConf
-	}
-
-	ticketAddrStr := ""
-	if ticketAddress != nil {
-		ticketAddrStr = ticketAddress.EncodeAddress()
-	}
-
-	numTicketsVal := 1
-	if numTickets != nil {
-		numTicketsVal = *numTickets
-	}
-
-	poolAddrStr := ""
-	if poolAddress != nil {
-		poolAddrStr = poolAddress.EncodeAddress()
-	}
-
-	poolFeesFloat := 0.0
-	if poolFees != nil {
-		poolFeesFloat = poolFees.ToCoin()
-	}
-
-	expiryVal := 0
-	if expiry != nil {
-		expiryVal = *expiry
-	}
-
-	ticketFeeFloat := 0.0
-	if ticketFee != nil {
-		ticketFeeFloat = ticketFee.ToCoin()
-	}
-
-	cmd := pfcjson.NewPurchaseTicketCmd(fromAccount, spendLimit.ToCoin(),
-		&minConfVal, &ticketAddrStr, &numTicketsVal, &poolAddrStr,
-		&poolFeesFloat, &expiryVal, pfcjson.String(""), &ticketFeeFloat)
-
-	return c.sendCmd(cmd)
-}
-
-// PurchaseTicket takes an account and a spending limit and calls the async
-// puchasetickets command.
-func (c *Client) PurchaseTicket(fromAccount string,
-	spendLimit pfcutil.Amount, minConf *int, ticketAddress pfcutil.Address,
-	numTickets *int, poolAddress pfcutil.Address, poolFees *pfcutil.Amount,
-	expiry *int, ticketChange *bool, ticketFee *pfcutil.Amount) ([]*chainhash.Hash, error) {
-
-	return c.PurchaseTicketAsync(fromAccount, spendLimit, minConf, ticketAddress,
-		numTickets, poolAddress, poolFees, expiry, ticketFee).Receive()
-}
-
-// END DECRED FUNCTIONS -----------------------------------------------------------
 
 // *************************
 // Address/Account Functions
@@ -847,7 +771,7 @@ func (r FutureAddMultisigAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return pfcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
 }
 
 // AddMultisigAddressAsync returns an instance of a type that can be used to get
@@ -961,20 +885,8 @@ func (r FutureGetNewAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return pfcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
 }
-
-// GapPolicy defines the policy to use when the BIP0044 unused address gap limit
-// would be violated by creating a new address.
-type GapPolicy string
-
-// Gap policies that are understood by a wallet JSON-RPC server.  These are
-// defined for safety and convenience, but string literals can be used as well.
-const (
-	GapPolicyError  GapPolicy = "error"
-	GapPolicyIgnore GapPolicy = "ignore"
-	GapPolicyWrap   GapPolicy = "wrap"
-)
 
 // GetNewAddressAsync returns an instance of a type that can be used to get the
 // result of the RPC at some future time by invoking the Receive function on the
@@ -982,29 +894,13 @@ const (
 //
 // See GetNewAddress for the blocking version and more details.
 func (c *Client) GetNewAddressAsync(account string) FutureGetNewAddressResult {
-	cmd := pfcjson.NewGetNewAddressCmd(&account, nil)
-	return c.sendCmd(cmd)
-}
-
-// GetNewAddressGapPolicyAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See GetNewAddressGapPolicy for the blocking version and more details.
-func (c *Client) GetNewAddressGapPolicyAsync(account string, gapPolicy GapPolicy) FutureGetNewAddressResult {
-	cmd := pfcjson.NewGetNewAddressCmd(&account, (*string)(&gapPolicy))
+	cmd := pfcjson.NewGetNewAddressCmd(&account)
 	return c.sendCmd(cmd)
 }
 
 // GetNewAddress returns a new address.
 func (c *Client) GetNewAddress(account string) (pfcutil.Address, error) {
 	return c.GetNewAddressAsync(account).Receive()
-}
-
-// GetNewAddressGapPolicy returns a new address while allowing callers to
-// control the BIP0044 unused address gap limit policy.
-func (c *Client) GetNewAddressGapPolicy(account string, gapPolicy GapPolicy) (pfcutil.Address, error) {
-	return c.GetNewAddressGapPolicyAsync(account, gapPolicy).Receive()
 }
 
 // FutureGetRawChangeAddressResult is a future promise to deliver the result of
@@ -1027,7 +923,7 @@ func (r FutureGetRawChangeAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return pfcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
 }
 
 // GetRawChangeAddressAsync returns an instance of a type that can be used to
@@ -1047,12 +943,50 @@ func (c *Client) GetRawChangeAddress(account string) (pfcutil.Address, error) {
 	return c.GetRawChangeAddressAsync(account).Receive()
 }
 
+// FutureAddWitnessAddressResult is a future promise to deliver the result of
+// a AddWitnessAddressAsync RPC invocation (or an applicable error).
+type FutureAddWitnessAddressResult chan *response
+
+// Receive waits for the response promised by the future and returns the new
+// address.
+func (r FutureAddWitnessAddressResult) Receive() (pfcutil.Address, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal result as a string.
+	var addr string
+	err = json.Unmarshal(res, &addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return pfcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+}
+
+// AddWitnessAddressAsync returns an instance of a type that can be used to get
+// the result of the RPC at some future time by invoking the Receive function on
+// the returned instance.
+//
+// See AddWitnessAddress for the blocking version and more details.
+func (c *Client) AddWitnessAddressAsync(address string) FutureAddWitnessAddressResult {
+	cmd := pfcjson.NewAddWitnessAddressCmd(address)
+	return c.sendCmd(cmd)
+}
+
+// AddWitnessAddress adds a witness address for a script and returns the new
+// address (P2SH of the witness script).
+func (c *Client) AddWitnessAddress(address string) (pfcutil.Address, error) {
+	return c.AddWitnessAddressAsync(address).Receive()
+}
+
 // FutureGetAccountAddressResult is a future promise to deliver the result of a
 // GetAccountAddressAsync RPC invocation (or an applicable error).
 type FutureGetAccountAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns the current
-// PicFight address for receiving payments to the specified account.
+// Bitcoin address for receiving payments to the specified account.
 func (r FutureGetAccountAddressResult) Receive() (pfcutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
@@ -1066,7 +1000,7 @@ func (r FutureGetAccountAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return pfcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
 }
 
 // GetAccountAddressAsync returns an instance of a type that can be used to get
@@ -1079,7 +1013,7 @@ func (c *Client) GetAccountAddressAsync(account string) FutureGetAccountAddressR
 	return c.sendCmd(cmd)
 }
 
-// GetAccountAddress returns the current PicFight address for receiving payments
+// GetAccountAddress returns the current Bitcoin address for receiving payments
 // to the specified account.
 func (c *Client) GetAccountAddress(account string) (pfcutil.Address, error) {
 	return c.GetAccountAddressAsync(account).Receive()
@@ -1123,6 +1057,33 @@ func (c *Client) GetAccount(address pfcutil.Address) (string, error) {
 	return c.GetAccountAsync(address).Receive()
 }
 
+// FutureSetAccountResult is a future promise to deliver the result of a
+// SetAccountAsync RPC invocation (or an applicable error).
+type FutureSetAccountResult chan *response
+
+// Receive waits for the response promised by the future and returns the result
+// of setting the account to be associated with the passed address.
+func (r FutureSetAccountResult) Receive() error {
+	_, err := receiveFuture(r)
+	return err
+}
+
+// SetAccountAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See SetAccount for the blocking version and more details.
+func (c *Client) SetAccountAsync(address pfcutil.Address, account string) FutureSetAccountResult {
+	addr := address.EncodeAddress()
+	cmd := pfcjson.NewSetAccountCmd(addr, account)
+	return c.sendCmd(cmd)
+}
+
+// SetAccount sets the account associated with the passed address.
+func (c *Client) SetAccount(address pfcutil.Address, account string) error {
+	return c.SetAccountAsync(address, account).Receive()
+}
+
 // FutureGetAddressesByAccountResult is a future promise to deliver the result
 // of a GetAddressesByAccountAsync RPC invocation (or an applicable error).
 type FutureGetAddressesByAccountResult chan *response
@@ -1144,7 +1105,8 @@ func (r FutureGetAddressesByAccountResult) Receive() ([]pfcutil.Address, error) 
 
 	addrs := make([]pfcutil.Address, 0, len(addrStrings))
 	for _, addrStr := range addrStrings {
-		addr, err := pfcutil.DecodeAddress(addrStr)
+		addr, err := pfcutil.DecodeAddress(addrStr,
+			&chaincfg.MainNetParams)
 		if err != nil {
 			return nil, err
 		}
@@ -1193,6 +1155,74 @@ func (r FutureMoveResult) Receive() (bool, error) {
 	return moveResult, nil
 }
 
+// MoveAsync returns an instance of a type that can be used to get the result of
+// the RPC at some future time by invoking the Receive function on the returned
+// instance.
+//
+// See Move for the blocking version and more details.
+func (c *Client) MoveAsync(fromAccount, toAccount string, amount pfcutil.Amount) FutureMoveResult {
+	cmd := pfcjson.NewMoveCmd(fromAccount, toAccount, amount.ToPFC(), nil,
+		nil)
+	return c.sendCmd(cmd)
+}
+
+// Move moves specified amount from one account in your wallet to another.  Only
+// funds with the default number of minimum confirmations will be used.
+//
+// See MoveMinConf and MoveComment for different options.
+func (c *Client) Move(fromAccount, toAccount string, amount pfcutil.Amount) (bool, error) {
+	return c.MoveAsync(fromAccount, toAccount, amount).Receive()
+}
+
+// MoveMinConfAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See MoveMinConf for the blocking version and more details.
+func (c *Client) MoveMinConfAsync(fromAccount, toAccount string,
+	amount pfcutil.Amount, minConfirms int) FutureMoveResult {
+
+	cmd := pfcjson.NewMoveCmd(fromAccount, toAccount, amount.ToPFC(),
+		&minConfirms, nil)
+	return c.sendCmd(cmd)
+}
+
+// MoveMinConf moves specified amount from one account in your wallet to
+// another.  Only funds with the passed number of minimum confirmations will be
+// used.
+//
+// See Move to use the default number of minimum confirmations and MoveComment
+// for additional options.
+func (c *Client) MoveMinConf(fromAccount, toAccount string, amount pfcutil.Amount, minConf int) (bool, error) {
+	return c.MoveMinConfAsync(fromAccount, toAccount, amount, minConf).Receive()
+}
+
+// MoveCommentAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See MoveComment for the blocking version and more details.
+func (c *Client) MoveCommentAsync(fromAccount, toAccount string,
+	amount pfcutil.Amount, minConfirms int, comment string) FutureMoveResult {
+
+	cmd := pfcjson.NewMoveCmd(fromAccount, toAccount, amount.ToPFC(),
+		&minConfirms, &comment)
+	return c.sendCmd(cmd)
+}
+
+// MoveComment moves specified amount from one account in your wallet to
+// another and stores the provided comment in the wallet.  The comment
+// parameter is only available in the wallet.  Only funds with the passed number
+// of minimum confirmations will be used.
+//
+// See Move and MoveMinConf to use defaults.
+func (c *Client) MoveComment(fromAccount, toAccount string, amount pfcutil.Amount,
+	minConf int, comment string) (bool, error) {
+
+	return c.MoveCommentAsync(fromAccount, toAccount, amount, minConf,
+		comment).Receive()
+}
+
 // FutureRenameAccountResult is a future promise to deliver the result of a
 // RenameAccountAsync RPC invocation (or an applicable error).
 type FutureRenameAccountResult chan *response
@@ -1224,7 +1254,7 @@ func (c *Client) RenameAccount(oldAccount, newAccount string) error {
 type FutureValidateAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns information
-// about the given PicFight address.
+// about the given bitcoin address.
 func (r FutureValidateAddressResult) Receive() (*pfcjson.ValidateAddressWalletResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
@@ -1252,7 +1282,7 @@ func (c *Client) ValidateAddressAsync(address pfcutil.Address) FutureValidateAdd
 	return c.sendCmd(cmd)
 }
 
-// ValidateAddress returns information about the given PicFight address.
+// ValidateAddress returns information about the given bitcoin address.
 func (c *Client) ValidateAddress(address pfcutil.Address) (*pfcjson.ValidateAddressWalletResult, error) {
 	return c.ValidateAddressAsync(address).Receive()
 }
@@ -1381,20 +1411,58 @@ type FutureGetBalanceResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // available balance from the server for the specified account.
-func (r FutureGetBalanceResult) Receive() (*pfcjson.GetBalanceResult, error) {
+func (r FutureGetBalanceResult) Receive() (pfcutil.Amount, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	// Unmarshal result as a floating point number.
-	var balance pfcjson.GetBalanceResult
+	var balance float64
 	err = json.Unmarshal(res, &balance)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return &balance, nil
+	amount, err := pfcutil.NewAmount(balance)
+	if err != nil {
+		return 0, err
+	}
+
+	return amount, nil
+}
+
+// FutureGetBalanceParseResult is same as FutureGetBalanceResult except
+// that the result is expected to be a string which is then parsed into
+// a float64 value
+// This is required for compatibility with servers like blockchain.info
+type FutureGetBalanceParseResult chan *response
+
+// Receive waits for the response promised by the future and returns the
+// available balance from the server for the specified account.
+func (r FutureGetBalanceParseResult) Receive() (pfcutil.Amount, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return 0, err
+	}
+
+	// Unmarshal result as a string
+	var balanceString string
+	err = json.Unmarshal(res, &balanceString)
+	if err != nil {
+		return 0, err
+	}
+
+	balance, err := strconv.ParseFloat(balanceString, 64)
+	if err != nil {
+		return 0, err
+	}
+	amount, err := pfcutil.NewAmount(balance)
+	if err != nil {
+		return 0, err
+	}
+
+	return amount, nil
 }
 
 // GetBalanceAsync returns an instance of a type that can be used to get the
@@ -1412,7 +1480,7 @@ func (c *Client) GetBalanceAsync(account string) FutureGetBalanceResult {
 // be "*" for all accounts.
 //
 // See GetBalanceMinConf to override the minimum number of confirmations.
-func (c *Client) GetBalance(account string) (*pfcjson.GetBalanceResult, error) {
+func (c *Client) GetBalance(account string) (pfcutil.Amount, error) {
 	return c.GetBalanceAsync(account).Receive()
 }
 
@@ -1431,7 +1499,11 @@ func (c *Client) GetBalanceMinConfAsync(account string, minConfirms int) FutureG
 // account may be "*" for all accounts.
 //
 // See GetBalance to use the default minimum number of confirmations.
-func (c *Client) GetBalanceMinConf(account string, minConfirms int) (*pfcjson.GetBalanceResult, error) {
+func (c *Client) GetBalanceMinConf(account string, minConfirms int) (pfcutil.Amount, error) {
+	if c.config.EnableBCInfoHacks {
+		response := c.GetBalanceMinConfAsync(account, minConfirms)
+		return FutureGetBalanceParseResult(response).Receive()
+	}
 	return c.GetBalanceMinConfAsync(account, minConfirms).Receive()
 }
 
@@ -1672,8 +1744,8 @@ func (c *Client) ListReceivedByAccountMinConfAsync(minConfirms int) FutureListRe
 // any payments.
 //
 // See ListReceivedByAccount to use the default minimum number of confirmations
-// and ListReceivedByAccountIncludeEmpty to also filter accounts that haven't
-// received any payments from the results.
+// and ListReceivedByAccountIncludeEmpty to also include accounts that haven't
+// received any payments in the results.
 func (c *Client) ListReceivedByAccountMinConf(minConfirms int) ([]pfcjson.ListReceivedByAccountResult, error) {
 	return c.ListReceivedByAccountMinConfAsync(minConfirms).Receive()
 }
@@ -1989,6 +2061,48 @@ func (c *Client) DumpPrivKey(address pfcutil.Address) (*pfcutil.WIF, error) {
 	return c.DumpPrivKeyAsync(address).Receive()
 }
 
+// FutureImportAddressResult is a future promise to deliver the result of an
+// ImportAddressAsync RPC invocation (or an applicable error).
+type FutureImportAddressResult chan *response
+
+// Receive waits for the response promised by the future and returns the result
+// of importing the passed public address.
+func (r FutureImportAddressResult) Receive() error {
+	_, err := receiveFuture(r)
+	return err
+}
+
+// ImportAddressAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See ImportAddress for the blocking version and more details.
+func (c *Client) ImportAddressAsync(address string) FutureImportAddressResult {
+	cmd := pfcjson.NewImportAddressCmd(address, "", nil)
+	return c.sendCmd(cmd)
+}
+
+// ImportAddress imports the passed public address.
+func (c *Client) ImportAddress(address string) error {
+	return c.ImportAddressAsync(address).Receive()
+}
+
+// ImportAddressRescanAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See ImportAddress for the blocking version and more details.
+func (c *Client) ImportAddressRescanAsync(address string, account string, rescan bool) FutureImportAddressResult {
+	cmd := pfcjson.NewImportAddressCmd(address, account, &rescan)
+	return c.sendCmd(cmd)
+}
+
+// ImportAddressRescan imports the passed public address. When rescan is true,
+// the block history is scanned for transactions addressed to provided address.
+func (c *Client) ImportAddressRescan(address string, account string, rescan bool) error {
+	return c.ImportAddressRescanAsync(address, account, rescan).Receive()
+}
+
 // FutureImportPrivKeyResult is a future promise to deliver the result of an
 // ImportPrivKeyAsync RPC invocation (or an applicable error).
 type FutureImportPrivKeyResult chan *response
@@ -2012,7 +2126,7 @@ func (c *Client) ImportPrivKeyAsync(privKeyWIF *pfcutil.WIF) FutureImportPrivKey
 		wif = privKeyWIF.String()
 	}
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, nil, nil, nil)
+	cmd := pfcjson.NewImportPrivKeyCmd(wif, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -2033,7 +2147,7 @@ func (c *Client) ImportPrivKeyLabelAsync(privKeyWIF *pfcutil.WIF, label string) 
 		wif = privKeyWIF.String()
 	}
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, nil, nil)
+	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -2054,7 +2168,7 @@ func (c *Client) ImportPrivKeyRescanAsync(privKeyWIF *pfcutil.WIF, label string,
 		wif = privKeyWIF.String()
 	}
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, &rescan, nil)
+	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, &rescan)
 	return c.sendCmd(cmd)
 }
 
@@ -2065,308 +2179,53 @@ func (c *Client) ImportPrivKeyRescan(privKeyWIF *pfcutil.WIF, label string, resc
 	return c.ImportPrivKeyRescanAsync(privKeyWIF, label, rescan).Receive()
 }
 
-// ImportPrivKeyRescanFromAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive function o
-// n the
-// returned instance.
-//
-// See ImportPrivKey for the blocking version and more details.
-func (c *Client) ImportPrivKeyRescanFromAsync(privKeyWIF *pfcutil.WIF, label string, rescan bool, scanFrom int) FutureImportPrivKeyResult {
-	wif := ""
-	if privKeyWIF != nil {
-		wif = privKeyWIF.String()
-	}
+// FutureImportPubKeyResult is a future promise to deliver the result of an
+// ImportPubKeyAsync RPC invocation (or an applicable error).
+type FutureImportPubKeyResult chan *response
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, &rescan, &scanFrom)
-	return c.sendCmd(cmd)
-}
-
-// ImportPrivKeyRescanFrom imports the passed private key which must be the wallet
-// import format (WIF). It sets the account label to the one provided. When rescan
-// is true, the block history from block scanFrom is scanned for transactions
-// addressed to provided privKey.
-func (c *Client) ImportPrivKeyRescanFrom(privKeyWIF *pfcutil.WIF, label string, rescan bool, scanFrom int) error {
-	return c.ImportPrivKeyRescanFromAsync(privKeyWIF, label, rescan, scanFrom).Receive()
-}
-
-// FutureImportScriptResult is a future promise to deliver the result
-// of a ImportScriptAsync RPC invocation (or an applicable error).
-type FutureImportScriptResult chan *response
-
-// Receive waits for the response promised by the future.
-func (r FutureImportScriptResult) Receive() error {
+// Receive waits for the response promised by the future and returns the result
+// of importing the passed public key.
+func (r FutureImportPubKeyResult) Receive() error {
 	_, err := receiveFuture(r)
 	return err
 }
 
-// ImportScriptAsync returns an instance of a type that can be used to get the
-// result of the RPC at some future time by invoking the Receive function on
-// the returned instance.
+// ImportPubKeyAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
 //
-// See ImportScript for the blocking version and more details.
-func (c *Client) ImportScriptAsync(script []byte) FutureImportScriptResult {
-	scriptStr := ""
-	if script != nil {
-		scriptStr = hex.EncodeToString(script)
-	}
-
-	cmd := pfcjson.NewImportScriptCmd(scriptStr, nil, nil)
+// See ImportPubKey for the blocking version and more details.
+func (c *Client) ImportPubKeyAsync(pubKey string) FutureImportPubKeyResult {
+	cmd := pfcjson.NewImportPubKeyCmd(pubKey, nil)
 	return c.sendCmd(cmd)
 }
 
-// ImportScript attempts to import a byte code script into wallet.
-func (c *Client) ImportScript(script []byte) error {
-	return c.ImportScriptAsync(script).Receive()
+// ImportPubKey imports the passed public key.
+func (c *Client) ImportPubKey(pubKey string) error {
+	return c.ImportPubKeyAsync(pubKey).Receive()
 }
 
-// ImportScriptRescanAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
+// ImportPubKeyRescanAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
 //
-// See ImportScript for the blocking version and more details.
-func (c *Client) ImportScriptRescanAsync(script []byte, rescan bool) FutureImportScriptResult {
-	scriptStr := ""
-	if script != nil {
-		scriptStr = hex.EncodeToString(script)
-	}
-
-	cmd := pfcjson.NewImportScriptCmd(scriptStr, &rescan, nil)
+// See ImportPubKey for the blocking version and more details.
+func (c *Client) ImportPubKeyRescanAsync(pubKey string, rescan bool) FutureImportPubKeyResult {
+	cmd := pfcjson.NewImportPubKeyCmd(pubKey, &rescan)
 	return c.sendCmd(cmd)
 }
 
-// ImportScriptRescan attempts to import a byte code script into wallet. It also
-// allows the user to choose whether or not they do a rescan.
-func (c *Client) ImportScriptRescan(script []byte, rescan bool) error {
-	return c.ImportScriptRescanAsync(script, rescan).Receive()
-}
-
-// ImportScriptRescanFromAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See ImportScript for the blocking version and more details.
-func (c *Client) ImportScriptRescanFromAsync(script []byte, rescan bool, scanFrom int) FutureImportScriptResult {
-	scriptStr := ""
-	if script != nil {
-		scriptStr = hex.EncodeToString(script)
-	}
-
-	cmd := pfcjson.NewImportScriptCmd(scriptStr, &rescan, &scanFrom)
-	return c.sendCmd(cmd)
-}
-
-// ImportScriptRescanFrom attempts to import a byte code script into wallet. It
-// also allows the user to choose whether or not they do a rescan, and which
-// height to rescan from.
-func (c *Client) ImportScriptRescanFrom(script []byte, rescan bool, scanFrom int) error {
-	return c.ImportScriptRescanFromAsync(script, rescan, scanFrom).Receive()
+// ImportPubKeyRescan imports the passed public key. When rescan is true, the
+// block history is scanned for transactions addressed to provided pubkey.
+func (c *Client) ImportPubKeyRescan(pubKey string, rescan bool) error {
+	return c.ImportPubKeyRescanAsync(pubKey, rescan).Receive()
 }
 
 // ***********************
 // Miscellaneous Functions
 // ***********************
 
-// FutureAccountAddressIndexResult is a future promise to deliver the result of a
-// AccountAddressIndexAsync RPC invocation (or an applicable error).
-type FutureAccountAddressIndexResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureAccountAddressIndexResult) Receive() (int, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return 0, err
-	}
-
-	// Unmarshal result as a accountaddressindex result object.
-	var index int
-	err = json.Unmarshal(res, &index)
-	if err != nil {
-		return 0, err
-	}
-
-	return index, nil
-}
-
-// AccountAddressIndexAsync returns an instance of a type that can be used
-// to get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See AccountAddressIndex for the blocking version and more details.
-func (c *Client) AccountAddressIndexAsync(account string, branch uint32) FutureAccountAddressIndexResult {
-	cmd := pfcjson.NewAccountAddressIndexCmd(account, int(branch))
-	return c.sendCmd(cmd)
-}
-
-// AccountAddressIndex returns the address index for a given account's branch.
-func (c *Client) AccountAddressIndex(account string, branch uint32) (int, error) {
-	return c.AccountAddressIndexAsync(account, branch).Receive()
-}
-
-// FutureAccountSyncAddressIndexResult is a future promise to deliver the
-// result of an AccountSyncAddressIndexAsync RPC invocation (or an
-// applicable error).
-type FutureAccountSyncAddressIndexResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureAccountSyncAddressIndexResult) Receive() error {
-	_, err := receiveFuture(r)
-	return err
-}
-
-// AccountSyncAddressIndexAsync returns an instance of a type that can be used
-// to get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See AccountSyncAddressIndex for the blocking version and more details.
-func (c *Client) AccountSyncAddressIndexAsync(account string, branch uint32, index int) FutureAccountSyncAddressIndexResult {
-	cmd := pfcjson.NewAccountSyncAddressIndexCmd(account, int(branch), index)
-	return c.sendCmd(cmd)
-}
-
-// AccountSyncAddressIndex synchronizes an account branch to the passed address
-// index.
-func (c *Client) AccountSyncAddressIndex(account string, branch uint32, index int) error {
-	return c.AccountSyncAddressIndexAsync(account, branch, index).Receive()
-}
-
-// FutureRevokeTicketsResult is a future promise to deliver the result of a
-// RevokeTicketsAsync RPC invocation (or an applicable error).
-type FutureRevokeTicketsResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureRevokeTicketsResult) Receive() error {
-	_, err := receiveFuture(r)
-	return err
-}
-
-// RevokeTicketsAsync returns an instance of a type that can be used to get the result
-// of the RPC at some future time by invoking the Receive function on the
-// returned instance.
-//
-// See RevokeTickets for the blocking version and more details.
-func (c *Client) RevokeTicketsAsync() FutureRevokeTicketsResult {
-	cmd := pfcjson.NewRevokeTicketsCmd()
-	return c.sendCmd(cmd)
-}
-
-// RevokeTickets triggers the wallet to issue revocations for any missed tickets that
-// have not yet been revoked.
-func (c *Client) RevokeTickets() error {
-	return c.RevokeTicketsAsync().Receive()
-}
-
-// FutureAddTicketResult is a future promise to deliver the result of a
-// AddTicketAsync RPC invocation (or an applicable error).
-type FutureAddTicketResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureAddTicketResult) Receive() error {
-	_, err := receiveFuture(r)
-	return err
-}
-
-// AddTicketAsync returns an instance of a type that can be used to get the result
-// of the RPC at some future time by invoking the Receive function on the
-// returned instance.
-//
-// See AddTicket for the blocking version and more details.
-func (c *Client) AddTicketAsync(rawHex string) FutureAddTicketResult {
-	cmd := pfcjson.NewAddTicketCmd(rawHex)
-	return c.sendCmd(cmd)
-}
-
-// AddTicket manually adds a new ticket to the wallet stake manager. This is used
-// to override normal security settings to insert tickets which would not
-// otherwise be added to the wallet.
-func (c *Client) AddTicket(ticket *pfcutil.Tx) error {
-	ticketB, err := ticket.MsgTx().Bytes()
-	if err != nil {
-		return err
-	}
-
-	return c.AddTicketAsync(hex.EncodeToString(ticketB)).Receive()
-}
-
-// FutureFundRawTransactionResult is a future promise to deliver the result of a
-// FundRawTransactionAsync RPC invocation (or an applicable error).
-type FutureFundRawTransactionResult chan *response
-
-// Receive waits for the response promised by the future and returns the unsigned
-// transaction with the passed amount and the given address.
-func (r FutureFundRawTransactionResult) Receive() (*pfcjson.FundRawTransactionResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a string.
-	var infoRes pfcjson.FundRawTransactionResult
-	err = json.Unmarshal(res, &infoRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &infoRes, nil
-}
-
-// FundRawTransactionAsync returns an instance of a type that can be used to get the
-// result of the RPC at some future time by invoking the Receive function on the
-// returned instance.
-//
-// See FundRawTransaction for the blocking version and more details.
-func (c *Client) FundRawTransactionAsync(rawhex string, fundAccount string, options pfcjson.FundRawTransactionOptions) FutureFundRawTransactionResult {
-	cmd := pfcjson.NewFundRawTransactionCmd(rawhex, fundAccount, &options)
-	return c.sendCmd(cmd)
-}
-
-// FundRawTransaction Add inputs to a transaction until it has enough
-// in value to meet its out value.
-func (c *Client) FundRawTransaction(rawhex string, fundAccount string, options pfcjson.FundRawTransactionOptions) (*pfcjson.FundRawTransactionResult, error) {
-	return c.FundRawTransactionAsync(rawhex, fundAccount, options).Receive()
-}
-
-// FutureGenerateVoteResult is a future promise to deliver the result of a
-// GenerateVoteAsync RPC invocation (or an applicable error).
-type FutureGenerateVoteResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureGenerateVoteResult) Receive() (*pfcjson.GenerateVoteResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a getinfo result object.
-	var infoRes pfcjson.GenerateVoteResult
-	err = json.Unmarshal(res, &infoRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &infoRes, nil
-}
-
-// GenerateVoteAsync returns an instance of a type that can be used to get the result
-// of the RPC at some future time by invoking the Receive function on the
-// returned instance.
-//
-// See GenerateVote for the blocking version and more details.
-func (c *Client) GenerateVoteAsync(blockHash *chainhash.Hash, height int64, sstxHash *chainhash.Hash, voteBits uint16, voteBitsExt string) FutureGenerateVoteResult {
-	cmd := pfcjson.NewGenerateVoteCmd(blockHash.String(), height, sstxHash.String(), voteBits, voteBitsExt)
-	return c.sendCmd(cmd)
-}
-
-// GenerateVote returns hex of an SSGen.
-func (c *Client) GenerateVote(blockHash *chainhash.Hash, height int64, sstxHash *chainhash.Hash, voteBits uint16, voteBitsExt string) (*pfcjson.GenerateVoteResult, error) {
-	return c.GenerateVoteAsync(blockHash, height, sstxHash, voteBits, voteBitsExt).Receive()
-}
-
-// NOTE: While getinfo is implemented here (in wallet.go), a pfcd chain server
+// NOTE: While getinfo is implemented here (in wallet.go), a btcd chain server
 // will respond to getinfo requests as well, excluding any wallet information.
 
 // FutureGetInfoResult is a future promise to deliver the result of a
@@ -2408,378 +2267,13 @@ func (c *Client) GetInfo() (*pfcjson.InfoWalletResult, error) {
 	return c.GetInfoAsync().Receive()
 }
 
-// FutureGetStakeInfoResult is a future promise to deliver the result of a
-// GetStakeInfoAsync RPC invocation (or an applicable error).
-type FutureGetStakeInfoResult chan *response
-
-// Receive waits for the response promised by the future and returns the stake
-// info provided by the server.
-func (r FutureGetStakeInfoResult) Receive() (*pfcjson.GetStakeInfoResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a getstakeinfo result object.
-	var infoRes pfcjson.GetStakeInfoResult
-	err = json.Unmarshal(res, &infoRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &infoRes, nil
-}
-
-// GetStakeInfoAsync returns an instance of a type that can be used to get
-// the result of the RPC at some future time by invoking the Receive function
-// on the returned instance.
-//
-// See GetStakeInfo for the blocking version and more details.
-func (c *Client) GetStakeInfoAsync() FutureGetStakeInfoResult {
-	cmd := pfcjson.NewGetStakeInfoCmd()
-	return c.sendCmd(cmd)
-}
-
-// GetStakeInfo returns stake mining info from a given wallet. This includes
-// various statistics on tickets it owns and votes it has produced.
-func (c *Client) GetStakeInfo() (*pfcjson.GetStakeInfoResult, error) {
-	return c.GetStakeInfoAsync().Receive()
-}
-
-// FutureGetTicketsResult is a future promise to deliver the result of a
-// GetTickets RPC invocation (or an applicable error).
-type FutureGetTicketsResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureGetTicketsResult) Receive() ([]*chainhash.Hash, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a gettickets result object.
-	var tixRes pfcjson.GetTicketsResult
-	err = json.Unmarshal(res, &tixRes)
-	if err != nil {
-		return nil, err
-	}
-
-	tickets := make([]*chainhash.Hash, len(tixRes.Hashes))
-	for i := range tixRes.Hashes {
-		h, err := chainhash.NewHashFromStr(tixRes.Hashes[i])
-		if err != nil {
-			return nil, err
-		}
-
-		tickets[i] = h
-	}
-
-	return tickets, nil
-}
-
-// GetTicketsAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See GetTicketsfor the blocking version and more details.
-func (c *Client) GetTicketsAsync(includeImmature bool) FutureGetTicketsResult {
-	cmd := pfcjson.NewGetTicketsCmd(includeImmature)
-	return c.sendCmd(cmd)
-}
-
-// GetTickets returns a list of the tickets owned by the wallet, partially
-// or in full. The flag includeImmature is used to indicate if non mature
-// tickets should also be returned.
-func (c *Client) GetTickets(includeImmature bool) ([]*chainhash.Hash, error) {
-	return c.GetTicketsAsync(includeImmature).Receive()
-}
-
-// FutureListScriptsResult is a future promise to deliver the result of a
-// ListScriptsAsync RPC invocation (or an applicable error).
-type FutureListScriptsResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureListScriptsResult) Receive() ([][]byte, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a listscripts result object.
-	var resScr pfcjson.ListScriptsResult
-	err = json.Unmarshal(res, &resScr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert the redeemscripts into byte slices and
-	// store them.
-	redeemScripts := make([][]byte, len(resScr.Scripts))
-	for i := range resScr.Scripts {
-		rs := resScr.Scripts[i].RedeemScript
-		rsB, err := hex.DecodeString(rs)
-		if err != nil {
-			return nil, err
-		}
-		redeemScripts[i] = rsB
-	}
-
-	return redeemScripts, nil
-}
-
-// ListScriptsAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See ListScripts for the blocking version and more details.
-func (c *Client) ListScriptsAsync() FutureListScriptsResult {
-	cmd := pfcjson.NewListScriptsCmd()
-	return c.sendCmd(cmd)
-}
-
-// ListScripts returns a list of the currently known redeemscripts from the
-// wallet as a slice of byte slices.
-func (c *Client) ListScripts() ([][]byte, error) {
-	return c.ListScriptsAsync().Receive()
-}
-
-// FutureSetTicketFeeResult is a future promise to deliver the result of a
-// SetTicketFeeAsync RPC invocation (or an applicable error).
-type FutureSetTicketFeeResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureSetTicketFeeResult) Receive() error {
-	_, err := receiveFuture(r)
-	return err
-}
-
-// SetTicketFeeAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See SetTicketFee for the blocking version and more details.
-func (c *Client) SetTicketFeeAsync(fee pfcutil.Amount) FutureSetTicketFeeResult {
-	cmd := pfcjson.NewSetTicketFeeCmd(fee.ToCoin())
-	return c.sendCmd(cmd)
-}
-
-// SetTicketFee sets the ticket fee per KB amount.
-func (c *Client) SetTicketFee(fee pfcutil.Amount) error {
-	return c.SetTicketFeeAsync(fee).Receive()
-}
-
-// FutureSetTxFeeResult is a future promise to deliver the result of a
-// SetTxFeeAsync RPC invocation (or an applicable error).
-type FutureSetTxFeeResult chan *response
-
-// Receive waits for the response promised by the future.
-func (r FutureSetTxFeeResult) Receive() error {
-	_, err := receiveFuture(r)
-	return err
-}
-
-// SetTxFeeAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See SetTxFee for the blocking version and more details.
-func (c *Client) SetTxFeeAsync(fee pfcutil.Amount) FutureSetTxFeeResult {
-	cmd := pfcjson.NewSetTxFeeCmd(fee.ToCoin())
-	return c.sendCmd(cmd)
-}
-
-// SetTxFee sets the transaction fee per KB amount.
-func (c *Client) SetTxFee(fee pfcutil.Amount) error {
-	return c.SetTxFeeAsync(fee).Receive()
-}
-
-// FutureGetVoteChoicesResult is a future promise to deliver the result of a
-// GetVoteChoicesAsync RPC invocation (or an applicable error).
-type FutureGetVoteChoicesResult chan *response
-
-// Receive waits for the response promised by the future.
-func (r FutureGetVoteChoicesResult) Receive() (*pfcjson.GetVoteChoicesResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a getvotechoices result object.
-	var choicesRes pfcjson.GetVoteChoicesResult
-	err = json.Unmarshal(res, &choicesRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &choicesRes, nil
-}
-
-// GetVoteChoicesAsync returns an instance of a type that can be used to get the
-// result of the RPC at some future time by invoking the Receive function on the
-// returned instance.
-//
-// See GetVoteChoices for the blocking version and more details.
-func (c *Client) GetVoteChoicesAsync() FutureGetVoteChoicesResult {
-	cmd := pfcjson.NewGetVoteChoicesCmd()
-	return c.sendCmd(cmd)
-}
-
-// GetVoteChoices returns the currently-set vote choices for each agenda in the
-// latest supported stake version.
-func (c *Client) GetVoteChoices() (*pfcjson.GetVoteChoicesResult, error) {
-	return c.GetVoteChoicesAsync().Receive()
-}
-
-// FutureSetVoteChoiceResult is a future promise to deliver the result of a
-// SetVoteChoiceAsync RPC invocation (or an applicable error).
-type FutureSetVoteChoiceResult chan *response
-
-// Receive waits for the response promised by the future.
-func (r FutureSetVoteChoiceResult) Receive() error {
-	_, err := receiveFuture(r)
-	return err
-}
-
-// SetVoteChoiceAsync returns an instance of a type that can be used to get the
-// result of the RPC at some future time by invoking the Receive function on the
-// returned instance.
-//
-// See SetVoteChoice for the blocking version and more details.
-func (c *Client) SetVoteChoiceAsync(agendaID, choiceID string) FutureSetVoteChoiceResult {
-	cmd := pfcjson.NewSetVoteChoiceCmd(agendaID, choiceID)
-	return c.sendCmd(cmd)
-}
-
-// SetVoteChoice sets a voting choice preference for an agenda.
-func (c *Client) SetVoteChoice(agendaID, choiceID string) error {
-	return c.SetVoteChoiceAsync(agendaID, choiceID).Receive()
-}
-
-// FutureStakePoolUserInfoResult is a future promise to deliver the result of a
-// GetInfoAsync RPC invocation (or an applicable error).
-type FutureStakePoolUserInfoResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureStakePoolUserInfoResult) Receive() (*pfcjson.StakePoolUserInfoResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a stakepooluserinfo result object.
-	var infoRes pfcjson.StakePoolUserInfoResult
-	err = json.Unmarshal(res, &infoRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &infoRes, nil
-}
-
-// StakePoolUserInfoAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See GetInfo for the blocking version and more details.
-func (c *Client) StakePoolUserInfoAsync(addr pfcutil.Address) FutureStakePoolUserInfoResult {
-	cmd := pfcjson.NewStakePoolUserInfoCmd(addr.EncodeAddress())
-	return c.sendCmd(cmd)
-}
-
-// StakePoolUserInfo returns a list of tickets and information about them
-// that are paying to the passed address.
-func (c *Client) StakePoolUserInfo(addr pfcutil.Address) (*pfcjson.StakePoolUserInfoResult, error) {
-	return c.StakePoolUserInfoAsync(addr).Receive()
-}
-
-// FutureTicketsForAddressResult is a future promise to deliver the result of a
-// GetInfoAsync RPC invocation (or an applicable error).
-type FutureTicketsForAddressResult chan *response
-
-// Receive waits for the response promised by the future and returns the info
-// provided by the server.
-func (r FutureTicketsForAddressResult) Receive() (*pfcjson.TicketsForAddressResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a ticketsforaddress result object.
-	var infoRes pfcjson.TicketsForAddressResult
-	err = json.Unmarshal(res, &infoRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &infoRes, nil
-}
-
-// TicketsForAddressAsync returns an instance of a type that can be used to
-// get the result of the RPC at some future time by invoking the Receive
-// function on the returned instance.
-//
-// See GetInfo for the blocking version and more details.
-func (c *Client) TicketsForAddressAsync(addr pfcutil.Address) FutureTicketsForAddressResult {
-	cmd := pfcjson.NewTicketsForAddressCmd(addr.EncodeAddress())
-	return c.sendCmd(cmd)
-}
-
-// TicketsForAddress returns a list of tickets paying to the passed address.
-// If the daemon server is queried, it returns a search of tickets in the
-// live ticket pool. If the wallet server is queried, it searches all tickets
-// owned by the wallet.
-func (c *Client) TicketsForAddress(addr pfcutil.Address) (*pfcjson.TicketsForAddressResult, error) {
-	return c.TicketsForAddressAsync(addr).Receive()
-}
-
-// FutureWalletInfoResult is a future promise to deliver the result of a
-// WalletInfoAsync RPC invocation (or an applicable error).
-type FutureWalletInfoResult chan *response
-
-// Receive waits for the response promised by the future and returns the stake
-// info provided by the server.
-func (r FutureWalletInfoResult) Receive() (*pfcjson.WalletInfoResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result as a walletinfo result object.
-	var infoRes pfcjson.WalletInfoResult
-	err = json.Unmarshal(res, &infoRes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &infoRes, nil
-}
-
-// WalletInfoAsync returns an instance of a type that can be used to get
-// the result of the RPC at some future time by invoking the Receive function
-// on the returned instance.
-//
-// See WalletInfo for the blocking version and more details.
-func (c *Client) WalletInfoAsync() FutureWalletInfoResult {
-	cmd := pfcjson.NewWalletInfoCmd()
-	return c.sendCmd(cmd)
-}
-
-// WalletInfo returns wallet global state info for a given wallet.
-func (c *Client) WalletInfo() (*pfcjson.WalletInfoResult, error) {
-	return c.WalletInfoAsync().Receive()
-}
-
 // TODO(davec): Implement
-// backupwallet (NYI in pfcwallet)
-// encryptwallet (Won't be supported by pfcwallet since it's always encrypted)
-// getwalletinfo (NYI in pfcwallet or pfcjson)
-// listaddressgroupings (NYI in pfcwallet)
-// listreceivedbyaccount (NYI in pfcwallet)
+// backupwallet (NYI in btcwallet)
+// encryptwallet (Won't be supported by btcwallet since it's always encrypted)
+// getwalletinfo (NYI in btcwallet or pfcjson)
+// listaddressgroupings (NYI in btcwallet)
+// listreceivedbyaccount (NYI in btcwallet)
 
 // DUMP
-// importwallet (NYI in pfcwallet)
-// dumpwallet (NYI in pfcwallet)
+// importwallet (NYI in btcwallet)
+// dumpwallet (NYI in btcwallet)

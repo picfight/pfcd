@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -25,8 +24,8 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
 	"github.com/picfight/pfcd/database/internal/treap"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 const (
@@ -1256,27 +1255,11 @@ func (tx *transaction) fetchBlockRow(hash *chainhash.Hash) ([]byte, error) {
 //
 // This function is part of the database.Tx interface implementation.
 func (tx *transaction) FetchBlockHeader(hash *chainhash.Hash) ([]byte, error) {
-	// Ensure transaction state is valid.
-	if err := tx.checkClosed(); err != nil {
-		return nil, err
-	}
-
-	// When the block is pending to be written on commit return the bytes
-	// from there.
-	if idx, exists := tx.pendingBlocks[*hash]; exists {
-		blockBytes := tx.pendingBlockData[idx].bytes
-		return blockBytes[0:blockHdrSize:blockHdrSize], nil
-	}
-
-	// Fetch the block index row and slice off the header.  Notice the use
-	// of the cap on the subslice to prevent the caller from accidentally
-	// appending into the db data.
-	blockRow, err := tx.fetchBlockRow(hash)
-	if err != nil {
-		return nil, err
-	}
-	endOffset := blockLocSize + blockHdrSize
-	return blockRow[blockLocSize:endOffset:endOffset], nil
+	return tx.FetchBlockRegion(&database.BlockRegion{
+		Hash:   hash,
+		Offset: 0,
+		Len:    blockHdrSize,
+	})
 }
 
 // FetchBlockHeaders returns the raw serialized bytes for the block headers
@@ -1295,41 +1278,13 @@ func (tx *transaction) FetchBlockHeader(hash *chainhash.Hash) ([]byte, error) {
 //
 // This function is part of the database.Tx interface implementation.
 func (tx *transaction) FetchBlockHeaders(hashes []chainhash.Hash) ([][]byte, error) {
-	// Ensure transaction state is valid.
-	if err := tx.checkClosed(); err != nil {
-		return nil, err
-	}
-
-	// NOTE: This could check for the existence of all blocks before loading
-	// any of the headers which would be faster in the failure case, however
-	// callers will not typically be calling this function with invalid
-	// values, so optimize for the common case.
-
-	// Load the headers.
-	headers := make([][]byte, len(hashes))
+	regions := make([]database.BlockRegion, len(hashes))
 	for i := range hashes {
-		hash := &hashes[i]
-
-		// When the block is pending to be written on commit return the
-		// bytes from there.
-		if idx, exists := tx.pendingBlocks[*hash]; exists {
-			blkBytes := tx.pendingBlockData[idx].bytes
-			headers[i] = blkBytes[0:blockHdrSize:blockHdrSize]
-			continue
-		}
-
-		// Fetch the block index row and slice off the header.  Notice
-		// the use of the cap on the subslice to prevent the caller
-		// from accidentally appending into the db data.
-		blockRow, err := tx.fetchBlockRow(hash)
-		if err != nil {
-			return nil, err
-		}
-		endOffset := blockLocSize + blockHdrSize
-		headers[i] = blockRow[blockLocSize:endOffset:endOffset]
+		regions[i].Hash = &hashes[i]
+		regions[i].Offset = 0
+		regions[i].Len = blockHdrSize
 	}
-
-	return headers, nil
+	return tx.FetchBlockRegions(regions)
 }
 
 // FetchBlock returns the raw serialized bytes for the block identified by the
@@ -1450,10 +1405,10 @@ func (tx *transaction) fetchPendingRegion(region *database.BlockRegion) ([]byte,
 
 // FetchBlockRegion returns the raw serialized bytes for the given block region.
 //
-// For example, it is possible to directly extract transactions and/or scripts
-// from a block with this function.  Depending on the backend implementation,
-// this can provide significant savings by avoiding the need to load entire
-// blocks.
+// For example, it is possible to directly extract Bitcoin transactions and/or
+// scripts from a block with this function.  Depending on the backend
+// implementation, this can provide significant savings by avoiding the need to
+// load entire blocks.
 //
 // The raw bytes are in the format returned by Serialize on a wire.MsgBlock and
 // the Offset field in the provided BlockRegion is zero-based and relative to
@@ -1523,8 +1478,8 @@ func (tx *transaction) FetchBlockRegion(region *database.BlockRegion) ([]byte, e
 // FetchBlockRegions returns the raw serialized bytes for the given block
 // regions.
 //
-// For example, it is possible to directly extract transactions and/or scripts
-// from various blocks with this function.  Depending on the backend
+// For example, it is possible to directly extract Bitcoin transactions and/or
+// scripts from various blocks with this function.  Depending on the backend
 // implementation, this can provide significant savings by avoiding the need to
 // load entire blocks.
 //
@@ -1657,19 +1612,6 @@ func (tx *transaction) close() {
 	}
 }
 
-// serializeBlockRow serializes a block row into a format suitable for storage
-// into the block index.
-func serializeBlockRow(blockLoc blockLocation, blockHdr []byte) []byte {
-	// The serialized block index row format is:
-	//
-	//  [0:blockLocSize]                          Block location
-	//  [blockLocSize:blockLocSize+blockHdrSize]  Block header
-	serializedRow := make([]byte, blockLocSize+blockHdrSize)
-	copy(serializedRow, serializeBlockLoc(blockLoc))
-	copy(serializedRow[blockHdrOffset:], blockHdr)
-	return serializedRow
-}
-
 // writePendingAndCommit writes pending block data to the flat block files,
 // updates the metadata with their locations as well as the new current write
 // location, and commits the metadata to the memory database cache.  It also
@@ -1707,8 +1649,7 @@ func (tx *transaction) writePendingAndCommit() error {
 		// includes the location information needed to locate the block
 		// on the filesystem as well as the block header since they are
 		// so commonly needed.
-		blockHdr := blockData.bytes[0:blockHdrSize]
-		blockRow := serializeBlockRow(location, blockHdr)
+		blockRow := serializeBlockLoc(location)
 		err = tx.blockIdxBucket.Put(blockData.hash[:], blockRow)
 		if err != nil {
 			rollback()
@@ -2041,7 +1982,7 @@ func initDB(ldb *leveldb.DB) error {
 
 // openDB opens the database at the provided path.  database.ErrDbDoesNotExist
 // is returned if the database doesn't exist and the create flag is not set.
-func openDB(dbPath string, network wire.CurrencyNet, create bool) (database.DB, error) {
+func openDB(dbPath string, network wire.BitcoinNet, create bool) (database.DB, error) {
 	// Error if the database doesn't exist and the create flag is not set.
 	metadataDbPath := filepath.Join(dbPath, metadataDbName)
 	dbExists := fileExists(metadataDbPath)

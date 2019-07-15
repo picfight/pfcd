@@ -10,10 +10,6 @@ import (
 	"testing"
 )
 
-// Note: All test data is taken from the Bitcoin blockchain.  This data is
-// intentionally unmodified since it would be an unnecessary difference between
-// the pfcd and btcd codebases.
-
 // mainNetGenesisHash is the hash of the first block in the block chain for the
 // main network (genesis block).
 var mainNetGenesisHash = Hash([HashSize]byte{ // Make go vet happy.

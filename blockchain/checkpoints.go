@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,74 +10,56 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
+	"github.com/picfight/pfcutil"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current
 // best block chain that a good checkpoint candidate must be.
-const CheckpointConfirmations = 4096
+const CheckpointConfirmations = 2016
 
-// DisableCheckpoints provides a mechanism to disable validation against
-// checkpoints which you DO NOT want to do in production.  It is provided only
-// for debug purposes.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) DisableCheckpoints(disable bool) {
-	b.chainLock.Lock()
-	b.noCheckpoints = disable
-	b.chainLock.Unlock()
+// newHashFromStr converts the passed big-endian hex string into a
+// chainhash.Hash.  It only differs from the one available in chainhash in that
+// it ignores the error since it will only (and must only) be called with
+// hard-coded, and therefore known good, hashes.
+func newHashFromStr(hexStr string) *chainhash.Hash {
+	hash, _ := chainhash.NewHashFromStr(hexStr)
+	return hash
 }
 
 // Checkpoints returns a slice of checkpoints (regardless of whether they are
-// already known).  When checkpoints are disabled or there are no checkpoints
-// for the active network, it will return nil.
+// already known).  When there are no checkpoints for the chain, it will return
+// nil.
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) Checkpoints() []chaincfg.Checkpoint {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
-
-	if b.noCheckpoints || len(b.chainParams.Checkpoints) == 0 {
-		return nil
-	}
-
-	return b.chainParams.Checkpoints
+	return b.checkpoints
 }
 
-// latestCheckpoint returns the most recent checkpoint (regardless of whether it
-// is already known).  When checkpoints are disabled or there are no checkpoints
-// for the active network, it will return nil.
+// HasCheckpoints returns whether this BlockChain has checkpoints defined.
 //
-// This function MUST be called with the chain state lock held (for reads).
-func (b *BlockChain) latestCheckpoint() *chaincfg.Checkpoint {
-	if b.noCheckpoints || len(b.chainParams.Checkpoints) == 0 {
-		return nil
-	}
-
-	checkpoints := b.chainParams.Checkpoints
-	return &checkpoints[len(checkpoints)-1]
+// This function is safe for concurrent access.
+func (b *BlockChain) HasCheckpoints() bool {
+	return len(b.checkpoints) > 0
 }
 
 // LatestCheckpoint returns the most recent checkpoint (regardless of whether it
-// is already known).  When checkpoints are disabled or there are no checkpoints
-// for the active network, it will return nil.
+// is already known). When there are no defined checkpoints for the active chain
+// instance, it will return nil.
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) LatestCheckpoint() *chaincfg.Checkpoint {
-	b.chainLock.RLock()
-	checkpoint := b.latestCheckpoint()
-	b.chainLock.RUnlock()
-	return checkpoint
+	if !b.HasCheckpoints() {
+		return nil
+	}
+	return &b.checkpoints[len(b.checkpoints)-1]
 }
 
 // verifyCheckpoint returns whether the passed block height and hash combination
-// match the hard-coded checkpoint data.  It also returns true if there is no
-// checkpoint data for the passed block height.
-//
-// This function MUST be called with the chain lock held (for reads).
-func (b *BlockChain) verifyCheckpoint(height int64, hash *chainhash.Hash) bool {
-	if b.noCheckpoints || len(b.chainParams.Checkpoints) == 0 {
+// match the checkpoint data.  It also returns true if there is no checkpoint
+// data for the passed block height.
+func (b *BlockChain) verifyCheckpoint(height int32, hash *chainhash.Hash) bool {
+	if !b.HasCheckpoints() {
 		return true
 	}
 
@@ -104,14 +85,14 @@ func (b *BlockChain) verifyCheckpoint(height int64, hash *chainhash.Hash) bool {
 //
 // This function MUST be called with the chain lock held (for reads).
 func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
-	if b.noCheckpoints || len(b.chainParams.Checkpoints) == 0 {
+	if !b.HasCheckpoints() {
 		return nil, nil
 	}
 
 	// Perform the initial search to find and cache the latest known
 	// checkpoint if the best chain is not known yet or we haven't already
 	// previously searched.
-	checkpoints := b.chainParams.Checkpoints
+	checkpoints := b.checkpoints
 	numCheckpoints := len(checkpoints)
 	if b.checkpointNode == nil && b.nextCheckpoint == nil {
 		// Loop backwards through the available checkpoints to find one
@@ -191,7 +172,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 func isNonstandardTransaction(tx *pfcutil.Tx) bool {
 	// Check all of the output public key scripts for non-standard scripts.
 	for _, txOut := range tx.MsgTx().TxOut {
-		scriptClass := txscript.GetScriptClass(txOut.Version, txOut.PkScript)
+		scriptClass := txscript.GetScriptClass(txOut.PkScript)
 		if scriptClass == txscript.NonStandardTy {
 			return true
 		}
@@ -220,11 +201,6 @@ func (b *BlockChain) IsCheckpointCandidate(block *pfcutil.Block) (bool, error) {
 	b.chainLock.RLock()
 	defer b.chainLock.RUnlock()
 
-	// Checkpoints must be enabled.
-	if b.noCheckpoints {
-		return false, fmt.Errorf("checkpoints are disabled")
-	}
-
 	// A checkpoint must be in the main chain.
 	node := b.index.LookupNode(block.Hash())
 	if node == nil || !b.bestChain.Contains(node) {
@@ -240,9 +216,10 @@ func (b *BlockChain) IsCheckpointCandidate(block *pfcutil.Block) (bool, error) {
 			node.height)
 	}
 
-	// A checkpoint must be at least CheckpointConfirmations blocks before
-	// the end of the main chain.
-	if node.height > (b.bestChain.Tip().height - CheckpointConfirmations) {
+	// A checkpoint must be at least CheckpointConfirmations blocks
+	// before the end of the main chain.
+	mainChainHeight := b.bestChain.Tip().height
+	if node.height > (mainChainHeight - CheckpointConfirmations) {
 		return false, nil
 	}
 

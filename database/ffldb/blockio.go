@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -24,11 +23,9 @@ import (
 )
 
 const (
-	// blockFilenameTemplate is the pattern used for naming block files.
-	//
-	// The protocol encodes block height as int32, so max number of blocks
-	// is 2^31.  Max block size per the protocol is 32MiB per block.  So the
-	// theoretical max at the time this comment was written is 64PiB
+	// The Bitcoin protocol encodes block height as int32, so max number of
+	// blocks is 2^31.  Max block size per the protocol is 32MiB per block.
+	// So the theoretical max at the time this comment was written is 64PiB
 	// (pebibytes).  With files @ 512MiB each, this would require a maximum
 	// of 134,217,728 files.  Thus, choose 9 digits of precision for the
 	// filenames.  An additional benefit is 9 digits provides 10^9 files @
@@ -62,8 +59,7 @@ const (
 )
 
 var (
-	// castagnoli houses the Castagnoli polynomial used for CRC-32
-	// checksums.
+	// castagnoli houses the Catagnoli polynomial used for CRC-32 checksums.
 	castagnoli = crc32.MakeTable(crc32.Castagnoli)
 )
 
@@ -108,17 +104,17 @@ type writeCursor struct {
 // blockStore houses information used to handle reading and writing blocks (and
 // part of blocks) into flat files with support for multiple concurrent readers.
 type blockStore struct {
+	// network is the specific network to use in the flat files for each
+	// block.
+	network wire.BitcoinNet
+
+	// basePath is the base path used for the flat block files and metadata.
+	basePath string
+
 	// maxBlockFileSize is the maximum size for each file used to store
 	// blocks.  It is defined on the store so the whitebox tests can
 	// override the value.
 	maxBlockFileSize uint32
-
-	// network is the specific network to use in the flat files for each
-	// block.
-	network wire.CurrencyNet
-
-	// basePath is the base path used for the flat block files and metadata.
-	basePath string
 
 	// The following fields are related to the flat files which hold the
 	// actual blocks.   The number of open files is limited by maxOpenFiles.
@@ -460,7 +456,7 @@ func (s *blockStore) writeBlock(rawBlock []byte) (blockLocation, error) {
 		wc.curFile.file = file
 	}
 
-	// Currency network.
+	// Bitcoin network.
 	origOffset := wc.curOffset
 	hasher := crc32.New(castagnoli)
 	var scratch [4]byte
@@ -742,7 +738,7 @@ func scanBlockFiles(dbPath string) (int, uint32) {
 
 // newBlockStore returns a new block store with the current block file number
 // and offset set and all fields initialized.
-func newBlockStore(basePath string, network wire.CurrencyNet) *blockStore {
+func newBlockStore(basePath string, network wire.BitcoinNet) *blockStore {
 	// Look for the end of the latest block to file to determine what the
 	// write cursor position is from the viewpoing of the block files on
 	// disk.

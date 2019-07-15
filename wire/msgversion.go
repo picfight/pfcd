@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -9,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 	"time"
 )
@@ -19,9 +17,9 @@ import (
 const MaxUserAgentLen = 256
 
 // DefaultUserAgent for wire in the stack
-const DefaultUserAgent = "/pfcwire:0.3.0/"
+const DefaultUserAgent = "/btcwire:0.5.0/"
 
-// MsgVersion implements the Message interface and represents a PicFight version
+// MsgVersion implements the Message interface and represents a bitcoin version
 // message.  It is used for a peer to advertise itself as soon as an outbound
 // connection is made.  The remote peer then uses this information along with
 // its own to negotiate.  The remote peer must then respond with a version
@@ -71,17 +69,17 @@ func (msg *MsgVersion) AddService(service ServiceFlag) {
 	msg.Services |= service
 }
 
-// BtcDecode decodes r using the PicFight protocol encoding into the receiver.
+// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // The version message is special in that the protocol version hasn't been
 // negotiated yet.  As a result, the pver field is ignored and any fields which
 // are added in new versions are optional.  This also mean that r must be a
 // *bytes.Buffer so the number of remaining bytes can be ascertained.
 //
 // This is part of the Message interface implementation.
-func (msg *MsgVersion) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgVersion) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	buf, ok := r.(*bytes.Buffer)
 	if !ok {
-		return fmt.Errorf("in method MsgVersion.BtcDecode reader is not a " +
+		return fmt.Errorf("MsgVersion.PfcDecode reader is not a " +
 			"*bytes.Buffer")
 	}
 
@@ -149,9 +147,9 @@ func (msg *MsgVersion) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the PicFight protocol encoding.
+// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	err := validateUserAgent(msg.UserAgent)
 	if err != nil {
 		return err
@@ -188,7 +186,16 @@ func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 
-	return writeElement(w, !msg.DisableRelayTx)
+	// There was no relay transactions field before BIP0037Version.  Also,
+	// the wire encoding for the field is true when transactions should be
+	// relayed, so reverse it from the DisableRelayTx field.
+	if pver >= BIP0037Version {
+		err = writeElement(w, !msg.DisableRelayTx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -210,7 +217,7 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 		MaxUserAgentLen
 }
 
-// NewMsgVersion returns a new PicFight version message that conforms to the
+// NewMsgVersion returns a new bitcoin version message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgVersion(me *NetAddress, you *NetAddress, nonce uint64,
@@ -229,27 +236,6 @@ func NewMsgVersion(me *NetAddress, you *NetAddress, nonce uint64,
 		LastBlock:       lastBlock,
 		DisableRelayTx:  false,
 	}
-}
-
-// NewMsgVersionFromConn is a convenience function that extracts the remote
-// and local address from conn and returns a new PicFight version message that
-// conforms to the Message interface.  See NewMsgVersion.
-func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
-	lastBlock int32) (*MsgVersion, error) {
-
-	// Don't assume any services until we know otherwise.
-	lna, err := NewNetAddress(conn.LocalAddr(), 0)
-	if err != nil {
-		return nil, err
-	}
-
-	// Don't assume any services until we know otherwise.
-	rna, err := NewNetAddress(conn.RemoteAddr(), 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewMsgVersion(lna, rna, nonce, lastBlock), nil
 }
 
 // validateUserAgent checks userAgent length against MaxUserAgentLen

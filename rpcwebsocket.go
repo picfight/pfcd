@@ -1,5 +1,5 @@
-// Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2013-2017 The btcsuite developers
+// Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -16,20 +16,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
+	"math"
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
-	"golang.org/x/crypto/ripemd160"
-
+	"github.com/btcsuite/websocket"
 	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/stake"
+	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/database"
 	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
+	"golang.org/x/crypto/ripemd160"
 )
 
 const (
@@ -63,18 +63,19 @@ type wsCommandHandler func(*wsClient, interface{}) (interface{}, error)
 // causes a dependency loop.
 var wsHandlers map[string]wsCommandHandler
 var wsHandlersBeforeInit = map[string]wsCommandHandler{
-	"loadtxfilter":                handleLoadTxFilter,
-	"notifyblocks":                handleNotifyBlocks,
-	"notifywinningtickets":        handleWinningTickets,
-	"notifyspentandmissedtickets": handleSpentAndMissedTickets,
-	"notifynewtickets":            handleNewTickets,
-	"notifystakedifficulty":       handleStakeDifficulty,
-	"notifynewtransactions":       handleNotifyNewTransactions,
-	"session":                     handleSession,
-	"help":                        handleWebsocketHelp,
-	"rescan":                      handleRescan,
-	"stopnotifyblocks":            handleStopNotifyBlocks,
-	"stopnotifynewtransactions":   handleStopNotifyNewTransactions,
+	"loadtxfilter":              handleLoadTxFilter,
+	"help":                      handleWebsocketHelp,
+	"notifyblocks":              handleNotifyBlocks,
+	"notifynewtransactions":     handleNotifyNewTransactions,
+	"notifyreceived":            handleNotifyReceived,
+	"notifyspent":               handleNotifySpent,
+	"session":                   handleSession,
+	"stopnotifyblocks":          handleStopNotifyBlocks,
+	"stopnotifynewtransactions": handleStopNotifyNewTransactions,
+	"stopnotifyspent":           handleStopNotifySpent,
+	"stopnotifyreceived":        handleStopNotifyReceived,
+	"rescan":                    handleRescan,
+	"rescanblocks":              handleRescanBlocks,
 }
 
 // WebsocketHandler handles a new websocket client by creating a new wsClient,
@@ -82,7 +83,9 @@ var wsHandlersBeforeInit = map[string]wsCommandHandler{
 // must be run in a separate goroutine.  It should be invoked from the websocket
 // server handler which runs each new connection in a new goroutine thereby
 // satisfying the requirement.
-func (s *rpcServer) WebsocketHandler(conn *websocket.Conn, remoteAddr string, authenticated bool, isAdmin bool) {
+func (s *rpcServer) WebsocketHandler(conn *websocket.Conn, remoteAddr string,
+	authenticated bool, isAdmin bool) {
+
 	// Clear the read deadline that was set before the websocket hijacked
 	// the connection.
 	conn.SetReadDeadline(timeZeroVal)
@@ -223,76 +226,6 @@ func (m *wsNotificationManager) NotifyBlockDisconnected(block *pfcutil.Block) {
 	}
 }
 
-// NotifyReorganization passes a blockchain reorganization notification for
-// reorganization notification processing.
-func (m *wsNotificationManager) NotifyReorganization(rd *blockchain.ReorganizationNtfnsData) {
-	// As NotifyReorganization will be called by the block manager
-	// and the RPC server may no longer be running, use a select
-	// statement to unblock enqueuing the notification once the RPC
-	// server has begun shutting down.
-	select {
-	case m.queueNotification <- (*notificationReorganization)(rd):
-	case <-m.quit:
-	}
-}
-
-// NotifyWinningTickets passes newly winning tickets for an incoming block
-// to the notification manager for further processing.
-func (m *wsNotificationManager) NotifyWinningTickets(
-	wtnd *WinningTicketsNtfnData) {
-	// As NotifyWinningTickets will be called by the block manager
-	// and the RPC server may no longer be running, use a select
-	// statement to unblock enqueuing the notification once the RPC
-	// server has begun shutting down.
-	select {
-	case m.queueNotification <- (*notificationWinningTickets)(wtnd):
-	case <-m.quit:
-	}
-}
-
-// NotifySpentAndMissedTickets passes ticket spend and missing data for an
-// incoming block from the best chain to the notification manager for block
-// notification processing.
-func (m *wsNotificationManager) NotifySpentAndMissedTickets(
-	tnd *blockchain.TicketNotificationsData) {
-	// As NotifySpentAndMissedTickets will be called by the block manager
-	// and the RPC server may no longer be running, use a select
-	// statement to unblock enqueuing the notification once the RPC
-	// server has begun shutting down.
-	select {
-	case m.queueNotification <- (*notificationSpentAndMissedTickets)(tnd):
-	case <-m.quit:
-	}
-}
-
-// NotifyNewTickets passes a new ticket data for an incoming block from the best
-// chain to the notification manager for block notification processing.
-func (m *wsNotificationManager) NotifyNewTickets(
-	tnd *blockchain.TicketNotificationsData) {
-	// As NotifyNewTickets will be called by the block manager
-	// and the RPC server may no longer be running, use a select
-	// statement to unblock enqueuing the notification once the RPC
-	// server has begun shutting down.
-	select {
-	case m.queueNotification <- (*notificationNewTickets)(tnd):
-	case <-m.quit:
-	}
-}
-
-// NotifyNewTickets passes a new ticket data for an incoming block from the best
-// chain to the notification manager for block notification processing.
-func (m *wsNotificationManager) NotifyStakeDifficulty(
-	stnd *StakeDifficultyNtfnData) {
-	// As NotifyNewTickets will be called by the block manager
-	// and the RPC server may no longer be running, use a select
-	// statement to unblock enqueuing the notification once the RPC
-	// server has begun shutting down.
-	select {
-	case m.queueNotification <- (*notificationStakeDifficulty)(stnd):
-	case <-m.quit:
-	}
-}
-
 // NotifyMempoolTx passes a transaction accepted by mempool to the
 // notification manager for transaction notification processing.  If
 // isNew is true, the tx is is a new transaction, rather than one
@@ -313,23 +246,10 @@ func (m *wsNotificationManager) NotifyMempoolTx(tx *pfcutil.Tx, isNew bool) {
 	}
 }
 
-// WinningTicketsNtfnData is the data that is used to generate
-// winning ticket notifications (which indicate a block and
-// the tickets eligible to vote on it).
-type WinningTicketsNtfnData struct {
-	BlockHash   chainhash.Hash
-	BlockHeight int64
-	Tickets     []chainhash.Hash
-}
-
-// StakeDifficultyNtfnData is the data that is used to generate
-// stake difficulty notifications.
-type StakeDifficultyNtfnData struct {
-	BlockHash       chainhash.Hash
-	BlockHeight     int64
-	StakeDifficulty int64
-}
-
+// wsClientFilter tracks relevant addresses for each websocket client for
+// the `rescanblocks` extension. It is modified by the `loadtxfilter` command.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
 type wsClientFilter struct {
 	mu sync.Mutex
 
@@ -348,7 +268,11 @@ type wsClientFilter struct {
 	unspent map[wire.OutPoint]struct{}
 }
 
-func makeWSClientFilter(addresses []string, unspentOutPoints []*wire.OutPoint) *wsClientFilter {
+// newWSClientFilter creates a new, empty wsClientFilter struct to be used
+// for a websocket client.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
+func newWSClientFilter(addresses []string, unspentOutPoints []wire.OutPoint, params *chaincfg.Params) *wsClientFilter {
 	filter := &wsClientFilter{
 		pubKeyHashes:        map[[ripemd160.Size]byte]struct{}{},
 		scriptHashes:        map[[ripemd160.Size]byte]struct{}{},
@@ -359,15 +283,19 @@ func makeWSClientFilter(addresses []string, unspentOutPoints []*wire.OutPoint) *
 	}
 
 	for _, s := range addresses {
-		filter.addAddressStr(s)
+		filter.addAddressStr(s, params)
 	}
-	for _, op := range unspentOutPoints {
-		filter.addUnspentOutPoint(op)
+	for i := range unspentOutPoints {
+		filter.addUnspentOutPoint(&unspentOutPoints[i])
 	}
 
 	return filter
 }
 
+// addAddress adds an address to a wsClientFilter, treating it correctly based
+// on the type of address passed as an argument.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
 func (f *wsClientFilter) addAddress(a pfcutil.Address) {
 	switch a := a.(type) {
 	case *pfcutil.AddressPubKeyHash:
@@ -376,7 +304,7 @@ func (f *wsClientFilter) addAddress(a pfcutil.Address) {
 	case *pfcutil.AddressScriptHash:
 		f.scriptHashes[*a.Hash160()] = struct{}{}
 		return
-	case *pfcutil.AddressSecpPubKey:
+	case *pfcutil.AddressPubKey:
 		serializedPubKey := a.ScriptAddress()
 		switch len(serializedPubKey) {
 		case 33: // compressed
@@ -395,17 +323,25 @@ func (f *wsClientFilter) addAddress(a pfcutil.Address) {
 	f.otherAddresses[a.EncodeAddress()] = struct{}{}
 }
 
-func (f *wsClientFilter) addAddressStr(s string) {
-	a, err := pfcutil.DecodeAddress(s)
+// addAddressStr parses an address from a string and then adds it to the
+// wsClientFilter using addAddress.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
+func (f *wsClientFilter) addAddressStr(s string, params *chaincfg.Params) {
 	// If address can't be decoded, no point in saving it since it should also
 	// impossible to create the address from an inspected transaction output
 	// script.
+	a, err := pfcutil.DecodeAddress(s, params)
 	if err != nil {
 		return
 	}
 	f.addAddress(a)
 }
 
+// existsAddress returns true if the passed address has been added to the
+// wsClientFilter.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
 func (f *wsClientFilter) existsAddress(a pfcutil.Address) bool {
 	switch a := a.(type) {
 	case *pfcutil.AddressPubKeyHash:
@@ -414,7 +350,7 @@ func (f *wsClientFilter) existsAddress(a pfcutil.Address) bool {
 	case *pfcutil.AddressScriptHash:
 		_, ok := f.scriptHashes[*a.Hash160()]
 		return ok
-	case *pfcutil.AddressSecpPubKey:
+	case *pfcutil.AddressPubKey:
 		serializedPubKey := a.ScriptAddress()
 		switch len(serializedPubKey) {
 		case 33: // compressed
@@ -440,23 +376,77 @@ func (f *wsClientFilter) existsAddress(a pfcutil.Address) bool {
 	return ok
 }
 
+// removeAddress removes the passed address, if it exists, from the
+// wsClientFilter.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
+func (f *wsClientFilter) removeAddress(a pfcutil.Address) {
+	switch a := a.(type) {
+	case *pfcutil.AddressPubKeyHash:
+		delete(f.pubKeyHashes, *a.Hash160())
+		return
+	case *pfcutil.AddressScriptHash:
+		delete(f.scriptHashes, *a.Hash160())
+		return
+	case *pfcutil.AddressPubKey:
+		serializedPubKey := a.ScriptAddress()
+		switch len(serializedPubKey) {
+		case 33: // compressed
+			var compressedPubKey [33]byte
+			copy(compressedPubKey[:], serializedPubKey)
+			delete(f.compressedPubKeys, compressedPubKey)
+			return
+		case 65: // uncompressed
+			var uncompressedPubKey [65]byte
+			copy(uncompressedPubKey[:], serializedPubKey)
+			delete(f.uncompressedPubKeys, uncompressedPubKey)
+			return
+		}
+	}
+
+	delete(f.otherAddresses, a.EncodeAddress())
+}
+
+// removeAddressStr parses an address from a string and then removes it from the
+// wsClientFilter using removeAddress.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
+func (f *wsClientFilter) removeAddressStr(s string, params *chaincfg.Params) {
+	a, err := pfcutil.DecodeAddress(s, params)
+	if err == nil {
+		f.removeAddress(a)
+	} else {
+		delete(f.otherAddresses, s)
+	}
+}
+
+// addUnspentOutPoint adds an outpoint to the wsClientFilter.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
 func (f *wsClientFilter) addUnspentOutPoint(op *wire.OutPoint) {
 	f.unspent[*op] = struct{}{}
 }
 
+// existsUnspentOutPoint returns true if the passed outpoint has been added to
+// the wsClientFilter.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
 func (f *wsClientFilter) existsUnspentOutPoint(op *wire.OutPoint) bool {
 	_, ok := f.unspent[*op]
 	return ok
 }
 
+// removeUnspentOutPoint removes the passed outpoint, if it exists, from the
+// wsClientFilter.
+//
+// NOTE: This extension was ported from github.com/decred/dcrd
+func (f *wsClientFilter) removeUnspentOutPoint(op *wire.OutPoint) {
+	delete(f.unspent, *op)
+}
+
 // Notification types
 type notificationBlockConnected pfcutil.Block
 type notificationBlockDisconnected pfcutil.Block
-type notificationReorganization blockchain.ReorganizationNtfnsData
-type notificationWinningTickets WinningTicketsNtfnData
-type notificationSpentAndMissedTickets blockchain.TicketNotificationsData
-type notificationNewTickets blockchain.TicketNotificationsData
-type notificationStakeDifficulty StakeDifficultyNtfnData
 type notificationTxAcceptedByMempool struct {
 	isNew bool
 	tx    *pfcutil.Tx
@@ -467,16 +457,24 @@ type notificationRegisterClient wsClient
 type notificationUnregisterClient wsClient
 type notificationRegisterBlocks wsClient
 type notificationUnregisterBlocks wsClient
-type notificationRegisterWinningTickets wsClient
-type notificationUnregisterWinningTickets wsClient
-type notificationRegisterSpentAndMissedTickets wsClient
-type notificationUnregisterSpentAndMissedTickets wsClient
-type notificationRegisterNewTickets wsClient
-type notificationUnregisterNewTickets wsClient
-type notificationRegisterStakeDifficulty wsClient
-type notificationUnregisterStakeDifficulty wsClient
 type notificationRegisterNewMempoolTxs wsClient
 type notificationUnregisterNewMempoolTxs wsClient
+type notificationRegisterSpent struct {
+	wsc *wsClient
+	ops []*wire.OutPoint
+}
+type notificationUnregisterSpent struct {
+	wsc *wsClient
+	op  *wire.OutPoint
+}
+type notificationRegisterAddr struct {
+	wsc   *wsClient
+	addrs []string
+}
+type notificationUnregisterAddr struct {
+	wsc  *wsClient
+	addr string
+}
 
 // notificationHandler reads notifications and control messages from the queue
 // handler and processes one at a time.
@@ -492,11 +490,9 @@ func (m *wsNotificationManager) notificationHandler() {
 	// Where possible, the quit channel is used as the unique id for a client
 	// since it is quite a bit more efficient than using the entire struct.
 	blockNotifications := make(map[chan struct{}]*wsClient)
-	winningTicketNotifications := make(map[chan struct{}]*wsClient)
-	ticketSMNotifications := make(map[chan struct{}]*wsClient)
-	ticketNewNotifications := make(map[chan struct{}]*wsClient)
-	stakeDifficultyNotifications := make(map[chan struct{}]*wsClient)
 	txNotifications := make(map[chan struct{}]*wsClient)
+	watchedOutPoints := make(map[wire.OutPoint]map[chan struct{}]*wsClient)
+	watchedAddrs := make(map[string]map[chan struct{}]*wsClient)
 
 out:
 	for {
@@ -510,42 +506,37 @@ out:
 			case *notificationBlockConnected:
 				block := (*pfcutil.Block)(n)
 
-				// Skip iterating through all txs if no tx
-				// notification requests exist.
-				if len(blockNotifications) == 0 {
-					continue
+				// Skip iterating through all txs if no
+				// tx notification requests exist.
+				if len(watchedOutPoints) != 0 || len(watchedAddrs) != 0 {
+					for _, tx := range block.Transactions() {
+						m.notifyForTx(watchedOutPoints,
+							watchedAddrs, tx, block)
+					}
 				}
 
-				m.notifyBlockConnected(blockNotifications, block)
+				if len(blockNotifications) != 0 {
+					m.notifyBlockConnected(blockNotifications,
+						block)
+					m.notifyFilteredBlockConnected(blockNotifications,
+						block)
+				}
 
 			case *notificationBlockDisconnected:
-				m.notifyBlockDisconnected(blockNotifications,
-					(*pfcutil.Block)(n))
+				block := (*pfcutil.Block)(n)
 
-			case *notificationReorganization:
-				m.notifyReorganization(blockNotifications,
-					(*blockchain.ReorganizationNtfnsData)(n))
-
-			case *notificationWinningTickets:
-				m.notifyWinningTickets(winningTicketNotifications,
-					(*WinningTicketsNtfnData)(n))
-
-			case *notificationSpentAndMissedTickets:
-				m.notifySpentAndMissedTickets(ticketSMNotifications,
-					(*blockchain.TicketNotificationsData)(n))
-
-			case *notificationNewTickets:
-				m.notifyNewTickets(ticketNewNotifications,
-					(*blockchain.TicketNotificationsData)(n))
-
-			case *notificationStakeDifficulty:
-				m.notifyStakeDifficulty(stakeDifficultyNotifications,
-					(*StakeDifficultyNtfnData)(n))
+				if len(blockNotifications) != 0 {
+					m.notifyBlockDisconnected(blockNotifications,
+						block)
+					m.notifyFilteredBlockDisconnected(blockNotifications,
+						block)
+				}
 
 			case *notificationTxAcceptedByMempool:
 				if n.isNew && len(txNotifications) != 0 {
 					m.notifyForNewTx(txNotifications, n.tx)
 				}
+				m.notifyForTx(watchedOutPoints, watchedAddrs, n.tx, nil)
 				m.notifyRelevantTxAccepted(n.tx, clients)
 
 			case *notificationRegisterBlocks:
@@ -555,38 +546,6 @@ out:
 			case *notificationUnregisterBlocks:
 				wsc := (*wsClient)(n)
 				delete(blockNotifications, wsc.quit)
-
-			case *notificationRegisterWinningTickets:
-				wsc := (*wsClient)(n)
-				winningTicketNotifications[wsc.quit] = wsc
-
-			case *notificationUnregisterWinningTickets:
-				wsc := (*wsClient)(n)
-				delete(winningTicketNotifications, wsc.quit)
-
-			case *notificationRegisterSpentAndMissedTickets:
-				wsc := (*wsClient)(n)
-				ticketSMNotifications[wsc.quit] = wsc
-
-			case *notificationUnregisterSpentAndMissedTickets:
-				wsc := (*wsClient)(n)
-				delete(ticketSMNotifications, wsc.quit)
-
-			case *notificationRegisterNewTickets:
-				wsc := (*wsClient)(n)
-				ticketNewNotifications[wsc.quit] = wsc
-
-			case *notificationUnregisterNewTickets:
-				wsc := (*wsClient)(n)
-				delete(ticketNewNotifications, wsc.quit)
-
-			case *notificationRegisterStakeDifficulty:
-				wsc := (*wsClient)(n)
-				stakeDifficultyNotifications[wsc.quit] = wsc
-
-			case *notificationUnregisterStakeDifficulty:
-				wsc := (*wsClient)(n)
-				delete(stakeDifficultyNotifications, wsc.quit)
 
 			case *notificationRegisterClient:
 				wsc := (*wsClient)(n)
@@ -598,7 +557,26 @@ out:
 				// the client itself.
 				delete(blockNotifications, wsc.quit)
 				delete(txNotifications, wsc.quit)
+				for k := range wsc.spentRequests {
+					op := k
+					m.removeSpentRequest(watchedOutPoints, wsc, &op)
+				}
+				for addr := range wsc.addrRequests {
+					m.removeAddrRequest(watchedAddrs, wsc, addr)
+				}
 				delete(clients, wsc.quit)
+
+			case *notificationRegisterSpent:
+				m.addSpentRequests(watchedOutPoints, n.wsc, n.ops)
+
+			case *notificationUnregisterSpent:
+				m.removeSpentRequest(watchedOutPoints, n.wsc, n.op)
+
+			case *notificationRegisterAddr:
+				m.addAddrRequests(watchedAddrs, n.wsc, n.addrs)
+
+			case *notificationUnregisterAddr:
+				m.removeAddrRequest(watchedAddrs, n.wsc, n.addr)
 
 			case *notificationRegisterNewMempoolTxs:
 				wsc := (*wsClient)(n)
@@ -652,50 +630,58 @@ func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
 // spending a watched output or outputting to a watched address.  Matching
 // client's filters are updated based on this transaction's outputs and output
 // addresses that may be relevant for a client.
-func (m *wsNotificationManager) subscribedClients(tx *pfcutil.Tx, clients map[chan struct{}]*wsClient) map[chan struct{}]struct{} {
+func (m *wsNotificationManager) subscribedClients(tx *pfcutil.Tx,
+	clients map[chan struct{}]*wsClient) map[chan struct{}]struct{} {
+
 	// Use a map of client quit channels as keys to prevent duplicates when
 	// multiple inputs and/or outputs are relevant to the client.
 	subscribed := make(map[chan struct{}]struct{})
 
 	msgTx := tx.MsgTx()
-	for q, c := range clients {
-		c.Lock()
-		f := c.filterData
-		c.Unlock()
-		if f == nil {
-			continue
-		}
-		f.mu.Lock()
-
-		for _, input := range msgTx.TxIn {
-			if f.existsUnspentOutPoint(&input.PreviousOutPoint) {
-				subscribed[q] = struct{}{}
-			}
-		}
-
-		for i, output := range msgTx.TxOut {
-			_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-				txscript.DefaultScriptVersion,
-				output.PkScript, m.server.server.chainParams)
-			if err != nil {
-				// Clients are not able to subscribe to
-				// nonstandard or non-address outputs.
+	for _, input := range msgTx.TxIn {
+		for quitChan, wsc := range clients {
+			wsc.Lock()
+			filter := wsc.filterData
+			wsc.Unlock()
+			if filter == nil {
 				continue
 			}
+			filter.mu.Lock()
+			if filter.existsUnspentOutPoint(&input.PreviousOutPoint) {
+				subscribed[quitChan] = struct{}{}
+			}
+			filter.mu.Unlock()
+		}
+	}
+
+	for i, output := range msgTx.TxOut {
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
+			output.PkScript, m.server.cfg.ChainParams)
+		if err != nil {
+			// Clients are not able to subscribe to
+			// nonstandard or non-address outputs.
+			continue
+		}
+		for quitChan, wsc := range clients {
+			wsc.Lock()
+			filter := wsc.filterData
+			wsc.Unlock()
+			if filter == nil {
+				continue
+			}
+			filter.mu.Lock()
 			for _, a := range addrs {
-				if f.existsAddress(a) {
-					subscribed[q] = struct{}{}
+				if filter.existsAddress(a) {
+					subscribed[quitChan] = struct{}{}
 					op := wire.OutPoint{
 						Hash:  *tx.Hash(),
 						Index: uint32(i),
-						Tree:  tx.Tree(),
 					}
-					f.addUnspentOutPoint(&op)
+					filter.addUnspentOutPoint(&op)
 				}
 			}
+			filter.mu.Unlock()
 		}
-
-		f.mu.Unlock()
 	}
 
 	return subscribed
@@ -703,56 +689,20 @@ func (m *wsNotificationManager) subscribedClients(tx *pfcutil.Tx, clients map[ch
 
 // notifyBlockConnected notifies websocket clients that have registered for
 // block updates when a block is connected to the main chain.
-func (m *wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient, block *pfcutil.Block) {
-	// Create the common portion of the notification that is the same for
-	// every client.
-	headerBytes, err := block.MsgBlock().Header.Bytes()
+func (*wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient,
+	block *pfcutil.Block) {
+
+	// Notify interested websocket clients about the connected block.
+	ntfn := pfcjson.NewBlockConnectedNtfn(block.Hash().String(), block.Height(),
+		block.MsgBlock().Header.Timestamp.Unix())
+	marshalledJSON, err := pfcjson.MarshalCmd(nil, ntfn)
 	if err != nil {
-		// This should never error.  The header is written to an
-		// in-memory expandable buffer, and given that the block was
-		// just accepted, there should be no issues serializing it.
-		panic(err)
+		rpcsLog.Errorf("Failed to marshal block connected notification: "+
+			"%v", err)
+		return
 	}
-	ntfn := pfcjson.BlockConnectedNtfn{
-		Header:        hex.EncodeToString(headerBytes),
-		SubscribedTxs: nil, // Set individually for each client
-	}
-
-	// Search for relevant transactions for each client and save them
-	// serialized in hex encoding for the notification.
-	subscribedTxs := make(map[chan struct{}][]string)
-	for _, tx := range block.STransactions() {
-		var txHex string
-		for quitChan := range m.subscribedClients(tx, clients) {
-			if txHex == "" {
-				txHex = txHexString(tx.MsgTx())
-			}
-			subscribedTxs[quitChan] = append(subscribedTxs[quitChan], txHex)
-		}
-	}
-	for _, tx := range block.Transactions() {
-		var txHex string
-		for quitChan := range m.subscribedClients(tx, clients) {
-			if txHex == "" {
-				txHex = txHexString(tx.MsgTx())
-			}
-			subscribedTxs[quitChan] = append(subscribedTxs[quitChan], txHex)
-		}
-	}
-
-	for quitChan, client := range clients {
-		// Add all previously discovered relevant transactions for this client,
-		// if any.
-		ntfn.SubscribedTxs = subscribedTxs[quitChan]
-
-		// Marshal and queue notification.
-		marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, &ntfn)
-		if err != nil {
-			rpcsLog.Errorf("Failed to marshal block connected "+
-				"notification: %v", err)
-			continue
-		}
-		client.QueueNotification(marshalledJSON)
+	for _, wsc := range clients {
+		wsc.QueueNotification(marshalledJSON)
 	}
 }
 
@@ -767,18 +717,9 @@ func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]
 	}
 
 	// Notify interested websocket clients about the disconnected block.
-	headerBytes, err := block.MsgBlock().Header.Bytes()
-	if err != nil {
-		// This should never error.  The header is written to an
-		// in-memory expandable buffer, and given that the block was
-		// previously accepted, there should be no issues serializing
-		// it.
-		panic(err)
-	}
-	ntfn := pfcjson.BlockDisconnectedNtfn{
-		Header: hex.EncodeToString(headerBytes),
-	}
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, &ntfn)
+	ntfn := pfcjson.NewBlockDisconnectedNtfn(block.Hash().String(),
+		block.Height(), block.MsgBlock().Header.Timestamp.Unix())
+	marshalledJSON, err := pfcjson.MarshalCmd(nil, ntfn)
 	if err != nil {
 		rpcsLog.Errorf("Failed to marshal block disconnected "+
 			"notification: %v", err)
@@ -789,9 +730,56 @@ func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]
 	}
 }
 
-// notifyReorganization notifies websocket clients that have registered for
-// block updates when the blockchain is beginning a reorganization.
-func (m *wsNotificationManager) notifyReorganization(clients map[chan struct{}]*wsClient, rd *blockchain.ReorganizationNtfnsData) {
+// notifyFilteredBlockConnected notifies websocket clients that have registered for
+// block updates when a block is connected to the main chain.
+func (m *wsNotificationManager) notifyFilteredBlockConnected(clients map[chan struct{}]*wsClient,
+	block *pfcutil.Block) {
+
+	// Create the common portion of the notification that is the same for
+	// every client.
+	var w bytes.Buffer
+	err := block.MsgBlock().Header.Serialize(&w)
+	if err != nil {
+		rpcsLog.Errorf("Failed to serialize header for filtered block "+
+			"connected notification: %v", err)
+		return
+	}
+	ntfn := pfcjson.NewFilteredBlockConnectedNtfn(block.Height(),
+		hex.EncodeToString(w.Bytes()), nil)
+
+	// Search for relevant transactions for each client and save them
+	// serialized in hex encoding for the notification.
+	subscribedTxs := make(map[chan struct{}][]string)
+	for _, tx := range block.Transactions() {
+		var txHex string
+		for quitChan := range m.subscribedClients(tx, clients) {
+			if txHex == "" {
+				txHex = txHexString(tx.MsgTx())
+			}
+			subscribedTxs[quitChan] = append(subscribedTxs[quitChan], txHex)
+		}
+	}
+	for quitChan, wsc := range clients {
+		// Add all discovered transactions for this client. For clients
+		// that have no new-style filter, add the empty string slice.
+		ntfn.SubscribedTxs = subscribedTxs[quitChan]
+
+		// Marshal and queue notification.
+		marshalledJSON, err := pfcjson.MarshalCmd(nil, ntfn)
+		if err != nil {
+			rpcsLog.Errorf("Failed to marshal filtered block "+
+				"connected notification: %v", err)
+			return
+		}
+		wsc.QueueNotification(marshalledJSON)
+	}
+}
+
+// notifyFilteredBlockDisconnected notifies websocket clients that have registered for
+// block updates when a block is disconnected from the main chain (due to a
+// reorganize).
+func (*wsNotificationManager) notifyFilteredBlockDisconnected(clients map[chan struct{}]*wsClient,
+	block *pfcutil.Block) {
 	// Skip notification creation if no clients have requested block
 	// connected/disconnected notifications.
 	if len(clients) == 0 {
@@ -799,160 +787,19 @@ func (m *wsNotificationManager) notifyReorganization(clients map[chan struct{}]*
 	}
 
 	// Notify interested websocket clients about the disconnected block.
-	ntfn := pfcjson.NewReorganizationNtfn(rd.OldHash.String(),
-		int32(rd.OldHeight),
-		rd.NewHash.String(),
-		int32(rd.NewHeight))
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, ntfn)
+	var w bytes.Buffer
+	err := block.MsgBlock().Header.Serialize(&w)
 	if err != nil {
-		rpcsLog.Errorf("Failed to marshal reorganization "+
+		rpcsLog.Errorf("Failed to serialize header for filtered block "+
+			"disconnected notification: %v", err)
+		return
+	}
+	ntfn := pfcjson.NewFilteredBlockDisconnectedNtfn(block.Height(),
+		hex.EncodeToString(w.Bytes()))
+	marshalledJSON, err := pfcjson.MarshalCmd(nil, ntfn)
+	if err != nil {
+		rpcsLog.Errorf("Failed to marshal filtered block disconnected "+
 			"notification: %v", err)
-		return
-	}
-	for _, wsc := range clients {
-		wsc.QueueNotification(marshalledJSON)
-	}
-}
-
-// RegisterWinningTickets requests winning tickets update notifications
-// to the passed websocket client.
-func (m *wsNotificationManager) RegisterWinningTickets(wsc *wsClient) {
-	m.queueNotification <- (*notificationRegisterWinningTickets)(wsc)
-}
-
-// UnregisterWinningTickets removes winning ticket notifications for
-// the passed websocket client.
-func (m *wsNotificationManager) UnregisterWinningTickets(wsc *wsClient) {
-	m.queueNotification <- (*notificationUnregisterWinningTickets)(wsc)
-}
-
-// notifyWinningTickets notifies websocket clients that have registered for
-// winning ticket updates.
-func (*wsNotificationManager) notifyWinningTickets(
-	clients map[chan struct{}]*wsClient, wtnd *WinningTicketsNtfnData) {
-
-	// Create a ticket map to export as JSON.
-	ticketMap := make(map[string]string)
-	for i, ticket := range wtnd.Tickets {
-		ticketMap[strconv.Itoa(i)] = ticket.String()
-	}
-
-	// Notify interested websocket clients about the connected block.
-	ntfn := pfcjson.NewWinningTicketsNtfn(wtnd.BlockHash.String(),
-		int32(wtnd.BlockHeight), ticketMap)
-
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, ntfn)
-	if err != nil {
-		rpcsLog.Errorf("Failed to marshal winning tickets notification: "+
-			"%v", err)
-		return
-	}
-
-	for _, wsc := range clients {
-		wsc.QueueNotification(marshalledJSON)
-	}
-}
-
-// RegisterSpentAndMissedTickets requests spent/missed tickets update notifications
-// to the passed websocket client.
-func (m *wsNotificationManager) RegisterSpentAndMissedTickets(wsc *wsClient) {
-	m.queueNotification <- (*notificationRegisterSpentAndMissedTickets)(wsc)
-}
-
-// UnregisterSpentAndMissedTickets removes spent/missed ticket notifications for
-// the passed websocket client.
-func (m *wsNotificationManager) UnregisterSpentAndMissedTickets(wsc *wsClient) {
-	m.queueNotification <- (*notificationUnregisterSpentAndMissedTickets)(wsc)
-}
-
-// notifySpentAndMissedTickets notifies websocket clients that have registered for
-// spent and missed ticket updates.
-func (*wsNotificationManager) notifySpentAndMissedTickets(clients map[chan struct{}]*wsClient, tnd *blockchain.TicketNotificationsData) {
-	// Create a ticket map to export as JSON.
-	ticketMap := make(map[string]string)
-	for _, ticket := range tnd.TicketsMissed {
-		ticketMap[ticket.String()] = "missed"
-	}
-	for _, ticket := range tnd.TicketsSpent {
-		ticketMap[ticket.String()] = "spent"
-	}
-
-	// Notify interested websocket clients about the connected block.
-	ntfn := pfcjson.NewSpentAndMissedTicketsNtfn(tnd.Hash.String(),
-		int32(tnd.Height), tnd.StakeDifficulty, ticketMap)
-
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, ntfn)
-	if err != nil {
-		rpcsLog.Errorf("Failed to marshal spent and missed tickets "+
-			"notification: %v", err)
-		return
-	}
-
-	for _, wsc := range clients {
-		wsc.QueueNotification(marshalledJSON)
-	}
-}
-
-// RegisterNewTickets requests spent/missed tickets update notifications
-// to the passed websocket client.
-func (m *wsNotificationManager) RegisterNewTickets(wsc *wsClient) {
-	m.queueNotification <- (*notificationRegisterNewTickets)(wsc)
-}
-
-// UnregisterNewTickets removes spent/missed ticket notifications for
-// the passed websocket client.
-func (m *wsNotificationManager) UnregisterNewTickets(wsc *wsClient) {
-	m.queueNotification <- (*notificationUnregisterNewTickets)(wsc)
-}
-
-// RegisterStakeDifficulty requests stake difficulty notifications
-// to the passed websocket client.
-func (m *wsNotificationManager) RegisterStakeDifficulty(wsc *wsClient) {
-	m.queueNotification <- (*notificationRegisterStakeDifficulty)(wsc)
-}
-
-// UnregisterStakeDifficulty removes stake difficulty notifications for
-// the passed websocket client.
-func (m *wsNotificationManager) UnregisterStakeDifficulty(wsc *wsClient) {
-	m.queueNotification <- (*notificationUnregisterStakeDifficulty)(wsc)
-}
-
-// notifyNewTickets notifies websocket clients that have registered for
-// maturing ticket updates.
-func (*wsNotificationManager) notifyNewTickets(clients map[chan struct{}]*wsClient, tnd *blockchain.TicketNotificationsData) {
-	// Create a ticket map to export as JSON.
-	var tickets []string
-	for _, h := range tnd.TicketsNew {
-		tickets = append(tickets, h.String())
-	}
-
-	// Notify interested websocket clients about the connected block.
-	ntfn := pfcjson.NewNewTicketsNtfn(tnd.Hash.String(), int32(tnd.Height),
-		tnd.StakeDifficulty, tickets)
-
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, ntfn)
-	if err != nil {
-		rpcsLog.Errorf("Failed to marshal new tickets notification: "+
-			"%v", err)
-		return
-	}
-	for _, wsc := range clients {
-		wsc.QueueNotification(marshalledJSON)
-	}
-}
-
-// notifyStakeDifficulty notifies websocket clients that have registered for
-// maturing ticket updates.
-func (*wsNotificationManager) notifyStakeDifficulty(clients map[chan struct{}]*wsClient, sdnd *StakeDifficultyNtfnData) {
-	// Notify interested websocket clients about the connected block.
-	ntfn := pfcjson.NewStakeDifficultyNtfn(sdnd.BlockHash.String(),
-		int32(sdnd.BlockHeight),
-		sdnd.StakeDifficulty)
-
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, ntfn)
-	if err != nil {
-		rpcsLog.Errorf("Failed to marshal stake difficulty notification: "+
-			"%v", err)
 		return
 	}
 	for _, wsc := range clients {
@@ -983,12 +830,10 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 		amount += txOut.Value
 	}
 
-	ntfn := pfcjson.NewTxAcceptedNtfn(txHashStr,
-		pfcutil.Amount(amount).ToCoin())
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", nil, ntfn)
+	ntfn := pfcjson.NewTxAcceptedNtfn(txHashStr, pfcutil.Amount(amount).ToPFC())
+	marshalledJSON, err := pfcjson.MarshalCmd(nil, ntfn)
 	if err != nil {
-		rpcsLog.Errorf("Failed to marshal tx notification: %s",
-			err.Error())
+		rpcsLog.Errorf("Failed to marshal tx notification: %s", err.Error())
 		return
 	}
 
@@ -1001,15 +846,15 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 				continue
 			}
 
-			net := m.server.server.chainParams
-			rawTx, err := createTxRawResult(net, mtx, txHashStr,
-				wire.NullBlockIndex, nil, "", 0, 0)
+			net := m.server.cfg.ChainParams
+			rawTx, err := createTxRawResult(net, mtx, txHashStr, nil,
+				"", 0, 0)
 			if err != nil {
 				return
 			}
 
 			verboseNtfn = pfcjson.NewTxAcceptedVerboseNtfn(*rawTx)
-			marshalledJSONVerbose, err = pfcjson.MarshalCmd("1.0", nil,
+			marshalledJSONVerbose, err = pfcjson.MarshalCmd(nil,
 				verboseNtfn)
 			if err != nil {
 				rpcsLog.Errorf("Failed to marshal verbose tx "+
@@ -1023,12 +868,171 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 	}
 }
 
+// RegisterSpentRequests requests a notification when each of the passed
+// outpoints is confirmed spent (contained in a block connected to the main
+// chain) for the passed websocket client.  The request is automatically
+// removed once the notification has been sent.
+func (m *wsNotificationManager) RegisterSpentRequests(wsc *wsClient, ops []*wire.OutPoint) {
+	m.queueNotification <- &notificationRegisterSpent{
+		wsc: wsc,
+		ops: ops,
+	}
+}
+
+// addSpentRequests modifies a map of watched outpoints to sets of websocket
+// clients to add a new request watch all of the outpoints in ops and create
+// and send a notification when spent to the websocket client wsc.
+func (m *wsNotificationManager) addSpentRequests(opMap map[wire.OutPoint]map[chan struct{}]*wsClient,
+	wsc *wsClient, ops []*wire.OutPoint) {
+
+	for _, op := range ops {
+		// Track the request in the client as well so it can be quickly
+		// be removed on disconnect.
+		wsc.spentRequests[*op] = struct{}{}
+
+		// Add the client to the list to notify when the outpoint is seen.
+		// Create the list as needed.
+		cmap, ok := opMap[*op]
+		if !ok {
+			cmap = make(map[chan struct{}]*wsClient)
+			opMap[*op] = cmap
+		}
+		cmap[wsc.quit] = wsc
+	}
+
+	// Check if any transactions spending these outputs already exists in
+	// the mempool, if so send the notification immediately.
+	spends := make(map[chainhash.Hash]*pfcutil.Tx)
+	for _, op := range ops {
+		spend := m.server.cfg.TxMemPool.CheckSpend(*op)
+		if spend != nil {
+			rpcsLog.Debugf("Found existing mempool spend for "+
+				"outpoint<%v>: %v", op, spend.Hash())
+			spends[*spend.Hash()] = spend
+		}
+	}
+
+	for _, spend := range spends {
+		m.notifyForTx(opMap, nil, spend, nil)
+	}
+}
+
+// UnregisterSpentRequest removes a request from the passed websocket client
+// to be notified when the passed outpoint is confirmed spent (contained in a
+// block connected to the main chain).
+func (m *wsNotificationManager) UnregisterSpentRequest(wsc *wsClient, op *wire.OutPoint) {
+	m.queueNotification <- &notificationUnregisterSpent{
+		wsc: wsc,
+		op:  op,
+	}
+}
+
+// removeSpentRequest modifies a map of watched outpoints to remove the
+// websocket client wsc from the set of clients to be notified when a
+// watched outpoint is spent.  If wsc is the last client, the outpoint
+// key is removed from the map.
+func (*wsNotificationManager) removeSpentRequest(ops map[wire.OutPoint]map[chan struct{}]*wsClient,
+	wsc *wsClient, op *wire.OutPoint) {
+
+	// Remove the request tracking from the client.
+	delete(wsc.spentRequests, *op)
+
+	// Remove the client from the list to notify.
+	notifyMap, ok := ops[*op]
+	if !ok {
+		rpcsLog.Warnf("Attempt to remove nonexistent spent request "+
+			"for websocket client %s", wsc.addr)
+		return
+	}
+	delete(notifyMap, wsc.quit)
+
+	// Remove the map entry altogether if there are
+	// no more clients interested in it.
+	if len(notifyMap) == 0 {
+		delete(ops, *op)
+	}
+}
+
 // txHexString returns the serialized transaction encoded in hexadecimal.
 func txHexString(tx *wire.MsgTx) string {
 	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
 	// Ignore Serialize's error, as writing to a bytes.buffer cannot fail.
 	tx.Serialize(buf)
 	return hex.EncodeToString(buf.Bytes())
+}
+
+// blockDetails creates a BlockDetails struct to include in btcws notifications
+// from a block and a transaction's block index.
+func blockDetails(block *pfcutil.Block, txIndex int) *pfcjson.BlockDetails {
+	if block == nil {
+		return nil
+	}
+	return &pfcjson.BlockDetails{
+		Height: block.Height(),
+		Hash:   block.Hash().String(),
+		Index:  txIndex,
+		Time:   block.MsgBlock().Header.Timestamp.Unix(),
+	}
+}
+
+// newRedeemingTxNotification returns a new marshalled redeemingtx notification
+// with the passed parameters.
+func newRedeemingTxNotification(txHex string, index int, block *pfcutil.Block) ([]byte, error) {
+	// Create and marshal the notification.
+	ntfn := pfcjson.NewRedeemingTxNtfn(txHex, blockDetails(block, index))
+	return pfcjson.MarshalCmd(nil, ntfn)
+}
+
+// notifyForTxOuts examines each transaction output, notifying interested
+// websocket clients of the transaction if an output spends to a watched
+// address.  A spent notification request is automatically registered for
+// the client for each matching output.
+func (m *wsNotificationManager) notifyForTxOuts(ops map[wire.OutPoint]map[chan struct{}]*wsClient,
+	addrs map[string]map[chan struct{}]*wsClient, tx *pfcutil.Tx, block *pfcutil.Block) {
+
+	// Nothing to do if nobody is listening for address notifications.
+	if len(addrs) == 0 {
+		return
+	}
+
+	txHex := ""
+	wscNotified := make(map[chan struct{}]struct{})
+	for i, txOut := range tx.MsgTx().TxOut {
+		_, txAddrs, _, err := txscript.ExtractPkScriptAddrs(
+			txOut.PkScript, m.server.cfg.ChainParams)
+		if err != nil {
+			continue
+		}
+
+		for _, txAddr := range txAddrs {
+			cmap, ok := addrs[txAddr.EncodeAddress()]
+			if !ok {
+				continue
+			}
+
+			if txHex == "" {
+				txHex = txHexString(tx.MsgTx())
+			}
+			ntfn := pfcjson.NewRecvTxNtfn(txHex, blockDetails(block,
+				tx.Index()))
+
+			marshalledJSON, err := pfcjson.MarshalCmd(nil, ntfn)
+			if err != nil {
+				rpcsLog.Errorf("Failed to marshal processedtx notification: %v", err)
+				continue
+			}
+
+			op := []*wire.OutPoint{wire.NewOutPoint(tx.Hash(), uint32(i))}
+			for wscQuit, wsc := range cmap {
+				m.addSpentRequests(ops, wsc, op)
+
+				if _, ok := wscNotified[wscQuit]; !ok {
+					wscNotified[wscQuit] = struct{}{}
+					wsc.QueueNotification(marshalledJSON)
+				}
+			}
+		}
+	}
 }
 
 // notifyRelevantTxAccepted examines the inputs and outputs of the passed
@@ -1039,64 +1043,136 @@ func txHexString(tx *wire.MsgTx) string {
 func (m *wsNotificationManager) notifyRelevantTxAccepted(tx *pfcutil.Tx,
 	clients map[chan struct{}]*wsClient) {
 
-	var clientsToNotify map[chan struct{}]*wsClient
-
-	msgTx := tx.MsgTx()
-	for q, c := range clients {
-		c.Lock()
-		f := c.filterData
-		c.Unlock()
-		if f == nil {
-			continue
-		}
-		f.mu.Lock()
-
-		for _, input := range msgTx.TxIn {
-			if f.existsUnspentOutPoint(&input.PreviousOutPoint) {
-				if clientsToNotify == nil {
-					clientsToNotify = make(map[chan struct{}]*wsClient)
-				}
-				clientsToNotify[q] = c
-			}
-		}
-
-		for i, output := range msgTx.TxOut {
-			_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-				output.Version, output.PkScript,
-				m.server.server.chainParams)
-			if err != nil {
-				continue
-			}
-			for _, a := range addrs {
-				if f.existsAddress(a) {
-					if clientsToNotify == nil {
-						clientsToNotify = make(map[chan struct{}]*wsClient)
-					}
-					clientsToNotify[q] = c
-
-					op := wire.OutPoint{
-						Hash:  *tx.Hash(),
-						Index: uint32(i),
-						Tree:  tx.Tree(),
-					}
-					f.addUnspentOutPoint(&op)
-				}
-			}
-		}
-
-		f.mu.Unlock()
-	}
+	clientsToNotify := m.subscribedClients(tx, clients)
 
 	if len(clientsToNotify) != 0 {
-		n := pfcjson.NewRelevantTxAcceptedNtfn(txHexString(msgTx))
-		marshalled, err := pfcjson.MarshalCmd("1.0", nil, n)
+		n := pfcjson.NewRelevantTxAcceptedNtfn(txHexString(tx.MsgTx()))
+		marshalled, err := pfcjson.MarshalCmd(nil, n)
 		if err != nil {
 			rpcsLog.Errorf("Failed to marshal notification: %v", err)
 			return
 		}
-		for _, c := range clientsToNotify {
-			c.QueueNotification(marshalled)
+		for quitChan := range clientsToNotify {
+			clients[quitChan].QueueNotification(marshalled)
 		}
+	}
+}
+
+// notifyForTx examines the inputs and outputs of the passed transaction,
+// notifying websocket clients of outputs spending to a watched address
+// and inputs spending a watched outpoint.
+func (m *wsNotificationManager) notifyForTx(ops map[wire.OutPoint]map[chan struct{}]*wsClient,
+	addrs map[string]map[chan struct{}]*wsClient, tx *pfcutil.Tx, block *pfcutil.Block) {
+
+	if len(ops) != 0 {
+		m.notifyForTxIns(ops, tx, block)
+	}
+	if len(addrs) != 0 {
+		m.notifyForTxOuts(ops, addrs, tx, block)
+	}
+}
+
+// notifyForTxIns examines the inputs of the passed transaction and sends
+// interested websocket clients a redeemingtx notification if any inputs
+// spend a watched output.  If block is non-nil, any matching spent
+// requests are removed.
+func (m *wsNotificationManager) notifyForTxIns(ops map[wire.OutPoint]map[chan struct{}]*wsClient,
+	tx *pfcutil.Tx, block *pfcutil.Block) {
+
+	// Nothing to do if nobody is watching outpoints.
+	if len(ops) == 0 {
+		return
+	}
+
+	txHex := ""
+	wscNotified := make(map[chan struct{}]struct{})
+	for _, txIn := range tx.MsgTx().TxIn {
+		prevOut := &txIn.PreviousOutPoint
+		if cmap, ok := ops[*prevOut]; ok {
+			if txHex == "" {
+				txHex = txHexString(tx.MsgTx())
+			}
+			marshalledJSON, err := newRedeemingTxNotification(txHex, tx.Index(), block)
+			if err != nil {
+				rpcsLog.Warnf("Failed to marshal redeemingtx notification: %v", err)
+				continue
+			}
+			for wscQuit, wsc := range cmap {
+				if block != nil {
+					m.removeSpentRequest(ops, wsc, prevOut)
+				}
+
+				if _, ok := wscNotified[wscQuit]; !ok {
+					wscNotified[wscQuit] = struct{}{}
+					wsc.QueueNotification(marshalledJSON)
+				}
+			}
+		}
+	}
+}
+
+// RegisterTxOutAddressRequests requests notifications to the passed websocket
+// client when a transaction output spends to the passed address.
+func (m *wsNotificationManager) RegisterTxOutAddressRequests(wsc *wsClient, addrs []string) {
+	m.queueNotification <- &notificationRegisterAddr{
+		wsc:   wsc,
+		addrs: addrs,
+	}
+}
+
+// addAddrRequests adds the websocket client wsc to the address to client set
+// addrMap so wsc will be notified for any mempool or block transaction outputs
+// spending to any of the addresses in addrs.
+func (*wsNotificationManager) addAddrRequests(addrMap map[string]map[chan struct{}]*wsClient,
+	wsc *wsClient, addrs []string) {
+
+	for _, addr := range addrs {
+		// Track the request in the client as well so it can be quickly be
+		// removed on disconnect.
+		wsc.addrRequests[addr] = struct{}{}
+
+		// Add the client to the set of clients to notify when the
+		// outpoint is seen.  Create map as needed.
+		cmap, ok := addrMap[addr]
+		if !ok {
+			cmap = make(map[chan struct{}]*wsClient)
+			addrMap[addr] = cmap
+		}
+		cmap[wsc.quit] = wsc
+	}
+}
+
+// UnregisterTxOutAddressRequest removes a request from the passed websocket
+// client to be notified when a transaction spends to the passed address.
+func (m *wsNotificationManager) UnregisterTxOutAddressRequest(wsc *wsClient, addr string) {
+	m.queueNotification <- &notificationUnregisterAddr{
+		wsc:  wsc,
+		addr: addr,
+	}
+}
+
+// removeAddrRequest removes the websocket client wsc from the address to
+// client set addrs so it will no longer receive notification updates for
+// any transaction outputs send to addr.
+func (*wsNotificationManager) removeAddrRequest(addrs map[string]map[chan struct{}]*wsClient,
+	wsc *wsClient, addr string) {
+
+	// Remove the request tracking from the client.
+	delete(wsc.addrRequests, addr)
+
+	// Remove the client from the list to notify.
+	cmap, ok := addrs[addr]
+	if !ok {
+		rpcsLog.Warnf("Attempt to remove nonexistent addr request "+
+			"<%s> for websocket client %s", addr, wsc.addr)
+		return
+	}
+	delete(cmap, wsc.quit)
+
+	// Remove the map entry altogether if there are no more clients
+	// interested in it.
+	if len(cmap) == 0 {
+		delete(addrs, addr)
 	}
 }
 
@@ -1153,18 +1229,21 @@ type wsResponse struct {
 	doneChan chan bool
 }
 
-// wsClient provides an abstraction for handling a websocket client. The overall
-// data flow is split into 3 main goroutines. A websocket manager is used to
-// allow things such as broadcasting requested notifications to all connected
-// websocket clients. Inbound messages are read via the inHandler goroutine and
-// generally dispatched to their own handler. There are two outbound message
-// types - one for responding to client requests and another for async
-// notifications. Responses to client requests use SendMessage which employs a
-// buffered channel thereby limiting the number of outstanding requests that can
-// be made. Notifications are sent via QueueNotification which implements a
-// queue via notificationQueueHandler to ensure sending notifications from other
-// subsystems can't block.  Ultimately, all messages are sent via the
-// outHandler.
+// wsClient provides an abstraction for handling a websocket client.  The
+// overall data flow is split into 3 main goroutines, a possible 4th goroutine
+// for long-running operations (only started if request is made), and a
+// websocket manager which is used to allow things such as broadcasting
+// requested notifications to all connected websocket clients.   Inbound
+// messages are read via the inHandler goroutine and generally dispatched to
+// their own handler.  However, certain potentially long-running operations such
+// as rescans, are sent to the asyncHander goroutine and are limited to one at a
+// time.  There are two outbound message types - one for responding to client
+// requests and another for async notifications.  Responses to client requests
+// use SendMessage which employs a buffered channel thereby limiting the number
+// of outstanding requests that can be made.  Notifications are sent via
+// QueueNotification which implements a queue via notificationQueueHandler to
+// ensure sending notifications from other subsystems can't block.  Ultimately,
+// all messages are sent via the outHandler.
 type wsClient struct {
 	sync.Mutex
 
@@ -1198,6 +1277,19 @@ type wsClient struct {
 	// information about all new transactions.
 	verboseTxUpdates bool
 
+	// addrRequests is a set of addresses the caller has requested to be
+	// notified about.  It is maintained here so all requests can be removed
+	// when a wallet disconnects.  Owned by the notification manager.
+	addrRequests map[string]struct{}
+
+	// spentRequests is a set of unspent Outpoints a wallet has requested
+	// notifications for when they are spent by a processed transaction.
+	// Owned by the notification manager.
+	spentRequests map[wire.OutPoint]struct{}
+
+	// filterData is the new generation transaction filter backported from
+	// github.com/decred/dcrd for the new backported `loadtxfilter` and
+	// `rescanblocks` methods.
 	filterData *wsClientFilter
 
 	// Networking infrastructure.
@@ -1231,436 +1323,153 @@ out:
 			break out
 		}
 
-		var batchedRequest bool
+		var request pfcjson.Request
+		err = json.Unmarshal(msg, &request)
+		if err != nil {
+			if !c.authenticated {
+				break out
+			}
 
-		// Determine request type
-		if bytes.HasPrefix(msg, batchedRequestPrefix) {
-			batchedRequest = true
+			jsonErr := &pfcjson.RPCError{
+				Code:    pfcjson.ErrRPCParse.Code,
+				Message: "Failed to parse request: " + err.Error(),
+			}
+			reply, err := createMarshalledReply(nil, nil, jsonErr)
+			if err != nil {
+				rpcsLog.Errorf("Failed to marshal parse failure "+
+					"reply: %v", err)
+				continue
+			}
+			c.SendMessage(reply, nil)
+			continue
 		}
 
-		// Process a single request
-		if !batchedRequest {
-			var req pfcjson.Request
-			var reply json.RawMessage
-			err = json.Unmarshal(msg, &req)
+		// The JSON-RPC 1.0 spec defines that notifications must have their "id"
+		// set to null and states that notifications do not have a response.
+		//
+		// A JSON-RPC 2.0 notification is a request with "json-rpc":"2.0", and
+		// without an "id" member. The specification states that notifications
+		// must not be responded to. JSON-RPC 2.0 permits the null value as a
+		// valid request id, therefore such requests are not notifications.
+		//
+		// Bitcoin Core serves requests with "id":null or even an absent "id",
+		// and responds to such requests with "id":null in the response.
+		//
+		// Btcd does not respond to any request without and "id" or "id":null,
+		// regardless the indicated JSON-RPC protocol version unless RPC quirks
+		// are enabled. With RPC quirks enabled, such requests will be responded
+		// to if the reqeust does not indicate JSON-RPC version.
+		//
+		// RPC quirks can be enabled by the user to avoid compatibility issues
+		// with software relying on Core's behavior.
+		if request.ID == nil && !(cfg.RPCQuirks && request.Jsonrpc == "") {
+			if !c.authenticated {
+				break out
+			}
+			continue
+		}
+
+		cmd := parseCmd(&request)
+		if cmd.err != nil {
+			if !c.authenticated {
+				break out
+			}
+
+			reply, err := createMarshalledReply(cmd.id, nil, cmd.err)
 			if err != nil {
-				// only process requests from authenticated clients
-				if !c.authenticated {
-					break out
-				}
-
-				jsonErr := &pfcjson.RPCError{
-					Code:    pfcjson.ErrRPCParse.Code,
-					Message: "Failed to parse request: " + err.Error(),
-				}
-				reply, err = createMarshalledReply("1.0", nil, nil, jsonErr)
-				if err != nil {
-					rpcsLog.Errorf("Failed to marshal reply: %v", err)
-					continue
-				}
-				c.SendMessage(reply, nil)
+				rpcsLog.Errorf("Failed to marshal parse failure "+
+					"reply: %v", err)
 				continue
 			}
+			c.SendMessage(reply, nil)
+			continue
+		}
+		rpcsLog.Debugf("Received command <%s> from %s", cmd.method, c.addr)
 
-			if req.Method == "" || req.Params == nil {
-				jsonErr := &pfcjson.RPCError{
-					Code:    pfcjson.ErrRPCInvalidRequest.Code,
-					Message: fmt.Sprintf("Invalid request: malformed"),
-				}
-				reply, err := createMarshalledReply(req.Jsonrpc, req.ID, nil, jsonErr)
-				if err != nil {
-					rpcsLog.Errorf("Failed to marshal reply: %v", err)
-					continue
-				}
-				c.SendMessage(reply, nil)
-				continue
-			}
-
-			// Valid requests with no ID (notifications) must not have a response
-			// per the JSON-RPC spec.
-			if req.ID == nil {
-				if !c.authenticated {
-					break out
-				}
-				continue
-			}
-
-			cmd := parseCmd(&req)
-			if cmd.err != nil {
-				// Only process requests from authenticated clients
-				if !c.authenticated {
-					break out
-				}
-
-				reply, err = createMarshalledReply(cmd.jsonrpc, cmd.id, nil, cmd.err)
-				if err != nil {
-					rpcsLog.Errorf("Failed to marshal reply: %v", err)
-					continue
-				}
-				c.SendMessage(reply, nil)
-				continue
-			}
-
-			rpcsLog.Debugf("Received command <%s> from %s", cmd.method, c.addr)
-
-			// Check auth.  The client is immediately disconnected if the
-			// first request of an unauthentiated websocket client is not
-			// the authenticate request, an authenticate request is received
-			// when the client is already authenticated, or incorrect
-			// authentication credentials are provided in the request.
-			switch authCmd, ok := cmd.cmd.(*pfcjson.AuthenticateCmd); {
-			case c.authenticated && ok:
-				rpcsLog.Warnf("Websocket client %s is already authenticated",
-					c.addr)
+		// Check auth.  The client is immediately disconnected if the
+		// first request of an unauthentiated websocket client is not
+		// the authenticate request, an authenticate request is received
+		// when the client is already authenticated, or incorrect
+		// authentication credentials are provided in the request.
+		switch authCmd, ok := cmd.cmd.(*pfcjson.AuthenticateCmd); {
+		case c.authenticated && ok:
+			rpcsLog.Warnf("Websocket client %s is already authenticated",
+				c.addr)
+			break out
+		case !c.authenticated && !ok:
+			rpcsLog.Warnf("Unauthenticated websocket message " +
+				"received")
+			break out
+		case !c.authenticated:
+			// Check credentials.
+			login := authCmd.Username + ":" + authCmd.Passphrase
+			auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
+			authSha := sha256.Sum256([]byte(auth))
+			cmp := subtle.ConstantTimeCompare(authSha[:], c.server.authsha[:])
+			limitcmp := subtle.ConstantTimeCompare(authSha[:], c.server.limitauthsha[:])
+			if cmp != 1 && limitcmp != 1 {
+				rpcsLog.Warnf("Auth failure.")
 				break out
-			case !c.authenticated && !ok:
-				rpcsLog.Warnf("Unauthenticated websocket message " +
-					"received")
-				break out
-			case !c.authenticated:
-				// Check credentials.
-				login := authCmd.Username + ":" + authCmd.Passphrase
-				auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
-				authSha := sha256.Sum256([]byte(auth))
-				cmp := subtle.ConstantTimeCompare(authSha[:], c.server.authsha[:])
-				limitcmp := subtle.ConstantTimeCompare(authSha[:], c.server.limitauthsha[:])
-				if cmp != 1 && limitcmp != 1 {
-					rpcsLog.Warnf("Auth failure.")
-					break out
-				}
-				c.authenticated = true
-				c.isAdmin = cmp == 1
+			}
+			c.authenticated = true
+			c.isAdmin = cmp == 1
 
+			// Marshal and send response.
+			reply, err := createMarshalledReply(cmd.id, nil, nil)
+			if err != nil {
+				rpcsLog.Errorf("Failed to marshal authenticate reply: "+
+					"%v", err.Error())
+				continue
+			}
+			c.SendMessage(reply, nil)
+			continue
+		}
+
+		// Check if the client is using limited RPC credentials and
+		// error when not authorized to call this RPC.
+		if !c.isAdmin {
+			if _, ok := rpcLimited[request.Method]; !ok {
+				jsonErr := &pfcjson.RPCError{
+					Code:    pfcjson.ErrRPCInvalidParams.Code,
+					Message: "limited user not authorized for this method",
+				}
 				// Marshal and send response.
-				reply, err = createMarshalledReply(cmd.jsonrpc, cmd.id, nil, nil)
+				reply, err := createMarshalledReply(request.ID, nil, jsonErr)
 				if err != nil {
-					rpcsLog.Errorf("Failed to marshal authenticate reply: "+
-						"%v", err.Error())
+					rpcsLog.Errorf("Failed to marshal parse failure "+
+						"reply: %v", err)
 					continue
 				}
 				c.SendMessage(reply, nil)
 				continue
 			}
-
-			// Check if the client is using limited RPC credentials and
-			// error when not authorized to call the supplied RPC.
-			if !c.isAdmin {
-				if _, ok := rpcLimited[req.Method]; !ok {
-					jsonErr := &pfcjson.RPCError{
-						Code:    pfcjson.ErrRPCInvalidParams.Code,
-						Message: "limited user not authorized for this method",
-					}
-					// Marshal and send response.
-					reply, err = createMarshalledReply("", req.ID, nil, jsonErr)
-					if err != nil {
-						rpcsLog.Errorf("Failed to marshal parse failure "+
-							"reply: %v", err)
-						continue
-					}
-					c.SendMessage(reply, nil)
-					continue
-				}
-			}
-
-			// Asynchronously handle the request.  A semaphore is used to
-			// limit the number of concurrent requests currently being
-			// serviced.  If the semaphore can not be acquired, simply wait
-			// until a request finished before reading the next RPC request
-			// from the websocket client.
-			//
-			// This could be a little fancier by timing out and erroring
-			// when it takes too long to service the request, but if that is
-			// done, the read of the next request should not be blocked by
-			// this semaphore, otherwise the next request will be read and
-			// will probably sit here for another few seconds before timing
-			// out as well.  This will cause the total timeout duration for
-			// later requests to be much longer than the check here would
-			// imply.
-			//
-			// If a timeout is added, the semaphore acquiring should be
-			// moved inside of the new goroutine with a select statement
-			// that also reads a time.After channel.  This will unblock the
-			// read of the next request from the websocket client and allow
-			// many requests to be waited on concurrently.
-			c.serviceRequestSem.acquire()
-			go func() {
-				c.serviceRequest(cmd)
-				c.serviceRequestSem.release()
-			}()
 		}
 
-		// Process a batched request
-		if batchedRequest {
-			var batchedRequests []interface{}
-			var results []json.RawMessage
-			var batchSize int
-			var reply json.RawMessage
-			c.serviceRequestSem.acquire()
-			err = json.Unmarshal(msg, &batchedRequests)
-			if err != nil {
-				// Only process requests from authenticated clients
-				if !c.authenticated {
-					break out
-				}
-
-				jsonErr := &pfcjson.RPCError{
-					Code: pfcjson.ErrRPCParse.Code,
-					Message: fmt.Sprintf("Failed to parse request: %v",
-						err),
-				}
-				reply, err = pfcjson.MarshalResponse("2.0", nil, nil, jsonErr)
-				if err != nil {
-					rpcsLog.Errorf("Failed to create reply: %v", err)
-				}
-
-				if reply != nil {
-					results = append(results, reply)
-				}
-			}
-
-			if err == nil {
-				// Response with an empty batch error if the batch size is zero
-				if len(batchedRequests) == 0 {
-					if !c.authenticated {
-						break out
-					}
-
-					jsonErr := &pfcjson.RPCError{
-						Code:    pfcjson.ErrRPCInvalidRequest.Code,
-						Message: fmt.Sprint("Invalid request: empty batch"),
-					}
-					reply, err = pfcjson.MarshalResponse("2.0", nil, nil, jsonErr)
-					if err != nil {
-						rpcsLog.Errorf("Failed to marshal reply: %v", err)
-					}
-
-					if reply != nil {
-						results = append(results, reply)
-					}
-				}
-
-				// Process each batch entry individually
-				if len(batchedRequests) > 0 {
-					batchSize = len(batchedRequests)
-					for _, entry := range batchedRequests {
-						var reqBytes []byte
-						reqBytes, err = json.Marshal(entry)
-						if err != nil {
-							// Only process requests from authenticated clients
-							if !c.authenticated {
-								break out
-							}
-
-							jsonErr := &pfcjson.RPCError{
-								Code: pfcjson.ErrRPCInvalidRequest.Code,
-								Message: fmt.Sprintf("Invalid request: %v",
-									err),
-							}
-							reply, err = pfcjson.MarshalResponse("2.0", nil, nil, jsonErr)
-							if err != nil {
-								rpcsLog.Errorf("Failed to create reply: %v", err)
-								continue
-							}
-
-							if reply != nil {
-								results = append(results, reply)
-							}
-							continue
-						}
-
-						var req pfcjson.Request
-						err := json.Unmarshal(reqBytes, &req)
-						if err != nil {
-							// Only process requests from authenticated clients
-							if !c.authenticated {
-								break out
-							}
-
-							jsonErr := &pfcjson.RPCError{
-								Code: pfcjson.ErrRPCInvalidRequest.Code,
-								Message: fmt.Sprintf("Invalid request: %v",
-									err),
-							}
-							reply, err = pfcjson.MarshalResponse("2.0", nil, nil, jsonErr)
-							if err != nil {
-								rpcsLog.Errorf("Failed to create reply: %v", err)
-								continue
-							}
-
-							if reply != nil {
-								results = append(results, reply)
-							}
-							continue
-						}
-
-						if req.Method == "" || req.Params == nil {
-							jsonErr := &pfcjson.RPCError{
-								Code:    pfcjson.ErrRPCInvalidRequest.Code,
-								Message: fmt.Sprintf("Invalid request: malformed"),
-							}
-							reply, err := createMarshalledReply(req.Jsonrpc, req.ID, nil, jsonErr)
-							if err != nil {
-								rpcsLog.Errorf("Failed to marshal reply: %v", err)
-								continue
-							}
-
-							if reply != nil {
-								results = append(results, reply)
-							}
-							continue
-						}
-
-						// Valid requests with no ID (notifications) must not have a response
-						// per the JSON-RPC spec.
-						if req.ID == nil {
-							if !c.authenticated {
-								break out
-							}
-							continue
-						}
-
-						cmd := parseCmd(&req)
-						if cmd.err != nil {
-							// Only process requests from authenticated clients
-							if !c.authenticated {
-								break out
-							}
-
-							reply, err = createMarshalledReply(cmd.jsonrpc, cmd.id, nil, cmd.err)
-							if err != nil {
-								rpcsLog.Errorf("Failed to marshal reply: %v", err)
-								continue
-							}
-
-							if reply != nil {
-								results = append(results, reply)
-							}
-							continue
-						}
-
-						rpcsLog.Debugf("Received command <%s> from %s", cmd.method, c.addr)
-
-						// Check auth.  The client is immediately disconnected if the
-						// first request of an unauthentiated websocket client is not
-						// the authenticate request, an authenticate request is received
-						// when the client is already authenticated, or incorrect
-						// authentication credentials are provided in the request.
-						switch authCmd, ok := cmd.cmd.(*pfcjson.AuthenticateCmd); {
-						case c.authenticated && ok:
-							rpcsLog.Warnf("Websocket client %s is already authenticated",
-								c.addr)
-							break out
-						case !c.authenticated && !ok:
-							rpcsLog.Warnf("Unauthenticated websocket message " +
-								"received")
-							break out
-						case !c.authenticated:
-							// Check credentials.
-							login := authCmd.Username + ":" + authCmd.Passphrase
-							auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
-							authSha := sha256.Sum256([]byte(auth))
-							cmp := subtle.ConstantTimeCompare(authSha[:], c.server.authsha[:])
-							limitcmp := subtle.ConstantTimeCompare(authSha[:], c.server.limitauthsha[:])
-							if cmp != 1 && limitcmp != 1 {
-								rpcsLog.Warnf("Auth failure.")
-								break out
-							}
-
-							c.authenticated = true
-							c.isAdmin = cmp == 1
-
-							// Marshal and send response.
-							reply, err = createMarshalledReply(cmd.jsonrpc, cmd.id, nil, nil)
-							if err != nil {
-								rpcsLog.Errorf("Failed to marshal authenticate reply: "+
-									"%v", err.Error())
-								continue
-							}
-
-							if reply != nil {
-								results = append(results, reply)
-							}
-							continue
-						}
-
-						// Check if the client is using limited RPC credentials and
-						// error when not authorized to call the supplied RPC.
-						if !c.isAdmin {
-							if _, ok := rpcLimited[req.Method]; !ok {
-								jsonErr := &pfcjson.RPCError{
-									Code:    pfcjson.ErrRPCInvalidParams.Code,
-									Message: "limited user not authorized for this method",
-								}
-								// Marshal and send response.
-								reply, err = createMarshalledReply(req.Jsonrpc, req.ID, nil, jsonErr)
-								if err != nil {
-									rpcsLog.Errorf("Failed to marshal parse failure "+
-										"reply: %v", err)
-									continue
-								}
-
-								if reply != nil {
-									results = append(results, reply)
-								}
-								continue
-							}
-						}
-
-						// Lookup the websocket extension for the command, if it doesn't
-						// exist fallback to handling the command as a standard command.
-						var resp interface{}
-						wsHandler, ok := wsHandlers[cmd.method]
-						if ok {
-							resp, err = wsHandler(c, cmd.cmd)
-						} else {
-							resp, err = c.server.standardCmdResult(cmd, nil)
-						}
-
-						// Marshal request output.
-						reply, err := createMarshalledReply(cmd.jsonrpc, cmd.id, resp, err)
-						if err != nil {
-							rpcsLog.Errorf("Failed to marshal reply for <%s> "+
-								"command: %v", cmd.method, err)
-							return
-						}
-
-						if reply != nil {
-							results = append(results, reply)
-						}
-					}
-				}
-			}
-
-			// generate reply
-			var payload = []byte{}
-			if batchedRequest && batchSize > 0 {
-				if len(results) > 0 {
-					// Form the batched response json
-					var buffer bytes.Buffer
-					buffer.WriteByte('[')
-					for idx, marshalledReply := range results {
-						if idx == len(results)-1 {
-							buffer.Write(marshalledReply)
-							buffer.WriteByte(']')
-							break
-						}
-						buffer.Write(marshalledReply)
-						buffer.WriteByte(',')
-					}
-					payload = buffer.Bytes()
-				}
-			}
-
-			if !batchedRequest || batchSize == 0 {
-				// Respond with the first results entry for single requests
-				if len(results) > 0 {
-					payload = results[0]
-				}
-			}
-
-			c.SendMessage(payload, nil)
+		// Asynchronously handle the request.  A semaphore is used to
+		// limit the number of concurrent requests currently being
+		// serviced.  If the semaphore can not be acquired, simply wait
+		// until a request finished before reading the next RPC request
+		// from the websocket client.
+		//
+		// This could be a little fancier by timing out and erroring
+		// when it takes too long to service the request, but if that is
+		// done, the read of the next request should not be blocked by
+		// this semaphore, otherwise the next request will be read and
+		// will probably sit here for another few seconds before timing
+		// out as well.  This will cause the total timeout duration for
+		// later requests to be much longer than the check here would
+		// imply.
+		//
+		// If a timeout is added, the semaphore acquiring should be
+		// moved inside of the new goroutine with a select statement
+		// that also reads a time.After channel.  This will unblock the
+		// read of the next request from the websocket client and allow
+		// many requests to be waited on concurrently.
+		c.serviceRequestSem.acquire()
+		go func() {
+			c.serviceRequest(cmd)
 			c.serviceRequestSem.release()
-		}
+		}()
 	}
 
 	// Ensure the connection is closed.
@@ -1670,8 +1479,8 @@ out:
 }
 
 // serviceRequest services a parsed RPC request by looking up and executing the
-// appropriate RPC handler.  The response is marshalled and sent to the websocket
-// client.
+// appropriate RPC handler.  The response is marshalled and sent to the
+// websocket client.
 func (c *wsClient) serviceRequest(r *parsedRPCCmd) {
 	var (
 		result interface{}
@@ -1686,13 +1495,12 @@ func (c *wsClient) serviceRequest(r *parsedRPCCmd) {
 	} else {
 		result, err = c.server.standardCmdResult(r, nil)
 	}
-	reply, err := createMarshalledReply(r.jsonrpc, r.id, result, err)
+	reply, err := createMarshalledReply(r.id, result, err)
 	if err != nil {
 		rpcsLog.Errorf("Failed to marshal reply for <%s> "+
 			"command: %v", r.method, err)
 		return
 	}
-
 	c.SendMessage(reply, nil)
 }
 
@@ -1915,6 +1723,8 @@ func newWebsocketClient(server *rpcServer, conn *websocket.Conn,
 		isAdmin:           isAdmin,
 		sessionID:         sessionID,
 		server:            server,
+		addrRequests:      make(map[string]struct{}),
+		spentRequests:     make(map[wire.OutPoint]struct{}),
 		serviceRequestSem: makeSemaphore(cfg.RPCMaxConcurrentReqs),
 		ntfnChan:          make(chan []byte, 1), // nonblocking sync
 		sendChan:          make(chan wsResponse, websocketSendBufferSize),
@@ -1940,7 +1750,7 @@ func handleWebsocketHelp(wsc *wsClient, icmd interface{}) (interface{}, error) {
 		usage, err := wsc.server.helpCacher.rpcUsage(true)
 		if err != nil {
 			context := "Failed to generate RPC usage"
-			return nil, rpcInternalError(err.Error(), context)
+			return nil, internalRPCError(err.Error(), context)
 		}
 		return usage, nil
 	}
@@ -1965,17 +1775,19 @@ func handleWebsocketHelp(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	help, err := wsc.server.helpCacher.rpcMethodHelp(command)
 	if err != nil {
 		context := "Failed to generate help"
-		return nil, rpcInternalError(err.Error(), context)
+		return nil, internalRPCError(err.Error(), context)
 	}
 	return help, nil
 }
 
 // handleLoadTxFilter implements the loadtxfilter command extension for
 // websocket connections.
+//
+// NOTE: This extension is ported from github.com/decred/dcrd
 func handleLoadTxFilter(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	cmd := icmd.(*pfcjson.LoadTxFilterCmd)
 
-	outPoints := make([]*wire.OutPoint, len(cmd.OutPoints))
+	outPoints := make([]wire.OutPoint, len(cmd.OutPoints))
 	for i := range cmd.OutPoints {
 		hash, err := chainhash.NewHashFromStr(cmd.OutPoints[i].Hash)
 		if err != nil {
@@ -1984,29 +1796,30 @@ func handleLoadTxFilter(wsc *wsClient, icmd interface{}) (interface{}, error) {
 				Message: err.Error(),
 			}
 		}
-		outPoints[i] = &wire.OutPoint{
+		outPoints[i] = wire.OutPoint{
 			Hash:  *hash,
 			Index: cmd.OutPoints[i].Index,
-			Tree:  cmd.OutPoints[i].Tree,
 		}
 	}
 
+	params := wsc.server.cfg.ChainParams
+
 	wsc.Lock()
 	if cmd.Reload || wsc.filterData == nil {
-		wsc.filterData = makeWSClientFilter(cmd.Addresses, outPoints)
+		wsc.filterData = newWSClientFilter(cmd.Addresses, outPoints,
+			params)
 		wsc.Unlock()
 	} else {
-		filter := wsc.filterData
 		wsc.Unlock()
 
-		filter.mu.Lock()
+		wsc.filterData.mu.Lock()
 		for _, a := range cmd.Addresses {
-			filter.addAddressStr(a)
+			wsc.filterData.addAddressStr(a, params)
 		}
-		for _, op := range outPoints {
-			filter.addUnspentOutPoint(op)
+		for i := range outPoints {
+			wsc.filterData.addUnspentOutPoint(&outPoints[i])
 		}
-		filter.mu.Unlock()
+		wsc.filterData.mu.Unlock()
 	}
 
 	return nil, nil
@@ -2025,38 +1838,27 @@ func handleSession(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	return &pfcjson.SessionResult{SessionID: wsc.sessionID}, nil
 }
 
-// handleWinningTickets implements the notifywinningtickets command
-// extension for websocket connections.
-func handleWinningTickets(wsc *wsClient, icmd interface{}) (interface{}, error) {
-	wsc.server.ntfnMgr.RegisterWinningTickets(wsc)
-	return nil, nil
-}
-
-// handleSpentAndMissedTickets implements the notifyspentandmissedtickets command
-// extension for websocket connections.
-func handleSpentAndMissedTickets(wsc *wsClient, icmd interface{}) (interface{}, error) {
-	wsc.server.ntfnMgr.RegisterSpentAndMissedTickets(wsc)
-	return nil, nil
-}
-
-// handleNewTickets implements the notifynewtickets command extension for
-// websocket connections.
-func handleNewTickets(wsc *wsClient, icmd interface{}) (interface{}, error) {
-	wsc.server.ntfnMgr.RegisterNewTickets(wsc)
-	return nil, nil
-}
-
-// handleStakeDifficulty implements the notifystakedifficulty command extension
-// for websocket connections.
-func handleStakeDifficulty(wsc *wsClient, icmd interface{}) (interface{}, error) {
-	wsc.server.ntfnMgr.RegisterStakeDifficulty(wsc)
-	return nil, nil
-}
-
 // handleStopNotifyBlocks implements the stopnotifyblocks command extension for
 // websocket connections.
 func handleStopNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	wsc.server.ntfnMgr.UnregisterBlockUpdates(wsc)
+	return nil, nil
+}
+
+// handleNotifySpent implements the notifyspent command extension for
+// websocket connections.
+func handleNotifySpent(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*pfcjson.NotifySpentCmd)
+	if !ok {
+		return nil, pfcjson.ErrRPCInternal
+	}
+
+	outpoints, err := deserializeOutpoints(cmd.OutPoints)
+	if err != nil {
+		return nil, err
+	}
+
+	wsc.server.ntfnMgr.RegisterSpentRequests(wsc, outpoints)
 	return nil, nil
 }
 
@@ -2080,53 +1882,302 @@ func handleStopNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface
 	return nil, nil
 }
 
-// rescanBlock rescans a block for any relevant transactions for the passed
-// lookup keys.  Any discovered transactions are returned hex encoded as a
-// string slice.
-func rescanBlock(filter *wsClientFilter, block *pfcutil.Block) []string {
+// handleNotifyReceived implements the notifyreceived command extension for
+// websocket connections.
+func handleNotifyReceived(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*pfcjson.NotifyReceivedCmd)
+	if !ok {
+		return nil, pfcjson.ErrRPCInternal
+	}
+
+	// Decode addresses to validate input, but the strings slice is used
+	// directly if these are all ok.
+	err := checkAddressValidity(cmd.Addresses, wsc.server.cfg.ChainParams)
+	if err != nil {
+		return nil, err
+	}
+
+	wsc.server.ntfnMgr.RegisterTxOutAddressRequests(wsc, cmd.Addresses)
+	return nil, nil
+}
+
+// handleStopNotifySpent implements the stopnotifyspent command extension for
+// websocket connections.
+func handleStopNotifySpent(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*pfcjson.StopNotifySpentCmd)
+	if !ok {
+		return nil, pfcjson.ErrRPCInternal
+	}
+
+	outpoints, err := deserializeOutpoints(cmd.OutPoints)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, outpoint := range outpoints {
+		wsc.server.ntfnMgr.UnregisterSpentRequest(wsc, outpoint)
+	}
+
+	return nil, nil
+}
+
+// handleStopNotifyReceived implements the stopnotifyreceived command extension
+// for websocket connections.
+func handleStopNotifyReceived(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*pfcjson.StopNotifyReceivedCmd)
+	if !ok {
+		return nil, pfcjson.ErrRPCInternal
+	}
+
+	// Decode addresses to validate input, but the strings slice is used
+	// directly if these are all ok.
+	err := checkAddressValidity(cmd.Addresses, wsc.server.cfg.ChainParams)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, addr := range cmd.Addresses {
+		wsc.server.ntfnMgr.UnregisterTxOutAddressRequest(wsc, addr)
+	}
+
+	return nil, nil
+}
+
+// checkAddressValidity checks the validity of each address in the passed
+// string slice. It does this by attempting to decode each address using the
+// current active network parameters. If any single address fails to decode
+// properly, the function returns an error. Otherwise, nil is returned.
+func checkAddressValidity(addrs []string, params *chaincfg.Params) error {
+	for _, addr := range addrs {
+		_, err := pfcutil.DecodeAddress(addr, params)
+		if err != nil {
+			return &pfcjson.RPCError{
+				Code: pfcjson.ErrRPCInvalidAddressOrKey,
+				Message: fmt.Sprintf("Invalid address or key: %v",
+					addr),
+			}
+		}
+	}
+	return nil
+}
+
+// deserializeOutpoints deserializes each serialized outpoint.
+func deserializeOutpoints(serializedOuts []pfcjson.OutPoint) ([]*wire.OutPoint, error) {
+	outpoints := make([]*wire.OutPoint, 0, len(serializedOuts))
+	for i := range serializedOuts {
+		blockHash, err := chainhash.NewHashFromStr(serializedOuts[i].Hash)
+		if err != nil {
+			return nil, rpcDecodeHexError(serializedOuts[i].Hash)
+		}
+		index := serializedOuts[i].Index
+		outpoints = append(outpoints, wire.NewOutPoint(blockHash, index))
+	}
+
+	return outpoints, nil
+}
+
+type rescanKeys struct {
+	addrs   map[string]struct{}
+	unspent map[wire.OutPoint]struct{}
+}
+
+// unspentSlice returns a slice of currently-unspent outpoints for the rescan
+// lookup keys.  This is primarily intended to be used to register outpoints
+// for continuous notifications after a rescan has completed.
+func (r *rescanKeys) unspentSlice() []*wire.OutPoint {
+	ops := make([]*wire.OutPoint, 0, len(r.unspent))
+	for op := range r.unspent {
+		opCopy := op
+		ops = append(ops, &opCopy)
+	}
+	return ops
+}
+
+// ErrRescanReorg defines the error that is returned when an unrecoverable
+// reorganize is detected during a rescan.
+var ErrRescanReorg = pfcjson.RPCError{
+	Code:    pfcjson.ErrRPCDatabase,
+	Message: "Reorganize",
+}
+
+// rescanBlock rescans all transactions in a single block.  This is a helper
+// function for handleRescan.
+func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *pfcutil.Block) {
+	for _, tx := range blk.Transactions() {
+		// Hexadecimal representation of this tx.  Only created if
+		// needed, and reused for later notifications if already made.
+		var txHex string
+
+		// All inputs and outputs must be iterated through to correctly
+		// modify the unspent map, however, just a single notification
+		// for any matching transaction inputs or outputs should be
+		// created and sent.
+		spentNotified := false
+		recvNotified := false
+
+		// notifySpend is a closure we'll use when we first detect that
+		// a transactions spends an outpoint/script in our filter list.
+		notifySpend := func() error {
+			if txHex == "" {
+				txHex = txHexString(tx.MsgTx())
+			}
+			marshalledJSON, err := newRedeemingTxNotification(
+				txHex, tx.Index(), blk,
+			)
+			if err != nil {
+				return fmt.Errorf("unable to marshal "+
+					"pfcjson.RedeeminTxNtfn: %v", err)
+			}
+
+			return wsc.QueueNotification(marshalledJSON)
+		}
+
+		// We'll start by iterating over the transaction's inputs to
+		// determine if it spends an outpoint/script in our filter list.
+		for _, txin := range tx.MsgTx().TxIn {
+			// If it spends an outpoint, we'll dispatch a spend
+			// notification for the transaction.
+			if _, ok := lookups.unspent[txin.PreviousOutPoint]; ok {
+				delete(lookups.unspent, txin.PreviousOutPoint)
+
+				if spentNotified {
+					continue
+				}
+
+				err := notifySpend()
+
+				// Stop the rescan early if the websocket client
+				// disconnected.
+				if err == ErrClientQuit {
+					return
+				}
+				if err != nil {
+					rpcsLog.Errorf("Unable to notify "+
+						"redeeming transaction %v: %v",
+						tx.Hash(), err)
+					continue
+				}
+
+				spentNotified = true
+			}
+
+			// We'll also recompute the pkScript the input is
+			// attempting to spend to determine whether it is
+			// relevant to us.
+			pkScript, err := txscript.ComputePkScript(
+				txin.SignatureScript, txin.Witness,
+			)
+			if err != nil {
+				continue
+			}
+			addr, err := pkScript.Address(wsc.server.cfg.ChainParams)
+			if err != nil {
+				continue
+			}
+
+			// If it is, we'll also dispatch a spend notification
+			// for this transaction if we haven't already.
+			if _, ok := lookups.addrs[addr.String()]; ok {
+				if spentNotified {
+					continue
+				}
+
+				err := notifySpend()
+
+				// Stop the rescan early if the websocket client
+				// disconnected.
+				if err == ErrClientQuit {
+					return
+				}
+				if err != nil {
+					rpcsLog.Errorf("Unable to notify "+
+						"redeeming transaction %v: %v",
+						tx.Hash(), err)
+					continue
+				}
+
+				spentNotified = true
+			}
+		}
+
+		for txOutIdx, txout := range tx.MsgTx().TxOut {
+			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
+				txout.PkScript, wsc.server.cfg.ChainParams)
+
+			for _, addr := range addrs {
+				if _, ok := lookups.addrs[addr.String()]; !ok {
+					continue
+				}
+
+				outpoint := wire.OutPoint{
+					Hash:  *tx.Hash(),
+					Index: uint32(txOutIdx),
+				}
+				lookups.unspent[outpoint] = struct{}{}
+
+				if recvNotified {
+					continue
+				}
+
+				if txHex == "" {
+					txHex = txHexString(tx.MsgTx())
+				}
+				ntfn := pfcjson.NewRecvTxNtfn(txHex,
+					blockDetails(blk, tx.Index()))
+
+				marshalledJSON, err := pfcjson.MarshalCmd(nil, ntfn)
+				if err != nil {
+					rpcsLog.Errorf("Failed to marshal recvtx notification: %v", err)
+					return
+				}
+
+				err = wsc.QueueNotification(marshalledJSON)
+				// Stop the rescan early if the websocket client
+				// disconnected.
+				if err == ErrClientQuit {
+					return
+				}
+				recvNotified = true
+			}
+		}
+	}
+}
+
+// rescanBlockFilter rescans a block for any relevant transactions for the
+// passed lookup keys. Any discovered transactions are returned hex encoded as
+// a string slice.
+//
+// NOTE: This extension is ported from github.com/decred/dcrd
+func rescanBlockFilter(filter *wsClientFilter, block *pfcutil.Block, params *chaincfg.Params) []string {
 	var transactions []string
 
-	// Need to iterate over both the stake and regular transactions in a
-	// block, but these are two different slices in the MsgTx.  To avoid
-	// another allocation to create a single slice to range over, the loop
-	// body logic is run from a closure.
-	//
-	// This makes unsynchronized calls to the filter and thus must only be
-	// called with the filter mutex held.
-	checkTransaction := func(tx *wire.MsgTx, tree int8) {
+	filter.mu.Lock()
+	for _, tx := range block.Transactions() {
+		msgTx := tx.MsgTx()
+
 		// Keep track of whether the transaction has already been added
 		// to the result.  It shouldn't be added twice.
 		added := false
 
-		inputs := tx.TxIn
-		if tree == wire.TxTreeRegular {
-			// Skip previous output checks for coinbase inputs.  These do
-			// not reference a previous output.
-			if blockchain.IsCoinBaseTx(tx) {
-				goto LoopOutputs
-			}
-		} else {
-			if stake.DetermineTxType(tx) == stake.TxTypeSSGen {
-				// Skip the first stakebase input.  These do not
-				// reference a previous output.
-				inputs = inputs[1:]
-			}
-		}
-		for _, input := range inputs {
-			if !filter.existsUnspentOutPoint(&input.PreviousOutPoint) {
-				continue
-			}
-			if !added {
-				transactions = append(transactions, txHexString(tx))
-				added = true
+		// Scan inputs if not a coinbase transaction.
+		if !blockchain.IsCoinBaseTx(msgTx) {
+			for _, input := range msgTx.TxIn {
+				if !filter.existsUnspentOutPoint(&input.PreviousOutPoint) {
+					continue
+				}
+				if !added {
+					transactions = append(
+						transactions,
+						txHexString(msgTx))
+					added = true
+				}
 			}
 		}
 
-	LoopOutputs:
-		for i, output := range tx.TxOut {
+		// Scan outputs.
+		for i, output := range msgTx.TxOut {
 			_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-				output.Version, output.PkScript,
-				activeNetParams.Params)
+				output.PkScript, params)
 			if err != nil {
 				continue
 			}
@@ -2136,37 +2187,31 @@ func rescanBlock(filter *wsClientFilter, block *pfcutil.Block) []string {
 				}
 
 				op := wire.OutPoint{
-					Hash:  tx.TxHash(),
+					Hash:  *tx.Hash(),
 					Index: uint32(i),
-					Tree:  tree,
 				}
 				filter.addUnspentOutPoint(&op)
 
 				if !added {
-					transactions = append(transactions, txHexString(tx))
+					transactions = append(
+						transactions,
+						txHexString(msgTx))
 					added = true
 				}
 			}
 		}
-	}
-
-	msgBlock := block.MsgBlock()
-	filter.mu.Lock()
-	for _, tx := range msgBlock.STransactions {
-		checkTransaction(tx, wire.TxTreeStake)
-	}
-	for _, tx := range msgBlock.Transactions {
-		checkTransaction(tx, wire.TxTreeRegular)
 	}
 	filter.mu.Unlock()
 
 	return transactions
 }
 
-// handleRescan implements the rescan command extension for websocket
-// connections.
-func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
-	cmd, ok := icmd.(*pfcjson.RescanCmd)
+// handleRescanBlocks implements the rescanblocks command extension for
+// websocket connections.
+//
+// NOTE: This extension is ported from github.com/decred/dcrd
+func handleRescanBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*pfcjson.RescanBlocksCmd)
 	if !ok {
 		return nil, pfcjson.ErrRPCInternal
 	}
@@ -2182,19 +2227,25 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 		}
 	}
 
-	blockHashes, err := pfcjson.DecodeConcatenatedHashes(cmd.BlockHashes)
-	if err != nil {
-		return nil, err
+	blockHashes := make([]*chainhash.Hash, len(cmd.BlockHashes))
+
+	for i := range cmd.BlockHashes {
+		hash, err := chainhash.NewHashFromStr(cmd.BlockHashes[i])
+		if err != nil {
+			return nil, err
+		}
+		blockHashes[i] = hash
 	}
 
 	discoveredData := make([]pfcjson.RescannedBlock, 0, len(blockHashes))
 
 	// Iterate over each block in the request and rescan.  When a block
 	// contains relevant transactions, add it to the response.
-	bc := wsc.server.server.blockManager.chain
+	bc := wsc.server.cfg.Chain
+	params := wsc.server.cfg.ChainParams
 	var lastBlockHash *chainhash.Hash
 	for i := range blockHashes {
-		block, err := bc.BlockByHash(&blockHashes[i])
+		block, err := bc.BlockByHash(blockHashes[i])
 		if err != nil {
 			return nil, &pfcjson.RPCError{
 				Code:    pfcjson.ErrRPCBlockNotFound,
@@ -2205,21 +2256,391 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 			return nil, &pfcjson.RPCError{
 				Code: pfcjson.ErrRPCInvalidParameter,
 				Message: fmt.Sprintf("Block %v is not a child of %v",
-					&blockHashes[i], lastBlockHash),
+					blockHashes[i], lastBlockHash),
 			}
 		}
-		lastBlockHash = &blockHashes[i]
+		lastBlockHash = blockHashes[i]
 
-		transactions := rescanBlock(filter, block)
+		transactions := rescanBlockFilter(filter, block, params)
 		if len(transactions) != 0 {
 			discoveredData = append(discoveredData, pfcjson.RescannedBlock{
-				Hash:         blockHashes[i].String(),
+				Hash:         cmd.BlockHashes[i],
 				Transactions: transactions,
 			})
 		}
 	}
 
-	return &pfcjson.RescanResult{DiscoveredData: discoveredData}, nil
+	return &discoveredData, nil
+}
+
+// recoverFromReorg attempts to recover from a detected reorganize during a
+// rescan.  It fetches a new range of block shas from the database and
+// verifies that the new range of blocks is on the same fork as a previous
+// range of blocks.  If this condition does not hold true, the JSON-RPC error
+// for an unrecoverable reorganize is returned.
+func recoverFromReorg(chain *blockchain.BlockChain, minBlock, maxBlock int32,
+	lastBlock *chainhash.Hash) ([]chainhash.Hash, error) {
+
+	hashList, err := chain.HeightRange(minBlock, maxBlock)
+	if err != nil {
+		rpcsLog.Errorf("Error looking up block range: %v", err)
+		return nil, &pfcjson.RPCError{
+			Code:    pfcjson.ErrRPCDatabase,
+			Message: "Database error: " + err.Error(),
+		}
+	}
+	if lastBlock == nil || len(hashList) == 0 {
+		return hashList, nil
+	}
+
+	blk, err := chain.BlockByHash(&hashList[0])
+	if err != nil {
+		rpcsLog.Errorf("Error looking up possibly reorged block: %v",
+			err)
+		return nil, &pfcjson.RPCError{
+			Code:    pfcjson.ErrRPCDatabase,
+			Message: "Database error: " + err.Error(),
+		}
+	}
+	jsonErr := descendantBlock(lastBlock, blk)
+	if jsonErr != nil {
+		return nil, jsonErr
+	}
+	return hashList, nil
+}
+
+// descendantBlock returns the appropriate JSON-RPC error if a current block
+// fetched during a reorganize is not a direct child of the parent block hash.
+func descendantBlock(prevHash *chainhash.Hash, curBlock *pfcutil.Block) error {
+	curHash := &curBlock.MsgBlock().Header.PrevBlock
+	if !prevHash.IsEqual(curHash) {
+		rpcsLog.Errorf("Stopping rescan for reorged block %v "+
+			"(replaced by block %v)", prevHash, curHash)
+		return &ErrRescanReorg
+	}
+	return nil
+}
+
+// scanBlockChunks executes a rescan in chunked stages. We do this to limit the
+// amount of memory that we'll allocate to a given rescan. Every so often,
+// we'll send back a rescan progress notification to the websockets client. The
+// final block and block hash that we've scanned will be returned.
+func scanBlockChunks(wsc *wsClient, cmd *pfcjson.RescanCmd, lookups *rescanKeys, minBlock,
+	maxBlock int32, chain *blockchain.BlockChain) (
+	*pfcutil.Block, *chainhash.Hash, error) {
+
+	// lastBlock and lastBlockHash track the previously-rescanned block.
+	// They equal nil when no previous blocks have been rescanned.
+	var (
+		lastBlock     *pfcutil.Block
+		lastBlockHash *chainhash.Hash
+	)
+
+	// A ticker is created to wait at least 10 seconds before notifying the
+	// websocket client of the current progress completed by the rescan.
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	// Instead of fetching all block shas at once, fetch in smaller chunks
+	// to ensure large rescans consume a limited amount of memory.
+fetchRange:
+	for minBlock < maxBlock {
+		// Limit the max number of hashes to fetch at once to the
+		// maximum number of items allowed in a single inventory.
+		// This value could be higher since it's not creating inventory
+		// messages, but this mirrors the limiting logic used in the
+		// peer-to-peer protocol.
+		maxLoopBlock := maxBlock
+		if maxLoopBlock-minBlock > wire.MaxInvPerMsg {
+			maxLoopBlock = minBlock + wire.MaxInvPerMsg
+		}
+		hashList, err := chain.HeightRange(minBlock, maxLoopBlock)
+		if err != nil {
+			rpcsLog.Errorf("Error looking up block range: %v", err)
+			return nil, nil, &pfcjson.RPCError{
+				Code:    pfcjson.ErrRPCDatabase,
+				Message: "Database error: " + err.Error(),
+			}
+		}
+		if len(hashList) == 0 {
+			// The rescan is finished if no blocks hashes for this
+			// range were successfully fetched and a stop block
+			// was provided.
+			if maxBlock != math.MaxInt32 {
+				break
+			}
+
+			// If the rescan is through the current block, set up
+			// the client to continue to receive notifications
+			// regarding all rescanned addresses and the current set
+			// of unspent outputs.
+			//
+			// This is done safely by temporarily grabbing exclusive
+			// access of the block manager.  If no more blocks have
+			// been attached between this pause and the fetch above,
+			// then it is safe to register the websocket client for
+			// continuous notifications if necessary.  Otherwise,
+			// continue the fetch loop again to rescan the new
+			// blocks (or error due to an irrecoverable reorganize).
+			pauseGuard := wsc.server.cfg.SyncMgr.Pause()
+			best := wsc.server.cfg.Chain.BestSnapshot()
+			curHash := &best.Hash
+			again := true
+			if lastBlockHash == nil || *lastBlockHash == *curHash {
+				again = false
+				n := wsc.server.ntfnMgr
+				n.RegisterSpentRequests(wsc, lookups.unspentSlice())
+				n.RegisterTxOutAddressRequests(wsc, cmd.Addresses)
+			}
+			close(pauseGuard)
+			if err != nil {
+				rpcsLog.Errorf("Error fetching best block "+
+					"hash: %v", err)
+				return nil, nil, &pfcjson.RPCError{
+					Code: pfcjson.ErrRPCDatabase,
+					Message: "Database error: " +
+						err.Error(),
+				}
+			}
+			if again {
+				continue
+			}
+			break
+		}
+
+	loopHashList:
+		for i := range hashList {
+			blk, err := chain.BlockByHash(&hashList[i])
+			if err != nil {
+				// Only handle reorgs if a block could not be
+				// found for the hash.
+				if dbErr, ok := err.(database.Error); !ok ||
+					dbErr.ErrorCode != database.ErrBlockNotFound {
+
+					rpcsLog.Errorf("Error looking up "+
+						"block: %v", err)
+					return nil, nil, &pfcjson.RPCError{
+						Code: pfcjson.ErrRPCDatabase,
+						Message: "Database error: " +
+							err.Error(),
+					}
+				}
+
+				// If an absolute max block was specified, don't
+				// attempt to handle the reorg.
+				if maxBlock != math.MaxInt32 {
+					rpcsLog.Errorf("Stopping rescan for "+
+						"reorged block %v",
+						cmd.EndBlock)
+					return nil, nil, &ErrRescanReorg
+				}
+
+				// If the lookup for the previously valid block
+				// hash failed, there may have been a reorg.
+				// Fetch a new range of block hashes and verify
+				// that the previously processed block (if there
+				// was any) still exists in the database.  If it
+				// doesn't, we error.
+				//
+				// A goto is used to branch executation back to
+				// before the range was evaluated, as it must be
+				// reevaluated for the new hashList.
+				minBlock += int32(i)
+				hashList, err = recoverFromReorg(
+					chain, minBlock, maxBlock, lastBlockHash,
+				)
+				if err != nil {
+					return nil, nil, err
+				}
+				if len(hashList) == 0 {
+					break fetchRange
+				}
+				goto loopHashList
+			}
+			if i == 0 && lastBlockHash != nil {
+				// Ensure the new hashList is on the same fork
+				// as the last block from the old hashList.
+				jsonErr := descendantBlock(lastBlockHash, blk)
+				if jsonErr != nil {
+					return nil, nil, jsonErr
+				}
+			}
+
+			// A select statement is used to stop rescans if the
+			// client requesting the rescan has disconnected.
+			select {
+			case <-wsc.quit:
+				rpcsLog.Debugf("Stopped rescan at height %v "+
+					"for disconnected client", blk.Height())
+				return nil, nil, nil
+			default:
+				rescanBlock(wsc, lookups, blk)
+				lastBlock = blk
+				lastBlockHash = blk.Hash()
+			}
+
+			// Periodically notify the client of the progress
+			// completed.  Continue with next block if no progress
+			// notification is needed yet.
+			select {
+			case <-ticker.C: // fallthrough
+			default:
+				continue
+			}
+
+			n := pfcjson.NewRescanProgressNtfn(
+				hashList[i].String(), blk.Height(),
+				blk.MsgBlock().Header.Timestamp.Unix(),
+			)
+			mn, err := pfcjson.MarshalCmd(nil, n)
+			if err != nil {
+				rpcsLog.Errorf("Failed to marshal rescan "+
+					"progress notification: %v", err)
+				continue
+			}
+
+			if err = wsc.QueueNotification(mn); err == ErrClientQuit {
+				// Finished if the client disconnected.
+				rpcsLog.Debugf("Stopped rescan at height %v "+
+					"for disconnected client", blk.Height())
+				return nil, nil, nil
+			}
+		}
+
+		minBlock += int32(len(hashList))
+	}
+
+	return lastBlock, lastBlockHash, nil
+}
+
+// handleRescan implements the rescan command extension for websocket
+// connections.
+//
+// NOTE: This does not smartly handle reorgs, and fixing requires database
+// changes (for safe, concurrent access to full block ranges, and support
+// for other chains than the best chain).  It will, however, detect whether
+// a reorg removed a block that was previously processed, and result in the
+// handler erroring.  Clients must handle this by finding a block still in
+// the chain (perhaps from a rescanprogress notification) to resume their
+// rescan.
+func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*pfcjson.RescanCmd)
+	if !ok {
+		return nil, pfcjson.ErrRPCInternal
+	}
+
+	outpoints := make([]*wire.OutPoint, 0, len(cmd.OutPoints))
+	for i := range cmd.OutPoints {
+		cmdOutpoint := &cmd.OutPoints[i]
+		blockHash, err := chainhash.NewHashFromStr(cmdOutpoint.Hash)
+		if err != nil {
+			return nil, rpcDecodeHexError(cmdOutpoint.Hash)
+		}
+		outpoint := wire.NewOutPoint(blockHash, cmdOutpoint.Index)
+		outpoints = append(outpoints, outpoint)
+	}
+
+	numAddrs := len(cmd.Addresses)
+	if numAddrs == 1 {
+		rpcsLog.Info("Beginning rescan for 1 address")
+	} else {
+		rpcsLog.Infof("Beginning rescan for %d addresses", numAddrs)
+	}
+
+	// Build lookup maps.
+	lookups := rescanKeys{
+		addrs:   map[string]struct{}{},
+		unspent: map[wire.OutPoint]struct{}{},
+	}
+	for _, addrStr := range cmd.Addresses {
+		lookups.addrs[addrStr] = struct{}{}
+	}
+	for _, outpoint := range outpoints {
+		lookups.unspent[*outpoint] = struct{}{}
+	}
+
+	chain := wsc.server.cfg.Chain
+
+	minBlockHash, err := chainhash.NewHashFromStr(cmd.BeginBlock)
+	if err != nil {
+		return nil, rpcDecodeHexError(cmd.BeginBlock)
+	}
+	minBlock, err := chain.BlockHeightByHash(minBlockHash)
+	if err != nil {
+		return nil, &pfcjson.RPCError{
+			Code:    pfcjson.ErrRPCBlockNotFound,
+			Message: "Error getting block: " + err.Error(),
+		}
+	}
+
+	maxBlock := int32(math.MaxInt32)
+	if cmd.EndBlock != nil {
+		maxBlockHash, err := chainhash.NewHashFromStr(*cmd.EndBlock)
+		if err != nil {
+			return nil, rpcDecodeHexError(*cmd.EndBlock)
+		}
+		maxBlock, err = chain.BlockHeightByHash(maxBlockHash)
+		if err != nil {
+			return nil, &pfcjson.RPCError{
+				Code:    pfcjson.ErrRPCBlockNotFound,
+				Message: "Error getting block: " + err.Error(),
+			}
+		}
+	}
+
+	var (
+		lastBlock     *pfcutil.Block
+		lastBlockHash *chainhash.Hash
+	)
+	if len(lookups.addrs) != 0 || len(lookups.unspent) != 0 {
+		// With all the arguments parsed, we'll execute our chunked rescan
+		// which will notify the clients of any address deposits or output
+		// spends.
+		lastBlock, lastBlockHash, err = scanBlockChunks(
+			wsc, cmd, &lookups, minBlock, maxBlock, chain,
+		)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rpcsLog.Infof("Skipping rescan as client has no addrs/utxos")
+
+		// If we didn't actually do a rescan, then we'll give the
+		// client our best known block within the final rescan finished
+		// notification.
+		chainTip := chain.BestSnapshot()
+		lastBlockHash = &chainTip.Hash
+		lastBlock, err = chain.BlockByHash(lastBlockHash)
+		if err != nil {
+			return nil, &pfcjson.RPCError{
+				Code:    pfcjson.ErrRPCBlockNotFound,
+				Message: "Error getting block: " + err.Error(),
+			}
+		}
+	}
+
+	// Notify websocket client of the finished rescan.  Due to how btcd
+	// asynchronously queues notifications to not block calling code,
+	// there is no guarantee that any of the notifications created during
+	// rescan (such as rescanprogress, recvtx and redeemingtx) will be
+	// received before the rescan RPC returns.  Therefore, another method
+	// is needed to safely inform clients that all rescan notifications have
+	// been sent.
+	n := pfcjson.NewRescanFinishedNtfn(
+		lastBlockHash.String(), lastBlock.Height(),
+		lastBlock.MsgBlock().Header.Timestamp.Unix(),
+	)
+	if mn, err := pfcjson.MarshalCmd(nil, n); err != nil {
+		rpcsLog.Errorf("Failed to marshal rescan finished "+
+			"notification: %v", err)
+	} else {
+		// The rescan is finished, so we don't care whether the client
+		// has disconnected at this point, so discard error.
+		_ = wsc.QueueNotification(mn)
+	}
+
+	rpcsLog.Info("Finished rescan")
+	return nil, nil
 }
 
 func init() {

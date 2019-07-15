@@ -1,16 +1,17 @@
 // Copyright (c) 2015 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson
+package pfcjson_test
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/picfight/pfcd/pfcjson"
 )
 
-// TestCmdMethod tests the CmdMethod function to ensure it returns the expected
+// TestCmdMethod tests the CmdMethod function to ensure it retunrs the expected
 // methods and errors.
 func TestCmdMethod(t *testing.T) {
 	t.Parallel()
@@ -24,35 +25,35 @@ func TestCmdMethod(t *testing.T) {
 		{
 			name: "unregistered type",
 			cmd:  (*int)(nil),
-			err:  Error{Code: ErrUnregisteredMethod},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrUnregisteredMethod},
 		},
 		{
 			name:   "nil pointer of registered type",
-			cmd:    (*GetBlockCmd)(nil),
+			cmd:    (*pfcjson.GetBlockCmd)(nil),
 			method: "getblock",
 		},
 		{
 			name:   "nil instance of registered type",
-			cmd:    &GetBlockCountCmd{},
+			cmd:    &pfcjson.GetBlockCountCmd{},
 			method: "getblockcount",
 		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		method, err := CmdMethod(test.cmd)
+		method, err := pfcjson.CmdMethod(test.cmd)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
 			t.Errorf("Test #%d (%s) wrong error - got %T (%[3]v), "+
 				"want %T", i, test.name, err, test.err)
 			continue
 		}
 		if err != nil {
-			gotErrorCode := err.(Error).Code
-			if gotErrorCode != test.err.(Error).Code {
+			gotErrorCode := err.(pfcjson.Error).ErrorCode
+			if gotErrorCode != test.err.(pfcjson.Error).ErrorCode {
 				t.Errorf("Test #%d (%s) mismatched error code "+
 					"- got %v (%v), want %v", i, test.name,
 					gotErrorCode, err,
-					test.err.(Error).Code)
+					test.err.(pfcjson.Error).ErrorCode)
 				continue
 			}
 
@@ -77,12 +78,12 @@ func TestMethodUsageFlags(t *testing.T) {
 		name   string
 		method string
 		err    error
-		flags  UsageFlag
+		flags  pfcjson.UsageFlag
 	}{
 		{
 			name:   "unregistered type",
 			method: "bogusmethod",
-			err:    Error{Code: ErrUnregisteredMethod},
+			err:    pfcjson.Error{ErrorCode: pfcjson.ErrUnregisteredMethod},
 		},
 		{
 			name:   "getblock",
@@ -92,25 +93,25 @@ func TestMethodUsageFlags(t *testing.T) {
 		{
 			name:   "walletpassphrase",
 			method: "walletpassphrase",
-			flags:  UFWalletOnly,
+			flags:  pfcjson.UFWalletOnly,
 		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		flags, err := MethodUsageFlags(test.method)
+		flags, err := pfcjson.MethodUsageFlags(test.method)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
 			t.Errorf("Test #%d (%s) wrong error - got %T (%[3]v), "+
 				"want %T", i, test.name, err, test.err)
 			continue
 		}
 		if err != nil {
-			gotErrorCode := err.(Error).Code
-			if gotErrorCode != test.err.(Error).Code {
+			gotErrorCode := err.(pfcjson.Error).ErrorCode
+			if gotErrorCode != test.err.(pfcjson.Error).ErrorCode {
 				t.Errorf("Test #%d (%s) mismatched error code "+
 					"- got %v (%v), want %v", i, test.name,
 					gotErrorCode, err,
-					test.err.(Error).Code)
+					test.err.(pfcjson.Error).ErrorCode)
 				continue
 			}
 
@@ -140,7 +141,7 @@ func TestMethodUsageText(t *testing.T) {
 		{
 			name:   "unregistered type",
 			method: "bogusmethod",
-			err:    Error{Code: ErrUnregisteredMethod},
+			err:    pfcjson.Error{ErrorCode: pfcjson.ErrUnregisteredMethod},
 		},
 		{
 			name:     "getblockcount",
@@ -156,19 +157,19 @@ func TestMethodUsageText(t *testing.T) {
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		usage, err := MethodUsageText(test.method)
+		usage, err := pfcjson.MethodUsageText(test.method)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
 			t.Errorf("Test #%d (%s) wrong error - got %T (%[3]v), "+
 				"want %T", i, test.name, err, test.err)
 			continue
 		}
 		if err != nil {
-			gotErrorCode := err.(Error).Code
-			if gotErrorCode != test.err.(Error).Code {
+			gotErrorCode := err.(pfcjson.Error).ErrorCode
+			if gotErrorCode != test.err.(pfcjson.Error).ErrorCode {
 				t.Errorf("Test #%d (%s) mismatched error code "+
 					"- got %v (%v), want %v", i, test.name,
 					gotErrorCode, err,
-					test.err.(Error).Code)
+					test.err.(pfcjson.Error).ErrorCode)
 				continue
 			}
 
@@ -183,7 +184,7 @@ func TestMethodUsageText(t *testing.T) {
 		}
 
 		// Get the usage again to exercise caching.
-		usage, err = MethodUsageText(test.method)
+		usage, err = pfcjson.MethodUsageText(test.method)
 		if err != nil {
 			t.Errorf("Test #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -419,7 +420,7 @@ func TestFieldUsage(t *testing.T) {
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
 		// Ensure usage matches the expected value.
-		usage := fieldUsage(test.field, test.defValue)
+		usage := pfcjson.TstFieldUsage(test.field, test.defValue)
 		if usage != test.expected {
 			t.Errorf("Test #%d (%s) mismatched usage - got %v, "+
 				"want %v", i, test.name, usage, test.expected)

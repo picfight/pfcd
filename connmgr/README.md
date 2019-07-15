@@ -5,17 +5,17 @@ connmgr
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/connmgr)
 
-Package connmgr implements a generic PicFight network connection manager.
+Package connmgr implements a generic Bitcoin network connection manager.
 
 ## Overview
 
-This package handles all the general connection concerns such as maintaining a
-set number of outbound connections, sourcing peers, banning, limiting max
-connections, tor lookup, etc.
+Connection Manager handles all the general connection concerns such as
+maintaining a set number of outbound connections, sourcing peers, banning,
+limiting max connections, tor lookup, etc.
 
 The package provides a generic connection manager which is able to accept
 connection requests from a source or a set of given addresses, dial them and
-notify the caller on connections.  The main intended use is to initialize a pool
+notify the caller on connections. The main intended use is to initialize a pool
 of active connections and maintain them to remain connected to the P2P network.
 
 In addition the connection manager provides the following utilities:

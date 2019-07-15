@@ -1,12 +1,13 @@
 // Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson
+package pfcjson_test
 
 import (
 	"testing"
+
+	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestErrorCodeStringer tests the stringized output for the ErrorCode type.
@@ -14,26 +15,26 @@ func TestErrorCodeStringer(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		in   ErrorCode
+		in   pfcjson.ErrorCode
 		want string
 	}{
-		{ErrDuplicateMethod, "ErrDuplicateMethod"},
-		{ErrInvalidUsageFlags, "ErrInvalidUsageFlags"},
-		{ErrInvalidType, "ErrInvalidType"},
-		{ErrEmbeddedType, "ErrEmbeddedType"},
-		{ErrUnexportedField, "ErrUnexportedField"},
-		{ErrUnsupportedFieldType, "ErrUnsupportedFieldType"},
-		{ErrNonOptionalField, "ErrNonOptionalField"},
-		{ErrNonOptionalDefault, "ErrNonOptionalDefault"},
-		{ErrMismatchedDefault, "ErrMismatchedDefault"},
-		{ErrUnregisteredMethod, "ErrUnregisteredMethod"},
-		{ErrNumParams, "ErrNumParams"},
-		{ErrMissingDescription, "ErrMissingDescription"},
+		{pfcjson.ErrDuplicateMethod, "ErrDuplicateMethod"},
+		{pfcjson.ErrInvalidUsageFlags, "ErrInvalidUsageFlags"},
+		{pfcjson.ErrInvalidType, "ErrInvalidType"},
+		{pfcjson.ErrEmbeddedType, "ErrEmbeddedType"},
+		{pfcjson.ErrUnexportedField, "ErrUnexportedField"},
+		{pfcjson.ErrUnsupportedFieldType, "ErrUnsupportedFieldType"},
+		{pfcjson.ErrNonOptionalField, "ErrNonOptionalField"},
+		{pfcjson.ErrNonOptionalDefault, "ErrNonOptionalDefault"},
+		{pfcjson.ErrMismatchedDefault, "ErrMismatchedDefault"},
+		{pfcjson.ErrUnregisteredMethod, "ErrUnregisteredMethod"},
+		{pfcjson.ErrNumParams, "ErrNumParams"},
+		{pfcjson.ErrMissingDescription, "ErrMissingDescription"},
 		{0xffff, "Unknown ErrorCode (65535)"},
 	}
 
 	// Detect additional error codes that don't have the stringer added.
-	if len(tests)-1 != int(numErrorCodes) {
+	if len(tests)-1 != int(pfcjson.TstNumErrorCodes) {
 		t.Errorf("It appears an error code was added without adding an " +
 			"associated stringer test")
 	}
@@ -54,15 +55,15 @@ func TestError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		in   Error
+		in   pfcjson.Error
 		want string
 	}{
 		{
-			Error{Message: "some error"},
+			pfcjson.Error{Description: "some error"},
 			"some error",
 		},
 		{
-			Error{Message: "human-readable error"},
+			pfcjson.Error{Description: "human-readable error"},
 			"human-readable error",
 		},
 	}

@@ -1,5 +1,4 @@
-// Copyright (c) 2014-2015 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -12,8 +11,8 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/rpcclient"
+	"github.com/picfight/pfcutil"
 )
 
 func main() {
@@ -28,14 +27,14 @@ func main() {
 		},
 	}
 
-	// Connect to local pfcwallet RPC server using websockets.
-	certHomeDir := pfcutil.AppDataDir("pfcwallet", false)
+	// Connect to local btcwallet RPC server using websockets.
+	certHomeDir := pfcutil.AppDataDir("btcwallet", false)
 	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:9110",
+		Host:         "localhost:18332",
 		Endpoint:     "ws",
 		User:         "yourrpcuser",
 		Pass:         "yourrpcpass",

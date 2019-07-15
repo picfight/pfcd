@@ -20,9 +20,8 @@ const MaxHashStringSize = HashSize * 2
 // string that has too many characters.
 var ErrHashStrSize = fmt.Errorf("max hash string length is %v bytes", MaxHashStringSize)
 
-// Hash is used in several of the messages and common structures.  It is a
-// generic type so that it can represent any fixed-size hash as specified by the
-// HashSize.
+// Hash is used in several of the bitcoin messages and common structures.  It
+// typically represents the double sha256 of data.
 type Hash [HashSize]byte
 
 // String returns the Hash as the hexadecimal string of the byte-reversed

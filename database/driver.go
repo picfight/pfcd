@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,10 +7,10 @@ package database
 import (
 	"fmt"
 
-	"github.com/decred/slog"
+	"github.com/btcsuite/btclog"
 )
 
-// Driver defines a structure for backend drivers to use when they register
+// Driver defines a structure for backend drivers to use when they registered
 // themselves as a backend which implements the DB interface.
 type Driver struct {
 	// DbType is the identifier used to uniquely identify a specific
@@ -29,14 +28,14 @@ type Driver struct {
 	Open func(args ...interface{}) (DB, error)
 
 	// UseLogger uses a specified Logger to output package logging info.
-	UseLogger func(logger slog.Logger)
+	UseLogger func(logger btclog.Logger)
 }
 
 // driverList holds all of the registered database backends.
 var drivers = make(map[string]*Driver)
 
 // RegisterDriver adds a backend database driver to available interfaces.
-// ErrDbTypeRegistered will be retruned if the database type for the driver has
+// ErrDbTypeRegistered will be returned if the database type for the driver has
 // already been registered.
 func RegisterDriver(driver Driver) error {
 	if _, exists := drivers[driver.DbType]; exists {

@@ -1,5 +1,4 @@
-// Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -12,7 +11,7 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/picfight/pfcutil"
 )
 
 // FutureGenerateResult is a future promise to deliver the result of a
@@ -364,45 +363,6 @@ func (c *Client) GetWorkSubmit(data string) (bool, error) {
 	return c.GetWorkSubmitAsync(data).Receive()
 }
 
-// FutureGetBlockTemplate is a future promise to deliver the result of a
-// GetBlockTemplateAsync RPC invocation (or an applicable error).
-type FutureGetBlockTemplate chan *response
-
-// Receive waits for the response promised by the future and returns an error if
-// any occurred while generating the block template.
-func (r FutureGetBlockTemplate) Receive() (*pfcjson.GetBlockTemplateResult, error) {
-	res, err := receiveFuture(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal result.
-	var gbt pfcjson.GetBlockTemplateResult
-	err = json.Unmarshal(res, &gbt)
-	if err != nil {
-		return nil, err
-	}
-
-	return &gbt, nil
-}
-
-// GetBlockTemplateAsync returns an instance of a type that can be used to get
-// the result of the RPC at some future time by invoking the Receive function on
-// on the returned instance.
-//
-// See GetBlockTemplate for the blocking version and more details.
-func (c *Client) GetBlockTemplateAsync(req *pfcjson.TemplateRequest) FutureGetBlockTemplate {
-	cmd := pfcjson.NewGetBlockTemplateCmd(req)
-	return c.sendCmd(cmd)
-}
-
-// GetBlockTemplate returns a block template to work on.
-//
-// See SubmitBlock to submit the found solution.
-func (c *Client) GetBlockTemplate(req *pfcjson.TemplateRequest) (*pfcjson.GetBlockTemplateResult, error) {
-	return c.GetBlockTemplateAsync(req).Receive()
-}
-
 // FutureSubmitBlockResult is a future promise to deliver the result of a
 // SubmitBlockAsync RPC invocation (or an applicable error).
 type FutureSubmitBlockResult chan *response
@@ -449,7 +409,9 @@ func (c *Client) SubmitBlockAsync(block *pfcutil.Block, options *pfcjson.SubmitB
 	return c.sendCmd(cmd)
 }
 
-// SubmitBlock attempts to submit a new block into the PicFight network.
+// SubmitBlock attempts to submit a new block into the bitcoin network.
 func (c *Client) SubmitBlock(block *pfcutil.Block, options *pfcjson.SubmitBlockOptions) error {
 	return c.SubmitBlockAsync(block, options).Receive()
 }
+
+// TODO(davec): Implement GetBlockTemplate

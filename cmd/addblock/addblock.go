@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,21 +9,21 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/decred/slog"
+	"github.com/btcsuite/btclog"
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/indexers"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/internal/limits"
+	"github.com/picfight/pfcd/limits"
 )
 
 const (
-	// blockDbNamePrefix is the prefix for the pfcd block database.
+	// blockDbNamePrefix is the prefix for the btcd block database.
 	blockDbNamePrefix = "blocks"
 )
 
 var (
 	cfg *config
-	log slog.Logger
+	log btclog.Logger
 )
 
 // loadBlockDB opens the block database and returns a handle to it.
@@ -70,7 +69,7 @@ func realMain() error {
 	cfg = tcfg
 
 	// Setup logging.
-	backendLogger := slog.NewBackend(os.Stdout)
+	backendLogger := btclog.NewBackend(os.Stdout)
 	defer os.Stdout.Sync()
 	log = backendLogger.Logger("MAIN")
 	database.UseLogger(backendLogger.Logger("BCDB"))
@@ -114,9 +113,8 @@ func realMain() error {
 	}
 
 	log.Infof("Processed a total of %d blocks (%d imported, %d already "+
-		"known) in %v", results.blocksProcessed, results.blocksImported,
-		results.blocksProcessed-results.blocksImported, results.duration)
-
+		"known)", results.blocksProcessed, results.blocksImported,
+		results.blocksProcessed-results.blocksImported)
 	return nil
 }
 

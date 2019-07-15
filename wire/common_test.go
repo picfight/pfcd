@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -127,8 +126,8 @@ func TestElementWire(t *testing.T) {
 			[]byte{0x01, 0x00, 0x00, 0x00},
 		},
 		{
-			CurrencyNet(MainNet),
-			[]byte{0xf9, 0x00, 0xb4, 0xd9},
+			BitcoinNet(MainNet),
+			[]byte{0xf9, 0xbe, 0xb4, 0xd9},
 		},
 		// Type not supported by the "fast" path and requires reflection.
 		{
@@ -214,7 +213,7 @@ func TestElementWireErrors(t *testing.T) {
 		},
 		{ServiceFlag(SFNodeNetwork), 0, io.ErrShortWrite, io.EOF},
 		{InvType(InvTypeTx), 0, io.ErrShortWrite, io.EOF},
-		{CurrencyNet(MainNet), 0, io.ErrShortWrite, io.EOF},
+		{BitcoinNet(MainNet), 0, io.ErrShortWrite, io.EOF},
 	}
 
 	t.Logf("Running %d tests", len(tests))

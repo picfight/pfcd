@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -32,12 +31,13 @@ func fromBool(v bool) []byte {
 	return nil
 }
 
-// stack represents a stack of immutable objects to be used with picfight
+// stack represents a stack of immutable objects to be used with bitcoin
 // scripts.  Objects may be shared, therefore in usage if a value is to be
 // changed it *must* be deep-copied first to avoid changing other values on the
 // stack.
 type stack struct {
-	stk [][]byte
+	stk               [][]byte
+	verifyMinimalData bool
 }
 
 // Depth returns the number of items on the stack.
@@ -80,13 +80,13 @@ func (s *stack) PopByteArray() ([]byte, error) {
 // consensus rules imposed on data interpreted as numbers.
 //
 // Stack transformation: [... x1 x2 x3] -> [... x1 x2]
-func (s *stack) PopInt(maxScriptNumLen int) (scriptNum, error) {
+func (s *stack) PopInt() (scriptNum, error) {
 	so, err := s.PopByteArray()
 	if err != nil {
 		return 0, err
 	}
 
-	return makeScriptNum(so, maxScriptNumLen)
+	return makeScriptNum(so, s.verifyMinimalData, defaultScriptNumLen)
 }
 
 // PopBool pops the value off the top of the stack, converts it into a bool, and
@@ -117,13 +117,13 @@ func (s *stack) PeekByteArray(idx int32) ([]byte, error) {
 // PeekInt returns the Nth item on the stack as a script num without removing
 // it.  The act of converting to a script num enforces the consensus rules
 // imposed on data interpreted as numbers.
-func (s *stack) PeekInt(idx int32, maxScriptNumLen int) (scriptNum, error) {
+func (s *stack) PeekInt(idx int32) (scriptNum, error) {
 	so, err := s.PeekByteArray(idx)
 	if err != nil {
 		return 0, err
 	}
 
-	return makeScriptNum(so, maxScriptNumLen)
+	return makeScriptNum(so, s.verifyMinimalData, defaultScriptNumLen)
 }
 
 // PeekBool returns the Nth item on the stack as a bool without removing it.

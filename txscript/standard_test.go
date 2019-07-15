@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,14 +6,13 @@ package txscript
 
 import (
 	"bytes"
+	"encoding/hex"
 	"reflect"
 	"testing"
 
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 // mustParseShortForm parses the passed short form script and returns the
@@ -36,11 +34,7 @@ func mustParseShortForm(script string) []byte {
 // the tests as a helper since the only way it can fail is if there is an error
 // in the test source code.
 func newAddressPubKey(serializedPubKey []byte) pfcutil.Address {
-	pubkey, err := secp256k1.ParsePubKey(serializedPubKey)
-	if err != nil {
-		panic("invalid public key in test source")
-	}
-	addr, err := pfcutil.NewAddressSecpPubKeyCompressed(pubkey,
+	addr, err := pfcutil.NewAddressPubKey(serializedPubKey,
 		&chaincfg.MainNetParams)
 	if err != nil {
 		panic("invalid public key in test source")
@@ -54,8 +48,7 @@ func newAddressPubKey(serializedPubKey []byte) pfcutil.Address {
 // as a helper since the only way it can fail is if there is an error in the
 // test source code.
 func newAddressPubKeyHash(pkHash []byte) pfcutil.Address {
-	addr, err := pfcutil.NewAddressPubKeyHash(pkHash, &chaincfg.MainNetParams,
-		pfcec.STEcdsaSecp256k1)
+	addr, err := pfcutil.NewAddressPubKeyHash(pkHash, &chaincfg.MainNetParams)
 	if err != nil {
 		panic("invalid public key hash in test source")
 	}
@@ -88,7 +81,6 @@ func TestExtractPkScriptAddrs(t *testing.T) {
 		addrs   []pfcutil.Address
 		reqSigs int
 		class   ScriptClass
-		noparse bool
 	}{
 		{
 			name: "standard p2pk with compressed pubkey (0x02)",
@@ -119,6 +111,22 @@ func TestExtractPkScriptAddrs(t *testing.T) {
 			class:   PubKeyTy,
 		},
 		{
+			name: "standard p2pk with hybrid pubkey (0x06)",
+			script: hexToBytes("4106192d74d0cb94344c9569c2e779015" +
+				"73d8d7903c3ebec3a957724895dca52c6b40d4526483" +
+				"8c0bd96852662ce6a847b197376830160c6d2eb5e6a4" +
+				"c44d33f453eac"),
+			addrs: []pfcutil.Address{
+				newAddressPubKey(hexToBytes("06192d74d0cb9434" +
+					"4c9569c2e77901573d8d7903c3ebec3a9577" +
+					"24895dca52c6b40d45264838c0bd96852662" +
+					"ce6a847b197376830160c6d2eb5e6a4c44d3" +
+					"3f453e")),
+			},
+			reqSigs: 1,
+			class:   PubKeyTy,
+		},
+		{
 			name: "standard p2pk with compressed pubkey (0x03)",
 			script: hexToBytes("2103b0bd634234abbb1ba1e986e884185" +
 				"c61cf43e001f9137f23c2c409273eb16e65ac"),
@@ -138,6 +146,22 @@ func TestExtractPkScriptAddrs(t *testing.T) {
 				"c1e0908ef7bac"),
 			addrs: []pfcutil.Address{
 				newAddressPubKey(hexToBytes("04b0bd634234abbb" +
+					"1ba1e986e884185c61cf43e001f9137f23c2" +
+					"c409273eb16e6537a576782eba668a7ef8bd" +
+					"3b3cfb1edb7117ab65129b8a2e681f3c1e09" +
+					"08ef7b")),
+			},
+			reqSigs: 1,
+			class:   PubKeyTy,
+		},
+		{
+			name: "standard p2pk with hybrid pubkey (0x07)",
+			script: hexToBytes("4107b0bd634234abbb1ba1e986e884185" +
+				"c61cf43e001f9137f23c2c409273eb16e6537a576782" +
+				"eba668a7ef8bd3b3cfb1edb7117ab65129b8a2e681f3" +
+				"c1e0908ef7bac"),
+			addrs: []pfcutil.Address{
+				newAddressPubKey(hexToBytes("07b0bd634234abbb" +
 					"1ba1e986e884185c61cf43e001f9137f23c2" +
 					"c409273eb16e6537a576782eba668a7ef8bd" +
 					"3b3cfb1edb7117ab65129b8a2e681f3c1e09" +
@@ -315,18 +339,14 @@ func TestExtractPkScriptAddrs(t *testing.T) {
 			addrs:   nil,
 			reqSigs: 0,
 			class:   NonStandardTy,
-			noparse: true,
 		},
 	}
 
 	t.Logf("Running %d tests.", len(tests))
 	for i, test := range tests {
 		class, addrs, reqSigs, err := ExtractPkScriptAddrs(
-			DefaultScriptVersion, test.script,
-			&chaincfg.MainNetParams)
-		if err != nil && !test.noparse {
-			t.Errorf("ExtractPkScriptAddrs #%d (%s): %v", i,
-				test.name, err)
+			test.script, &chaincfg.MainNetParams)
+		if err != nil {
 		}
 
 		if !reflect.DeepEqual(addrs, test.addrs) {
@@ -358,10 +378,14 @@ func TestCalcScriptInfo(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		sigScript     string
-		pkScript      string
-		bip16         bool
+		name      string
+		sigScript string
+		pkScript  string
+		witness   []string
+
+		bip16  bool
+		segwit bool
+
 		scriptInfo    ScriptInfo
 		scriptInfoErr error
 	}{
@@ -434,8 +458,73 @@ func TestCalcScriptInfo(t *testing.T) {
 			scriptInfo: ScriptInfo{
 				PkScriptClass:  MultiSigTy,
 				NumInputs:      4,
-				ExpectedInputs: 3,
+				ExpectedInputs: 4,
 				SigOps:         3,
+			},
+		},
+		{
+			// A v0 p2wkh spend.
+			name:     "p2wkh script",
+			pkScript: "OP_0 DATA_20 0x365ab47888e150ff46f8d51bce36dcd680f1283f",
+			witness: []string{
+				"3045022100ee9fe8f9487afa977" +
+					"6647ebcf0883ce0cd37454d7ce19889d34ba2c9" +
+					"9ce5a9f402200341cb469d0efd3955acb9e46" +
+					"f568d7e2cc10f9084aaff94ced6dc50a59134ad01",
+				"03f0000d0639a22bfaf217e4c9428" +
+					"9c2b0cc7fa1036f7fd5d9f61a9d6ec153100e",
+			},
+			segwit: true,
+			scriptInfo: ScriptInfo{
+				PkScriptClass:  WitnessV0PubKeyHashTy,
+				NumInputs:      2,
+				ExpectedInputs: 2,
+				SigOps:         1,
+			},
+		},
+		{
+			// Nested p2sh v0
+			name: "p2wkh nested inside p2sh",
+			pkScript: "HASH160 DATA_20 " +
+				"0xb3a84b564602a9d68b4c9f19c2ea61458ff7826c EQUAL",
+			sigScript: "DATA_22 0x0014ad0ffa2e387f07e7ead14dc56d5a97dbd6ff5a23",
+			witness: []string{
+				"3045022100cb1c2ac1ff1d57d" +
+					"db98f7bdead905f8bf5bcc8641b029ce8eef25" +
+					"c75a9e22a4702203be621b5c86b771288706be5" +
+					"a7eee1db4fceabf9afb7583c1cc6ee3f8297b21201",
+				"03f0000d0639a22bfaf217e4c9" +
+					"4289c2b0cc7fa1036f7fd5d9f61a9d6ec153100e",
+			},
+			segwit: true,
+			bip16:  true,
+			scriptInfo: ScriptInfo{
+				PkScriptClass:  ScriptHashTy,
+				NumInputs:      3,
+				ExpectedInputs: 3,
+				SigOps:         1,
+			},
+		},
+		{
+			// A v0 p2wsh spend.
+			name: "p2wsh spend of a p2wkh witness script",
+			pkScript: "0 DATA_32 0xe112b88a0cd87ba387f44" +
+				"9d443ee2596eb353beb1f0351ab2cba8909d875db23",
+			witness: []string{
+				"3045022100cb1c2ac1ff1d57d" +
+					"db98f7bdead905f8bf5bcc8641b029ce8eef25" +
+					"c75a9e22a4702203be621b5c86b771288706be5" +
+					"a7eee1db4fceabf9afb7583c1cc6ee3f8297b21201",
+				"03f0000d0639a22bfaf217e4c9" +
+					"4289c2b0cc7fa1036f7fd5d9f61a9d6ec153100e",
+				"76a914064977cb7b4a2e0c9680df0ef696e9e0e296b39988ac",
+			},
+			segwit: true,
+			scriptInfo: ScriptInfo{
+				PkScriptClass:  WitnessV0ScriptHashTy,
+				NumInputs:      3,
+				ExpectedInputs: 3,
+				SigOps:         1,
 			},
 		},
 	}
@@ -443,7 +532,21 @@ func TestCalcScriptInfo(t *testing.T) {
 	for _, test := range tests {
 		sigScript := mustParseShortForm(test.sigScript)
 		pkScript := mustParseShortForm(test.pkScript)
-		si, err := CalcScriptInfo(sigScript, pkScript, test.bip16)
+
+		var witness wire.TxWitness
+
+		for _, witElement := range test.witness {
+			wit, err := hex.DecodeString(witElement)
+			if err != nil {
+				t.Fatalf("unable to decode witness "+
+					"element: %v", err)
+			}
+
+			witness = append(witness, wit)
+		}
+
+		si, err := CalcScriptInfo(sigScript, pkScript, witness,
+			test.bip16, test.segwit)
 		if e := tstCheckScriptError(err, test.scriptInfoErr); e != nil {
 			t.Errorf("scriptinfo test %q: %v", test.name, e)
 			continue
@@ -477,12 +580,6 @@ func (b *bogusAddress) ScriptAddress() []byte {
 	return nil
 }
 
-// Hash160 simply returns an empty byte slice.  It exists to satisfy the
-// pfcutil.Address interface.
-func (b *bogusAddress) Hash160() *[20]byte {
-	return nil
-}
-
 // IsForNet lies blatantly to satisfy the pfcutil.Address interface.
 func (b *bogusAddress) IsForNet(chainParams *chaincfg.Params) bool {
 	return true // why not?
@@ -494,17 +591,6 @@ func (b *bogusAddress) String() string {
 	return ""
 }
 
-// DSA returns -1.
-func (b *bogusAddress) DSA(chainParams *chaincfg.Params) pfcec.SignatureType {
-	return -1
-}
-
-// Net returns the network for the bogus address.  It exists to satisfy the
-// pfcutil.Address interface.
-func (b *bogusAddress) Net() *chaincfg.Params {
-	return &chaincfg.RegNetParams
-}
-
 // TestPayToAddrScript ensures the PayToAddrScript function generates the
 // correct scripts for the various types of addresses.
 func TestPayToAddrScript(t *testing.T) {
@@ -512,29 +598,28 @@ func TestPayToAddrScript(t *testing.T) {
 
 	// 1MirQ9bwyQcGVJPwKUgapu5ouK2E2Ey4gX
 	p2pkhMain, err := pfcutil.NewAddressPubKeyHash(hexToBytes("e34cce70c86"+
-		"373273efcc54ce7d2a491bb4a0e84"), &chaincfg.MainNetParams,
-		pfcec.STEcdsaSecp256k1)
+		"373273efcc54ce7d2a491bb4a0e84"), &chaincfg.MainNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create public key hash address: %v", err)
 	}
 
 	// Taken from transaction:
 	// b0539a45de13b3e0403909b8bd1a555b8cbe45fd4e3f3fda76f3a5f52835c29d
-	p2shMain, _ := pfcutil.NewAddressScriptHashFromHash(hexToBytes("e8c30"+
-		"0c87986efa84c37c0519929019ef86eb5b4"), &chaincfg.MainNetParams)
+	p2shMain, _ := pfcutil.NewAddressScriptHashFromHash(hexToBytes("e8c300"+
+		"c87986efa84c37c0519929019ef86eb5b4"), &chaincfg.MainNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create script hash address: %v", err)
 	}
 
 	//  mainnet p2pk 13CG6SJ3yHUXo4Cr2RY4THLLJrNFuG3gUg
-	p2pkCompressedMain, err := pfcutil.NewAddressSecpPubKey(hexToBytes("02192d7"+
-		"4d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4"),
+	p2pkCompressedMain, err := pfcutil.NewAddressPubKey(hexToBytes("02192d"+
+		"74d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4"),
 		&chaincfg.MainNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create pubkey address (compressed): %v",
 			err)
 	}
-	p2pkCompressed2Main, err := pfcutil.NewAddressSecpPubKey(hexToBytes("03b0b"+
+	p2pkCompressed2Main, err := pfcutil.NewAddressPubKey(hexToBytes("03b0b"+
 		"d634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e65"),
 		&chaincfg.MainNetParams)
 	if err != nil {
@@ -542,9 +627,14 @@ func TestPayToAddrScript(t *testing.T) {
 			err)
 	}
 
-	p2pkUncompressedMain := newAddressPubKey(hexToBytes("0411db" +
-		"93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5cb2" +
-		"e0eaddfb84ccf9744464f82e160bfa9b8b64f9d4c03f999b8643f656b412a3"))
+	p2pkUncompressedMain, err := pfcutil.NewAddressPubKey(hexToBytes("0411"+
+		"db93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5"+
+		"cb2e0eaddfb84ccf9744464f82e160bfa9b8b64f9d4c03f999b8643f656b4"+
+		"12a3"), &chaincfg.MainNetParams)
+	if err != nil {
+		t.Fatalf("Unable to create pubkey address (uncompressed): %v",
+			err)
+	}
 
 	// Errors used in the tests below defined here for convenience and to
 	// keep the horizontal test size shorter.
@@ -555,50 +645,48 @@ func TestPayToAddrScript(t *testing.T) {
 		expected string
 		err      error
 	}{
-		// pay-to-pubkey-hash address on mainnet 0
+		// pay-to-pubkey-hash address on mainnet
 		{
 			p2pkhMain,
 			"DUP HASH160 DATA_20 0xe34cce70c86373273efcc54ce7d2a4" +
 				"91bb4a0e8488 CHECKSIG",
 			nil,
 		},
-		// pay-to-script-hash address on mainnet 1
+		// pay-to-script-hash address on mainnet
 		{
 			p2shMain,
 			"HASH160 DATA_20 0xe8c300c87986efa84c37c0519929019ef8" +
 				"6eb5b4 EQUAL",
 			nil,
 		},
-		// pay-to-pubkey address on mainnet. compressed key. 2
+		// pay-to-pubkey address on mainnet. compressed key.
 		{
 			p2pkCompressedMain,
 			"DATA_33 0x02192d74d0cb94344c9569c2e77901573d8d7903c3" +
 				"ebec3a957724895dca52c6b4 CHECKSIG",
 			nil,
 		},
-		// pay-to-pubkey address on mainnet. compressed key (other way). 3
+		// pay-to-pubkey address on mainnet. compressed key (other way).
 		{
 			p2pkCompressed2Main,
 			"DATA_33 0x03b0bd634234abbb1ba1e986e884185c61cf43e001" +
 				"f9137f23c2c409273eb16e65 CHECKSIG",
 			nil,
 		},
-		// pay-to-pubkey address on mainnet. for PicFight this would
-		// be uncompressed, but standard for PicFight is 33 byte
-		// compressed public keys.
+		// pay-to-pubkey address on mainnet. uncompressed key.
 		{
 			p2pkUncompressedMain,
-			"DATA_33 0x0311db93e1dcdb8a016b49840f8c53bc1eb68a382e97b" +
-				"1482ecad7b148a6909a5cac",
+			"DATA_65 0x0411db93e1dcdb8a016b49840f8c53bc1eb68a382e" +
+				"97b1482ecad7b148a6909a5cb2e0eaddfb84ccf97444" +
+				"64f82e160bfa9b8b64f9d4c03f999b8643f656b412a3 " +
+				"CHECKSIG",
 			nil,
 		},
 
 		// Supported address types with nil pointers.
 		{(*pfcutil.AddressPubKeyHash)(nil), "", errUnsupportedAddress},
 		{(*pfcutil.AddressScriptHash)(nil), "", errUnsupportedAddress},
-		{(*pfcutil.AddressSecpPubKey)(nil), "", errUnsupportedAddress},
-		{(*pfcutil.AddressEdwardsPubKey)(nil), "", errUnsupportedAddress},
-		{(*pfcutil.AddressSecSchnorrPubKey)(nil), "", errUnsupportedAddress},
+		{(*pfcutil.AddressPubKey)(nil), "", errUnsupportedAddress},
 
 		// Unsupported address type.
 		{&bogusAddress{}, "", errUnsupportedAddress},
@@ -628,14 +716,14 @@ func TestMultiSigScript(t *testing.T) {
 	t.Parallel()
 
 	//  mainnet p2pk 13CG6SJ3yHUXo4Cr2RY4THLLJrNFuG3gUg
-	p2pkCompressedMain, err := pfcutil.NewAddressSecpPubKey(hexToBytes("02192d"+
+	p2pkCompressedMain, err := pfcutil.NewAddressPubKey(hexToBytes("02192d"+
 		"74d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4"),
 		&chaincfg.MainNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create pubkey address (compressed): %v",
 			err)
 	}
-	p2pkCompressed2Main, err := pfcutil.NewAddressSecpPubKey(hexToBytes("03b0b"+
+	p2pkCompressed2Main, err := pfcutil.NewAddressPubKey(hexToBytes("03b0b"+
 		"d634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e65"),
 		&chaincfg.MainNetParams)
 	if err != nil {
@@ -643,19 +731,23 @@ func TestMultiSigScript(t *testing.T) {
 			err)
 	}
 
-	p2pkUncompressedMain := newAddressPubKey(hexToBytes("0411d" +
-		"b93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5c" +
-		"b2e0eaddfb84ccf9744464f82e160bfa9b8b64f9d4c03f999b8643f656b41" +
-		"2a3"))
+	p2pkUncompressedMain, err := pfcutil.NewAddressPubKey(hexToBytes("0411"+
+		"db93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5"+
+		"cb2e0eaddfb84ccf9744464f82e160bfa9b8b64f9d4c03f999b8643f656b4"+
+		"12a3"), &chaincfg.MainNetParams)
+	if err != nil {
+		t.Fatalf("Unable to create pubkey address (uncompressed): %v",
+			err)
+	}
 
 	tests := []struct {
-		keys      []*pfcutil.AddressSecpPubKey
+		keys      []*pfcutil.AddressPubKey
 		nrequired int
 		expected  string
 		err       error
 	}{
 		{
-			[]*pfcutil.AddressSecpPubKey{
+			[]*pfcutil.AddressPubKey{
 				p2pkCompressedMain,
 				p2pkCompressed2Main,
 			},
@@ -667,7 +759,7 @@ func TestMultiSigScript(t *testing.T) {
 			nil,
 		},
 		{
-			[]*pfcutil.AddressSecpPubKey{
+			[]*pfcutil.AddressPubKey{
 				p2pkCompressedMain,
 				p2pkCompressed2Main,
 			},
@@ -679,7 +771,7 @@ func TestMultiSigScript(t *testing.T) {
 			nil,
 		},
 		{
-			[]*pfcutil.AddressSecpPubKey{
+			[]*pfcutil.AddressPubKey{
 				p2pkCompressedMain,
 				p2pkCompressed2Main,
 			},
@@ -688,18 +780,19 @@ func TestMultiSigScript(t *testing.T) {
 			scriptError(ErrTooManyRequiredSigs, ""),
 		},
 		{
-			// By default compressed pubkeys are used in PicFight.
-			[]*pfcutil.AddressSecpPubKey{
-				p2pkUncompressedMain.(*pfcutil.AddressSecpPubKey),
+			[]*pfcutil.AddressPubKey{
+				p2pkUncompressedMain,
 			},
 			1,
-			"1 DATA_33 0x0311db93e1dcdb8a016b49840f8c53bc1eb68a3" +
-				"82e97b1482ecad7b148a6909a5c 1 CHECKMULTISIG",
+			"1 DATA_65 0x0411db93e1dcdb8a016b49840f8c53bc1eb68a382" +
+				"e97b1482ecad7b148a6909a5cb2e0eaddfb84ccf97444" +
+				"64f82e160bfa9b8b64f9d4c03f999b8643f656b412a3 " +
+				"1 CHECKMULTISIG",
 			nil,
 		},
 		{
-			[]*pfcutil.AddressSecpPubKey{
-				p2pkUncompressedMain.(*pfcutil.AddressSecpPubKey),
+			[]*pfcutil.AddressPubKey{
+				p2pkUncompressedMain,
 			},
 			2,
 			"",
@@ -869,12 +962,10 @@ var scriptClassTests = []struct {
 		// Nulldata with more than max allowed data to be considered
 		// standard (so therefore nonstandard)
 		name: "nulldata exceed max standard push",
-		script: "RETURN PUSHDATA2 0x1801 0x046708afdb0fe5548271967f1a670" +
-			"46708afdb0fe5548271967f1a67046708afdb0fe5548271967f1a670467" +
-			"08afdb0fe5548271967f1a67046708afdb0fe5548271967f1a67046708a" +
-			"fdb0fe5548271967f1a67046708afdb0fe5548271967f1a67046708afdb" +
-			"0fe5548271967f1a67046708afdb0fe5548271967f1a67046708afdb0fe" +
-			"5548271967f1a67",
+		script: "RETURN PUSHDATA1 0x51 0x046708afdb0fe5548271967f1a67" +
+			"130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3" +
+			"046708afdb0fe5548271967f1a67130b7105cd6a828e03909a67" +
+			"962e0ea1f61deb649f6bc3f4cef308",
 		class: NonStandardTy,
 	},
 	{
@@ -939,6 +1030,20 @@ var scriptClassTests = []struct {
 			"3 CHECKMULTISIG",
 		class: NonStandardTy,
 	},
+
+	// New standard segwit script templates.
+	{
+		// A pay to witness pub key hash pk script.
+		name:   "Pay To Witness PubkeyHash",
+		script: "0 DATA_20 0x1d0f172a0ecb48aee1be1f2687d2963ae33f71a1",
+		class:  WitnessV0PubKeyHashTy,
+	},
+	{
+		// A pay to witness scripthash pk script.
+		name:   "Pay To Witness Scripthash",
+		script: "0 DATA_32 0x9f96ade4b41d5433f4eda31e1738ec2b36f6e7d1420d94a6af99801a88f7f7ff",
+		class:  WitnessV0ScriptHashTy,
+	},
 }
 
 // TestScriptClass ensures all the scripts in scriptClassTests have the expected
@@ -948,7 +1053,7 @@ func TestScriptClass(t *testing.T) {
 
 	for _, test := range scriptClassTests {
 		script := mustParseShortForm(test.script)
-		class := GetScriptClass(DefaultScriptVersion, script)
+		class := GetScriptClass(script)
 		if class != test.class {
 			t.Errorf("%s: expected %s got %s (script %x)", test.name,
 				test.class, class, script)
@@ -983,9 +1088,19 @@ func TestStringifyClass(t *testing.T) {
 			stringed: "pubkeyhash",
 		},
 		{
+			name:     "witnesspubkeyhash",
+			class:    WitnessV0PubKeyHashTy,
+			stringed: "witness_v0_keyhash",
+		},
+		{
 			name:     "scripthash",
 			class:    ScriptHashTy,
 			stringed: "scripthash",
+		},
+		{
+			name:     "witnessscripthash",
+			class:    WitnessV0ScriptHashTy,
+			stringed: "witness_v0_scripthash",
 		},
 		{
 			name:     "multisigty",
@@ -1013,8 +1128,8 @@ func TestStringifyClass(t *testing.T) {
 	}
 }
 
-// TestGenerateProvablyPruneableOut tests whether GenerateProvablyPruneableOut returns a valid script.
-func TestGenerateProvablyPruneableOut(t *testing.T) {
+// TestNullDataScript tests whether NullDataScript returns a valid script.
+func TestNullDataScript(t *testing.T) {
 	tests := []struct {
 		name     string
 		data     []byte
@@ -1047,42 +1162,24 @@ func TestGenerateProvablyPruneableOut(t *testing.T) {
 		},
 		{
 			name: "just right",
-			data: hexToBytes("000102030405060708090a0b0c0d0e0f1011121" +
-				"31415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3" +
-				"03132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4" +
-				"d4e4f202122232425262728292a2b2c2d2e2f303132333435363738393" +
-				"a3b3c3d3e3f404142434445464748494a4b4c4d4e4f202122232425262" +
-				"728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434" +
-				"445464748494a4b4c4d4e4f202122232425262728292a2b2c2d2e2f303" +
-				"132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4" +
-				"e4f202122232425262728292a2b2c2d2e2f303132333435363738393a3" +
-				"b3c3d3e"),
-			expected: mustParseShortForm("RETURN PUSHDATA1 0xFF " +
-				"0x000102030405060708090a0b0c0d0e0f101112131415161" +
-				"718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f" +
-				"303132333435363738393a3b3c3d3e3f40414243444546474" +
-				"8494a4b4c4d4e4f202122232425262728292a2b2c2d2e2f30" +
-				"3132333435363738393a3b3c3d3e3f4041424344454647484" +
-				"94a4b4c4d4e4f202122232425262728292a2b2c2d2e2f3031" +
-				"32333435363738393a3b3c3d3e3f404142434445464748494" +
-				"a4b4c4d4e4f202122232425262728292a2b2c2d2e2f303132" +
-				"333435363738393a3b3c3d3e3f404142434445464748494a4" +
-				"b4c4d4e4f202122232425262728292a2b2c2d2e2f30313233" +
-				"3435363738393a3b3c3d3e"),
+			data: hexToBytes("000102030405060708090a0b0c0d0e0f101" +
+				"112131415161718191a1b1c1d1e1f202122232425262" +
+				"728292a2b2c2d2e2f303132333435363738393a3b3c3" +
+				"d3e3f404142434445464748494a4b4c4d4e4f"),
+			expected: mustParseShortForm("RETURN PUSHDATA1 0x50 " +
+				"0x000102030405060708090a0b0c0d0e0f101112131" +
+				"415161718191a1b1c1d1e1f20212223242526272829" +
+				"2a2b2c2d2e2f303132333435363738393a3b3c3d3e3" +
+				"f404142434445464748494a4b4c4d4e4f"),
 			err:   nil,
 			class: NullDataTy,
 		},
 		{
 			name: "too big",
-			data: hexToBytes("000102030405060708090a0b0c0d0e0f10111213141516" +
-				"1718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363" +
-				"738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f2021222324252627" +
-				"28292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40414243444546474" +
-				"8494a4b4c4d4e4f202122232425262728292a2b2c2d2e2f303132333435363738" +
-				"393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f2021222324252627282" +
-				"92a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40414243444546474849" +
-				"4a4b4c4d4e4f202122232425262728292a2b2c2d2e2f303132333435363738393" +
-				"a3b3c3d3e3f3f"),
+			data: hexToBytes("000102030405060708090a0b0c0d0e0f101" +
+				"112131415161718191a1b1c1d1e1f202122232425262" +
+				"728292a2b2c2d2e2f303132333435363738393a3b3c3" +
+				"d3e3f404142434445464748494a4b4c4d4e4f50"),
 			expected: nil,
 			err:      scriptError(ErrTooMuchNullData, ""),
 			class:    NonStandardTy,
@@ -1090,132 +1187,29 @@ func TestGenerateProvablyPruneableOut(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		script, err := GenerateProvablyPruneableOut(test.data)
+		script, err := NullDataScript(test.data)
 		if e := tstCheckScriptError(err, test.err); e != nil {
-			t.Errorf("GenerateProvablyPruneableOut: #%d (%s) %v: ",
-				i, test.name, e)
+			t.Errorf("NullDataScript: #%d (%s): %v", i, test.name,
+				e)
 			continue
 
 		}
 
 		// Check that the expected result was returned.
 		if !bytes.Equal(script, test.expected) {
-			t.Errorf("GenerateProvablyPruneableOut: #%d (%s) wrong result\n"+
+			t.Errorf("NullDataScript: #%d (%s) wrong result\n"+
 				"got: %x\nwant: %x", i, test.name, script,
 				test.expected)
 			continue
 		}
 
 		// Check that the script has the correct type.
-		scriptType := GetScriptClass(DefaultScriptVersion, script)
+		scriptType := GetScriptClass(script)
 		if scriptType != test.class {
 			t.Errorf("GetScriptClass: #%d (%s) wrong result -- "+
 				"got: %v, want: %v", i, test.name, scriptType,
 				test.class)
 			continue
-		}
-	}
-}
-
-// TestGenerateSStxAddrPush ensures an expected OP_RETURN push is generated.
-func TestGenerateSStxAddrPush(t *testing.T) {
-	var tests = []struct {
-		addrStr  string
-		amount   pfcutil.Amount
-		limits   uint16
-		expected []byte
-	}{
-		{
-			"Dcur2mcGjmENx4DhNqDctW5wJCVyT3Qeqkx",
-			1000,
-			10,
-			hexToBytes("6a1ef5916158e3e2c4551c1796708db8367207ed1" +
-				"3bbe8030000000000800a00"),
-		},
-		{
-			"TscB7V5RuR1oXpA364DFEsNDuAs8Rk6BHJE",
-			543543,
-			256,
-			hexToBytes("6a1e7a5c4cca76f2e0b36db4763daacbd6cbb6ee6" +
-				"e7b374b0800000000000001"),
-		},
-	}
-	for _, test := range tests {
-		addr, err := pfcutil.DecodeAddress(test.addrStr)
-		if err != nil {
-			t.Errorf("DecodeAddress failed: %v", err)
-			continue
-		}
-		s, err := GenerateSStxAddrPush(addr, test.amount, test.limits)
-		if err != nil {
-			t.Errorf("GenerateSStxAddrPush failed: %v", err)
-			continue
-		}
-		if !bytes.Equal(s, test.expected) {
-			t.Errorf("GenerateSStxAddrPush: unexpected script:\n "+
-				"got %x\nwant %x", s, test.expected)
-		}
-	}
-}
-
-// TestGenerateSSGenBlockRef ensures an expected OP_RETURN push is generated.
-func TestGenerateSSGenBlockRef(t *testing.T) {
-	var tests = []struct {
-		blockHash string
-		height    uint32
-		expected  []byte
-	}{
-		{
-			"0000000000004740ad140c86753f9295e09f9cc81b1bb75d7f5552aeeedb7012",
-			1000,
-			hexToBytes("6a241270dbeeae52557f5db71b1bc89c9fe095923" +
-				"f75860c14ad4047000000000000e8030000"),
-		},
-		{
-			"000000000000000033eafc268a67c8d1f02343d7a96cf3fe2a4915ef779b52f9",
-			290000,
-			hexToBytes("6a24f9529b77ef15492afef36ca9d74323f0d1c86" +
-				"78a26fcea330000000000000000d06c0400"),
-		},
-	}
-	for _, test := range tests {
-		h, err := chainhash.NewHashFromStr(test.blockHash)
-		if err != nil {
-			t.Errorf("NewHashFromStr failed: %v", err)
-			continue
-		}
-		s, err := GenerateSSGenBlockRef(*h, test.height)
-		if err != nil {
-			t.Errorf("GenerateSSGenBlockRef failed: %v", err)
-			continue
-		}
-		if !bytes.Equal(s, test.expected) {
-			t.Errorf("GenerateSSGenBlockRef: unexpected script:\n"+
-				" got %x\nwant %x", s, test.expected)
-		}
-	}
-}
-
-// TestGenerateSSGenVotes ensures an expected OP_RETURN push is generated.
-func TestGenerateSSGenVotes(t *testing.T) {
-	var tests = []struct {
-		votebits uint16
-		expected []byte
-	}{
-		{65535, hexToBytes("6a02ffff")},
-		{256, hexToBytes("6a020001")},
-		{127, hexToBytes("6a027f00")},
-		{0, hexToBytes("6a020000")},
-	}
-	for _, test := range tests {
-		s, err := GenerateSSGenVotes(test.votebits)
-		if err != nil {
-			t.Errorf("GenerateSSGenVotes failed: %v", err)
-			continue
-		}
-		if !bytes.Equal(s, test.expected) {
-			t.Errorf("GenerateSSGenVotes: unexpected script:\n "+
-				"got %x\nwant %x", s, test.expected)
 		}
 	}
 }

@@ -1,18 +1,15 @@
-// Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2018 The Decred developers
+// Copyright (c) 2015-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package blockchain
 
 import (
-	"bytes"
 	"math/big"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/database"
@@ -22,44 +19,43 @@ import (
 // blockStatus is a bit field representing the validation state of the block.
 type blockStatus byte
 
-// The following constants specify possible status bit flags for a block.
-//
-// NOTE: This section specifically does not use iota since the block status is
-// serialized and must be stable for long-term storage.
 const (
-	// statusNone indicates that the block has no validation state flags set.
-	statusNone blockStatus = 0
-
 	// statusDataStored indicates that the block's payload is stored on disk.
-	statusDataStored blockStatus = 1 << 0
+	statusDataStored blockStatus = 1 << iota
 
-	// statusValid indicates that the block has been fully validated.  It also
-	// means that all of its ancestors have also been validated.
-	statusValid blockStatus = 1 << 1
+	// statusValid indicates that the block has been fully validated.
+	statusValid
 
 	// statusValidateFailed indicates that the block has failed validation.
-	statusValidateFailed blockStatus = 1 << 2
+	statusValidateFailed
 
-	// statusInvalidAncestor indicates that one of the ancestors of the block
+	// statusInvalidAncestor indicates that one of the block's ancestors has
 	// has failed validation, thus the block is also invalid.
-	statusInvalidAncestor blockStatus = 1 << 3
+	statusInvalidAncestor
+
+	// statusNone indicates that the block has no validation state flags set.
+	//
+	// NOTE: This must be defined last in order to avoid influencing iota.
+	statusNone blockStatus = 0
 )
 
-// HaveData returns whether the full block data is stored in the database.  This
+// HaveData returns whether the full block data is stored in the database. This
 // will return false for a block node where only the header is downloaded or
-// stored.
+// kept.
 func (status blockStatus) HaveData() bool {
 	return status&statusDataStored != 0
 }
 
-// KnownValid returns whether the block is known to be valid.  This will return
+// KnownValid returns whether the block is known to be valid. This will return
 // false for a valid block that has not been fully validated yet.
 func (status blockStatus) KnownValid() bool {
 	return status&statusValid != 0
 }
 
-// KnownInvalid returns whether the block is known to be invalid.  This will
-// return false for invalid blocks that have not been proven invalid yet.
+// KnownInvalid returns whether the block is known to be invalid. This may be
+// because the block itself failed validation or any of its ancestors is
+// invalid. This will return false for invalid blocks that have not been proven
+// invalid yet.
 func (status blockStatus) KnownInvalid() bool {
 	return status&(statusValidateFailed|statusInvalidAncestor) != 0
 }
@@ -78,94 +74,57 @@ type blockNode struct {
 	// parent is the parent block for this node.
 	parent *blockNode
 
-	// hash is the hash of the block this node represents.
+	// hash is the double sha 256 of the block.
 	hash chainhash.Hash
 
 	// workSum is the total amount of work in the chain up to and including
 	// this node.
 	workSum *big.Int
 
+	// height is the position in the block chain.
+	height int32
+
 	// Some fields from block headers to aid in best chain selection and
 	// reconstructing headers from memory.  These must be treated as
 	// immutable and are intentionally ordered to avoid padding on 64-bit
 	// platforms.
-	height       int64
-	voteBits     uint16
-	finalState   [6]byte
-	blockVersion int32
-	voters       uint16
-	freshStake   uint8
-	revocations  uint8
-	poolSize     uint32
-	bits         uint32
-	sbits        int64
-	timestamp    int64
-	merkleRoot   chainhash.Hash
-	stakeRoot    chainhash.Hash
-	blockSize    uint32
-	nonce        uint32
-	extraData    [32]byte
-	stakeVersion uint32
+	version    int32
+	bits       uint32
+	nonce      uint32
+	timestamp  int64
+	merkleRoot chainhash.Hash
 
-	// status is a bitfield representing the validation state of the block.
-	// This field, unlike the other fields, may be changed after the block
-	// node is created, so it must only be accessed or updated using the
-	// concurrent-safe NodeStatus, SetStatusFlags, and UnsetStatusFlags
-	// methods on blockIndex once the node has been added to the index.
+	// status is a bitfield representing the validation state of the block. The
+	// status field, unlike the other fields, may be written to and so should
+	// only be accessed using the concurrent-safe NodeStatus method on
+	// blockIndex once the node has been added to the global index.
 	status blockStatus
-
-	// stakeNode contains all the consensus information required for the
-	// staking system.  The node also caches information required to add or
-	// remove stake nodes, so that the stake node itself may be pruneable
-	// to save memory while maintaining high throughput efficiency for the
-	// evaluation of sidechains.
-	stakeNode      *stake.Node
-	newTickets     []chainhash.Hash
-	ticketsVoted   []chainhash.Hash
-	ticketsRevoked []chainhash.Hash
-
-	// Keep track of all vote version and bits in this block.
-	votes []stake.VoteVersionTuple
 }
 
-// initBlockNode initializes a block node from the given header, initialization
-// vector for the ticket lottery, and parent node.  The workSum is calculated
-// based on the parent, or, in the case no parent is provided, it will just be
-// the work for the passed block.
-//
+// initBlockNode initializes a block node from the given header and parent node,
+// calculating the height and workSum from the respective fields on the parent.
 // This function is NOT safe for concurrent access.  It must only be called when
 // initially creating a node.
 func initBlockNode(node *blockNode, blockHeader *wire.BlockHeader, parent *blockNode) {
 	*node = blockNode{
-		hash:         blockHeader.BlockHash(),
-		workSum:      CalcWork(blockHeader.Bits),
-		height:       int64(blockHeader.Height),
-		blockVersion: blockHeader.Version,
-		voteBits:     blockHeader.VoteBits,
-		finalState:   blockHeader.FinalState,
-		voters:       blockHeader.Voters,
-		freshStake:   blockHeader.FreshStake,
-		poolSize:     blockHeader.PoolSize,
-		bits:         blockHeader.Bits,
-		sbits:        blockHeader.SBits,
-		timestamp:    blockHeader.Timestamp.Unix(),
-		merkleRoot:   blockHeader.MerkleRoot,
-		stakeRoot:    blockHeader.StakeRoot,
-		revocations:  blockHeader.Revocations,
-		blockSize:    blockHeader.Size,
-		nonce:        blockHeader.Nonce,
-		extraData:    blockHeader.ExtraData,
-		stakeVersion: blockHeader.StakeVersion,
+		hash:       blockHeader.BlockHash(),
+		workSum:    CalcWork(blockHeader.Bits),
+		version:    blockHeader.Version,
+		bits:       blockHeader.Bits,
+		nonce:      blockHeader.Nonce,
+		timestamp:  blockHeader.Timestamp.Unix(),
+		merkleRoot: blockHeader.MerkleRoot,
 	}
 	if parent != nil {
 		node.parent = parent
+		node.height = parent.height + 1
 		node.workSum = node.workSum.Add(parent.workSum, node.workSum)
 	}
 }
 
 // newBlockNode returns a new block node for the given block header and parent
-// node.  The workSum is calculated based on the parent, or, in the case no
-// parent is provided, it will just be the work for the passed block.
+// node, calculating the height and workSum from the respective fields on the
+// parent. This function is NOT safe for concurrent access.
 func newBlockNode(blockHeader *wire.BlockHeader, parent *blockNode) *blockNode {
 	var node blockNode
 	initBlockNode(&node, blockHeader, parent)
@@ -177,60 +136,18 @@ func newBlockNode(blockHeader *wire.BlockHeader, parent *blockNode) *blockNode {
 // This function is safe for concurrent access.
 func (node *blockNode) Header() wire.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
-	prevHash := zeroHash
+	prevHash := &zeroHash
 	if node.parent != nil {
 		prevHash = &node.parent.hash
 	}
 	return wire.BlockHeader{
-		Version:      node.blockVersion,
-		PrevBlock:    *prevHash,
-		MerkleRoot:   node.merkleRoot,
-		StakeRoot:    node.stakeRoot,
-		VoteBits:     node.voteBits,
-		FinalState:   node.finalState,
-		Voters:       node.voters,
-		FreshStake:   node.freshStake,
-		Revocations:  node.revocations,
-		PoolSize:     node.poolSize,
-		Bits:         node.bits,
-		SBits:        node.sbits,
-		Height:       uint32(node.height),
-		Size:         node.blockSize,
-		Timestamp:    time.Unix(node.timestamp, 0),
-		Nonce:        node.nonce,
-		ExtraData:    node.extraData,
-		StakeVersion: node.stakeVersion,
+		Version:    node.version,
+		PrevBlock:  *prevHash,
+		MerkleRoot: node.merkleRoot,
+		Timestamp:  time.Unix(node.timestamp, 0),
+		Bits:       node.bits,
+		Nonce:      node.nonce,
 	}
-}
-
-// lotteryIV returns the initialization vector for the deterministic PRNG used
-// to determine winning tickets.
-//
-// This function is safe for concurrent access.
-func (node *blockNode) lotteryIV() chainhash.Hash {
-	// Serialize the block header for use in calculating the initialization
-	// vector for the ticket lottery.  The only way this can fail is if the
-	// process is out of memory in which case it would panic anyways, so
-	// although panics are generally frowned upon in package code, it is
-	// acceptable here.
-	buf := bytes.NewBuffer(make([]byte, 0, wire.MaxBlockHeaderPayload))
-	header := node.Header()
-	if err := header.Serialize(buf); err != nil {
-		panic(err)
-	}
-
-	return stake.CalcHash256PRNGIV(buf.Bytes())
-}
-
-// populateTicketInfo sets prunable ticket information in the provided block
-// node.
-//
-// This function is NOT safe for concurrent access.  It must only be called when
-// initially creating a node or when protected by the chain lock.
-func (node *blockNode) populateTicketInfo(spentTickets *stake.SpentTicketsInBlock) {
-	node.ticketsVoted = spentTickets.VotedTickets
-	node.ticketsRevoked = spentTickets.RevokedTickets
-	node.votes = spentTickets.Votes
 }
 
 // Ancestor returns the ancestor block node at the provided height by following
@@ -239,7 +156,7 @@ func (node *blockNode) populateTicketInfo(spentTickets *stake.SpentTicketsInBloc
 // than zero.
 //
 // This function is safe for concurrent access.
-func (node *blockNode) Ancestor(height int64) *blockNode {
+func (node *blockNode) Ancestor(height int32) *blockNode {
 	if height < 0 || height > node.height {
 		return nil
 	}
@@ -257,7 +174,7 @@ func (node *blockNode) Ancestor(height int64) *blockNode {
 // height minus provided distance.
 //
 // This function is safe for concurrent access.
-func (node *blockNode) RelativeAncestor(distance int64) *blockNode {
+func (node *blockNode) RelativeAncestor(distance int32) *blockNode {
 	return node.Ancestor(node.height - distance)
 }
 
@@ -312,19 +229,9 @@ type blockIndex struct {
 	db          database.DB
 	chainParams *chaincfg.Params
 
-	// These following fields are protected by the embedded mutex.
-	//
-	// index contains an entry for every known block tracked by the block
-	// index.
-	//
-	// modified contains an entry for all nodes that have been modified
-	// since the last time the index was flushed to disk.
-	//
-	// chainTips contains an entry with the tip of all known side chains.
 	sync.RWMutex
-	index     map[chainhash.Hash]*blockNode
-	modified  map[*blockNode]struct{}
-	chainTips map[int64][]*blockNode
+	index map[chainhash.Hash]*blockNode
+	dirty map[*blockNode]struct{}
 }
 
 // newBlockIndex returns a new empty instance of a block index.  The index will
@@ -335,88 +242,18 @@ func newBlockIndex(db database.DB, chainParams *chaincfg.Params) *blockIndex {
 		db:          db,
 		chainParams: chainParams,
 		index:       make(map[chainhash.Hash]*blockNode),
-		modified:    make(map[*blockNode]struct{}),
-		chainTips:   make(map[int64][]*blockNode),
+		dirty:       make(map[*blockNode]struct{}),
 	}
 }
 
-// HaveBlock returns whether or not the block index contains the provided hash
-// and the block data is available.
+// HaveBlock returns whether or not the block index contains the provided hash.
 //
 // This function is safe for concurrent access.
 func (bi *blockIndex) HaveBlock(hash *chainhash.Hash) bool {
 	bi.RLock()
-	node := bi.index[*hash]
-	hasBlock := node != nil && node.status.HaveData()
+	_, hasBlock := bi.index[*hash]
 	bi.RUnlock()
 	return hasBlock
-}
-
-// addNode adds the provided node to the block index.  Duplicate entries are not
-// checked so it is up to caller to avoid adding them.
-//
-// This function MUST be called with the block index lock held (for writes).
-func (bi *blockIndex) addNode(node *blockNode) {
-	bi.index[node.hash] = node
-
-	// Since the block index does not support nodes that do not connect to
-	// an existing node (except the genesis block), all new nodes are either
-	// extending an existing chain or are on a side chain, but in either
-	// case, are a new chain tip.  In the case the node is extending a
-	// chain, the parent is no longer a tip.
-	bi.addChainTip(node)
-	if node.parent != nil {
-		bi.removeChainTip(node.parent)
-	}
-}
-
-// AddNode adds the provided node to the block index and marks it as modified.
-// Duplicate entries are not checked so it is up to caller to avoid adding them.
-//
-// This function is safe for concurrent access.
-func (bi *blockIndex) AddNode(node *blockNode) {
-	bi.Lock()
-	bi.addNode(node)
-	bi.modified[node] = struct{}{}
-	bi.Unlock()
-}
-
-// addChainTip adds the passed block node as a new chain tip.
-//
-// This function MUST be called with the block index lock held (for writes).
-func (bi *blockIndex) addChainTip(tip *blockNode) {
-	bi.chainTips[tip.height] = append(bi.chainTips[tip.height], tip)
-}
-
-// removeChainTip removes the passed block node from the available chain tips.
-//
-// This function MUST be called with the block index lock held (for writes).
-func (bi *blockIndex) removeChainTip(tip *blockNode) {
-	nodes := bi.chainTips[tip.height]
-	for i, n := range nodes {
-		if n == tip {
-			copy(nodes[i:], nodes[i+1:])
-			nodes[len(nodes)-1] = nil
-			nodes = nodes[:len(nodes)-1]
-			break
-		}
-	}
-
-	// Either update the map entry for the height with the remaining nodes
-	// or remove it altogether if there are no more nodes left.
-	if len(nodes) == 0 {
-		delete(bi.chainTips, tip.height)
-	} else {
-		bi.chainTips[tip.height] = nodes
-	}
-}
-
-// lookupNode returns the block node identified by the provided hash.  It will
-// return nil if there is no entry for the hash.
-//
-// This function MUST be called with the block index lock held (for reads).
-func (bi *blockIndex) lookupNode(hash *chainhash.Hash) *blockNode {
-	return bi.index[*hash]
 }
 
 // LookupNode returns the block node identified by the provided hash.  It will
@@ -425,12 +262,31 @@ func (bi *blockIndex) lookupNode(hash *chainhash.Hash) *blockNode {
 // This function is safe for concurrent access.
 func (bi *blockIndex) LookupNode(hash *chainhash.Hash) *blockNode {
 	bi.RLock()
-	node := bi.lookupNode(hash)
+	node := bi.index[*hash]
 	bi.RUnlock()
 	return node
 }
 
-// NodeStatus returns the status associated with the provided node.
+// AddNode adds the provided node to the block index and marks it as dirty.
+// Duplicate entries are not checked so it is up to caller to avoid adding them.
+//
+// This function is safe for concurrent access.
+func (bi *blockIndex) AddNode(node *blockNode) {
+	bi.Lock()
+	bi.addNode(node)
+	bi.dirty[node] = struct{}{}
+	bi.Unlock()
+}
+
+// addNode adds the provided node to the block index, but does not mark it as
+// dirty. This can be used while initializing the block index.
+//
+// This function is NOT safe for concurrent access.
+func (bi *blockIndex) addNode(node *blockNode) {
+	bi.index[node.hash] = node
+}
+
+// NodeStatus provides concurrent-safe access to the status field of a node.
 //
 // This function is safe for concurrent access.
 func (bi *blockIndex) NodeStatus(node *blockNode) blockStatus {
@@ -440,61 +296,53 @@ func (bi *blockIndex) NodeStatus(node *blockNode) blockStatus {
 	return status
 }
 
-// SetStatusFlags sets the provided status flags for the given block node
-// regardless of their previous state.  It does not unset any flags.
+// SetStatusFlags flips the provided status flags on the block node to on,
+// regardless of whether they were on or off previously. This does not unset any
+// flags currently on.
 //
 // This function is safe for concurrent access.
 func (bi *blockIndex) SetStatusFlags(node *blockNode, flags blockStatus) {
 	bi.Lock()
-	origStatus := node.status
 	node.status |= flags
-	if node.status != origStatus {
-		bi.modified[node] = struct{}{}
-	}
+	bi.dirty[node] = struct{}{}
 	bi.Unlock()
 }
 
-// UnsetStatusFlags unsets the provided status flags for the given block node
-// regardless of their previous state.
+// UnsetStatusFlags flips the provided status flags on the block node to off,
+// regardless of whether they were on or off previously.
 //
 // This function is safe for concurrent access.
 func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
 	bi.Lock()
-	origStatus := node.status
 	node.status &^= flags
-	if node.status != origStatus {
-		bi.modified[node] = struct{}{}
-	}
+	bi.dirty[node] = struct{}{}
 	bi.Unlock()
 }
 
-// flush writes all of the modified block nodes to the database and clears the
-// set of modified nodes if it succeeds.
-func (bi *blockIndex) flush() error {
-	// Nothing to flush if there are no modified nodes.
+// flushToDB writes all dirty block nodes to the database. If all writes
+// succeed, this clears the dirty set.
+func (bi *blockIndex) flushToDB() error {
 	bi.Lock()
-	if len(bi.modified) == 0 {
+	if len(bi.dirty) == 0 {
 		bi.Unlock()
 		return nil
 	}
 
-	// Write all of the nodes in the set of modified nodes to the database.
 	err := bi.db.Update(func(dbTx database.Tx) error {
-		for node := range bi.modified {
-			err := dbPutBlockNode(dbTx, node)
+		for node := range bi.dirty {
+			err := dbStoreBlockNode(dbTx, node)
 			if err != nil {
 				return err
 			}
 		}
 		return nil
 	})
-	if err != nil {
-		bi.Unlock()
-		return err
+
+	// If write was successful, clear the dirty set.
+	if err == nil {
+		bi.dirty = make(map[*blockNode]struct{})
 	}
 
-	// Clear the set of modified nodes.
-	bi.modified = make(map[*blockNode]struct{})
 	bi.Unlock()
-	return nil
+	return err
 }

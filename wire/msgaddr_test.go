@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -40,11 +39,8 @@ func TestAddr(t *testing.T) {
 
 	// Ensure NetAddresses are added properly.
 	tcpAddr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 8333}
-	na, err := NewNetAddress(tcpAddr, SFNodeNetwork)
-	if err != nil {
-		t.Errorf("NewNetAddress: %v", err)
-	}
-	err = msg.AddAddress(na)
+	na := NewNetAddress(tcpAddr, SFNodeNetwork)
+	err := msg.AddAddress(na)
 	if err != nil {
 		t.Errorf("AddAddress: %v", err)
 	}
@@ -75,10 +71,34 @@ func TestAddr(t *testing.T) {
 		t.Errorf("AddAddresses: expected error on too many addresses " +
 			"not received")
 	}
+
+	// Ensure max payload is expected value for protocol versions before
+	// timestamp was added to NetAddress.
+	// Num addresses (varInt) + max allowed addresses.
+	pver = NetAddressTimeVersion - 1
+	wantPayload = uint32(26009)
+	maxPayload = msg.MaxPayloadLength(pver)
+	if maxPayload != wantPayload {
+		t.Errorf("MaxPayloadLength: wrong max payload length for "+
+			"protocol version %d - got %v, want %v", pver,
+			maxPayload, wantPayload)
+	}
+
+	// Ensure max payload is expected value for protocol versions before
+	// multiple addresses were allowed.
+	// Num addresses (varInt) + a single net addresses.
+	pver = MultipleAddressVersion - 1
+	wantPayload = uint32(35)
+	maxPayload = msg.MaxPayloadLength(pver)
+	if maxPayload != wantPayload {
+		t.Errorf("MaxPayloadLength: wrong max payload length for "+
+			"protocol version %d - got %v, want %v", pver,
+			maxPayload, wantPayload)
+	}
 }
 
 // TestAddrWire tests the MsgAddr wire encode and decode for various numbers
-// of addreses and protocol versions.
+// of addresses and protocol versions.
 func TestAddrWire(t *testing.T) {
 	// A couple of NetAddresses to use for testing.
 	na := &NetAddress{
@@ -119,10 +139,11 @@ func TestAddrWire(t *testing.T) {
 	}
 
 	tests := []struct {
-		in   *MsgAddr // Message to encode
-		out  *MsgAddr // Expected decoded message
-		buf  []byte   // Wire encoding
-		pver uint32   // Protocol version for wire encoding
+		in   *MsgAddr        // Message to encode
+		out  *MsgAddr        // Expected decoded message
+		buf  []byte          // Wire encoding
+		pver uint32          // Protocol version for wire encoding
+		enc  MessageEncoding // Message encoding format
 	}{
 		// Latest protocol version with no addresses.
 		{
@@ -130,6 +151,7 @@ func TestAddrWire(t *testing.T) {
 			noAddr,
 			noAddrEncoded,
 			ProtocolVersion,
+			BaseEncoding,
 		},
 
 		// Latest protocol version with multiple addresses.
@@ -138,6 +160,16 @@ func TestAddrWire(t *testing.T) {
 			multiAddr,
 			multiAddrEncoded,
 			ProtocolVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version MultipleAddressVersion-1 with no addresses.
+		{
+			noAddr,
+			noAddr,
+			noAddrEncoded,
+			MultipleAddressVersion - 1,
+			BaseEncoding,
 		},
 	}
 
@@ -145,7 +177,7 @@ func TestAddrWire(t *testing.T) {
 	for i, test := range tests {
 		// Encode the message to wire format.
 		var buf bytes.Buffer
-		err := test.in.BtcEncode(&buf, test.pver)
+		err := test.in.BtcEncode(&buf, test.pver, test.enc)
 		if err != nil {
 			t.Errorf("BtcEncode #%d error %v", i, err)
 			continue
@@ -159,13 +191,13 @@ func TestAddrWire(t *testing.T) {
 		// Decode the message from wire format.
 		var msg MsgAddr
 		rbuf := bytes.NewReader(test.buf)
-		err = msg.BtcDecode(rbuf, test.pver)
+		err = msg.PfcDecode(rbuf, test.pver, test.enc)
 		if err != nil {
-			t.Errorf("BtcDecode #%d error %v", i, err)
+			t.Errorf("PfcDecode #%d error %v", i, err)
 			continue
 		}
 		if !reflect.DeepEqual(&msg, test.out) {
-			t.Errorf("BtcDecode #%d\n got: %s want: %s", i,
+			t.Errorf("PfcDecode #%d\n got: %s want: %s", i,
 				spew.Sdump(msg), spew.Sdump(test.out))
 			continue
 		}
@@ -176,6 +208,7 @@ func TestAddrWire(t *testing.T) {
 // of MsgAddr to confirm error paths work correctly.
 func TestAddrWireErrors(t *testing.T) {
 	pver := ProtocolVersion
+	pverMA := MultipleAddressVersion
 	wireErr := &MessageError{}
 
 	// A couple of NetAddresses to use for testing.
@@ -222,27 +255,31 @@ func TestAddrWireErrors(t *testing.T) {
 	}
 
 	tests := []struct {
-		in       *MsgAddr // Value to encode
-		buf      []byte   // Wire encoding
-		pver     uint32   // Protocol version for wire encoding
-		max      int      // Max size of fixed buffer to induce errors
-		writeErr error    // Expected write error
-		readErr  error    // Expected read error
+		in       *MsgAddr        // Value to encode
+		buf      []byte          // Wire encoding
+		pver     uint32          // Protocol version for wire encoding
+		enc      MessageEncoding // Message encoding format
+		max      int             // Max size of fixed buffer to induce errors
+		writeErr error           // Expected write error
+		readErr  error           // Expected read error
 	}{
 		// Latest protocol version with intentional read/write errors.
 		// Force error in addresses count
-		{baseAddr, baseAddrEncoded, pver, 0, io.ErrShortWrite, io.EOF},
+		{baseAddr, baseAddrEncoded, pver, BaseEncoding, 0, io.ErrShortWrite, io.EOF},
 		// Force error in address list.
-		{baseAddr, baseAddrEncoded, pver, 1, io.ErrShortWrite, io.EOF},
+		{baseAddr, baseAddrEncoded, pver, BaseEncoding, 1, io.ErrShortWrite, io.EOF},
 		// Force error with greater than max inventory vectors.
-		{maxAddr, maxAddrEncoded, pver, 3, wireErr, wireErr},
+		{maxAddr, maxAddrEncoded, pver, BaseEncoding, 3, wireErr, wireErr},
+		// Force error with greater than max inventory vectors for
+		// protocol versions before multiple addresses were allowed.
+		{maxAddr, maxAddrEncoded, pverMA - 1, BaseEncoding, 3, wireErr, wireErr},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
 		// Encode to wire format.
 		w := newFixedWriter(test.max)
-		err := test.in.BtcEncode(w, test.pver)
+		err := test.in.BtcEncode(w, test.pver, test.enc)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.writeErr) {
 			t.Errorf("BtcEncode #%d wrong error got: %v, want: %v",
 				i, err, test.writeErr)
@@ -262,9 +299,9 @@ func TestAddrWireErrors(t *testing.T) {
 		// Decode from wire format.
 		var msg MsgAddr
 		r := newFixedReader(test.max, test.buf)
-		err = msg.BtcDecode(r, test.pver)
+		err = msg.PfcDecode(r, test.pver, test.enc)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.readErr) {
-			t.Errorf("BtcDecode #%d wrong error got: %v, want: %v",
+			t.Errorf("PfcDecode #%d wrong error got: %v, want: %v",
 				i, err, test.readErr)
 			continue
 		}
@@ -273,7 +310,7 @@ func TestAddrWireErrors(t *testing.T) {
 		// equality.
 		if _, ok := err.(*MessageError); !ok {
 			if err != test.readErr {
-				t.Errorf("BtcDecode #%d wrong error got: %v, "+
+				t.Errorf("PfcDecode #%d wrong error got: %v, "+
 					"want: %v", i, err, test.readErr)
 				continue
 			}

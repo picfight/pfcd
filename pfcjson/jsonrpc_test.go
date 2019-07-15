@@ -1,19 +1,21 @@
 // Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson
+package pfcjson_test
 
 import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestIsValidIDType ensures the IsValidIDType function behaves as expected.
 func TestIsValidIDType(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name    string
 		id      interface{}
@@ -42,7 +44,7 @@ func TestIsValidIDType(t *testing.T) {
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		if IsValidIDType(test.id) != test.isValid {
+		if pfcjson.IsValidIDType(test.id) != test.isValid {
 			t.Errorf("Test #%d (%s) valid mismatch - got %v, "+
 				"want %v", i, test.name, !test.isValid,
 				test.isValid)
@@ -54,33 +56,34 @@ func TestIsValidIDType(t *testing.T) {
 // TestMarshalResponse ensures the MarshalResponse function works as expected.
 func TestMarshalResponse(t *testing.T) {
 	t.Parallel()
+
 	testID := 1
 	tests := []struct {
 		name     string
 		result   interface{}
-		jsonErr  *RPCError
+		jsonErr  *pfcjson.RPCError
 		expected []byte
 	}{
 		{
 			name:     "ordinary bool result with no error",
 			result:   true,
 			jsonErr:  nil,
-			expected: []byte(`{"jsonrpc":"1.0","result":true,"error":null,"id":1}`),
+			expected: []byte(`{"result":true,"error":null,"id":1}`),
 		},
 		{
 			name:   "result with error",
 			result: nil,
-			jsonErr: func() *RPCError {
-				return NewRPCError(ErrRPCBlockNotFound, "123 not found")
+			jsonErr: func() *pfcjson.RPCError {
+				return pfcjson.NewRPCError(pfcjson.ErrRPCBlockNotFound, "123 not found")
 			}(),
-			expected: []byte(`{"jsonrpc":"1.0","result":null,"error":{"code":-5,"message":"123 not found"},"id":1}`),
+			expected: []byte(`{"result":null,"error":{"code":-5,"message":"123 not found"},"id":1}`),
 		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
 		_, _ = i, test
-		marshalled, err := MarshalResponse("1.0", testID, test.result, test.jsonErr)
+		marshalled, err := pfcjson.MarshalResponse(testID, test.result, test.jsonErr)
 		if err != nil {
 			t.Errorf("Test #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -98,9 +101,10 @@ func TestMarshalResponse(t *testing.T) {
 // TestMiscErrors tests a few error conditions not covered elsewhere.
 func TestMiscErrors(t *testing.T) {
 	t.Parallel()
+
 	// Force an error in NewRequest by giving it a parameter type that is
 	// not supported.
-	_, err := NewRequest("1.0", nil, "test", []interface{}{make(chan int)})
+	_, err := pfcjson.NewRequest(nil, "test", []interface{}{make(chan int)})
 	if err == nil {
 		t.Error("NewRequest: did not receive error")
 		return
@@ -108,9 +112,9 @@ func TestMiscErrors(t *testing.T) {
 
 	// Force an error in MarshalResponse by giving it an id type that is not
 	// supported.
-	wantErr := Error{Code: ErrInvalidType}
-	_, err = MarshalResponse("", make(chan int), nil, nil)
-	if jerr, ok := err.(Error); !ok || jerr.Code != wantErr.Code {
+	wantErr := pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType}
+	_, err = pfcjson.MarshalResponse(make(chan int), nil, nil)
+	if jerr, ok := err.(pfcjson.Error); !ok || jerr.ErrorCode != wantErr.ErrorCode {
 		t.Errorf("MarshalResult: did not receive expected error - got "+
 			"%v (%[1]T), want %v (%[2]T)", err, wantErr)
 		return
@@ -118,7 +122,7 @@ func TestMiscErrors(t *testing.T) {
 
 	// Force an error in MarshalResponse by giving it a result type that
 	// can't be marshalled.
-	_, err = MarshalResponse("1.0", 1, make(chan int), nil)
+	_, err = pfcjson.MarshalResponse(1, make(chan int), nil)
 	if _, ok := err.(*json.UnsupportedTypeError); !ok {
 		wantErr := &json.UnsupportedTypeError{}
 		t.Errorf("MarshalResult: did not receive expected error - got "+
@@ -130,16 +134,17 @@ func TestMiscErrors(t *testing.T) {
 // TestRPCError tests the error output for the RPCError type.
 func TestRPCError(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
-		in   *RPCError
+		in   *pfcjson.RPCError
 		want string
 	}{
 		{
-			ErrRPCInvalidRequest,
+			pfcjson.ErrRPCInvalidRequest,
 			"-32600: Invalid request",
 		},
 		{
-			ErrRPCMethodNotFound,
+			pfcjson.ErrRPCMethodNotFound,
 			"-32601: Method not found",
 		},
 	}

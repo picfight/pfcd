@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,31 +6,41 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
-	"time"
 
 	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/internal/limits"
-	"github.com/picfight/pfcd/internal/version"
+	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/limits"
 )
 
-var cfg *config
+const (
+	// blockDbNamePrefix is the prefix for the block database name.  The
+	// database type is appended to this value to form the full block
+	// database name.
+	blockDbNamePrefix = "blocks"
+)
 
-// winServiceMain is only invoked on Windows.  It detects when pfcd is running
+var (
+	cfg *config
+)
+
+// winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
 
-// pfcdMain is the real main function for pfcd.  It is necessary to work around
+// btcdMain is the real main function for btcd.  It is necessary to work around
 // the fact that deferred functions do not run when os.Exit() is called.  The
 // optional serverChan parameter is mainly used by the service code to be
 // notified with the server once it is setup so it can gracefully stop it when
 // requested from the service control manager.
-func pfcdMain(serverChan chan<- *server) error {
+func btcdMain(serverChan chan<- *server) error {
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
 	tcfg, _, err := loadConfig()
@@ -49,29 +58,20 @@ func pfcdMain(serverChan chan<- *server) error {
 	// triggered either from an OS signal such as SIGINT (Ctrl+C) or from
 	// another subsystem such as the RPC server.
 	interrupt := interruptListener()
-	defer pfcdLog.Info("Shutdown complete")
+	defer btcdLog.Info("Shutdown complete")
 
-	// Show version and home dir at startup.
-	pfcdLog.Infof("Version %s (Go version %s %s/%s)", version.String(),
-		runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	pfcdLog.Infof("Home dir: %s", cfg.HomeDir)
-	if cfg.NoFileLogging {
-		pfcdLog.Info("File logging disabled")
-	}
+	// Show version at startup.
+	btcdLog.Infof("Version %s", version())
 
 	// Enable http profiling server if requested.
 	if cfg.Profile != "" {
 		go func() {
-			listenAddr := cfg.Profile
-			pfcdLog.Infof("Creating profiling server "+
-				"listening on %s", listenAddr)
+			listenAddr := net.JoinHostPort("", cfg.Profile)
+			btcdLog.Infof("Profile server listening on %s", listenAddr)
 			profileRedirect := http.RedirectHandler("/debug/pprof",
 				http.StatusSeeOther)
 			http.Handle("/", profileRedirect)
-			err := http.ListenAndServe(listenAddr, nil)
-			if err != nil {
-				fatalf(err.Error())
-			}
+			btcdLog.Errorf("%v", http.ListenAndServe(listenAddr, nil))
 		}()
 	}
 
@@ -79,7 +79,7 @@ func pfcdMain(serverChan chan<- *server) error {
 	if cfg.CPUProfile != "" {
 		f, err := os.Create(cfg.CPUProfile)
 		if err != nil {
-			pfcdLog.Errorf("Unable to create cpu profile: %v", err.Error())
+			btcdLog.Errorf("Unable to create cpu profile: %v", err)
 			return err
 		}
 		pprof.StartCPUProfile(f)
@@ -87,33 +87,10 @@ func pfcdMain(serverChan chan<- *server) error {
 		defer pprof.StopCPUProfile()
 	}
 
-	// Write mem profile if requested.
-	if cfg.MemProfile != "" {
-		f, err := os.Create(cfg.MemProfile)
-		if err != nil {
-			pfcdLog.Errorf("Unable to create mem profile: %v", err)
-			return err
-		}
-		timer := time.NewTimer(time.Minute * 20) // 20 minutes
-		go func() {
-			<-timer.C
-			pprof.WriteHeapProfile(f)
-			f.Close()
-		}()
-	}
-
-	var lifetimeNotifier lifetimeEventServer
-	if cfg.LifetimeEvents {
-		lifetimeNotifier = newLifetimeEventServer(outgoingPipeMessages)
-	}
-
-	if cfg.PipeRx != 0 {
-		go serviceControlPipeRx(uintptr(cfg.PipeRx))
-	}
-	if cfg.PipeTx != 0 {
-		go serviceControlPipeTx(uintptr(cfg.PipeTx))
-	} else {
-		go drainOutgoingPipeMessages()
+	// Perform upgrades to btcd as new versions require it.
+	if err := doUpgrades(); err != nil {
+		btcdLog.Errorf("%v", err)
+		return err
 	}
 
 	// Return now if an interrupt signal was triggered.
@@ -122,16 +99,14 @@ func pfcdMain(serverChan chan<- *server) error {
 	}
 
 	// Load the block database.
-	lifetimeNotifier.notifyStartupEvent(lifetimeEventDBOpen)
 	db, err := loadBlockDB()
 	if err != nil {
-		pfcdLog.Errorf("%v", err)
+		btcdLog.Errorf("%v", err)
 		return err
 	}
 	defer func() {
 		// Ensure the database is sync'd and closed on shutdown.
-		lifetimeNotifier.notifyShutdownEvent(lifetimeEventDBOpen)
-		pfcdLog.Infof("Gracefully shutting down the database...")
+		btcdLog.Infof("Gracefully shutting down the database...")
 		db.Close()
 	}()
 
@@ -146,7 +121,7 @@ func pfcdMain(serverChan chan<- *server) error {
 	// drops the address index since it relies on it.
 	if cfg.DropAddrIndex {
 		if err := indexers.DropAddrIndex(db, interrupt); err != nil {
-			pfcdLog.Errorf("%v", err)
+			btcdLog.Errorf("%v", err)
 			return err
 		}
 
@@ -154,23 +129,15 @@ func pfcdMain(serverChan chan<- *server) error {
 	}
 	if cfg.DropTxIndex {
 		if err := indexers.DropTxIndex(db, interrupt); err != nil {
-			pfcdLog.Errorf("%v", err)
+			btcdLog.Errorf("%v", err)
 			return err
 		}
 
 		return nil
 	}
-	if cfg.DropExistsAddrIndex {
-		if err := indexers.DropExistsAddrIndex(db, interrupt); err != nil {
-			pfcdLog.Errorf("%v", err)
-			return err
-		}
-
-		return nil
-	}
-	if cfg.DropCFIndex {
+	if cfg.DropCfIndex {
 		if err := indexers.DropCfIndex(db, interrupt); err != nil {
-			pfcdLog.Errorf("%v", err)
+			btcdLog.Errorf("%v", err)
 			return err
 		}
 
@@ -178,39 +145,155 @@ func pfcdMain(serverChan chan<- *server) error {
 	}
 
 	// Create server and start it.
-	lifetimeNotifier.notifyStartupEvent(lifetimeEventP2PServer)
-	server, err := newServer(cfg.Listeners, db, activeNetParams.Params,
-		cfg.DataDir, interrupt)
+	server, err := newServer(cfg.Listeners, cfg.AgentBlacklist,
+		cfg.AgentWhitelist, db, activeNetParams.Params, interrupt)
 	if err != nil {
-		// TODO(oga) this logging could do with some beautifying.
-		pfcdLog.Errorf("Unable to start server on %v: %v",
+		// TODO: this logging could do with some beautifying.
+		btcdLog.Errorf("Unable to start server on %v: %v",
 			cfg.Listeners, err)
 		return err
 	}
 	defer func() {
-		lifetimeNotifier.notifyShutdownEvent(lifetimeEventP2PServer)
-		pfcdLog.Infof("Gracefully shutting down the server...")
+		btcdLog.Infof("Gracefully shutting down the server...")
 		server.Stop()
 		server.WaitForShutdown()
 		srvrLog.Infof("Server shutdown complete")
 	}()
-
 	server.Start()
 	if serverChan != nil {
 		serverChan <- server
 	}
-
-	if interruptRequested(interrupt) {
-		return nil
-	}
-
-	lifetimeNotifier.notifyStartupComplete()
 
 	// Wait until the interrupt signal is received from an OS signal or
 	// shutdown is requested through one of the subsystems such as the RPC
 	// server.
 	<-interrupt
 	return nil
+}
+
+// removeRegressionDB removes the existing regression test database if running
+// in regression test mode and it already exists.
+func removeRegressionDB(dbPath string) error {
+	// Don't do anything if not in regression test mode.
+	if !cfg.RegressionTest {
+		return nil
+	}
+
+	// Remove the old regression test database if it already exists.
+	fi, err := os.Stat(dbPath)
+	if err == nil {
+		btcdLog.Infof("Removing regression test database from '%s'", dbPath)
+		if fi.IsDir() {
+			err := os.RemoveAll(dbPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := os.Remove(dbPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// dbPath returns the path to the block database given a database type.
+func blockDbPath(dbType string) string {
+	// The database name is based on the database type.
+	dbName := blockDbNamePrefix + "_" + dbType
+	if dbType == "sqlite" {
+		dbName = dbName + ".db"
+	}
+	dbPath := filepath.Join(cfg.DataDir, dbName)
+	return dbPath
+}
+
+// warnMultipleDBs shows a warning if multiple block database types are detected.
+// This is not a situation most users want.  It is handy for development however
+// to support multiple side-by-side databases.
+func warnMultipleDBs() {
+	// This is intentionally not using the known db types which depend
+	// on the database types compiled into the binary since we want to
+	// detect legacy db types as well.
+	dbTypes := []string{"ffldb", "leveldb", "sqlite"}
+	duplicateDbPaths := make([]string, 0, len(dbTypes)-1)
+	for _, dbType := range dbTypes {
+		if dbType == cfg.DbType {
+			continue
+		}
+
+		// Store db path as a duplicate db if it exists.
+		dbPath := blockDbPath(dbType)
+		if fileExists(dbPath) {
+			duplicateDbPaths = append(duplicateDbPaths, dbPath)
+		}
+	}
+
+	// Warn if there are extra databases.
+	if len(duplicateDbPaths) > 0 {
+		selectedDbPath := blockDbPath(cfg.DbType)
+		btcdLog.Warnf("WARNING: There are multiple block chain databases "+
+			"using different database types.\nYou probably don't "+
+			"want to waste disk space by having more than one.\n"+
+			"Your current database is located at [%v].\nThe "+
+			"additional database is located at %v", selectedDbPath,
+			duplicateDbPaths)
+	}
+}
+
+// loadBlockDB loads (or creates when needed) the block database taking into
+// account the selected database backend and returns a handle to it.  It also
+// contains additional logic such warning the user if there are multiple
+// databases which consume space on the file system and ensuring the regression
+// test database is clean when in regression test mode.
+func loadBlockDB() (database.DB, error) {
+	// The memdb backend does not have a file path associated with it, so
+	// handle it uniquely.  We also don't want to worry about the multiple
+	// database type warnings when running with the memory database.
+	if cfg.DbType == "memdb" {
+		btcdLog.Infof("Creating block database in memory.")
+		db, err := database.Create(cfg.DbType)
+		if err != nil {
+			return nil, err
+		}
+		return db, nil
+	}
+
+	warnMultipleDBs()
+
+	// The database name is based on the database type.
+	dbPath := blockDbPath(cfg.DbType)
+
+	// The regression test is special in that it needs a clean database for
+	// each run, so remove it now if it already exists.
+	removeRegressionDB(dbPath)
+
+	btcdLog.Infof("Loading block database from '%s'", dbPath)
+	db, err := database.Open(cfg.DbType, dbPath, activeNetParams.Net)
+	if err != nil {
+		// Return the error if it's not because the database doesn't
+		// exist.
+		if dbErr, ok := err.(database.Error); !ok || dbErr.ErrorCode !=
+			database.ErrDbDoesNotExist {
+
+			return nil, err
+		}
+
+		// Create the db if it does not exist.
+		err = os.MkdirAll(cfg.DataDir, 0700)
+		if err != nil {
+			return nil, err
+		}
+		db, err = database.Create(cfg.DbType, dbPath, activeNetParams.Net)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	btcdLog.Info("Block database loaded")
+	return db, nil
 }
 
 func main() {
@@ -221,7 +304,7 @@ func main() {
 	// limits the garbage collector from excessively overallocating during
 	// bursts.  This value was arrived at with the help of profiling live
 	// usage.
-	debug.SetGCPercent(20)
+	debug.SetGCPercent(10)
 
 	// Up some limits.
 	if err := limits.SetLimits(); err != nil {
@@ -244,7 +327,7 @@ func main() {
 	}
 
 	// Work around defer not working after os.Exit()
-	if err := pfcdMain(nil); err != nil {
+	if err := btcdMain(nil); err != nil {
 		os.Exit(1)
 	}
 }

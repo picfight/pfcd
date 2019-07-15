@@ -17,11 +17,10 @@ func TestErrorCodeStringer(t *testing.T) {
 		want string
 	}{
 		{ErrInternal, "ErrInternal"},
+		{ErrInvalidFlags, "ErrInvalidFlags"},
 		{ErrInvalidIndex, "ErrInvalidIndex"},
-		{ErrInvalidSigHashSingleIndex, "ErrInvalidSigHashSingleIndex"},
 		{ErrUnsupportedAddress, "ErrUnsupportedAddress"},
 		{ErrTooManyRequiredSigs, "ErrTooManyRequiredSigs"},
-		{ErrMalformedCoinbaseNullData, "ErrMalformedCoinbaseNullData"},
 		{ErrTooMuchNullData, "ErrTooMuchNullData"},
 		{ErrNotMultisigScript, "ErrNotMultisigScript"},
 		{ErrEarlyReturn, "ErrEarlyReturn"},
@@ -35,25 +34,17 @@ func TestErrorCodeStringer(t *testing.T) {
 		{ErrStackOverflow, "ErrStackOverflow"},
 		{ErrInvalidPubKeyCount, "ErrInvalidPubKeyCount"},
 		{ErrInvalidSignatureCount, "ErrInvalidSignatureCount"},
-		{ErrNumOutOfRange, "ErrNumOutOfRange"},
+		{ErrNumberTooBig, "ErrNumberTooBig"},
 		{ErrVerify, "ErrVerify"},
 		{ErrEqualVerify, "ErrEqualVerify"},
 		{ErrNumEqualVerify, "ErrNumEqualVerify"},
 		{ErrCheckSigVerify, "ErrCheckSigVerify"},
 		{ErrCheckMultiSigVerify, "ErrCheckMultiSigVerify"},
-		{ErrP2SHStakeOpCodes, "ErrP2SHStakeOpCodes"},
 		{ErrDisabledOpcode, "ErrDisabledOpcode"},
 		{ErrReservedOpcode, "ErrReservedOpcode"},
 		{ErrMalformedPush, "ErrMalformedPush"},
 		{ErrInvalidStackOperation, "ErrInvalidStackOperation"},
 		{ErrUnbalancedConditional, "ErrUnbalancedConditional"},
-		{ErrNegativeSubstrIdx, "ErrNegativeSubstrIdx"},
-		{ErrOverflowSubstrIdx, "ErrOverflowSubstrIdx"},
-		{ErrNegativeRotation, "ErrNegativeRotation"},
-		{ErrOverflowRotation, "ErrOverflowRotation"},
-		{ErrDivideByZero, "ErrDivideByZero"},
-		{ErrNegativeShift, "ErrNegativeShift"},
-		{ErrOverflowShift, "ErrOverflowShift"},
 		{ErrMinimalData, "ErrMinimalData"},
 		{ErrInvalidSigHashType, "ErrInvalidSigHashType"},
 		{ErrSigTooShort, "ErrSigTooShort"},
@@ -73,11 +64,22 @@ func TestErrorCodeStringer(t *testing.T) {
 		{ErrSigTooMuchSPadding, "ErrSigTooMuchSPadding"},
 		{ErrSigHighS, "ErrSigHighS"},
 		{ErrNotPushOnly, "ErrNotPushOnly"},
+		{ErrSigNullDummy, "ErrSigNullDummy"},
 		{ErrPubKeyType, "ErrPubKeyType"},
 		{ErrCleanStack, "ErrCleanStack"},
+		{ErrNullFail, "ErrNullFail"},
 		{ErrDiscourageUpgradableNOPs, "ErrDiscourageUpgradableNOPs"},
 		{ErrNegativeLockTime, "ErrNegativeLockTime"},
 		{ErrUnsatisfiedLockTime, "ErrUnsatisfiedLockTime"},
+		{ErrWitnessProgramEmpty, "ErrWitnessProgramEmpty"},
+		{ErrWitnessProgramMismatch, "ErrWitnessProgramMismatch"},
+		{ErrWitnessProgramWrongLength, "ErrWitnessProgramWrongLength"},
+		{ErrWitnessMalleated, "ErrWitnessMalleated"},
+		{ErrWitnessMalleatedP2SH, "ErrWitnessMalleatedP2SH"},
+		{ErrWitnessUnexpected, "ErrWitnessUnexpected"},
+		{ErrMinimalIf, "ErrMinimalIf"},
+		{ErrWitnessPubKeyType, "ErrWitnessPubKeyType"},
+		{ErrDiscourageUpgradableWitnessProgram, "ErrDiscourageUpgradableWitnessProgram"},
 		{0xffff, "Unknown ErrorCode (65535)"},
 	}
 
@@ -122,42 +124,6 @@ func TestError(t *testing.T) {
 		if result != test.want {
 			t.Errorf("Error #%d\n got: %s want: %s", i, result,
 				test.want)
-			continue
-		}
-	}
-}
-
-// TestIsDERSigError ensures IsDERSigError returns true for all error codes
-// that can be returned as a result of non-canonically-encoded DER signatures.
-func TestIsDERSigError(t *testing.T) {
-	tests := []struct {
-		code ErrorCode
-		want bool
-	}{
-		{ErrSigTooShort, true},
-		{ErrSigTooLong, true},
-		{ErrSigInvalidSeqID, true},
-		{ErrSigInvalidDataLen, true},
-		{ErrSigMissingSTypeID, true},
-		{ErrSigMissingSLen, true},
-		{ErrSigInvalidSLen, true},
-		{ErrSigInvalidRIntID, true},
-		{ErrSigZeroRLen, true},
-		{ErrSigNegativeR, true},
-		{ErrSigTooMuchRPadding, true},
-		{ErrSigInvalidSIntID, true},
-		{ErrSigZeroSLen, true},
-		{ErrSigNegativeS, true},
-		{ErrSigTooMuchSPadding, true},
-		{ErrSigHighS, true},
-		{ErrEvalFalse, false},
-		{ErrInvalidIndex, false},
-	}
-	for _, test := range tests {
-		result := IsDERSigError(Error{ErrorCode: test.code})
-		if result != test.want {
-			t.Errorf("IsDERSigError(%v): unexpected result -- got: %v want: %v",
-				test.code, result, test.want)
 			continue
 		}
 	}

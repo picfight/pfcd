@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -9,6 +8,8 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
+
+	"github.com/picfight/pfcd/wire"
 )
 
 // TestParseOpcode tests for opcode parsing with bad data templates.
@@ -27,6 +28,8 @@ func TestParseOpcode(t *testing.T) {
 	}
 }
 
+// TestUnparsingInvalidOpcodes tests for errors when unparsing invalid parsed
+// opcodes.
 func TestUnparsingInvalidOpcodes(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -2834,33 +2837,33 @@ func TestUnparsingInvalidOpcodes(t *testing.T) {
 			expectedErr: scriptError(ErrInternal, ""),
 		},
 		{
-			name: "OP_ROTR",
+			name: "OP_RESERVED1",
 			pop: &parsedOpcode{
-				opcode: &opcodeArray[OP_ROTR],
+				opcode: &opcodeArray[OP_RESERVED1],
 				data:   nil,
 			},
 			expectedErr: nil,
 		},
 		{
-			name: "OP_ROTR long",
+			name: "OP_RESERVED1 long",
 			pop: &parsedOpcode{
-				opcode: &opcodeArray[OP_ROTR],
+				opcode: &opcodeArray[OP_RESERVED1],
 				data:   make([]byte, 1),
 			},
 			expectedErr: scriptError(ErrInternal, ""),
 		},
 		{
-			name: "OP_ROTL",
+			name: "OP_RESERVED2",
 			pop: &parsedOpcode{
-				opcode: &opcodeArray[OP_ROTL],
+				opcode: &opcodeArray[OP_RESERVED2],
 				data:   nil,
 			},
 			expectedErr: nil,
 		},
 		{
-			name: "OP_ROTL long",
+			name: "OP_RESERVED2 long",
 			pop: &parsedOpcode{
-				opcode: &opcodeArray[OP_ROTL],
+				opcode: &opcodeArray[OP_RESERVED2],
 				data:   make([]byte, 1),
 			},
 			expectedErr: scriptError(ErrInternal, ""),
@@ -3346,22 +3349,6 @@ func TestUnparsingInvalidOpcodes(t *testing.T) {
 			expectedErr: scriptError(ErrInternal, ""),
 		},
 		{
-			name: "OP_BLAKE256",
-			pop: &parsedOpcode{
-				opcode: &opcodeArray[OP_BLAKE256],
-				data:   nil,
-			},
-			expectedErr: nil,
-		},
-		{
-			name: "OP_BLAKE256 long",
-			pop: &parsedOpcode{
-				opcode: &opcodeArray[OP_BLAKE256],
-				data:   make([]byte, 1),
-			},
-			expectedErr: scriptError(ErrInternal, ""),
-		},
-		{
 			name: "OP_HASH160",
 			pop: &parsedOpcode{
 				opcode: &opcodeArray[OP_HASH160],
@@ -3758,9 +3745,7 @@ func TestHasCanonicalPush(t *testing.T) {
 	t.Parallel()
 
 	for i := 0; i < 65535; i++ {
-		builder := NewScriptBuilder()
-		builder.AddInt64(int64(i))
-		script, err := builder.Script()
+		script, err := NewScriptBuilder().AddInt64(int64(i)).Script()
 		if err != nil {
 			t.Errorf("Script: test #%d unexpected error: %v\n", i,
 				err)
@@ -3778,8 +3763,8 @@ func TestHasCanonicalPush(t *testing.T) {
 		}
 		for _, pop := range pops {
 			if result := canonicalPush(pop); !result {
-				t.Errorf("canonicalPush: test #%d "+
-					"failed: %x\n", i, script)
+				t.Errorf("canonicalPush: test #%d failed: %x\n",
+					i, script)
 				break
 			}
 		}
@@ -3798,12 +3783,12 @@ func TestHasCanonicalPush(t *testing.T) {
 		}
 		pops, err := parseScript(script)
 		if err != nil {
-			t.Errorf("StandardPushesTests #%d failed to parseScript: %v", i, err)
+			t.Errorf("StandardPushesTests #%d failed to TstParseScript: %v", i, err)
 			continue
 		}
 		for _, pop := range pops {
 			if result := canonicalPush(pop); !result {
-				t.Errorf("StandardPushesTests canonicalPush test #%d failed: %x\n", i, script)
+				t.Errorf("StandardPushesTests TstHasCanonicalPushes test #%d failed: %x\n", i, script)
 				break
 			}
 		}
@@ -3861,6 +3846,94 @@ func TestGetPreciseSigOps(t *testing.T) {
 	}
 }
 
+// TestGetWitnessSigOpCount tests that the sig op counting for p2wkh, p2wsh,
+// nested p2sh, and invalid variants are counted properly.
+func TestGetWitnessSigOpCount(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+
+		sigScript []byte
+		pkScript  []byte
+		witness   wire.TxWitness
+
+		numSigOps int
+	}{
+		// A regualr p2wkh witness program. The output being spent
+		// should only have a single sig-op counted.
+		{
+			name: "p2wkh",
+			pkScript: mustParseShortForm("OP_0 DATA_20 " +
+				"0x365ab47888e150ff46f8d51bce36dcd680f1283f"),
+			witness: wire.TxWitness{
+				hexToBytes("3045022100ee9fe8f9487afa977" +
+					"6647ebcf0883ce0cd37454d7ce19889d34ba2c9" +
+					"9ce5a9f402200341cb469d0efd3955acb9e46" +
+					"f568d7e2cc10f9084aaff94ced6dc50a59134ad01"),
+				hexToBytes("03f0000d0639a22bfaf217e4c9428" +
+					"9c2b0cc7fa1036f7fd5d9f61a9d6ec153100e"),
+			},
+			numSigOps: 1,
+		},
+		// A p2wkh witness program nested within a p2sh output script.
+		// The pattern should be recognized properly and attribute only
+		// a single sig op.
+		{
+			name: "nested p2sh",
+			sigScript: hexToBytes("160014ad0ffa2e387f07" +
+				"e7ead14dc56d5a97dbd6ff5a23"),
+			pkScript: mustParseShortForm("HASH160 DATA_20 " +
+				"0xb3a84b564602a9d68b4c9f19c2ea61458ff7826c EQUAL"),
+			witness: wire.TxWitness{
+				hexToBytes("3045022100cb1c2ac1ff1d57d" +
+					"db98f7bdead905f8bf5bcc8641b029ce8eef25" +
+					"c75a9e22a4702203be621b5c86b771288706be5" +
+					"a7eee1db4fceabf9afb7583c1cc6ee3f8297b21201"),
+				hexToBytes("03f0000d0639a22bfaf217e4c9" +
+					"4289c2b0cc7fa1036f7fd5d9f61a9d6ec153100e"),
+			},
+			numSigOps: 1,
+		},
+		// A p2sh script that spends a 2-of-2 multi-sig output.
+		{
+			name:      "p2wsh multi-sig spend",
+			numSigOps: 2,
+			pkScript: hexToBytes("0020e112b88a0cd87ba387f" +
+				"449d443ee2596eb353beb1f0351ab2cba8909d875db23"),
+			witness: wire.TxWitness{
+				hexToBytes("522103b05faca7ceda92b493" +
+					"3f7acdf874a93de0dc7edc461832031cd69cbb1d1e" +
+					"6fae2102e39092e031c1621c902e3704424e8d8" +
+					"3ca481d4d4eeae1b7970f51c78231207e52ae"),
+			},
+		},
+		// A p2wsh witness program. However, the witness script fails
+		// to parse after the valid portion of the script. As a result,
+		// the valid portion of the script should still be counted.
+		{
+			name:      "witness script doesn't parse",
+			numSigOps: 1,
+			pkScript: hexToBytes("0020e112b88a0cd87ba387f44" +
+				"9d443ee2596eb353beb1f0351ab2cba8909d875db23"),
+			witness: wire.TxWitness{
+				mustParseShortForm("DUP HASH160 " +
+					"'17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem'" +
+					" EQUALVERIFY CHECKSIG DATA_20 0x91"),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		count := GetWitnessSigOpCount(test.sigScript, test.pkScript,
+			test.witness)
+		if count != test.numSigOps {
+			t.Errorf("%s: expected count of %d, got %d", test.name,
+				test.numSigOps, count)
+
+		}
+	}
+}
+
 // TestRemoveOpcodes ensures that removing opcodes from scripts behaves as
 // expected.
 func TestRemoveOpcodes(t *testing.T) {
@@ -3902,7 +3975,7 @@ func TestRemoveOpcodes(t *testing.T) {
 			after:  "CAT",
 		},
 		{
-			name:   "invalid length (insruction)",
+			name:   "invalid length (instruction)",
 			before: "PUSHDATA1",
 			remove: OP_CODESEPARATOR,
 			err:    scriptError(ErrMalformedPush, ""),
@@ -3973,24 +4046,6 @@ func TestRemoveOpcodeByData(t *testing.T) {
 			remove: []byte{1, 2, 3, 5},
 			after:  []byte{OP_DATA_4, 1, 2, 3, 4},
 		},
-		// fix to allow for PicFight tests too
-		/*
-			{
-				name:        "stakesubmission",
-				scriptclass: StakeSubmissionTy,
-				stringed:    "stakesubmission",
-			},
-			{
-				name:        "stakegen",
-				scriptclass: StakeGenTy,
-				stringed:    "stakegen",
-			},
-			{
-				name:        "stakerevoke",
-				scriptclass: StakeRevocationTy,
-				stringed:    "stakerevoke",
-			},
-		*/
 		{
 			// padded to keep it canonical.
 			name: "simple case (pushdata1)",
@@ -4066,9 +4121,9 @@ func TestRemoveOpcodeByData(t *testing.T) {
 		},
 		{
 			name:   "invalid opcode ",
-			before: []byte{OP_UNKNOWN193},
+			before: []byte{OP_UNKNOWN187},
 			remove: []byte{1, 2, 3, 4},
-			after:  []byte{OP_UNKNOWN193},
+			after:  []byte{OP_UNKNOWN187},
 		},
 		{
 			name:   "invalid length (instruction)",
@@ -4120,8 +4175,40 @@ func TestIsPayToScriptHash(t *testing.T) {
 		shouldBe := (test.class == ScriptHashTy)
 		p2sh := IsPayToScriptHash(script)
 		if p2sh != shouldBe {
-			t.Errorf("%s: epxected p2sh %v, got %v", test.name,
+			t.Errorf("%s: expected p2sh %v, got %v", test.name,
 				shouldBe, p2sh)
+		}
+	}
+}
+
+// TestIsPayToWitnessScriptHash ensures the IsPayToWitnessScriptHash function
+// returns the expected results for all the scripts in scriptClassTests.
+func TestIsPayToWitnessScriptHash(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range scriptClassTests {
+		script := mustParseShortForm(test.script)
+		shouldBe := (test.class == WitnessV0ScriptHashTy)
+		p2wsh := IsPayToWitnessScriptHash(script)
+		if p2wsh != shouldBe {
+			t.Errorf("%s: expected p2wsh %v, got %v", test.name,
+				shouldBe, p2wsh)
+		}
+	}
+}
+
+// TestIsPayToWitnessPubKeyHash ensures the IsPayToWitnessPubKeyHash function
+// returns the expected results for all the scripts in scriptClassTests.
+func TestIsPayToWitnessPubKeyHash(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range scriptClassTests {
+		script := mustParseShortForm(test.script)
+		shouldBe := (test.class == WitnessV0PubKeyHashTy)
+		p2wkh := IsPayToWitnessPubKeyHash(script)
+		if p2wkh != shouldBe {
+			t.Errorf("%s: expected p2wkh %v, got %v", test.name,
+				shouldBe, p2wkh)
 		}
 	}
 }
@@ -4197,28 +4284,17 @@ func TestIsUnspendable(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		amount   int64
+		name     string
 		pkScript []byte
 		expected bool
 	}{
 		{
 			// Unspendable
-			amount:   100,
 			pkScript: []byte{0x6a, 0x04, 0x74, 0x65, 0x73, 0x74},
 			expected: true,
 		},
 		{
-			// Unspendable
-			amount: 0,
-			pkScript: []byte{0x76, 0xa9, 0x14, 0x29, 0x95, 0xa0,
-				0xfe, 0x68, 0x43, 0xfa, 0x9b, 0x95, 0x45,
-				0x97, 0xf0, 0xdc, 0xa7, 0xa4, 0x4d, 0xf6,
-				0xfa, 0x0b, 0x5c, 0x88, 0xac},
-			expected: true,
-		},
-		{
 			// Spendable
-			amount: 100,
 			pkScript: []byte{0x76, 0xa9, 0x14, 0x29, 0x95, 0xa0,
 				0xfe, 0x68, 0x43, 0xfa, 0x9b, 0x95, 0x45,
 				0x97, 0xf0, 0xdc, 0xa7, 0xa4, 0x4d, 0xf6,
@@ -4228,10 +4304,10 @@ func TestIsUnspendable(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		res := IsUnspendable(test.amount, test.pkScript)
+		res := IsUnspendable(test.pkScript)
 		if res != test.expected {
-			t.Errorf("IsUnspendable #%d failed: got %v want %v", i,
-				res, test.expected)
+			t.Errorf("TestIsUnspendable #%d failed: got %v want %v",
+				i, res, test.expected)
 			continue
 		}
 	}

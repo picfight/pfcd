@@ -1,37 +1,33 @@
-// Copyright (c) 2015-2016 The Decred developers
-// Copyright (c) 2016 The btcsuite developers
+// Copyright (c) 2015 The Decred developers
+// Copyright (c) 2016-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package chainhash
 
-import (
-	"github.com/dchest/blake256"
-)
-
-// HashFunc calculates the hash of the supplied bytes.
-// TODO(jcv) Should modify blake256 so it has the same interface as blake2
-// and sha256 so these function can look more like btcsuite.  Then should
-// try to get it to the upstream blake256 repo
-func HashFunc(b []byte) [blake256.Size]byte {
-	var outB [blake256.Size]byte
-	copy(outB[:], HashB(b))
-
-	return outB
-}
+import "crypto/sha256"
 
 // HashB calculates hash(b) and returns the resulting bytes.
 func HashB(b []byte) []byte {
-	a := blake256.New()
-	a.Write(b)
-	out := a.Sum(nil)
-	return out
+	hash := sha256.Sum256(b)
+	return hash[:]
 }
 
 // HashH calculates hash(b) and returns the resulting bytes as a Hash.
 func HashH(b []byte) Hash {
-	return Hash(HashFunc(b))
+	return Hash(sha256.Sum256(b))
 }
 
-// HashBlockSize is the block size of the hash algorithm in bytes.
-const HashBlockSize = blake256.BlockSize
+// DoubleHashB calculates hash(hash(b)) and returns the resulting bytes.
+func DoubleHashB(b []byte) []byte {
+	first := sha256.Sum256(b)
+	second := sha256.Sum256(first[:])
+	return second[:]
+}
+
+// DoubleHashH calculates hash(hash(b)) and returns the resulting bytes as a
+// Hash.
+func DoubleHashH(b []byte) Hash {
+	first := sha256.Sum256(b)
+	return Hash(sha256.Sum256(first[:]))
+}

@@ -1,5 +1,4 @@
 // Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -9,41 +8,21 @@ import (
 	"fmt"
 )
 
-// VoteVersionError identifies an error that indicates a vote version was
-// specified that does not exist.
-type VoteVersionError uint32
-
-// Error returns the assertion error as a human-readable string and satisfies
-// the error interface.
-func (e VoteVersionError) Error() string {
-	return fmt.Sprintf("stake version %v does not exist", uint32(e))
-}
-
-// HashError identifies an error that indicates a hash was specified that does
-// not exist.
-type HashError string
-
-// Error returns the assertion error as a human-readable string and satisfies
-// the error interface.
-func (e HashError) Error() string {
-	return fmt.Sprintf("hash %v does not exist", string(e))
-}
-
 // DeploymentError identifies an error that indicates a deployment ID was
 // specified that does not exist.
-type DeploymentError string
+type DeploymentError uint32
 
 // Error returns the assertion error as a human-readable string and satisfies
 // the error interface.
 func (e DeploymentError) Error() string {
-	return fmt.Sprintf("deployment ID %v does not exist", string(e))
+	return fmt.Sprintf("deployment ID %d does not exist", uint32(e))
 }
 
 // AssertError identifies an error that indicates an internal code consistency
 // issue and should be treated as a critical and unrecoverable error.
 type AssertError string
 
-// Error returns the assertion error as a huma-readable string and satisfies
+// Error returns the assertion error as a human-readable string and satisfies
 // the error interface.
 func (e AssertError) Error() string {
 	return "assertion failed: " + string(e)
@@ -58,26 +37,18 @@ const (
 	// exists.
 	ErrDuplicateBlock ErrorCode = iota
 
-	// ErrMissingParent indicates that the block was an orphan.
-	ErrMissingParent
-
 	// ErrBlockTooBig indicates the serialized block size exceeds the
 	// maximum allowed size.
 	ErrBlockTooBig
 
-	// ErrWrongBlockSize indicates that the block size in the header is not
-	// the actual serialized size of the block.
-	ErrWrongBlockSize
+	// ErrBlockWeightTooHigh indicates that the block's computed weight
+	// metric exceeds the maximum allowed value.
+	ErrBlockWeightTooHigh
 
 	// ErrBlockVersionTooOld indicates the block version is too old and is
 	// no longer accepted since the majority of the network has upgraded
 	// to a newer version.
 	ErrBlockVersionTooOld
-
-	// ErrBadStakeVersionindicates the block version is too old and is no
-	// longer accepted since the majority of the network has upgraded to a
-	// newer version.
-	ErrBadStakeVersion
 
 	// ErrInvalidTime indicates the time in the passed block has a precision
 	// that is more than one second.  The chain consensus rules require
@@ -127,10 +98,6 @@ const (
 	// transaction.  A valid block must have at least the coinbase
 	// transaction.
 	ErrNoTransactions
-
-	// ErrTooManyTransactions indicates the block has more transactions than
-	// are allowed.
-	ErrTooManyTransactions
 
 	// ErrNoTxInputs indicates a transaction does not have any inputs.  A
 	// valid transaction must have at least one input.
@@ -195,21 +162,9 @@ const (
 	// is not a coinbase transaction.
 	ErrFirstTxNotCoinbase
 
-	// ErrCoinbaseHeight indicates that the encoded height in the coinbase
-	// is incorrect.
-	ErrCoinbaseHeight
-
 	// ErrMultipleCoinbases indicates a block contains more than one
 	// coinbase transaction.
 	ErrMultipleCoinbases
-
-	// ErrStakeTxInRegularTree indicates a stake transaction was found in
-	// the regular transaction tree.
-	ErrStakeTxInRegularTree
-
-	// ErrRegTxInStakeTree indicates that a regular transaction was found in
-	// the stake transaction tree.
-	ErrRegTxInStakeTree
 
 	// ErrBadCoinbaseScriptLen indicates the length of the signature script
 	// for a coinbase transaction is not within the valid range.
@@ -219,29 +174,15 @@ const (
 	// not match the expected value of the subsidy plus the sum of all fees.
 	ErrBadCoinbaseValue
 
-	// ErrBadCoinbaseOutpoint indicates that the outpoint used by a coinbase
-	// as input was non-null.
-	ErrBadCoinbaseOutpoint
+	// ErrMissingCoinbaseHeight indicates the coinbase transaction for a
+	// block does not start with the serialized block block height as
+	// required for version 2 and higher blocks.
+	ErrMissingCoinbaseHeight
 
-	// ErrBadCoinbaseFraudProof indicates that the fraud proof for a coinbase
-	// input was non-null.
-	ErrBadCoinbaseFraudProof
-
-	// ErrBadCoinbaseAmountIn indicates that the AmountIn (=subsidy) for a
-	// coinbase input was incorrect.
-	ErrBadCoinbaseAmountIn
-
-	// ErrBadStakebaseAmountIn indicates that the AmountIn (=subsidy) for a
-	// stakebase input was incorrect.
-	ErrBadStakebaseAmountIn
-
-	// ErrBadStakebaseScriptLen indicates the length of the signature script
-	// for a stakebase transaction is not within the valid range.
-	ErrBadStakebaseScriptLen
-
-	// ErrBadStakebaseScrVal indicates the signature script for a stakebase
-	// transaction was not set to the network consensus value.
-	ErrBadStakebaseScrVal
+	// ErrBadCoinbaseHeight indicates the serialized block height in the
+	// coinbase transaction for version 2 and higher blocks does not match
+	// the expected value.
+	ErrBadCoinbaseHeight
 
 	// ErrScriptMalformed indicates a transaction script is malformed in
 	// some way.  For example, it might be longer than the maximum allowed
@@ -254,331 +195,78 @@ const (
 	// the stack.
 	ErrScriptValidation
 
-	// ErrNotEnoughStake indicates that there was for some SStx in a given block,
-	// the given SStx did not have enough stake to meet the network target.
-	ErrNotEnoughStake
+	// ErrUnexpectedWitness indicates that a block includes transactions
+	// with witness data, but doesn't also have a witness commitment within
+	// the coinbase transaction.
+	ErrUnexpectedWitness
 
-	// ErrStakeBelowMinimum indicates that for some SStx in a given block,
-	// the given SStx had an amount of stake below the minimum network target.
-	ErrStakeBelowMinimum
+	// ErrInvalidWitnessCommitment indicates that a block's witness
+	// commitment is not well formed.
+	ErrInvalidWitnessCommitment
 
-	// ErrNonstandardStakeTx indicates that a block contained a stake tx that
-	// was not one of the allowed types of a stake transactions.
-	ErrNonstandardStakeTx
+	// ErrWitnessCommitmentMismatch indicates that the witness commitment
+	// included in the block's coinbase transaction doesn't match the
+	// manually computed witness commitment.
+	ErrWitnessCommitmentMismatch
 
-	// ErrNotEnoughVotes indicates that a block contained less than a majority
-	// of voters.
-	ErrNotEnoughVotes
-
-	// ErrTooManyVotes indicates that a block contained more than the maximum
-	// allowable number of votes.
-	ErrTooManyVotes
-
-	// ErrFreshStakeMismatch indicates that a block's header contained a different
-	// number of SStx as compared to what was found in the block.
-	ErrFreshStakeMismatch
-
-	// ErrTooManySStxs indicates that more than the allowed number of SStx was
-	// found in a block.
-	ErrTooManySStxs
-
-	// ErrInvalidEarlyStakeTx indicates that a tx type other than SStx was found
-	// in the stake tx tree before the period when stake validation begins, or
-	// before the stake tx type could possibly be included in the block.
-	ErrInvalidEarlyStakeTx
-
-	// ErrTicketUnavailable indicates that a vote in the block spent a ticket
-	// that could not be found.
-	ErrTicketUnavailable
-
-	// ErrVotesOnWrongBlock indicates that an SSGen voted on a block not the
-	// block's parent, and so was ineligible for inclusion into that block.
-	ErrVotesOnWrongBlock
-
-	// ErrVotesMismatch indicates that the number of SSGen in the block was not
-	// equivalent to the number of votes provided in the block header.
-	ErrVotesMismatch
-
-	// ErrIncongruentVotebit indicates that the first votebit in votebits was not
-	// the same as that determined by the majority of voters in the SSGen tx
-	// included in the block.
-	ErrIncongruentVotebit
-
-	// ErrInvalidSSRtx indicates than an SSRtx in a block could not be found to
-	// have a valid missed sstx input as per the stake ticket database.
-	ErrInvalidSSRtx
-
-	// ErrInvalidRevNum indicates that the number of revocations from the
-	// header was not the same as the number of SSRtx included in the block.
-	ErrRevocationsMismatch
-
-	// ErrTooManyRevocations indicates more revocations were found in a block
-	// than were allowed.
-	ErrTooManyRevocations
-
-	// ErrTicketCommitment indicates that a ticket commitment contains an amount
-	// that does not coincide with the associated ticket input amount.
-	ErrTicketCommitment
-
-	// ErrInvalidVoteInput indicates that an input to a vote transaction is
-	// either not a stake ticket submission or is not a supported version.
-	ErrInvalidVoteInput
-
-	// ErrBadNumPayees indicates that either a vote or revocation transaction
-	// does not make the correct number of payments per the associated ticket
-	// commitments.
-	ErrBadNumPayees
-
-	// ErrBadPayeeScriptVersion indicates that either a vote or revocation
-	// transaction output that corresponds to a ticket commitment does not use
-	// a supported script version.
-	ErrBadPayeeScriptVersion
-
-	// ErrBadPayeeScriptType indicates that either a vote or revocation
-	// transaction output that corresponds to a ticket commitment does not pay
-	// to the same script type required by the commitment.
-	ErrBadPayeeScriptType
-
-	// ErrBadPayeeScriptType indicates that either a vote or revocation
-	// transaction output that corresponds to a ticket commitment does not pay
-	// to the hash required by the commitment.
-	ErrMismatchedPayeeHash
-
-	// ErrBadPayeeValue indicates that either a vote or revocation transaction
-	// output that corresponds to a ticket commitment does not pay the expected
-	// amount required by the commitment.
-	ErrBadPayeeValue
-
-	// ErrSSGenSubsidy indicates that there was an error in the amount of subsidy
-	// generated in the vote.
-	ErrSSGenSubsidy
-
-	// ErrImmatureTicketSpend indicates that a vote or revocation is attempting
-	// to spend a ticket submission output that has not yet reached the required
-	// maturity.
-	ErrImmatureTicketSpend
-
-	// ErrTicketInputScript indicates that a ticket input is not one of the
-	// supported script forms or versions.
-	ErrTicketInputScript
-
-	// ErrInvalidRevokeInput indicates that an input to a revocation transaction
-	// is either not a stake ticket submission or is not a supported version.
-	ErrInvalidRevokeInput
-
-	// ErrSSRtxPayees indicates that the SSRtx failed to pay out to the committed
-	// addresses or amounts from the originating SStx.
-	ErrSSRtxPayees
-
-	// ErrTxSStxOutSpend indicates that a non SSGen or SSRtx tx attempted to spend
-	// an OP_SSTX tagged output from an SStx.
-	ErrTxSStxOutSpend
-
-	// ErrRegTxCreateStakeOut indicates that a regular tx attempted to create
-	// a stake tagged output.
-	ErrRegTxCreateStakeOut
-
-	// ErrInvalidFinalState indicates that the final state of the PRNG included
-	// in the the block differed from the calculated final state.
-	ErrInvalidFinalState
-
-	// ErrPoolSize indicates an error in the ticket pool size for this block.
-	ErrPoolSize
-
-	// ErrForceReorgWrongChain indicates that a reroganization was attempted
-	// to be forced, but the chain indicated was not mirrored by b.bestChain.
-	ErrForceReorgWrongChain
-
-	// ErrForceReorgMissingChild indicates that a reroganization was attempted
-	// to be forced, but the child node to reorganize to could not be found.
-	ErrForceReorgMissingChild
-
-	// ErrBadStakebaseValue indicates that a block's stake tx tree has spent
-	// more than it is allowed.
-	ErrBadStakebaseValue
-
-	// ErrDiscordantTxTree specifies that a given origin tx's content
-	// indicated that it should exist in a different tx tree than the
-	// one given in the TxIn outpoint.
-	ErrDiscordantTxTree
-
-	// ErrStakeFees indicates an error with the fees found in the stake
-	// transaction tree.
-	ErrStakeFees
-
-	// ErrNoStakeTx indicates there were no stake transactions found in a
-	// block after stake validation height.
-	ErrNoStakeTx
-
-	// ErrBadBlockHeight indicates that a block header's embedded block height
-	// was different from where it was actually embedded in the block chain.
-	ErrBadBlockHeight
-
-	// ErrBlockOneTx indicates that block height 1 failed to correct generate
-	// the block one premine transaction.
-	ErrBlockOneTx
-
-	// ErrBlockOneTx indicates that block height 1 coinbase transaction in
-	// zero was incorrect in some way.
-	ErrBlockOneInputs
-
-	// ErrBlockOneOutputs indicates that block height 1 failed to incorporate
-	// the ledger addresses correctly into the transaction's outputs.
-	ErrBlockOneOutputs
-
-	// ErrNoTax indicates that there was no tax present in the coinbase of a
-	// block after height 1.
-	ErrNoTax
-
-	// ErrExpiredTx indicates that the transaction is currently expired.
-	ErrExpiredTx
-
-	// ErrExpiryTxSpentEarly indicates that an output from a transaction
-	// that included an expiry field was spent before coinbase maturity
-	// many blocks had passed in the blockchain.
-	ErrExpiryTxSpentEarly
-
-	// ErrFraudAmountIn indicates the witness amount given was fraudulent.
-	ErrFraudAmountIn
-
-	// ErrFraudBlockHeight indicates the witness block height given was
-	// fraudulent.
-	ErrFraudBlockHeight
-
-	// ErrFraudBlockIndex indicates the witness block index given was
-	// fraudulent.
-	ErrFraudBlockIndex
-
-	// ErrZeroValueOutputSpend indicates that a transaction attempted to spend a
-	// zero value output.
-	ErrZeroValueOutputSpend
-
-	// ErrInvalidEarlyVoteBits indicates that a block before stake validation
-	// height had an unallowed vote bits value.
-	ErrInvalidEarlyVoteBits
-
-	// ErrInvalidEarlyFinalState indicates that a block before stake validation
-	// height had a non-zero final state.
-	ErrInvalidEarlyFinalState
-
-	// ErrKnownInvalidBlock indicates that this block has previously failed
-	// validation.
-	ErrKnownInvalidBlock
+	// ErrPreviousBlockUnknown indicates that the previous block is not known.
+	ErrPreviousBlockUnknown
 
 	// ErrInvalidAncestorBlock indicates that an ancestor of this block has
-	// failed validation.
+	// already failed validation.
 	ErrInvalidAncestorBlock
 
-	// ErrInvalidTemplateParent indicates that a block template builds on a
-	// block that is either not the current best chain tip or its parent.
-	ErrInvalidTemplateParent
-
-	// numErrorCodes is the maximum error code number used in tests.
-	numErrorCodes
+	// ErrPrevBlockNotBest indicates that the block's previous block is not the
+	// current chain tip. This is not a block validation rule, but is required
+	// for block proposals submitted via getblocktemplate RPC.
+	ErrPrevBlockNotBest
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.
 var errorCodeStrings = map[ErrorCode]string{
-	ErrDuplicateBlock:         "ErrDuplicateBlock",
-	ErrMissingParent:          "ErrMissingParent",
-	ErrBlockTooBig:            "ErrBlockTooBig",
-	ErrWrongBlockSize:         "ErrWrongBlockSize",
-	ErrBlockVersionTooOld:     "ErrBlockVersionTooOld",
-	ErrBadStakeVersion:        "ErrBadStakeVersion",
-	ErrInvalidTime:            "ErrInvalidTime",
-	ErrTimeTooOld:             "ErrTimeTooOld",
-	ErrTimeTooNew:             "ErrTimeTooNew",
-	ErrDifficultyTooLow:       "ErrDifficultyTooLow",
-	ErrUnexpectedDifficulty:   "ErrUnexpectedDifficulty",
-	ErrHighHash:               "ErrHighHash",
-	ErrBadMerkleRoot:          "ErrBadMerkleRoot",
-	ErrBadCheckpoint:          "ErrBadCheckpoint",
-	ErrForkTooOld:             "ErrForkTooOld",
-	ErrCheckpointTimeTooOld:   "ErrCheckpointTimeTooOld",
-	ErrNoTransactions:         "ErrNoTransactions",
-	ErrTooManyTransactions:    "ErrTooManyTransactions",
-	ErrNoTxInputs:             "ErrNoTxInputs",
-	ErrNoTxOutputs:            "ErrNoTxOutputs",
-	ErrTxTooBig:               "ErrTxTooBig",
-	ErrBadTxOutValue:          "ErrBadTxOutValue",
-	ErrDuplicateTxInputs:      "ErrDuplicateTxInputs",
-	ErrBadTxInput:             "ErrBadTxInput",
-	ErrMissingTxOut:           "ErrMissingTxOut",
-	ErrUnfinalizedTx:          "ErrUnfinalizedTx",
-	ErrDuplicateTx:            "ErrDuplicateTx",
-	ErrOverwriteTx:            "ErrOverwriteTx",
-	ErrImmatureSpend:          "ErrImmatureSpend",
-	ErrSpendTooHigh:           "ErrSpendTooHigh",
-	ErrBadFees:                "ErrBadFees",
-	ErrTooManySigOps:          "ErrTooManySigOps",
-	ErrFirstTxNotCoinbase:     "ErrFirstTxNotCoinbase",
-	ErrCoinbaseHeight:         "ErrCoinbaseHeight",
-	ErrMultipleCoinbases:      "ErrMultipleCoinbases",
-	ErrStakeTxInRegularTree:   "ErrStakeTxInRegularTree",
-	ErrRegTxInStakeTree:       "ErrRegTxInStakeTree",
-	ErrBadCoinbaseScriptLen:   "ErrBadCoinbaseScriptLen",
-	ErrBadCoinbaseValue:       "ErrBadCoinbaseValue",
-	ErrBadCoinbaseOutpoint:    "ErrBadCoinbaseOutpoint",
-	ErrBadCoinbaseFraudProof:  "ErrBadCoinbaseFraudProof",
-	ErrBadCoinbaseAmountIn:    "ErrBadCoinbaseAmountIn",
-	ErrBadStakebaseAmountIn:   "ErrBadStakebaseAmountIn",
-	ErrBadStakebaseScriptLen:  "ErrBadStakebaseScriptLen",
-	ErrBadStakebaseScrVal:     "ErrBadStakebaseScrVal",
-	ErrScriptMalformed:        "ErrScriptMalformed",
-	ErrScriptValidation:       "ErrScriptValidation",
-	ErrNotEnoughStake:         "ErrNotEnoughStake",
-	ErrStakeBelowMinimum:      "ErrStakeBelowMinimum",
-	ErrNonstandardStakeTx:     "ErrNonstandardStakeTx",
-	ErrNotEnoughVotes:         "ErrNotEnoughVotes",
-	ErrTooManyVotes:           "ErrTooManyVotes",
-	ErrFreshStakeMismatch:     "ErrFreshStakeMismatch",
-	ErrTooManySStxs:           "ErrTooManySStxs",
-	ErrInvalidEarlyStakeTx:    "ErrInvalidEarlyStakeTx",
-	ErrTicketUnavailable:      "ErrTicketUnavailable",
-	ErrVotesOnWrongBlock:      "ErrVotesOnWrongBlock",
-	ErrVotesMismatch:          "ErrVotesMismatch",
-	ErrIncongruentVotebit:     "ErrIncongruentVotebit",
-	ErrInvalidSSRtx:           "ErrInvalidSSRtx",
-	ErrRevocationsMismatch:    "ErrRevocationsMismatch",
-	ErrTooManyRevocations:     "ErrTooManyRevocations",
-	ErrTicketCommitment:       "ErrTicketCommitment",
-	ErrInvalidVoteInput:       "ErrInvalidVoteInput",
-	ErrBadNumPayees:           "ErrBadNumPayees",
-	ErrBadPayeeScriptVersion:  "ErrBadPayeeScriptVersion",
-	ErrBadPayeeScriptType:     "ErrBadPayeeScriptType",
-	ErrMismatchedPayeeHash:    "ErrMismatchedPayeeHash",
-	ErrBadPayeeValue:          "ErrBadPayeeValue",
-	ErrSSGenSubsidy:           "ErrSSGenSubsidy",
-	ErrImmatureTicketSpend:    "ErrImmatureTicketSpend",
-	ErrTicketInputScript:      "ErrTicketInputScript",
-	ErrInvalidRevokeInput:     "ErrInvalidRevokeInput",
-	ErrSSRtxPayees:            "ErrSSRtxPayees",
-	ErrTxSStxOutSpend:         "ErrTxSStxOutSpend",
-	ErrRegTxCreateStakeOut:    "ErrRegTxCreateStakeOut",
-	ErrInvalidFinalState:      "ErrInvalidFinalState",
-	ErrPoolSize:               "ErrPoolSize",
-	ErrForceReorgWrongChain:   "ErrForceReorgWrongChain",
-	ErrForceReorgMissingChild: "ErrForceReorgMissingChild",
-	ErrBadStakebaseValue:      "ErrBadStakebaseValue",
-	ErrDiscordantTxTree:       "ErrDiscordantTxTree",
-	ErrStakeFees:              "ErrStakeFees",
-	ErrNoStakeTx:              "ErrNoStakeTx",
-	ErrBadBlockHeight:         "ErrBadBlockHeight",
-	ErrBlockOneTx:             "ErrBlockOneTx",
-	ErrBlockOneInputs:         "ErrBlockOneInputs",
-	ErrBlockOneOutputs:        "ErrBlockOneOutputs",
-	ErrNoTax:                  "ErrNoTax",
-	ErrExpiredTx:              "ErrExpiredTx",
-	ErrExpiryTxSpentEarly:     "ErrExpiryTxSpentEarly",
-	ErrFraudAmountIn:          "ErrFraudAmountIn",
-	ErrFraudBlockHeight:       "ErrFraudBlockHeight",
-	ErrFraudBlockIndex:        "ErrFraudBlockIndex",
-	ErrZeroValueOutputSpend:   "ErrZeroValueOutputSpend",
-	ErrInvalidEarlyVoteBits:   "ErrInvalidEarlyVoteBits",
-	ErrInvalidEarlyFinalState: "ErrInvalidEarlyFinalState",
-	ErrKnownInvalidBlock:      "ErrKnownInvalidBlock",
-	ErrInvalidAncestorBlock:   "ErrInvalidAncestorBlock",
-	ErrInvalidTemplateParent:  "ErrInvalidTemplateParent",
+	ErrDuplicateBlock:            "ErrDuplicateBlock",
+	ErrBlockTooBig:               "ErrBlockTooBig",
+	ErrBlockVersionTooOld:        "ErrBlockVersionTooOld",
+	ErrBlockWeightTooHigh:        "ErrBlockWeightTooHigh",
+	ErrInvalidTime:               "ErrInvalidTime",
+	ErrTimeTooOld:                "ErrTimeTooOld",
+	ErrTimeTooNew:                "ErrTimeTooNew",
+	ErrDifficultyTooLow:          "ErrDifficultyTooLow",
+	ErrUnexpectedDifficulty:      "ErrUnexpectedDifficulty",
+	ErrHighHash:                  "ErrHighHash",
+	ErrBadMerkleRoot:             "ErrBadMerkleRoot",
+	ErrBadCheckpoint:             "ErrBadCheckpoint",
+	ErrForkTooOld:                "ErrForkTooOld",
+	ErrCheckpointTimeTooOld:      "ErrCheckpointTimeTooOld",
+	ErrNoTransactions:            "ErrNoTransactions",
+	ErrNoTxInputs:                "ErrNoTxInputs",
+	ErrNoTxOutputs:               "ErrNoTxOutputs",
+	ErrTxTooBig:                  "ErrTxTooBig",
+	ErrBadTxOutValue:             "ErrBadTxOutValue",
+	ErrDuplicateTxInputs:         "ErrDuplicateTxInputs",
+	ErrBadTxInput:                "ErrBadTxInput",
+	ErrMissingTxOut:              "ErrMissingTxOut",
+	ErrUnfinalizedTx:             "ErrUnfinalizedTx",
+	ErrDuplicateTx:               "ErrDuplicateTx",
+	ErrOverwriteTx:               "ErrOverwriteTx",
+	ErrImmatureSpend:             "ErrImmatureSpend",
+	ErrSpendTooHigh:              "ErrSpendTooHigh",
+	ErrBadFees:                   "ErrBadFees",
+	ErrTooManySigOps:             "ErrTooManySigOps",
+	ErrFirstTxNotCoinbase:        "ErrFirstTxNotCoinbase",
+	ErrMultipleCoinbases:         "ErrMultipleCoinbases",
+	ErrBadCoinbaseScriptLen:      "ErrBadCoinbaseScriptLen",
+	ErrBadCoinbaseValue:          "ErrBadCoinbaseValue",
+	ErrMissingCoinbaseHeight:     "ErrMissingCoinbaseHeight",
+	ErrBadCoinbaseHeight:         "ErrBadCoinbaseHeight",
+	ErrScriptMalformed:           "ErrScriptMalformed",
+	ErrScriptValidation:          "ErrScriptValidation",
+	ErrUnexpectedWitness:         "ErrUnexpectedWitness",
+	ErrInvalidWitnessCommitment:  "ErrInvalidWitnessCommitment",
+	ErrWitnessCommitmentMismatch: "ErrWitnessCommitmentMismatch",
+	ErrPreviousBlockUnknown:      "ErrPreviousBlockUnknown",
+	ErrInvalidAncestorBlock:      "ErrInvalidAncestorBlock",
+	ErrPrevBlockNotBest:          "ErrPrevBlockNotBest",
 }
 
 // String returns the ErrorCode as a human-readable name.

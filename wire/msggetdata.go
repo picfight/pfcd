@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2015 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,7 +9,7 @@ import (
 	"io"
 )
 
-// MsgGetData implements the Message interface and represents a picfight
+// MsgGetData implements the Message interface and represents a bitcoin
 // getdata message.  It is used to request data such as blocks and transactions
 // from another peer.  It should be used in response to the inv (MsgInv) message
 // to request the actual data referenced by each inventory vector the receiving
@@ -36,9 +35,9 @@ func (msg *MsgGetData) AddInvVect(iv *InvVect) error {
 	return nil
 }
 
-// BtcDecode decodes r using the PicFight protocol encoding into the receiver.
+// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgGetData) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgGetData) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	count, err := ReadVarInt(r, pver)
 	if err != nil {
 		return err
@@ -47,7 +46,7 @@ func (msg *MsgGetData) BtcDecode(r io.Reader, pver uint32) error {
 	// Limit to max inventory vectors per message.
 	if count > MaxInvPerMsg {
 		str := fmt.Sprintf("too many invvect in message [%v]", count)
-		return messageError("MsgGetData.BtcDecode", str)
+		return messageError("MsgGetData.PfcDecode", str)
 	}
 
 	// Create a contiguous slice of inventory vectors to deserialize into in
@@ -66,9 +65,9 @@ func (msg *MsgGetData) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the PicFight protocol encoding.
+// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgGetData) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgGetData) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Limit to max inventory vectors per message.
 	count := len(msg.InvList)
 	if count > MaxInvPerMsg {
@@ -104,7 +103,7 @@ func (msg *MsgGetData) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgGetData returns a new PicFight getdata message that conforms to the
+// NewMsgGetData returns a new bitcoin getdata message that conforms to the
 // Message interface.  See MsgGetData for details.
 func NewMsgGetData() *MsgGetData {
 	return &MsgGetData{
@@ -112,7 +111,7 @@ func NewMsgGetData() *MsgGetData {
 	}
 }
 
-// NewMsgGetDataSizeHint returns a new PicFight getdata message that conforms to
+// NewMsgGetDataSizeHint returns a new bitcoin getdata message that conforms to
 // the Message interface.  See MsgGetData for details.  This function differs
 // from NewMsgGetData in that it allows a default allocation size for the
 // backing array which houses the inventory vector list.  This allows callers

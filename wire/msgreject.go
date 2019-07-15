@@ -1,5 +1,4 @@
 // Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -49,7 +48,7 @@ func (code RejectCode) String() string {
 	return fmt.Sprintf("Unknown RejectCode (%d)", uint8(code))
 }
 
-// MsgReject implements the Message interface and represents a PicFight reject
+// MsgReject implements the Message interface and represents a bitcoin reject
 // message.
 //
 // This message was not added until protocol version RejectVersion.
@@ -72,9 +71,15 @@ type MsgReject struct {
 	Hash chainhash.Hash
 }
 
-// BtcDecode decodes r using the PicFight protocol encoding into the receiver.
+// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgReject) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgReject) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
+	if pver < RejectVersion {
+		str := fmt.Sprintf("reject message invalid for protocol "+
+			"version %d", pver)
+		return messageError("MsgReject.PfcDecode", str)
+	}
+
 	// Command that was rejected.
 	cmd, err := ReadVarString(r, pver)
 	if err != nil {
@@ -108,9 +113,15 @@ func (msg *MsgReject) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the PicFight protocol encoding.
+// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgReject) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgReject) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
+	if pver < RejectVersion {
+		str := fmt.Sprintf("reject message invalid for protocol "+
+			"version %d", pver)
+		return messageError("MsgReject.BtcEncode", str)
+	}
+
 	// Command that was rejected.
 	err := WriteVarString(w, pver, msg.Cmd)
 	if err != nil {
@@ -151,13 +162,20 @@ func (msg *MsgReject) Command() string {
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgReject) MaxPayloadLength(pver uint32) uint32 {
-	// Unfortunately the PicFight protocol does not enforce a sane
-	// limit on the length of the reason, so the max payload is the
-	// overall maximum message payload.
-	return uint32(MaxMessagePayload)
+	plen := uint32(0)
+	// The reject message did not exist before protocol version
+	// RejectVersion.
+	if pver >= RejectVersion {
+		// Unfortunately the bitcoin protocol does not enforce a sane
+		// limit on the length of the reason, so the max payload is the
+		// overall maximum message payload.
+		plen = MaxMessagePayload
+	}
+
+	return plen
 }
 
-// NewMsgReject returns a new PicFight reject message that conforms to the
+// NewMsgReject returns a new bitcoin reject message that conforms to the
 // Message interface.  See MsgReject for details.
 func NewMsgReject(command string, code RejectCode, reason string) *MsgReject {
 	return &MsgReject{

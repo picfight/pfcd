@@ -1,15 +1,16 @@
 // Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson
+package pfcjson_test
 
 import (
 	"encoding/json"
 	"math"
 	"reflect"
 	"testing"
+
+	"github.com/picfight/pfcd/pfcjson"
 )
 
 // TestAssignField tests the assignField function handles supported combinations
@@ -167,7 +168,7 @@ func TestAssignField(t *testing.T) {
 	for i, test := range tests {
 		dst := reflect.New(reflect.TypeOf(test.dest)).Elem()
 		src := reflect.ValueOf(test.src)
-		err := assignField(1, "testField", dst, src)
+		err := pfcjson.TstAssignField(1, "testField", dst, src)
 		if err != nil {
 			t.Errorf("Test #%d (%s) unexpected error: %v", i,
 				test.name, err)
@@ -196,133 +197,133 @@ func TestAssignFieldErrors(t *testing.T) {
 		name string
 		dest interface{}
 		src  interface{}
-		err  Error
+		err  pfcjson.Error
 	}{
 		{
 			name: "general incompatible int -> string",
 			dest: string(0),
 			src:  int(0),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow source int -> dest int",
 			dest: int8(0),
 			src:  int(128),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow source int -> dest uint",
 			dest: uint8(0),
 			src:  int(256),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "int -> float",
 			dest: float32(0),
 			src:  int(256),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow source uint64 -> dest int64",
 			dest: int64(0),
 			src:  uint64(1 << 63),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow source uint -> dest int",
 			dest: int8(0),
 			src:  uint(128),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow source uint -> dest uint",
 			dest: uint8(0),
 			src:  uint(256),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "uint -> float",
 			dest: float32(0),
 			src:  uint(256),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "float -> int",
 			dest: int(0),
 			src:  float32(1.0),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow float64 -> float32",
 			dest: float32(0),
 			src:  float64(math.MaxFloat64),
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> bool",
 			dest: true,
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> int",
 			dest: int8(0),
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow string -> int",
 			dest: int8(0),
 			src:  "128",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> uint",
 			dest: uint8(0),
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow string -> uint",
 			dest: uint8(0),
 			src:  "256",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> float",
 			dest: float32(0),
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "overflow string -> float",
 			dest: float32(0),
 			src:  "1.7976931348623157e+308",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> array",
 			dest: [3]int{},
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> slice",
 			dest: []int{},
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> struct",
 			dest: struct{ A int }{},
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid string -> map",
 			dest: map[string]int{},
 			src:  "foo",
-			err:  Error{Code: ErrInvalidType},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 	}
 
@@ -330,17 +331,17 @@ func TestAssignFieldErrors(t *testing.T) {
 	for i, test := range tests {
 		dst := reflect.New(reflect.TypeOf(test.dest)).Elem()
 		src := reflect.ValueOf(test.src)
-		err := assignField(1, "testField", dst, src)
+		err := pfcjson.TstAssignField(1, "testField", dst, src)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
 			t.Errorf("Test #%d (%s) wrong error - got %T (%[3]v), "+
 				"want %T", i, test.name, err, test.err)
 			continue
 		}
-		gotErrorCode := err.(Error).Code
-		if gotErrorCode != test.err.Code {
+		gotErrorCode := err.(pfcjson.Error).ErrorCode
+		if gotErrorCode != test.err.ErrorCode {
 			t.Errorf("Test #%d (%s) mismatched error code - got "+
 				"%v (%v), want %v", i, test.name, gotErrorCode,
-				err, test.err.Code)
+				err, test.err.ErrorCode)
 			continue
 		}
 	}
@@ -354,47 +355,47 @@ func TestNewCmdErrors(t *testing.T) {
 		name   string
 		method string
 		args   []interface{}
-		err    Error
+		err    pfcjson.Error
 	}{
 		{
 			name:   "unregistered command",
 			method: "boguscommand",
 			args:   []interface{}{},
-			err:    Error{Code: ErrUnregisteredMethod},
+			err:    pfcjson.Error{ErrorCode: pfcjson.ErrUnregisteredMethod},
 		},
 		{
 			name:   "too few parameters to command with required + optional",
 			method: "getblock",
 			args:   []interface{}{},
-			err:    Error{Code: ErrNumParams},
+			err:    pfcjson.Error{ErrorCode: pfcjson.ErrNumParams},
 		},
 		{
 			name:   "too many parameters to command with no optional",
 			method: "getblockcount",
 			args:   []interface{}{"123"},
-			err:    Error{Code: ErrNumParams},
+			err:    pfcjson.Error{ErrorCode: pfcjson.ErrNumParams},
 		},
 		{
 			name:   "incorrect parameter type",
 			method: "getblock",
 			args:   []interface{}{1},
-			err:    Error{Code: ErrInvalidType},
+			err:    pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		_, err := NewCmd(test.method, test.args...)
+		_, err := pfcjson.NewCmd(test.method, test.args...)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
-			t.Errorf("Test #%d (%s) wrong error type - got `%T` (%v), want `%T`",
-				i, test.name, err, err, test.err)
+			t.Errorf("Test #%d (%s) wrong error - got %T (%v), "+
+				"want %T", i, test.name, err, err, test.err)
 			continue
 		}
-		gotErrorCode := err.(Error).Code
-		if gotErrorCode != test.err.Code {
+		gotErrorCode := err.(pfcjson.Error).ErrorCode
+		if gotErrorCode != test.err.ErrorCode {
 			t.Errorf("Test #%d (%s) mismatched error code - got "+
 				"%v (%v), want %v", i, test.name, gotErrorCode,
-				err, test.err.Code)
+				err, test.err.ErrorCode)
 			continue
 		}
 	}
@@ -408,41 +409,41 @@ func TestMarshalCmdErrors(t *testing.T) {
 		name string
 		id   interface{}
 		cmd  interface{}
-		err  Error
+		err  pfcjson.Error
 	}{
 		{
 			name: "unregistered type",
 			id:   1,
 			cmd:  (*int)(nil),
-			err:  Error{Code: ErrUnregisteredMethod},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrUnregisteredMethod},
 		},
 		{
 			name: "nil instance of registered type",
 			id:   1,
-			cmd:  (*GetBlockCmd)(nil),
-			err:  Error{Code: ErrInvalidType},
+			cmd:  (*pfcjson.GetBlockCmd)(nil),
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "nil instance of registered type",
 			id:   []int{0, 1},
-			cmd:  &GetBlockCountCmd{},
-			err:  Error{Code: ErrInvalidType},
+			cmd:  &pfcjson.GetBlockCountCmd{},
+			err:  pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		_, err := MarshalCmd("1.0", test.id, test.cmd)
+		_, err := pfcjson.MarshalCmd(test.id, test.cmd)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
-			t.Errorf("Test #%d (%s) wrong error type - got `%T` (%v), want `%T`",
-				i, test.name, err, err, test.err)
+			t.Errorf("Test #%d (%s) wrong error - got %T (%v), "+
+				"want %T", i, test.name, err, err, test.err)
 			continue
 		}
-		gotErrorCode := err.(Error).Code
-		if gotErrorCode != test.err.Code {
+		gotErrorCode := err.(pfcjson.Error).ErrorCode
+		if gotErrorCode != test.err.ErrorCode {
 			t.Errorf("Test #%d (%s) mismatched error code - got "+
 				"%v (%v), want %v", i, test.name, gotErrorCode,
-				err, test.err.Code)
+				err, test.err.ErrorCode)
 			continue
 		}
 	}
@@ -454,64 +455,64 @@ func TestUnmarshalCmdErrors(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		request Request
-		err     Error
+		request pfcjson.Request
+		err     pfcjson.Error
 	}{
 		{
 			name: "unregistered type",
-			request: Request{
+			request: pfcjson.Request{
 				Jsonrpc: "1.0",
 				Method:  "bogusmethod",
 				Params:  nil,
 				ID:      nil,
 			},
-			err: Error{Code: ErrUnregisteredMethod},
+			err: pfcjson.Error{ErrorCode: pfcjson.ErrUnregisteredMethod},
 		},
 		{
 			name: "incorrect number of params",
-			request: Request{
+			request: pfcjson.Request{
 				Jsonrpc: "1.0",
 				Method:  "getblockcount",
 				Params:  []json.RawMessage{[]byte(`"bogusparam"`)},
 				ID:      nil,
 			},
-			err: Error{Code: ErrNumParams},
+			err: pfcjson.Error{ErrorCode: pfcjson.ErrNumParams},
 		},
 		{
 			name: "invalid type for a parameter",
-			request: Request{
+			request: pfcjson.Request{
 				Jsonrpc: "1.0",
 				Method:  "getblock",
 				Params:  []json.RawMessage{[]byte("1")},
 				ID:      nil,
 			},
-			err: Error{Code: ErrInvalidType},
+			err: pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 		{
 			name: "invalid JSON for a parameter",
-			request: Request{
+			request: pfcjson.Request{
 				Jsonrpc: "1.0",
 				Method:  "getblock",
 				Params:  []json.RawMessage{[]byte(`"1`)},
 				ID:      nil,
 			},
-			err: Error{Code: ErrInvalidType},
+			err: pfcjson.Error{ErrorCode: pfcjson.ErrInvalidType},
 		},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
-		_, err := UnmarshalCmd(&test.request)
+		_, err := pfcjson.UnmarshalCmd(&test.request)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
-			t.Errorf("Test #%d (%s) wrong error type - got `%T` (%v), want `%T`",
-				i, test.name, err, err, test.err)
+			t.Errorf("Test #%d (%s) wrong error - got %T (%v), "+
+				"want %T", i, test.name, err, err, test.err)
 			continue
 		}
-		gotErrorCode := err.(Error).Code
-		if gotErrorCode != test.err.Code {
+		gotErrorCode := err.(pfcjson.Error).ErrorCode
+		if gotErrorCode != test.err.ErrorCode {
 			t.Errorf("Test #%d (%s) mismatched error code - got "+
 				"%v (%v), want %v", i, test.name, gotErrorCode,
-				err, test.err.Code)
+				err, test.err.ErrorCode)
 			continue
 		}
 	}

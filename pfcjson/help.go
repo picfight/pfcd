@@ -1,5 +1,4 @@
 // Copyright (c) 2015 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -537,7 +536,7 @@ func GenerateHelp(method string, descs map[string]string, resultTypes ...interfa
 	}
 
 	// Create a closure for the description lookup function which falls back
-	// to the base help descritptions map for unrecognized keys and tracks
+	// to the base help descriptions map for unrecognized keys and tracks
 	// and missing keys.
 	var missingKey string
 	xT := func(key string) string {

@@ -1,25 +1,24 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 /*
-Package peer provides a common base for creating and managing PicFight network
+Package peer provides a common base for creating and managing Bitcoin network
 peers.
 
 Overview
 
 This package builds upon the wire package, which provides the fundamental
-primitives necessary to speak the PicFight wire protocol, in order to simplify
+primitives necessary to speak the bitcoin wire protocol, in order to simplify
 the process of creating fully functional peers.  In essence, it provides a
 common base for creating concurrent safe fully validating nodes, Simplified
 Payment Verification (SPV) nodes, proxies, etc.
 
 A quick overview of the major features peer provides are as follows:
 
- - Provides a basic concurrent safe PicFight peer for handling picfight
+ - Provides a basic concurrent safe bitcoin peer for handling bitcoin
    communications via the peer-to-peer protocol
- - Full duplex reading and writing of PicFight protocol messages
+ - Full duplex reading and writing of bitcoin protocol messages
  - Automatic handling of the initial handshake process including protocol
    version negotiation
  - Asynchronous message queuing of outbound messages with optional channel for
@@ -29,14 +28,18 @@ A quick overview of the major features peer provides are as follows:
      incoming connections so they have flexibility to establish connections as
      they see fit (proxies, etc)
    - User agent name and version
-   - PicFight network
-   - Service support signalling (full nodes, etc)
+   - Bitcoin network
+   - Service support signalling (full nodes, bloom filters, etc)
    - Maximum supported protocol version
-   - Ability to register callbacks for handling PicFight protocol messages
+   - Ability to register callbacks for handling bitcoin protocol messages
  - Inventory message batching and send trickling with known inventory detection
    and avoidance
  - Automatic periodic keep-alive pinging and pong responses
  - Random nonce generation and self connection detection
+ - Proper handling of bloom filter related commands when the caller does not
+   specify the related flag to signal support
+   - Disconnects the peer when the protocol version is high enough
+   - Does not invoke the related callbacks for older protocol versions
  - Snapshottable peer statistics such as the total number of bytes read and
    written, the remote address, user agent, and negotiated protocol version
  - Helper functions pushing addresses, getblocks, getheaders, and reject
@@ -50,8 +53,8 @@ A quick overview of the major features peer provides are as follows:
 Peer Configuration
 
 All peer configuration is handled with the Config struct.  This allows the
-caller to specify things such as the user agent name and version, the picfight
-network to use, which services it supports, and callbacks to invoke when picfight
+caller to specify things such as the user agent name and version, the bitcoin
+network to use, which services it supports, and callbacks to invoke when bitcoin
 messages are received.  See the documentation for each field of the Config
 struct for more details.
 
@@ -72,12 +75,12 @@ cleanup has completed.
 
 Callbacks
 
-In order to do anything useful with a peer, it is necessary to react to picfight
+In order to do anything useful with a peer, it is necessary to react to bitcoin
 messages.  This is accomplished by creating an instance of the MessageListeners
 struct with the callbacks to be invoke specified and setting the Listeners field
 of the Config struct specified when creating a peer to it.
 
-For convenience, a callback hook for all of the currently supported picfight
+For convenience, a callback hook for all of the currently supported bitcoin
 messages is exposed which receives the peer instance and the concrete message
 type.  In addition, a hook for OnRead is provided so even custom messages types
 for which this package does not directly provide a hook, as long as they
@@ -134,14 +137,14 @@ written, the remote address, user agent, and negotiated protocol version.
 Logging
 
 This package provides extensive logging capabilities through the UseLogger
-function which allows a slog.Logger to be specified.  For example, logging at
+function which allows a btclog.Logger to be specified.  For example, logging at
 the debug level provides summaries of every message sent and received, and
 logging at the trace level provides full dumps of parsed messages as well as the
 raw message bytes using a format similar to hexdump -C.
 
-Improvement Proposals
+Bitcoin Improvement Proposals
 
-This package supports all improvement proposals supported by the wire package.
+This package supports all BIPS supported by the wire package.
 (https://godoc.org/github.com/picfight/pfcd/wire#hdr-Bitcoin_Improvement_Proposals)
 */
 package peer

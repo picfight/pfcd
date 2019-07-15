@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -16,7 +15,7 @@ import (
 // per message.
 const MaxBlockLocatorsPerMsg = 500
 
-// MsgGetBlocks implements the Message interface and represents a picfight
+// MsgGetBlocks implements the Message interface and represents a bitcoin
 // getblocks message.  It is used to request a list of blocks starting after the
 // last known hash in the slice of block locator hashes.  The list is returned
 // via an inv message (MsgInv) and is limited by a specific hash to stop at or
@@ -49,9 +48,9 @@ func (msg *MsgGetBlocks) AddBlockLocatorHash(hash *chainhash.Hash) error {
 	return nil
 }
 
-// BtcDecode decodes r using the PicFight protocol encoding into the receiver.
+// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgGetBlocks) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	err := readElement(r, &msg.ProtocolVersion)
 	if err != nil {
 		return err
@@ -65,7 +64,7 @@ func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
 	if count > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message "+
 			"[count %v, max %v]", count, MaxBlockLocatorsPerMsg)
-		return messageError("MsgGetBlocks.BtcDecode", str)
+		return messageError("MsgGetBlocks.PfcDecode", str)
 	}
 
 	// Create a contiguous slice of hashes to deserialize into in order to
@@ -84,9 +83,9 @@ func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
 	return readElement(r, &msg.HashStop)
 }
 
-// BtcEncode encodes the receiver to w using the PicFight protocol encoding.
+// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgGetBlocks) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgGetBlocks) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	count := len(msg.BlockLocatorHashes)
 	if count > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message "+
@@ -128,7 +127,7 @@ func (msg *MsgGetBlocks) MaxPayloadLength(pver uint32) uint32 {
 	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * chainhash.HashSize) + chainhash.HashSize
 }
 
-// NewMsgGetBlocks returns a new PicFight getblocks message that conforms to the
+// NewMsgGetBlocks returns a new bitcoin getblocks message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgGetBlocks(hashStop *chainhash.Hash) *MsgGetBlocks {

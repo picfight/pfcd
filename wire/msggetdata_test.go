@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -114,10 +113,11 @@ func TestGetDataWire(t *testing.T) {
 	}
 
 	tests := []struct {
-		in   *MsgGetData // Message to encode
-		out  *MsgGetData // Expected decoded message
-		buf  []byte      // Wire encoding
-		pver uint32      // Protocol version for wire encoding
+		in   *MsgGetData     // Message to encode
+		out  *MsgGetData     // Expected decoded message
+		buf  []byte          // Wire encoding
+		pver uint32          // Protocol version for wire encoding
+		enc  MessageEncoding // Message encoding format
 	}{
 		// Latest protocol version with no inv vectors.
 		{
@@ -125,6 +125,7 @@ func TestGetDataWire(t *testing.T) {
 			NoInv,
 			NoInvEncoded,
 			ProtocolVersion,
+			BaseEncoding,
 		},
 
 		// Latest protocol version with multiple inv vectors.
@@ -133,6 +134,79 @@ func TestGetDataWire(t *testing.T) {
 			MultiInv,
 			MultiInvEncoded,
 			ProtocolVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0035Version no inv vectors.
+		{
+			NoInv,
+			NoInv,
+			NoInvEncoded,
+			BIP0035Version,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0035Version with multiple inv vectors.
+		{
+			MultiInv,
+			MultiInv,
+			MultiInvEncoded,
+			BIP0035Version,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0031Version no inv vectors.
+		{
+			NoInv,
+			NoInv,
+			NoInvEncoded,
+			BIP0031Version,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0031Version with multiple inv vectors.
+		{
+			MultiInv,
+			MultiInv,
+			MultiInvEncoded,
+			BIP0031Version,
+			BaseEncoding,
+		},
+
+		// Protocol version NetAddressTimeVersion no inv vectors.
+		{
+			NoInv,
+			NoInv,
+			NoInvEncoded,
+			NetAddressTimeVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version NetAddressTimeVersion with multiple inv vectors.
+		{
+			MultiInv,
+			MultiInv,
+			MultiInvEncoded,
+			NetAddressTimeVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version MultipleAddressVersion no inv vectors.
+		{
+			NoInv,
+			NoInv,
+			NoInvEncoded,
+			MultipleAddressVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version MultipleAddressVersion with multiple inv vectors.
+		{
+			MultiInv,
+			MultiInv,
+			MultiInvEncoded,
+			MultipleAddressVersion,
+			BaseEncoding,
 		},
 	}
 
@@ -140,7 +214,7 @@ func TestGetDataWire(t *testing.T) {
 	for i, test := range tests {
 		// Encode the message to wire format.
 		var buf bytes.Buffer
-		err := test.in.BtcEncode(&buf, test.pver)
+		err := test.in.BtcEncode(&buf, test.pver, test.enc)
 		if err != nil {
 			t.Errorf("BtcEncode #%d error %v", i, err)
 			continue
@@ -154,13 +228,13 @@ func TestGetDataWire(t *testing.T) {
 		// Decode the message from wire format.
 		var msg MsgGetData
 		rbuf := bytes.NewReader(test.buf)
-		err = msg.BtcDecode(rbuf, test.pver)
+		err = msg.PfcDecode(rbuf, test.pver, test.enc)
 		if err != nil {
-			t.Errorf("BtcDecode #%d error %v", i, err)
+			t.Errorf("PfcDecode #%d error %v", i, err)
 			continue
 		}
 		if !reflect.DeepEqual(&msg, test.out) {
-			t.Errorf("BtcDecode #%d\n got: %s want: %s", i,
+			t.Errorf("PfcDecode #%d\n got: %s want: %s", i,
 				spew.Sdump(msg), spew.Sdump(test.out))
 			continue
 		}
@@ -206,27 +280,28 @@ func TestGetDataWireErrors(t *testing.T) {
 	}
 
 	tests := []struct {
-		in       *MsgGetData // Value to encode
-		buf      []byte      // Wire encoding
-		pver     uint32      // Protocol version for wire encoding
-		max      int         // Max size of fixed buffer to induce errors
-		writeErr error       // Expected write error
-		readErr  error       // Expected read error
+		in       *MsgGetData     // Value to encode
+		buf      []byte          // Wire encoding
+		pver     uint32          // Protocol version for wire encoding
+		enc      MessageEncoding // Message encoding format
+		max      int             // Max size of fixed buffer to induce errors
+		writeErr error           // Expected write error
+		readErr  error           // Expected read error
 	}{
 		// Latest protocol version with intentional read/write errors.
 		// Force error in inventory vector count
-		{baseGetData, baseGetDataEncoded, pver, 0, io.ErrShortWrite, io.EOF},
+		{baseGetData, baseGetDataEncoded, pver, BaseEncoding, 0, io.ErrShortWrite, io.EOF},
 		// Force error in inventory list.
-		{baseGetData, baseGetDataEncoded, pver, 1, io.ErrShortWrite, io.EOF},
+		{baseGetData, baseGetDataEncoded, pver, BaseEncoding, 1, io.ErrShortWrite, io.EOF},
 		// Force error with greater than max inventory vectors.
-		{maxGetData, maxGetDataEncoded, pver, 3, wireErr, wireErr},
+		{maxGetData, maxGetDataEncoded, pver, BaseEncoding, 3, wireErr, wireErr},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
 		// Encode to wire format.
 		w := newFixedWriter(test.max)
-		err := test.in.BtcEncode(w, test.pver)
+		err := test.in.BtcEncode(w, test.pver, test.enc)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.writeErr) {
 			t.Errorf("BtcEncode #%d wrong error got: %v, want: %v",
 				i, err, test.writeErr)
@@ -246,9 +321,9 @@ func TestGetDataWireErrors(t *testing.T) {
 		// Decode from wire format.
 		var msg MsgGetData
 		r := newFixedReader(test.max, test.buf)
-		err = msg.BtcDecode(r, test.pver)
+		err = msg.PfcDecode(r, test.pver, test.enc)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.readErr) {
-			t.Errorf("BtcDecode #%d wrong error got: %v, want: %v",
+			t.Errorf("PfcDecode #%d wrong error got: %v, want: %v",
 				i, err, test.readErr)
 			continue
 		}
@@ -257,7 +332,7 @@ func TestGetDataWireErrors(t *testing.T) {
 		// equality.
 		if _, ok := err.(*MessageError); !ok {
 			if err != test.readErr {
-				t.Errorf("BtcDecode #%d wrong error got: %v, "+
+				t.Errorf("PfcDecode #%d wrong error got: %v, "+
 					"want: %v", i, err, test.readErr)
 				continue
 			}

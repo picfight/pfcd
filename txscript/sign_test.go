@@ -1,91 +1,62 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package txscript
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
-	mrand "math/rand"
 	"testing"
 
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
-// testingParams defines the chain params to use throughout these tests so it
-// can more easily be changed if desired.
-var testingParams = &chaincfg.RegNetParams
-
-const testValueIn = 12345
-
 type addressToKey struct {
-	key        *chainec.PrivateKey
+	key        *pfcec.PrivateKey
 	compressed bool
 }
 
 func mkGetKey(keys map[string]addressToKey) KeyDB {
 	if keys == nil {
-		return KeyClosure(func(addr pfcutil.Address) (chainec.PrivateKey,
+		return KeyClosure(func(addr pfcutil.Address) (*pfcec.PrivateKey,
 			bool, error) {
-			return nil, false, errors.New("nope 1")
+			return nil, false, errors.New("nope")
 		})
 	}
-	return KeyClosure(func(addr pfcutil.Address) (chainec.PrivateKey,
+	return KeyClosure(func(addr pfcutil.Address) (*pfcec.PrivateKey,
 		bool, error) {
 		a2k, ok := keys[addr.EncodeAddress()]
 		if !ok {
-			return nil, false, errors.New("nope 2")
+			return nil, false, errors.New("nope")
 		}
-		return *a2k.key, a2k.compressed, nil
-	})
-}
-
-func mkGetKeyPub(keys map[string]addressToKey) KeyDB {
-	if keys == nil {
-		return KeyClosure(func(addr pfcutil.Address) (chainec.PrivateKey,
-			bool, error) {
-			return nil, false, errors.New("nope 1")
-		})
-	}
-	return KeyClosure(func(addr pfcutil.Address) (chainec.PrivateKey,
-		bool, error) {
-		a2k, ok := keys[addr.String()]
-		if !ok {
-			return nil, false, errors.New("nope 2")
-		}
-		return *a2k.key, a2k.compressed, nil
+		return a2k.key, a2k.compressed, nil
 	})
 }
 
 func mkGetScript(scripts map[string][]byte) ScriptDB {
 	if scripts == nil {
-		return ScriptClosure(func(addr pfcutil.Address) (
-			[]byte, error) {
-			return nil, errors.New("nope 3")
+		return ScriptClosure(func(addr pfcutil.Address) ([]byte, error) {
+			return nil, errors.New("nope")
 		})
 	}
-	return ScriptClosure(func(addr pfcutil.Address) ([]byte,
-		error) {
+	return ScriptClosure(func(addr pfcutil.Address) ([]byte, error) {
 		script, ok := scripts[addr.EncodeAddress()]
 		if !ok {
-			return nil, errors.New("nope 4")
+			return nil, errors.New("nope")
 		}
 		return script, nil
 	})
 }
 
-func checkScripts(msg string, tx *wire.MsgTx, idx int, sigScript, pkScript []byte) error {
+func checkScripts(msg string, tx *wire.MsgTx, idx int, inputAmt int64, sigScript, pkScript []byte) error {
 	tx.TxIn[idx].SignatureScript = sigScript
-	var scriptFlags ScriptFlags
-	vm, err := NewEngine(pkScript, tx, idx, scriptFlags, 0, nil)
+	vm, err := NewEngine(pkScript, tx, idx,
+		ScriptBip16|ScriptVerifyDERSignatures, nil, nil, inputAmt)
 	if err != nil {
 		return fmt.Errorf("failed to make script engine for %s: %v",
 			msg, err)
@@ -100,42 +71,17 @@ func checkScripts(msg string, tx *wire.MsgTx, idx int, sigScript, pkScript []byt
 	return nil
 }
 
-func signAndCheck(msg string, tx *wire.MsgTx, idx int, pkScript []byte,
+func signAndCheck(msg string, tx *wire.MsgTx, idx int, inputAmt int64, pkScript []byte,
 	hashType SigHashType, kdb KeyDB, sdb ScriptDB,
-	previousScript []byte, suite pfcec.SignatureType) error {
+	previousScript []byte) error {
 
-	sigScript, err := SignTxOutput(testingParams, tx, idx, pkScript,
-		hashType, kdb, sdb, nil, suite)
+	sigScript, err := SignTxOutput(&chaincfg.TestNet3Params, tx, idx,
+		pkScript, hashType, kdb, sdb, nil)
 	if err != nil {
 		return fmt.Errorf("failed to sign output %s: %v", msg, err)
 	}
 
-	return checkScripts(msg, tx, idx, sigScript, pkScript)
-}
-
-func signBadAndCheck(msg string, tx *wire.MsgTx, idx int, pkScript []byte,
-	hashType SigHashType, kdb KeyDB, sdb ScriptDB,
-	previousScript []byte, suite pfcec.SignatureType) error {
-	// Setup a PRNG.
-	randScriptHash := chainhash.HashB(pkScript)
-	tRand := mrand.New(mrand.NewSource(int64(randScriptHash[0])))
-
-	sigScript, err := SignTxOutput(testingParams, tx,
-		idx, pkScript, hashType, kdb, sdb, nil, suite)
-	if err != nil {
-		return fmt.Errorf("failed to sign output %s: %v", msg, err)
-	}
-
-	// Be sure to reset the value in when we're done creating the
-	// corrupted signature for that flag.
-	tx.TxIn[0].ValueIn = testValueIn
-
-	// Corrupt a random bit in the signature.
-	pos := tRand.Intn(len(sigScript) - 1)
-	bitPos := tRand.Intn(7)
-	sigScript[pos] ^= 1 << uint8(bitPos)
-
-	return checkScripts(msg, tx, idx, sigScript, pkScript)
+	return checkScripts(msg, tx, idx, inputAmt, sigScript, pkScript)
 }
 
 func TestSignTxOutput(t *testing.T) {
@@ -145,6 +91,7 @@ func TestSignTxOutput(t *testing.T) {
 	// make script based on key.
 	// sign with magic pixie dust.
 	hashTypes := []SigHashType{
+		SigHashOld, // no longer used but should act like all
 		SigHashAll,
 		SigHashNone,
 		SigHashSingle,
@@ -152,529 +99,239 @@ func TestSignTxOutput(t *testing.T) {
 		SigHashNone | SigHashAnyOneCanPay,
 		SigHashSingle | SigHashAnyOneCanPay,
 	}
-	signatureSuites := []pfcec.SignatureType{
-		pfcec.STEcdsaSecp256k1,
-		pfcec.STEd25519,
-		pfcec.STSchnorrSecp256k1,
-	}
+	inputAmounts := []int64{5, 10, 15}
 	tx := &wire.MsgTx{
-		SerType: wire.TxSerializeFull,
 		Version: 1,
 		TxIn: []*wire.TxIn{
 			{
 				PreviousOutPoint: wire.OutPoint{
 					Hash:  chainhash.Hash{},
 					Index: 0,
-					Tree:  0,
 				},
-				Sequence:    4294967295,
-				ValueIn:     testValueIn,
-				BlockHeight: 78901,
-				BlockIndex:  23456,
+				Sequence: 4294967295,
 			},
 			{
 				PreviousOutPoint: wire.OutPoint{
 					Hash:  chainhash.Hash{},
 					Index: 1,
-					Tree:  0,
 				},
-				Sequence:    4294967295,
-				ValueIn:     testValueIn,
-				BlockHeight: 78901,
-				BlockIndex:  23456,
+				Sequence: 4294967295,
 			},
 			{
 				PreviousOutPoint: wire.OutPoint{
 					Hash:  chainhash.Hash{},
 					Index: 2,
-					Tree:  0,
 				},
-				Sequence:    4294967295,
-				ValueIn:     testValueIn,
-				BlockHeight: 78901,
-				BlockIndex:  23456,
+				Sequence: 4294967295,
 			},
 		},
 		TxOut: []*wire.TxOut{
 			{
-				Version: wire.DefaultPkScriptVersion,
-				Value:   1,
+				Value: 1,
 			},
 			{
-				Version: wire.DefaultPkScriptVersion,
-				Value:   2,
+				Value: 2,
 			},
 			{
-				Version: wire.DefaultPkScriptVersion,
-				Value:   3,
+				Value: 3,
 			},
 		},
 		LockTime: 0,
-		Expiry:   0,
 	}
 
 	// Pay to Pubkey Hash (uncompressed)
-	secp256k1 := chainec.Secp256k1
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
 
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(
-						rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-				}
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKeyHash(
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
 
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
 
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams,
-					suite)
-
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				if err := signAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite); err != nil {
-					t.Error(err)
-					break
-				}
-
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
+			if err := signAndCheck(msg, tx, i, inputAmounts[i], pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(nil), nil); err != nil {
+				t.Error(err)
+				break
 			}
 		}
 	}
 
 	// Pay to Pubkey Hash (uncompressed) (merging with correct)
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
 
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-				}
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKeyHash(
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
 
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
 
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams,
-					suite)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(nil), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
+				break
+			}
 
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(nil), sigScript)
+			if err != nil {
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
+				break
+			}
 
-				sigScript, err := SignTxOutput(
-					testingParams, tx, i, pkScript,
-					hashType, mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-					break
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err = SignTxOutput(
-					testingParams, tx, i, pkScript,
-					hashType, mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), sigScript, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-					break
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, pkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-					break
-				}
+			err = checkScripts(msg, tx, i, inputAmounts[i], sigScript, pkScript)
+			if err != nil {
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
+				break
 			}
 		}
 	}
 
 	// Pay to Pubkey Hash (compressed)
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				}
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
 
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
+			address, err := pfcutil.NewAddressPubKeyHash(
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
 
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams,
-					suite)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
 
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				if err := signAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(nil), nil, suite); err != nil {
-					t.Error(err)
-					break
-				}
-
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(nil), nil); err != nil {
+				t.Error(err)
+				break
 			}
 		}
 	}
 
 	// Pay to Pubkey Hash (compressed) with duplicate merge
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				}
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams,
-					suite)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				sigScript, err := SignTxOutput(testingParams,
-					tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(nil), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-					break
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err = SignTxOutput(testingParams,
-					tx, i, pkScript,
-					hashType, mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(nil), sigScript, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-					break
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, pkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to Pubkey Hash for a ticket(SStx) (compressed)
-	for _, hashType := range hashTypes {
 		for i := range tx.TxIn {
 			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-			keyDB, _, _, err := secp256k1.GenerateKey(rand.Reader)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
 				break
 			}
-			key, pk := secp256k1.PrivKeyFromBytes(keyDB)
-			pkBytes := pk.SerializeCompressed()
 
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
 			address, err := pfcutil.NewAddressPubKeyHash(
-				pfcutil.Hash160(pkBytes), testingParams,
-				pfcec.STEcdsaSecp256k1)
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make address for %s: %v",
 					msg, err)
 				break
 			}
 
-			pkScript, err := PayToSStx(address)
+			pkScript, err := PayToAddrScript(address)
 			if err != nil {
 				t.Errorf("failed to make pkscript "+
 					"for %s: %v", msg, err)
 			}
 
-			if err := signAndCheck(msg, tx, i, pkScript, hashType,
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err != nil {
-				t.Error(err)
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(nil), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
 				break
 			}
 
-			if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err == nil {
-				t.Errorf("corrupted signature validated %s: %v",
-					msg, err)
-				break
-			}
-		}
-	}
-
-	// Pay to Pubkey Hash for a ticket change (SStx change) (compressed)
-	for _, hashType := range hashTypes {
-		for i := range tx.TxIn {
-			msg := fmt.Sprintf("%d:%d", hashType, i)
-
-			keyDB, _, _, err := secp256k1.GenerateKey(rand.Reader)
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(nil), sigScript)
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
 				break
 			}
-			key, pk := secp256k1.PrivKeyFromBytes(keyDB)
-			pkBytes := pk.SerializeCompressed()
 
-			address, err := pfcutil.NewAddressPubKeyHash(
-				pfcutil.Hash160(pkBytes), testingParams,
-				pfcec.STEcdsaSecp256k1)
+			err = checkScripts(msg, tx, i, inputAmounts[i],
+				sigScript, pkScript)
 			if err != nil {
-				t.Errorf("failed to make address for %s: %v",
-					msg, err)
-				break
-			}
-
-			pkScript, err := PayToSStxChange(address)
-			if err != nil {
-				t.Errorf("failed to make pkscript "+
-					"for %s: %v", msg, err)
-			}
-
-			if err := signAndCheck(msg, tx, i, pkScript, hashType,
-				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err != nil {
-				t.Error(err)
-				break
-			}
-
-			if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err == nil {
-				t.Errorf("corrupted signature validated %s: %v",
-					msg, err)
-				break
-			}
-		}
-	}
-
-	// Pay to Pubkey Hash for a ticket spending (SSGen) (compressed)
-	for _, hashType := range hashTypes {
-		for i := range tx.TxIn {
-			msg := fmt.Sprintf("%d:%d", hashType, i)
-
-			keyDB, _, _, err := secp256k1.GenerateKey(rand.Reader)
-			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
-				break
-			}
-			key, pk := secp256k1.PrivKeyFromBytes(keyDB)
-			pkBytes := pk.SerializeCompressed()
-
-			address, err := pfcutil.NewAddressPubKeyHash(
-				pfcutil.Hash160(pkBytes), testingParams,
-				pfcec.STEcdsaSecp256k1)
-			if err != nil {
-				t.Errorf("failed to make address for %s: %v",
-					msg, err)
-				break
-			}
-
-			pkScript, err := PayToSSGen(address)
-			if err != nil {
-				t.Errorf("failed to make pkscript "+
-					"for %s: %v", msg, err)
-			}
-
-			if err := signAndCheck(msg, tx, i, pkScript, hashType,
-				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err != nil {
-				t.Error(err)
-				break
-			}
-
-			if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err == nil {
-				t.Errorf("corrupted signature validated %s: %v",
-					msg, err)
-				break
-			}
-		}
-	}
-
-	// Pay to Pubkey Hash for a ticket revocation (SSRtx) (compressed)
-	for _, hashType := range hashTypes {
-		for i := range tx.TxIn {
-			msg := fmt.Sprintf("%d:%d", hashType, i)
-
-			keyDB, _, _, err := secp256k1.GenerateKey(rand.Reader)
-			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
-				break
-			}
-			key, pk := secp256k1.PrivKeyFromBytes(keyDB)
-			pkBytes := pk.SerializeCompressed()
-
-			address, err := pfcutil.NewAddressPubKeyHash(
-				pfcutil.Hash160(pkBytes), testingParams,
-				pfcec.STEcdsaSecp256k1)
-			if err != nil {
-				t.Errorf("failed to make address for %s: %v",
-					msg, err)
-				break
-			}
-
-			pkScript, err := PayToSSRtx(address)
-			if err != nil {
-				t.Errorf("failed to make pkscript "+
-					"for %s: %v", msg, err)
-			}
-
-			if err := signAndCheck(msg, tx, i, pkScript, hashType,
-				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err != nil {
-				t.Error(err)
-				break
-			}
-
-			if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-				mkGetKey(map[string]addressToKey{
-					address.EncodeAddress(): {&key, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err == nil {
-				t.Errorf("corrupted signature validated %s: %v",
-					msg, err)
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
 				break
 			}
 		}
@@ -682,296 +339,201 @@ func TestSignTxOutput(t *testing.T) {
 
 	// Pay to PubKey (uncompressed)
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-				keyDB, _, _, err := secp256k1.GenerateKey(rand.Reader)
-				if err != nil {
-					t.Errorf("failed to generate key: %v", err)
-					break
-				}
-				key, pk := secp256k1.PrivKeyFromBytes(keyDB)
-				// For address generation, consensus rules require using
-				// a compressed public key. Look up ExtractPkScriptAddrs
-				// for more details
-				address, err := pfcutil.NewAddressSecpPubKeyCompressed(pk,
-					testingParams)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
 
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
 
-				if err := signAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite); err != nil {
-					t.Error(err)
-					break
-				}
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
 
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(nil), nil); err != nil {
+				t.Error(err)
+				break
 			}
 		}
 	}
 
 	// Pay to PubKey (uncompressed)
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-				var address pfcutil.Address
-				var err error
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
 
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					// For address generation, consensus rules require using
-					// a compressed public key. Look up ExtractPkScriptAddrs
-					// for more details
-					address, err = pfcutil.NewAddressSecpPubKeyCompressed(pk,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
 
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-					address, err = pfcutil.NewAddressEdwardsPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
 
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-					address, err = pfcutil.NewAddressSecSchnorrPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-				}
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(nil), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
+				break
+			}
 
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(nil), sigScript)
+			if err != nil {
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
+				break
+			}
 
-				sigScript, err := SignTxOutput(testingParams,
-					tx, i, pkScript, hashType,
-					mkGetKeyPub(map[string]addressToKey{
-						address.String(): {&key, false},
-					}), mkGetScript(nil), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err = SignTxOutput(testingParams,
-					tx, i, pkScript, hashType,
-					mkGetKeyPub(map[string]addressToKey{
-						address.String(): {&key, false},
-					}), mkGetScript(nil), sigScript, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, pkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-				}
+			err = checkScripts(msg, tx, i, inputAmounts[i], sigScript, pkScript)
+			if err != nil {
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
+				break
 			}
 		}
 	}
 
 	// Pay to PubKey (compressed)
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-				var address pfcutil.Address
-				var err error
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
 
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					// For address generation, consensus rules require using
-					// a compressed public key. Look up ExtractPkScriptAddrs
-					// for more details
-					address, err = pfcutil.NewAddressSecpPubKeyCompressed(pk,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
 
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-					address, err = pfcutil.NewAddressEdwardsPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
 
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-					address, err = pfcutil.NewAddressSecSchnorrPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				if err := signAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKeyPub(map[string]addressToKey{
-						address.String(): {&key, true},
-					}), mkGetScript(nil), nil, suite); err != nil {
-					t.Error(err)
-					break
-				}
-
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKeyPub(map[string]addressToKey{
-						address.String(): {&key, true},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(nil), nil); err != nil {
+				t.Error(err)
+				break
 			}
 		}
 	}
 
 	// Pay to PubKey (compressed) with duplicate merge
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-				var address pfcutil.Address
-				var err error
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
 
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					address, err = pfcutil.NewAddressSecpPubKeyCompressed(pk,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
 
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-					address, err = pfcutil.NewAddressEdwardsPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
 
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-					address, err = pfcutil.NewAddressSecSchnorrPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-				}
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(nil), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
+				break
+			}
 
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, pkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(nil), sigScript)
+			if err != nil {
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
+				break
+			}
 
-				sigScript, err := SignTxOutput(testingParams,
-					tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(nil), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-					break
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err = SignTxOutput(testingParams,
-					tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(nil), sigScript, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-					break
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, pkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-					break
-				}
+			err = checkScripts(msg, tx, i, inputAmounts[i],
+				sigScript, pkScript)
+			if err != nil {
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
+				break
 			}
 		}
 	}
@@ -979,788 +541,369 @@ func TestSignTxOutput(t *testing.T) {
 	// As before, but with p2sh now.
 	// Pay to Pubkey Hash (uncompressed)
 	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-				}
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams, suite)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-					break
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-					break
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-					break
-				}
-
-				if err := signAndCheck(msg, tx, i, scriptPkScript,
-					hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite); err != nil {
-					t.Error(err)
-					break
-				}
-
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to Pubkey Hash (uncompressed) with duplicate merge
-	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-				}
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams, suite)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-					break
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-					break
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-					break
-				}
-
-				_, err = SignTxOutput(testingParams, tx, i,
-					scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-					break
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err := SignTxOutput(testingParams,
-					tx, i, scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-					break
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, scriptPkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to Pubkey Hash (compressed)
-	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				}
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams, suite)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-					break
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-					break
-				}
-
-				if err := signAndCheck(msg, tx, i, scriptPkScript,
-					hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite); err != nil {
-					t.Error(err)
-					break
-				}
-
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to Pubkey Hash (compressed) with duplicate merge
-	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-				}
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				address, err := pfcutil.NewAddressPubKeyHash(
-					pfcutil.Hash160(pkBytes), testingParams, suite)
-				if err != nil {
-					t.Errorf("failed to make address for %s: %v",
-						msg, err)
-					break
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-					break
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-					break
-				}
-
-				_, err = SignTxOutput(testingParams,
-					tx, i, scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-					break
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err := SignTxOutput(testingParams,
-					tx, i, scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-					break
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, scriptPkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to PubKey (uncompressed)
-	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-				var address pfcutil.Address
-				var err error
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					// For address generation, consensus rules require using
-					// a compressed public key. Look up ExtractPkScriptAddrs
-					// for more details
-					address, err = pfcutil.NewAddressSecpPubKeyCompressed(pk,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-					address, err = pfcutil.NewAddressEdwardsPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-					address, err = pfcutil.NewAddressSecSchnorrPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-				}
-
-				if err := signAndCheck(msg, tx, i, scriptPkScript,
-					hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite); err != nil {
-					t.Error(err)
-				}
-
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to PubKey (uncompressed) with duplicate merge
-	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-				var address pfcutil.Address
-				var err error
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					// For address generation, consensus rules require using
-					// a compressed public key. Look up ExtractPkScriptAddrs
-					// for more details
-					address, err = pfcutil.NewAddressSecpPubKeyCompressed(pk,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeUncompressed()
-					address, err = pfcutil.NewAddressEdwardsPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-					address, err = pfcutil.NewAddressSecSchnorrPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-				}
-
-				_, err = SignTxOutput(testingParams,
-					tx, i, scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-					break
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err := SignTxOutput(testingParams,
-					tx, i, scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-					break
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, scriptPkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to PubKey (compressed)
-	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-				var address pfcutil.Address
-				var err error
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					address, err = pfcutil.NewAddressSecpPubKeyCompressed(pk,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-					address, err = pfcutil.NewAddressEdwardsPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-					address, err = pfcutil.NewAddressSecSchnorrPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-					break
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-					break
-				}
-
-				if err := signAndCheck(msg, tx, i, scriptPkScript,
-					hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite); err != nil {
-					t.Error(err)
-					break
-				}
-
-				if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, false},
-					}), mkGetScript(nil), nil, suite); err == nil {
-					t.Errorf("corrupted signature validated %s: %v",
-						msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Pay to PubKey (compressed)
-	for _, hashType := range hashTypes {
-		for _, suite := range signatureSuites {
-			for i := range tx.TxIn {
-				var keyDB, pkBytes []byte
-				var key chainec.PrivateKey
-				var pk chainec.PublicKey
-				var address pfcutil.Address
-				var err error
-
-				msg := fmt.Sprintf("%d:%d:%d", hashType, i, suite)
-
-				switch suite {
-				case pfcec.STEcdsaSecp256k1:
-					keyDB, _, _, _ = secp256k1.GenerateKey(rand.Reader)
-					key, pk = secp256k1.PrivKeyFromBytes(keyDB)
-					address, err = pfcutil.NewAddressSecpPubKeyCompressed(pk,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STEd25519:
-					keyDB, _, _, _ = chainec.Edwards.GenerateKey(rand.Reader)
-					key, pk = chainec.Edwards.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.SerializeCompressed()
-					address, err = pfcutil.NewAddressEdwardsPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-
-				case pfcec.STSchnorrSecp256k1:
-					keyDB, _, _, _ = chainec.SecSchnorr.GenerateKey(rand.Reader)
-					key, pk = chainec.SecSchnorr.PrivKeyFromBytes(keyDB)
-					pkBytes = pk.Serialize()
-					address, err = pfcutil.NewAddressSecSchnorrPubKey(pkBytes,
-						testingParams)
-					if err != nil {
-						t.Errorf("failed to make address for %s: %v",
-							msg, err)
-					}
-				}
-
-				pkScript, err := PayToAddrScript(address)
-				if err != nil {
-					t.Errorf("failed to make pkscript "+
-						"for %s: %v", msg, err)
-				}
-
-				scriptAddr, err := pfcutil.NewAddressScriptHash(
-					pkScript, testingParams)
-				if err != nil {
-					t.Errorf("failed to make p2sh addr for %s: %v",
-						msg, err)
-					break
-				}
-
-				scriptPkScript, err := PayToAddrScript(
-					scriptAddr)
-				if err != nil {
-					t.Errorf("failed to make script pkscript for "+
-						"%s: %v", msg, err)
-					break
-				}
-
-				_, err = SignTxOutput(testingParams,
-					tx, i, scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s: %v", msg,
-						err)
-					break
-				}
-
-				// by the above loop, this should be valid, now sign
-				// again and merge.
-				sigScript, err := SignTxOutput(testingParams,
-					tx, i, scriptPkScript, hashType,
-					mkGetKey(map[string]addressToKey{
-						address.EncodeAddress(): {&key, true},
-					}), mkGetScript(map[string][]byte{
-						scriptAddr.EncodeAddress(): pkScript,
-					}), nil, suite)
-				if err != nil {
-					t.Errorf("failed to sign output %s a "+
-						"second time: %v", msg, err)
-					break
-				}
-
-				err = checkScripts(msg, tx, i, sigScript, scriptPkScript)
-				if err != nil {
-					t.Errorf("twice signed script invalid for "+
-						"%s: %v", msg, err)
-					break
-				}
-			}
-		}
-	}
-
-	// Basic Multisig
-	for _, hashType := range hashTypes {
 		for i := range tx.TxIn {
 			msg := fmt.Sprintf("%d:%d", hashType, i)
-
-			keyDB1, _, _, err := secp256k1.GenerateKey(rand.Reader)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
 				break
 			}
-			key1, pk1 := secp256k1.PrivKeyFromBytes(keyDB1)
 
-			address1, err := pfcutil.NewAddressSecpPubKeyCompressed(pk1,
-				testingParams)
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKeyHash(
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make address for %s: %v",
 					msg, err)
 				break
 			}
 
-			keyDB2, _, _, err := secp256k1.GenerateKey(rand.Reader)
+			pkScript, err := PayToAddrScript(address)
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
 				break
 			}
-			key2, pk2 := secp256k1.PrivKeyFromBytes(keyDB2)
 
-			address2, err := pfcutil.NewAddressSecpPubKeyCompressed(pk2,
-				testingParams)
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
 			if err != nil {
-				t.Errorf("failed to make address 2 for %s: %v",
+				t.Errorf("failed to make p2sh addr for %s: %v",
 					msg, err)
 				break
 			}
 
-			pkScript, err := MultiSigScript(
-				[]*pfcutil.AddressSecpPubKey{address1, address2},
-				2)
+			scriptPkScript, err := PayToAddrScript(
+				scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil); err != nil {
+				t.Error(err)
+				break
+			}
+		}
+	}
+
+	// Pay to Pubkey Hash (uncompressed) with duplicate merge
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKeyHash(
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+				break
+			}
+
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make p2sh addr for %s: %v",
+					msg, err)
+				break
+			}
+
+			scriptPkScript, err := PayToAddrScript(
+				scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
+				break
+			}
+
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
+				break
+			}
+
+			err = checkScripts(msg, tx, i, inputAmounts[i],
+				sigScript, scriptPkScript)
+			if err != nil {
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
+				break
+			}
+		}
+	}
+
+	// Pay to Pubkey Hash (compressed)
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
+			address, err := pfcutil.NewAddressPubKeyHash(
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := PayToAddrScript(address)
 			if err != nil {
 				t.Errorf("failed to make pkscript "+
 					"for %s: %v", msg, err)
 			}
 
 			scriptAddr, err := pfcutil.NewAddressScriptHash(
-				pkScript, testingParams)
+				pkScript, &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make p2sh addr for %s: %v",
+					msg, err)
+				break
+			}
+
+			scriptPkScript, err := PayToAddrScript(
+				scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil); err != nil {
+				t.Error(err)
+				break
+			}
+		}
+	}
+
+	// Pay to Pubkey Hash (compressed) with duplicate merge
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
+			address, err := pfcutil.NewAddressPubKeyHash(
+				pfcutil.Hash160(pk), &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
+
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make p2sh addr for %s: %v",
+					msg, err)
+				break
+			}
+
+			scriptPkScript, err := PayToAddrScript(
+				scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
+				break
+			}
+
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
+				break
+			}
+
+			err = checkScripts(msg, tx, i, inputAmounts[i],
+				sigScript, scriptPkScript)
+			if err != nil {
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
+				break
+			}
+		}
+	}
+
+	// Pay to PubKey (uncompressed)
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
+
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make p2sh addr for %s: %v",
+					msg, err)
+				break
+			}
+
+			scriptPkScript, err := PayToAddrScript(
+				scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil); err != nil {
+				t.Error(err)
+				break
+			}
+		}
+	}
+
+	// Pay to PubKey (uncompressed) with duplicate merge
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeUncompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
+
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make p2sh addr for %s: %v",
 					msg, err)
@@ -1774,26 +917,252 @@ func TestSignTxOutput(t *testing.T) {
 				break
 			}
 
-			if err := signAndCheck(msg, tx, i, scriptPkScript,
-				hashType,
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address1.EncodeAddress(): {&key1, true},
-					address2.EncodeAddress(): {&key2, true},
+					address.EncodeAddress(): {key, false},
 				}), mkGetScript(map[string][]byte{
 					scriptAddr.EncodeAddress(): pkScript,
-				}), nil, pfcec.STEcdsaSecp256k1); err != nil {
-				t.Error(err)
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
 				break
 			}
 
-			if err := signBadAndCheck(msg, tx, i, pkScript, hashType,
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address1.EncodeAddress(): {&key1, true},
-					address2.EncodeAddress(): {&key2, true},
-				}), mkGetScript(nil), nil,
-				pfcec.STEcdsaSecp256k1); err == nil {
-				t.Errorf("corrupted signature validated %s: %v",
+					address.EncodeAddress(): {key, false},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
+				break
+			}
+
+			err = checkScripts(msg, tx, i, inputAmounts[i],
+				sigScript, scriptPkScript)
+			if err != nil {
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
+				break
+			}
+		}
+	}
+
+	// Pay to PubKey (compressed)
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
 					msg, err)
+				break
+			}
+
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
+
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make p2sh addr for %s: %v",
+					msg, err)
+				break
+			}
+
+			scriptPkScript, err := PayToAddrScript(scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil); err != nil {
+				t.Error(err)
+				break
+			}
+		}
+	}
+
+	// Pay to PubKey (compressed)
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+
+			key, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk := (*pfcec.PublicKey)(&key.PublicKey).
+				SerializeCompressed()
+			address, err := pfcutil.NewAddressPubKey(pk,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := PayToAddrScript(address)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
+
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make p2sh addr for %s: %v",
+					msg, err)
+				break
+			}
+
+			scriptPkScript, err := PayToAddrScript(scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s: %v", msg,
+					err)
+				break
+			}
+
+			// by the above loop, this should be valid, now sign
+			// again and merge.
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address.EncodeAddress(): {key, true},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil)
+			if err != nil {
+				t.Errorf("failed to sign output %s a "+
+					"second time: %v", msg, err)
+				break
+			}
+
+			err = checkScripts(msg, tx, i, inputAmounts[i],
+				sigScript, scriptPkScript)
+			if err != nil {
+				t.Errorf("twice signed script invalid for "+
+					"%s: %v", msg, err)
+				break
+			}
+		}
+	}
+
+	// Basic Multisig
+	for _, hashType := range hashTypes {
+		for i := range tx.TxIn {
+			msg := fmt.Sprintf("%d:%d", hashType, i)
+
+			key1, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk1 := (*pfcec.PublicKey)(&key1.PublicKey).
+				SerializeCompressed()
+			address1, err := pfcutil.NewAddressPubKey(pk1,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address for %s: %v",
+					msg, err)
+				break
+			}
+
+			key2, err := pfcec.NewPrivateKey(pfcec.S256())
+			if err != nil {
+				t.Errorf("failed to make privKey 2 for %s: %v",
+					msg, err)
+				break
+			}
+
+			pk2 := (*pfcec.PublicKey)(&key2.PublicKey).
+				SerializeCompressed()
+			address2, err := pfcutil.NewAddressPubKey(pk2,
+				&chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make address 2 for %s: %v",
+					msg, err)
+				break
+			}
+
+			pkScript, err := MultiSigScript(
+				[]*pfcutil.AddressPubKey{address1, address2},
+				2)
+			if err != nil {
+				t.Errorf("failed to make pkscript "+
+					"for %s: %v", msg, err)
+			}
+
+			scriptAddr, err := pfcutil.NewAddressScriptHash(
+				pkScript, &chaincfg.TestNet3Params)
+			if err != nil {
+				t.Errorf("failed to make p2sh addr for %s: %v",
+					msg, err)
+				break
+			}
+
+			scriptPkScript, err := PayToAddrScript(scriptAddr)
+			if err != nil {
+				t.Errorf("failed to make script pkscript for "+
+					"%s: %v", msg, err)
+				break
+			}
+
+			if err := signAndCheck(msg, tx, i, inputAmounts[i],
+				scriptPkScript, hashType,
+				mkGetKey(map[string]addressToKey{
+					address1.EncodeAddress(): {key1, true},
+					address2.EncodeAddress(): {key2, true},
+				}), mkGetScript(map[string][]byte{
+					scriptAddr.EncodeAddress(): pkScript,
+				}), nil); err != nil {
+				t.Error(err)
 				break
 			}
 		}
@@ -1804,30 +1173,34 @@ func TestSignTxOutput(t *testing.T) {
 		for i := range tx.TxIn {
 			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-			keyDB1, _, _, err := secp256k1.GenerateKey(rand.Reader)
+			key1, err := pfcec.NewPrivateKey(pfcec.S256())
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
 				break
 			}
-			key1, pk1 := secp256k1.PrivKeyFromBytes(keyDB1)
 
-			address1, err := pfcutil.NewAddressSecpPubKeyCompressed(pk1,
-				testingParams)
+			pk1 := (*pfcec.PublicKey)(&key1.PublicKey).
+				SerializeCompressed()
+			address1, err := pfcutil.NewAddressPubKey(pk1,
+				&chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make address for %s: %v",
 					msg, err)
 				break
 			}
 
-			keyDB2, _, _, err := secp256k1.GenerateKey(rand.Reader)
+			key2, err := pfcec.NewPrivateKey(pfcec.S256())
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to make privKey 2 for %s: %v",
+					msg, err)
 				break
 			}
-			key2, pk2 := secp256k1.PrivKeyFromBytes(keyDB2)
 
-			address2, err := pfcutil.NewAddressSecpPubKeyCompressed(pk2,
-				testingParams)
+			pk2 := (*pfcec.PublicKey)(&key2.PublicKey).
+				SerializeCompressed()
+			address2, err := pfcutil.NewAddressPubKey(pk2,
+				&chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make address 2 for %s: %v",
 					msg, err)
@@ -1835,7 +1208,7 @@ func TestSignTxOutput(t *testing.T) {
 			}
 
 			pkScript, err := MultiSigScript(
-				[]*pfcutil.AddressSecpPubKey{address1, address2},
+				[]*pfcutil.AddressPubKey{address1, address2},
 				2)
 			if err != nil {
 				t.Errorf("failed to make pkscript "+
@@ -1843,7 +1216,7 @@ func TestSignTxOutput(t *testing.T) {
 			}
 
 			scriptAddr, err := pfcutil.NewAddressScriptHash(
-				pkScript, testingParams)
+				pkScript, &chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make p2sh addr for %s: %v",
 					msg, err)
@@ -1857,13 +1230,13 @@ func TestSignTxOutput(t *testing.T) {
 				break
 			}
 
-			sigScript, err := SignTxOutput(testingParams, tx, i,
-				scriptPkScript, hashType,
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address1.EncodeAddress(): {&key1, true},
+					address1.EncodeAddress(): {key1, true},
 				}), mkGetScript(map[string][]byte{
 					scriptAddr.EncodeAddress(): pkScript,
-				}), nil, pfcec.STEcdsaSecp256k1)
+				}), nil)
 			if err != nil {
 				t.Errorf("failed to sign output %s: %v", msg,
 					err)
@@ -1871,26 +1244,26 @@ func TestSignTxOutput(t *testing.T) {
 			}
 
 			// Only 1 out of 2 signed, this *should* fail.
-			if checkScripts(msg, tx, i, sigScript,
+			if checkScripts(msg, tx, i, inputAmounts[i], sigScript,
 				scriptPkScript) == nil {
 				t.Errorf("part signed script valid for %s", msg)
 				break
 			}
 
 			// Sign with the other key and merge
-			sigScript, err = SignTxOutput(testingParams, tx, i,
-				scriptPkScript, hashType,
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address2.EncodeAddress(): {&key2, true},
+					address2.EncodeAddress(): {key2, true},
 				}), mkGetScript(map[string][]byte{
 					scriptAddr.EncodeAddress(): pkScript,
-				}), sigScript, pfcec.STEcdsaSecp256k1)
+				}), sigScript)
 			if err != nil {
 				t.Errorf("failed to sign output %s: %v", msg, err)
 				break
 			}
 
-			err = checkScripts(msg, tx, i, sigScript,
+			err = checkScripts(msg, tx, i, inputAmounts[i], sigScript,
 				scriptPkScript)
 			if err != nil {
 				t.Errorf("fully signed script invalid for "+
@@ -1906,29 +1279,34 @@ func TestSignTxOutput(t *testing.T) {
 		for i := range tx.TxIn {
 			msg := fmt.Sprintf("%d:%d", hashType, i)
 
-			keyDB1, _, _, err := secp256k1.GenerateKey(rand.Reader)
+			key1, err := pfcec.NewPrivateKey(pfcec.S256())
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to make privKey for %s: %v",
+					msg, err)
 				break
 			}
-			key1, pk1 := secp256k1.PrivKeyFromBytes(keyDB1)
 
-			address1, err := pfcutil.NewAddressSecpPubKeyCompressed(pk1,
-				testingParams)
+			pk1 := (*pfcec.PublicKey)(&key1.PublicKey).
+				SerializeCompressed()
+			address1, err := pfcutil.NewAddressPubKey(pk1,
+				&chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make address for %s: %v",
 					msg, err)
 				break
 			}
 
-			keyDB2, _, _, err := secp256k1.GenerateKey(rand.Reader)
+			key2, err := pfcec.NewPrivateKey(pfcec.S256())
 			if err != nil {
-				t.Errorf("failed to generate key: %v", err)
+				t.Errorf("failed to make privKey 2 for %s: %v",
+					msg, err)
 				break
 			}
-			key2, pk2 := secp256k1.PrivKeyFromBytes(keyDB2)
-			address2, err := pfcutil.NewAddressSecpPubKeyCompressed(pk2,
-				testingParams)
+
+			pk2 := (*pfcec.PublicKey)(&key2.PublicKey).
+				SerializeCompressed()
+			address2, err := pfcutil.NewAddressPubKey(pk2,
+				&chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make address 2 for %s: %v",
 					msg, err)
@@ -1936,7 +1314,7 @@ func TestSignTxOutput(t *testing.T) {
 			}
 
 			pkScript, err := MultiSigScript(
-				[]*pfcutil.AddressSecpPubKey{address1, address2},
+				[]*pfcutil.AddressPubKey{address1, address2},
 				2)
 			if err != nil {
 				t.Errorf("failed to make pkscript "+
@@ -1944,7 +1322,7 @@ func TestSignTxOutput(t *testing.T) {
 			}
 
 			scriptAddr, err := pfcutil.NewAddressScriptHash(
-				pkScript, testingParams)
+				pkScript, &chaincfg.TestNet3Params)
 			if err != nil {
 				t.Errorf("failed to make p2sh addr for %s: %v",
 					msg, err)
@@ -1958,13 +1336,13 @@ func TestSignTxOutput(t *testing.T) {
 				break
 			}
 
-			sigScript, err := SignTxOutput(testingParams, tx, i,
-				scriptPkScript, hashType,
+			sigScript, err := SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address1.EncodeAddress(): {&key1, true},
+					address1.EncodeAddress(): {key1, true},
 				}), mkGetScript(map[string][]byte{
 					scriptAddr.EncodeAddress(): pkScript,
-				}), nil, pfcec.STEcdsaSecp256k1)
+				}), nil)
 			if err != nil {
 				t.Errorf("failed to sign output %s: %v", msg,
 					err)
@@ -1972,29 +1350,29 @@ func TestSignTxOutput(t *testing.T) {
 			}
 
 			// Only 1 out of 2 signed, this *should* fail.
-			if checkScripts(msg, tx, i, sigScript,
+			if checkScripts(msg, tx, i, inputAmounts[i], sigScript,
 				scriptPkScript) == nil {
 				t.Errorf("part signed script valid for %s", msg)
 				break
 			}
 
 			// Sign with the other key and merge
-			sigScript, err = SignTxOutput(testingParams, tx, i,
-				scriptPkScript, hashType,
+			sigScript, err = SignTxOutput(&chaincfg.TestNet3Params,
+				tx, i, scriptPkScript, hashType,
 				mkGetKey(map[string]addressToKey{
-					address1.EncodeAddress(): {&key1, true},
-					address2.EncodeAddress(): {&key2, true},
+					address1.EncodeAddress(): {key1, true},
+					address2.EncodeAddress(): {key2, true},
 				}), mkGetScript(map[string][]byte{
 					scriptAddr.EncodeAddress(): pkScript,
-				}), sigScript, pfcec.STEcdsaSecp256k1)
+				}), sigScript)
 			if err != nil {
 				t.Errorf("failed to sign output %s: %v", msg, err)
 				break
 			}
 
 			// Now we should pass.
-			err = checkScripts(msg, tx, i, sigScript,
-				scriptPkScript)
+			err = checkScripts(msg, tx, i, inputAmounts[i],
+				sigScript, scriptPkScript)
 			if err != nil {
 				t.Errorf("fully signed script invalid for "+
 					"%s: %v", msg, err)
@@ -2030,18 +1408,25 @@ var (
 		0xb4, 0xfc, 0x4e, 0x55, 0xd4, 0x88, 0x42, 0xb3, 0xa1, 0x65,
 		0xac, 0x70, 0x7f, 0x3d, 0xa4, 0x39, 0x5e, 0xcb, 0x3b, 0xb0,
 		0xd6, 0x0e, 0x06, 0x92}
-	_, thisPubKey     = chainec.Secp256k1.PrivKeyFromBytes(privKeyD)
-	thisAddressUnc, _ = pfcutil.NewAddressPubKeyHash(
-		pfcutil.Hash160(thisPubKey.SerializeUncompressed()),
-		testingParams, pfcec.STEcdsaSecp256k1)
-	uncompressedPkScript, _ = PayToAddrScript(thisAddressUnc)
-	thisAddressCom, _       = pfcutil.NewAddressPubKeyHash(
-		pfcutil.Hash160(thisPubKey.SerializeCompressed()),
-		testingParams, pfcec.STEcdsaSecp256k1)
-	compressedPkScript, _ = PayToAddrScript(thisAddressCom)
-	shortPkScript         = []byte{0x76, 0xa9, 0x14, 0xd1, 0x7c, 0xb5,
+	pubkeyX = []byte{0xb2, 0x52, 0xf0, 0x49, 0x85, 0x78, 0x03, 0x03, 0xc8,
+		0x7d, 0xce, 0x51, 0x7f, 0xa8, 0x69, 0x0b, 0x91, 0x95, 0xf4,
+		0xf3, 0x5c, 0x26, 0x73, 0x05, 0x05, 0xa2, 0xee, 0xbc, 0x09,
+		0x38, 0x34, 0x3a}
+	pubkeyY = []byte{0xb7, 0xc6, 0x7d, 0xb2, 0xe1, 0xff, 0xc8, 0x43, 0x1f,
+		0x63, 0x32, 0x62, 0xaa, 0x60, 0xc6, 0x83, 0x30, 0xbd, 0x24,
+		0x7e, 0xef, 0xdb, 0x6f, 0x2e, 0x8d, 0x56, 0xf0, 0x3c, 0x9f,
+		0x6d, 0xb6, 0xf8}
+	uncompressedPkScript = []byte{0x76, 0xa9, 0x14, 0xd1, 0x7c, 0xb5,
+		0xeb, 0xa4, 0x02, 0xcb, 0x68, 0xe0, 0x69, 0x56, 0xbf, 0x32,
+		0x53, 0x90, 0x0e, 0x0a, 0x86, 0xc9, 0xfa, 0x88, 0xac}
+	compressedPkScript = []byte{0x76, 0xa9, 0x14, 0x27, 0x4d, 0x9f, 0x7f,
+		0x61, 0x7e, 0x7c, 0x7a, 0x1c, 0x1f, 0xb2, 0x75, 0x79, 0x10,
+		0x43, 0x65, 0x68, 0x27, 0x9d, 0x86, 0x88, 0xac}
+	shortPkScript = []byte{0x76, 0xa9, 0x14, 0xd1, 0x7c, 0xb5,
 		0xeb, 0xa4, 0x02, 0xcb, 0x68, 0xe0, 0x69, 0x56, 0xbf, 0x32,
 		0x53, 0x90, 0x0e, 0x0a, 0x88, 0xac}
+	uncompressedAddrStr = "1L6fd93zGmtzkK6CsZFVVoCwzZV3MUtJ4F"
+	compressedAddrStr   = "14apLppt9zTq6cNw8SDfiJhk9PhkZrQtYZ"
 )
 
 // Pretend output amounts.
@@ -2155,7 +1540,7 @@ var sigScriptTests = []tstSigScript{
 				indexOutOfRange:    false,
 			},
 		},
-		hashType:           SigHashAnyOneCanPay | SigHashAll,
+		hashType:           SigHashAnyOneCanPay,
 		compress:           false,
 		scriptAtWrongIndex: false,
 	},
@@ -2165,7 +1550,7 @@ var sigScriptTests = []tstSigScript{
 			{
 				txout:              wire.NewTxOut(coinbaseVal, uncompressedPkScript),
 				sigscriptGenerates: true,
-				inputValidates:     false,
+				inputValidates:     true,
 				indexOutOfRange:    false,
 			},
 		},
@@ -2249,17 +1634,18 @@ var sigScriptTests = []tstSigScript{
 // and we don't have the private keys.
 func TestSignatureScript(t *testing.T) {
 	t.Parallel()
-	privKey, _ := chainec.Secp256k1.PrivKeyFromBytes(privKeyD)
+
+	privKey, _ := pfcec.PrivKeyFromBytes(pfcec.S256(), privKeyD)
 
 nexttest:
 	for i := range sigScriptTests {
-		tx := wire.NewMsgTx()
+		tx := wire.NewMsgTx(wire.TxVersion)
 
 		output := wire.NewTxOut(500, []byte{OP_RETURN})
 		tx.AddTxOut(output)
 
 		for range sigScriptTests[i].inputs {
-			txin := wire.NewTxIn(coinbaseOutPoint, 500, nil)
+			txin := wire.NewTxIn(coinbaseOutPoint, nil, nil)
 			tx.AddTxIn(txin)
 		}
 
@@ -2305,11 +1691,10 @@ nexttest:
 		}
 
 		// Validate tx input scripts
-		var scriptFlags ScriptFlags
+		scriptFlags := ScriptBip16 | ScriptVerifyDERSignatures
 		for j := range tx.TxIn {
-			vm, err := NewEngine(sigScriptTests[i].inputs[j].txout.
-				PkScript, tx, j, scriptFlags, 0,
-				nil)
+			vm, err := NewEngine(sigScriptTests[i].
+				inputs[j].txout.PkScript, tx, j, scriptFlags, nil, nil, 0)
 			if err != nil {
 				t.Errorf("cannot create script vm for test %v: %v",
 					sigScriptTests[i].name, err)

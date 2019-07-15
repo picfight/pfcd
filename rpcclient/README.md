@@ -5,10 +5,10 @@ rpcclient
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/rpcclient)
 
-rpcclient implements a Websocket-enabled PicFight JSON-RPC client package written
+rpcclient implements a Websocket-enabled Bitcoin JSON-RPC client package written
 in [Go](http://golang.org/).  It provides a robust and easy to use client for
-interfacing with a PicFight RPC server that uses a pfcd compatible PicFight
-JSON-RPC API.
+interfacing with a Bitcoin RPC server that uses a btcd/bitcoin core compatible
+Bitcoin JSON-RPC API.
 
 ## Status
 
@@ -19,20 +19,23 @@ implement and the API is not stable yet.
 ## Documentation
 
 * [API Reference](http://godoc.org/github.com/picfight/pfcd/rpcclient)
-* [pfcd Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/pfcdwebsockets)
-  Connects to a pfcd RPC server using TLS-secured websockets, registers for
+* [btcd Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/btcdwebsockets)
+  Connects to a btcd RPC server using TLS-secured websockets, registers for
   block connected and block disconnected notifications, and gets the current
   block count
-* [pfcwallet Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/pfcwalletwebsockets)  
-  Connects to a pfcwallet RPC server using TLS-secured websockets, registers for
+* [btcwallet Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/btcwalletwebsockets)
+  Connects to a btcwallet RPC server using TLS-secured websockets, registers for
   notifications about changes to account balances, and gets a list of unspent
   transaction outputs (utxos) the wallet can sign
+* [Bitcoin Core HTTP POST Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/bitcoincorehttp)
+  Connects to a bitcoin core RPC server using HTTP POST mode with TLS disabled
+  and gets the current block count
 
 ## Major Features
 
-* Supports Websockets (pfcd/pfcwallet) and HTTP POST mode (bitcoin core-like)
-* Provides callback and registration functions for pfcd/pfcwallet notifications
-* Supports pfcd extensions
+* Supports Websockets (btcd/btcwallet) and HTTP POST mode (bitcoin core)
+* Provides callback and registration functions for btcd/btcwallet notifications
+* Supports btcd extensions
 * Translates to and from higher-level and easier to use Go types
 * Offers a synchronous (blocking) and asynchronous API
 * When running in Websockets mode (the default):

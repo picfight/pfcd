@@ -1,5 +1,4 @@
-// Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2014-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,7 +7,6 @@ package rpcclient
 import (
 	"bytes"
 	"container/list"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -26,8 +24,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/go-socks/socks"
-	"github.com/gorilla/websocket"
-
+	"github.com/btcsuite/websocket"
 	"github.com/picfight/pfcd/pfcjson"
 )
 
@@ -106,8 +103,8 @@ type jsonRequest struct {
 	responseChan   chan *response
 }
 
-// Client represents a PicFight RPC client which allows easy access to the
-// various RPC methods available on a PicFight RPC server.  Each of the wrapper
+// Client represents a Bitcoin RPC client which allows easy access to the
+// various RPC methods available on a Bitcoin RPC server.  Each of the wrapper
 // functions handle the details of converting the passed and return types to and
 // from the underlying JSON types which are required for the JSON-RPC
 // invocations
@@ -159,25 +156,6 @@ type Client struct {
 	disconnect      chan struct{}
 	shutdown        chan struct{}
 	wg              sync.WaitGroup
-}
-
-// String implements fmt.Stringer by returning the URL of the RPC server the
-// client makes requests to.
-func (c *Client) String() string {
-	var u url.URL
-	switch {
-	case c.config.HTTPPostMode && c.config.DisableTLS:
-		u.Scheme = "http"
-	case c.config.HTTPPostMode:
-		u.Scheme = "https"
-	case c.config.DisableTLS:
-		u.Scheme = "ws"
-	default:
-		u.Scheme = "wss"
-	}
-	u.Host = c.config.Host
-	u.Path = c.config.Endpoint
-	return u.String()
 }
 
 // NextID returns the next id to be used when sending a JSON-RPC message.  This
@@ -260,18 +238,6 @@ func (c *Client) trackRegisteredNtfns(cmd interface{}) {
 	defer c.ntfnStateLock.Unlock()
 
 	switch bcmd := cmd.(type) {
-	case *pfcjson.NotifyWinningTicketsCmd:
-		c.ntfnState.notifyWinningTickets = true
-
-	case *pfcjson.NotifySpentAndMissedTicketsCmd:
-		c.ntfnState.notifySpentAndMissedTickets = true
-
-	case *pfcjson.NotifyNewTicketsCmd:
-		c.ntfnState.notifyNewTickets = true
-
-	case *pfcjson.NotifyStakeDifficultyCmd:
-		c.ntfnState.notifyStakeDifficulty = true
-
 	case *pfcjson.NotifyBlocksCmd:
 		c.ntfnState.notifyBlocks = true
 
@@ -280,6 +246,17 @@ func (c *Client) trackRegisteredNtfns(cmd interface{}) {
 			c.ntfnState.notifyNewTxVerbose = true
 		} else {
 			c.ntfnState.notifyNewTx = true
+
+		}
+
+	case *pfcjson.NotifySpentCmd:
+		for _, op := range bcmd.OutPoints {
+			c.ntfnState.notifySpent[op] = struct{}{}
+		}
+
+	case *pfcjson.NotifyReceivedCmd:
+		for _, addr := range bcmd.Addresses {
+			c.ntfnState.notifyReceived[addr] = struct{}{}
 		}
 	}
 }
@@ -317,13 +294,6 @@ type response struct {
 	err    error
 }
 
-// futureError returns a buffered response channel containing the error.
-func futureError(err error) chan *response {
-	c := make(chan *response, 1)
-	c <- &response{err: err}
-	return c
-}
-
 // result checks whether the unmarshaled response contains a non-nil error,
 // returning an unmarshaled pfcjson.RPCError (or an unmarshaling error) if so.
 // If the response is not an error, the raw bytes of the request are
@@ -340,8 +310,8 @@ func (c *Client) handleMessage(msg []byte) {
 	// Attempt to unmarshal the message as either a notification or
 	// response.
 	var in inMessage
-	in.rawResponse = &rawResponse{}
-	in.rawNotification = &rawNotification{}
+	in.rawResponse = new(rawResponse)
+	in.rawNotification = new(rawNotification)
 	err := json.Unmarshal(msg, &in)
 	if err != nil {
 		log.Warnf("Remote server sent invalid message: %v", err)
@@ -543,44 +513,40 @@ func (c *Client) reregisterNtfns() error {
 		}
 	}
 
-	// Reregister notifywinningtickets if needed.
-	if stateCopy.notifyWinningTickets {
-		log.Debugf("Reregistering [notifywinningtickets]")
-		if err := c.NotifyWinningTickets(); err != nil {
-			return err
-		}
-	}
-
-	// Reregister notifyspendandmissedtickets if needed.
-	if stateCopy.notifySpentAndMissedTickets {
-		log.Debugf("Reregistering [notifyspentandmissedtickets]")
-		if err := c.NotifySpentAndMissedTickets(); err != nil {
-			return err
-		}
-	}
-
-	// Reregister notifynewtickets if needed.
-	if stateCopy.notifyNewTickets {
-		log.Debugf("Reregistering [notifynewtickets]")
-		if err := c.NotifyNewTickets(); err != nil {
-			return err
-		}
-	}
-
-	// Reregister notifystakedifficulty if needed.
-	if stateCopy.notifyStakeDifficulty {
-		log.Debugf("Reregistering [notifystakedifficulty]")
-		if err := c.NotifyStakeDifficulty(); err != nil {
-			return err
-		}
-	}
-
 	// Reregister notifynewtransactions if needed.
 	if stateCopy.notifyNewTx || stateCopy.notifyNewTxVerbose {
 		log.Debugf("Reregistering [notifynewtransactions] (verbose=%v)",
 			stateCopy.notifyNewTxVerbose)
 		err := c.NotifyNewTransactions(stateCopy.notifyNewTxVerbose)
 		if err != nil {
+			return err
+		}
+	}
+
+	// Reregister the combination of all previously registered notifyspent
+	// outpoints in one command if needed.
+	nslen := len(stateCopy.notifySpent)
+	if nslen > 0 {
+		outpoints := make([]pfcjson.OutPoint, 0, nslen)
+		for op := range stateCopy.notifySpent {
+			outpoints = append(outpoints, op)
+		}
+		log.Debugf("Reregistering [notifyspent] outpoints: %v", outpoints)
+		if err := c.notifySpentInternal(outpoints).Receive(); err != nil {
+			return err
+		}
+	}
+
+	// Reregister the combination of all previously registered
+	// notifyreceived addresses in one command if needed.
+	nrlen := len(stateCopy.notifyReceived)
+	if nrlen > 0 {
+		addresses := make([]string, 0, nrlen)
+		for addr := range stateCopy.notifyReceived {
+			addresses = append(addresses, addr)
+		}
+		log.Debugf("Reregistering [notifyreceived] addresses: %v", addresses)
+		if err := c.notifyReceivedInternal(addresses).Receive(); err != nil {
 			return err
 		}
 	}
@@ -654,7 +620,7 @@ func (c *Client) wsReconnectHandler() {
 out:
 	for {
 		select {
-		case <-c.disconnectChan():
+		case <-c.disconnect:
 			// On disconnect, fallthrough to reestablish the
 			// connection.
 
@@ -907,7 +873,7 @@ func (c *Client) sendCmd(cmd interface{}) chan *response {
 
 	// Marshal the command.
 	id := c.NextID()
-	marshalledJSON, err := pfcjson.MarshalCmd("1.0", id, cmd)
+	marshalledJSON, err := pfcjson.MarshalCmd(id, cmd)
 	if err != nil {
 		return newFutureError(err)
 	}
@@ -1141,6 +1107,10 @@ type ConnConfig struct {
 	// however, not all servers support the websocket extensions, so this
 	// flag can be set to true to use basic HTTP POST requests instead.
 	HTTPPostMode bool
+
+	// EnableBCInfoHacks is an option provided to enable compatibility hacks
+	// when connecting to blockchain.info RPC server
+	EnableBCInfoHacks bool
 }
 
 // newHTTPClient returns a new http client that is configured according to the
@@ -1310,13 +1280,14 @@ func New(config *ConnConfig, ntfnHandlers *NotificationHandlers) (*Client, error
 // a client was created after setting the DisableConnectOnNew field of the
 // Config struct.
 //
-// If the connection fails and retry is true, this method will continue to try
-// reconnections with backoff until the context is done.
+// Up to tries number of connections (each after an increasing backoff) will
+// be tried if the connection can not be established.  The special value of 0
+// indicates an unlimited number of connection attempts.
 //
 // This method will error if the client is not configured for websockets, if the
 // connection has already been established, or if none of the connection
 // attempts were successful.
-func (c *Client) Connect(ctx context.Context, retry bool) error {
+func (c *Client) Connect(tries int) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -1329,25 +1300,18 @@ func (c *Client) Connect(ctx context.Context, retry bool) error {
 
 	// Begin connection attempts.  Increase the backoff after each failed
 	// attempt, up to a maximum of one minute.
+	var err error
 	var backoff time.Duration
-	for {
-		wsConn, err := dial(c.config)
+	for i := 0; tries == 0 || i < tries; i++ {
+		var wsConn *websocket.Conn
+		wsConn, err = dial(c.config)
 		if err != nil {
-			if !retry {
-				return err
-			}
-
-			log.Errorf("Connection attempt failed: %v", err)
-			backoff += connectionRetryInterval
+			backoff = connectionRetryInterval * time.Duration(i+1)
 			if backoff > time.Minute {
 				backoff = time.Minute
 			}
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(backoff):
-				continue
-			}
+			time.Sleep(backoff)
+			continue
 		}
 
 		// Connection was established.  Set the websocket connection
@@ -1364,4 +1328,7 @@ func (c *Client) Connect(ctx context.Context, retry bool) error {
 		}
 		return nil
 	}
+
+	// All connection attempts failed, so return the last error.
+	return err
 }

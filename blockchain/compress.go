@@ -1,21 +1,13 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package blockchain
 
 import (
-	"fmt"
-
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
+	"github.com/picfight/pfcd/pfcec"
 	"github.com/picfight/pfcd/txscript"
 )
-
-// currentCompressionVersion is the current script compression version of the
-// database.
-const currentCompressionVersion = 1
 
 // -----------------------------------------------------------------------------
 // A variable length quantity (VLQ) is an encoding that uses an arbitrary number
@@ -154,73 +146,59 @@ const (
 	// cstPayToScriptHash identifies a compressed pay-to-script-hash script.
 	cstPayToScriptHash = 1
 
-	// cstPayToPubKeyCompEven identifies a compressed pay-to-pubkey script to
-	// a compressed pubkey whose y coordinate is not odd.
-	cstPayToPubKeyCompEven = 2
+	// cstPayToPubKeyComp2 identifies a compressed pay-to-pubkey script to
+	// a compressed pubkey.  Bit 0 specifies which y-coordinate to use
+	// to reconstruct the full uncompressed pubkey.
+	cstPayToPubKeyComp2 = 2
 
-	// cstPayToPubKeyCompOdd identifies a compressed pay-to-pubkey script to
-	// a compressed pubkey whose y coordinate is odd.
-	cstPayToPubKeyCompOdd = 3
+	// cstPayToPubKeyComp3 identifies a compressed pay-to-pubkey script to
+	// a compressed pubkey.  Bit 0 specifies which y-coordinate to use
+	// to reconstruct the full uncompressed pubkey.
+	cstPayToPubKeyComp3 = 3
 
-	// cstPayToPubKeyUncompEven identifies a compressed pay-to-pubkey script to
-	// an uncompressed pubkey whose y coordinate is not odd when compressed.
-	cstPayToPubKeyUncompEven = 4
+	// cstPayToPubKeyUncomp4 identifies a compressed pay-to-pubkey script to
+	// an uncompressed pubkey.  Bit 0 specifies which y-coordinate to use
+	// to reconstruct the full uncompressed pubkey.
+	cstPayToPubKeyUncomp4 = 4
 
-	// cstPayToPubKeyUncompOdd identifies a compressed pay-to-pubkey script to
-	// an uncompressed pubkey whose y coordinate is odd when compressed.
-	cstPayToPubKeyUncompOdd = 5
+	// cstPayToPubKeyUncomp5 identifies a compressed pay-to-pubkey script to
+	// an uncompressed pubkey.  Bit 0 specifies which y-coordinate to use
+	// to reconstruct the full uncompressed pubkey.
+	cstPayToPubKeyUncomp5 = 5
 
-	// numSpecialScripts is the number of special scripts possibly recognized
-	// by the domain-specific script compression algorithm. It is one more
-	// than half the number required to overflow a single byte in VLQ format
-	// (127). All scripts prefixed 64 and higher for their size are considered
-	// uncompressed scripts that are stored uncompressed. Because only 5
-	// special script types are currently stored by PicFight, there is a large
-	// amount of room for future upgrades to the compression algorithm with
-	// scripts that are common, such as those for the staking system.
-	numSpecialScripts = 64
+	// numSpecialScripts is the number of special scripts recognized by the
+	// domain-specific script compression algorithm.
+	numSpecialScripts = 6
 )
 
-// extractPubKeyHash extracts a pubkey hash that is being paid from the passed
-// public key script if it is a standard pay-to-pubkey-hash script.  It will
-// return nil otherwise.
-func extractPubKeyHash(script []byte) []byte {
+// isPubKeyHash returns whether or not the passed public key script is a
+// standard pay-to-pubkey-hash script along with the pubkey hash it is paying to
+// if it is.
+func isPubKeyHash(script []byte) (bool, []byte) {
 	if len(script) == 25 && script[0] == txscript.OP_DUP &&
 		script[1] == txscript.OP_HASH160 &&
 		script[2] == txscript.OP_DATA_20 &&
 		script[23] == txscript.OP_EQUALVERIFY &&
 		script[24] == txscript.OP_CHECKSIG {
 
-		return script[3:23]
+		return true, script[3:23]
 	}
 
-	return nil
+	return false, nil
 }
 
-// isPubKeyHash returns whether or not the passed public key script is a
-// standard pay-to-pubkey-hash script.
-func isPubKeyHash(script []byte) bool {
-	return extractPubKeyHash(script) != nil
-}
-
-// extractScriptHash extracts a script hash that is being paid from the passed
-// public key script if it is a standard pay-to-script-hash script.  It will
-// return nil otherwise.
-func extractScriptHash(script []byte) []byte {
+// isScriptHash returns whether or not the passed public key script is a
+// standard pay-to-script-hash script along with the script hash it is paying to
+// if it is.
+func isScriptHash(script []byte) (bool, []byte) {
 	if len(script) == 23 && script[0] == txscript.OP_HASH160 &&
 		script[1] == txscript.OP_DATA_20 &&
 		script[22] == txscript.OP_EQUAL {
 
-		return script[2:22]
+		return true, script[2:22]
 	}
 
-	return nil
-}
-
-// isScriptHash returns whether or not the passed public key script is a
-// standard pay-to-script-hash script.
-func isScriptHash(script []byte) bool {
-	return extractScriptHash(script) != nil
+	return false, nil
 }
 
 // isPubKey returns whether or not the passed public key script is a standard
@@ -240,7 +218,7 @@ func isPubKey(script []byte) (bool, []byte) {
 
 		// Ensure the public key is valid.
 		serializedPubKey := script[1:34]
-		_, err := secp256k1.ParsePubKey(serializedPubKey)
+		_, err := pfcec.ParsePubKey(serializedPubKey, pfcec.S256())
 		if err == nil {
 			return true, serializedPubKey
 		}
@@ -252,7 +230,7 @@ func isPubKey(script []byte) (bool, []byte) {
 
 		// Ensure the public key is valid.
 		serializedPubKey := script[1:66]
-		_, err := secp256k1.ParsePubKey(serializedPubKey)
+		_, err := pfcec.ParsePubKey(serializedPubKey, pfcec.S256())
 		if err == nil {
 			return true, serializedPubKey
 		}
@@ -263,10 +241,14 @@ func isPubKey(script []byte) (bool, []byte) {
 
 // compressedScriptSize returns the number of bytes the passed script would take
 // when encoded with the domain specific compression algorithm described above.
-func compressedScriptSize(scriptVersion uint16, pkScript []byte,
-	compressionVersion uint32) int {
-	// Pay-to-pubkey-hash or pay-to-script-hash script.
-	if isPubKeyHash(pkScript) || isScriptHash(pkScript) {
+func compressedScriptSize(pkScript []byte) int {
+	// Pay-to-pubkey-hash script.
+	if valid, _ := isPubKeyHash(pkScript); valid {
+		return 21
+	}
+
+	// Pay-to-script-hash script.
+	if valid, _ := isScriptHash(pkScript); valid {
 		return 21
 	}
 
@@ -286,7 +268,7 @@ func compressedScriptSize(scriptVersion uint16, pkScript []byte,
 // script, possibly followed by other data, and returns the number of bytes it
 // occupies taking into account the special encoding of the script size by the
 // domain specific compression algorithm described above.
-func decodeCompressedScriptSize(serialized []byte, compressionVersion uint32) int {
+func decodeCompressedScriptSize(serialized []byte) int {
 	scriptSize, bytesRead := deserializeVLQ(serialized)
 	if bytesRead == 0 {
 		return 0
@@ -299,8 +281,8 @@ func decodeCompressedScriptSize(serialized []byte, compressionVersion uint32) in
 	case cstPayToScriptHash:
 		return 21
 
-	case cstPayToPubKeyCompEven, cstPayToPubKeyCompOdd,
-		cstPayToPubKeyUncompEven, cstPayToPubKeyUncompOdd:
+	case cstPayToPubKeyComp2, cstPayToPubKeyComp3, cstPayToPubKeyUncomp4,
+		cstPayToPubKeyUncomp5:
 		return 33
 	}
 
@@ -314,22 +296,16 @@ func decodeCompressedScriptSize(serialized []byte, compressionVersion uint32) in
 // target byte slice.  The target byte slice must be at least large enough to
 // handle the number of bytes returned by the compressedScriptSize function or
 // it will panic.
-func putCompressedScript(target []byte, scriptVersion uint16, pkScript []byte,
-	compressionVersion uint32) int {
-	if len(target) == 0 {
-		target[0] = 0x00
-		return 1
-	}
-
+func putCompressedScript(target, pkScript []byte) int {
 	// Pay-to-pubkey-hash script.
-	if hash := extractPubKeyHash(pkScript); hash != nil {
+	if valid, hash := isPubKeyHash(pkScript); valid {
 		target[0] = cstPayToPubKeyHash
 		copy(target[1:21], hash)
 		return 21
 	}
 
 	// Pay-to-script-hash script.
-	if hash := extractScriptHash(pkScript); hash != nil {
+	if valid, hash := isScriptHash(pkScript); valid {
 		target[0] = cstPayToScriptHash
 		copy(target[1:21], hash)
 		return 21
@@ -340,29 +316,21 @@ func putCompressedScript(target []byte, scriptVersion uint16, pkScript []byte,
 		pubKeyFormat := serializedPubKey[0]
 		switch pubKeyFormat {
 		case 0x02, 0x03:
-			if pubKeyFormat == 0x02 {
-				target[0] = cstPayToPubKeyCompEven
-			}
-			if pubKeyFormat == 0x03 {
-				target[0] = cstPayToPubKeyCompOdd
-			}
+			target[0] = pubKeyFormat
 			copy(target[1:33], serializedPubKey[1:33])
 			return 33
 		case 0x04:
 			// Encode the oddness of the serialized pubkey into the
 			// compressed script type.
-			target[0] = cstPayToPubKeyUncompEven
-			if (serializedPubKey[64] & 0x01) == 0x01 {
-				target[0] = cstPayToPubKeyUncompOdd
-			}
+			target[0] = pubKeyFormat | (serializedPubKey[64] & 0x01)
 			copy(target[1:33], serializedPubKey[1:33])
 			return 33
 		}
 	}
 
 	// When none of the above special cases apply, encode the unmodified
-	// script preceded by the script version, the sum of its size and
-	// the number of special cases encoded as a variable length quantity.
+	// script preceded by the sum of its size and the number of special
+	// cases encoded as a variable length quantity.
 	encodedSize := uint64(len(pkScript) + numSpecialScripts)
 	vlqSizeLen := putVLQ(target, encodedSize)
 	copy(target[vlqSizeLen:], pkScript)
@@ -376,9 +344,12 @@ func putCompressedScript(target []byte, scriptVersion uint16, pkScript []byte,
 // NOTE: The script parameter must already have been proven to be long enough
 // to contain the number of bytes returned by decodeCompressedScriptSize or it
 // will panic.  This is acceptable since it is only an internal function.
-func decompressScript(compressedPkScript []byte,
-	compressionVersion uint32) []byte {
-	// Empty scripts, specified by 0x00, are considered nil.
+func decompressScript(compressedPkScript []byte) []byte {
+	// In practice this function will not be called with a zero-length or
+	// nil script since the nil script encoding includes the length, however
+	// the code below assumes the length exists, so just return nil now if
+	// the function ever ends up being called with a nil script in the
+	// future.
 	if len(compressedPkScript) == 0 {
 		return nil
 	}
@@ -410,33 +381,25 @@ func decompressScript(compressedPkScript []byte,
 
 	// Pay-to-compressed-pubkey script.  The resulting script is:
 	// <OP_DATA_33><33 byte compressed pubkey><OP_CHECKSIG>
-	case cstPayToPubKeyCompEven, cstPayToPubKeyCompOdd:
+	case cstPayToPubKeyComp2, cstPayToPubKeyComp3:
 		pkScript := make([]byte, 35)
 		pkScript[0] = txscript.OP_DATA_33
-		oddness := byte(0x02)
-		if encodedScriptSize == cstPayToPubKeyCompOdd {
-			oddness = 0x03
-		}
-		pkScript[1] = oddness
+		pkScript[1] = byte(encodedScriptSize)
 		copy(pkScript[2:], compressedPkScript[bytesRead:bytesRead+32])
 		pkScript[34] = txscript.OP_CHECKSIG
 		return pkScript
 
 	// Pay-to-uncompressed-pubkey script.  The resulting script is:
 	// <OP_DATA_65><65 byte uncompressed pubkey><OP_CHECKSIG>
-	case cstPayToPubKeyUncompEven, cstPayToPubKeyUncompOdd:
+	case cstPayToPubKeyUncomp4, cstPayToPubKeyUncomp5:
 		// Change the leading byte to the appropriate compressed pubkey
 		// identifier (0x02 or 0x03) so it can be decoded as a
 		// compressed pubkey.  This really should never fail since the
 		// encoding ensures it is valid before compressing to this type.
 		compressedKey := make([]byte, 33)
-		oddness := byte(0x02)
-		if encodedScriptSize == cstPayToPubKeyUncompOdd {
-			oddness = 0x03
-		}
-		compressedKey[0] = oddness
+		compressedKey[0] = byte(encodedScriptSize - 2)
 		copy(compressedKey[1:], compressedPkScript[1:])
-		key, err := secp256k1.ParsePubKey(compressedKey)
+		key, err := pfcec.ParsePubKey(compressedKey, pfcec.S256())
 		if err != nil {
 			return nil
 		}
@@ -466,8 +429,8 @@ func decompressScript(compressedPkScript []byte,
 // While this is simply exchanging one uint64 for another, the resulting value
 // for typical amounts has a much smaller magnitude which results in fewer bytes
 // when encoded as variable length quantity.  For example, consider the amount
-// of 0.1 PFC which is 10000000 atoms.  Encoding 10000000 as a VarInt would take
-// 4 bytes while encoding the compressed value of 8 as a VarInt only takes 1 byte.
+// of 0.1 PFC which is 10000000 satoshi.  Encoding 10000000 as a VLQ would take
+// 4 bytes while encoding the compressed value of 8 as a VLQ only takes 1 byte.
 //
 // Essentially the compression is achieved by splitting the value into an
 // exponent in the range [0-9] and a digit in the range [1-9], when possible,
@@ -484,15 +447,15 @@ func decompressScript(compressedPkScript []byte,
 //   1 + 10*(n-1) + e   ==   10 + 10*(n-1)
 //
 // Example encodings:
-// (The numbers in parenthesis are the number of bytes when serialized as a VarInt)
-//            0 (1) -> 0        (1)           *  0.00000000 BTC
-//         1000 (2) -> 4        (1)           *  0.00001000 BTC
-//        10000 (2) -> 5        (1)           *  0.00010000 BTC
-//     12345678 (4) -> 111111101(4)           *  0.12345678 BTC
-//     50000000 (4) -> 47       (1)           *  0.50000000 BTC
-//    100000000 (4) -> 9        (1)           *  1.00000000 BTC
-//    500000000 (5) -> 49       (1)           *  5.00000000 BTC
-//   1000000000 (5) -> 10       (1)           * 10.00000000 BTC
+// (The numbers in parenthesis are the number of bytes when serialized as a VLQ)
+//            0 (1) -> 0        (1)           *  0.00000000 PFC
+//         1000 (2) -> 4        (1)           *  0.00001000 PFC
+//        10000 (2) -> 5        (1)           *  0.00010000 PFC
+//     12345678 (4) -> 111111101(4)           *  0.12345678 PFC
+//     50000000 (4) -> 47       (1)           *  0.50000000 PFC
+//    100000000 (4) -> 9        (1)           *  1.00000000 PFC
+//    500000000 (5) -> 49       (1)           *  5.00000000 PFC
+//   1000000000 (5) -> 10       (1)           * 10.00000000 PFC
 // -----------------------------------------------------------------------------
 
 // compressTxOutAmount compresses the passed amount according to the domain
@@ -547,7 +510,7 @@ func decompressTxOutAmount(amount uint64) uint64 {
 	// The decompressed amount is now one of the following two equations:
 	// x = 9*n + d - 1  | where e < 9
 	// x = n - 1        | where e = 9
-	var n uint64
+	n := uint64(0)
 	if exponent < 9 {
 		lastDigit := amount%9 + 1
 		amount /= 9
@@ -565,9 +528,9 @@ func decompressTxOutAmount(amount uint64) uint64 {
 }
 
 // -----------------------------------------------------------------------------
-// Compressed transaction outputs for UTXOS consist of an amount and a public
-// key script both compressed using the domain specific compression algorithms
-// previously described.
+// Compressed transaction outputs consist of an amount and a public key script
+// both compressed using the domain specific compression algorithms previously
+// described.
 //
 // The serialized format is:
 //
@@ -579,180 +542,45 @@ func decompressTxOutAmount(amount uint64) uint64 {
 // -----------------------------------------------------------------------------
 
 // compressedTxOutSize returns the number of bytes the passed transaction output
-// fields would take when encoded with the format described above.  The
-// preCompressed flag indicates the provided amount and script are already
-// compressed.  This is useful since loaded utxo entries are not decompressed
-// until the output is accessed.
-func compressedTxOutSize(amount uint64, scriptVersion uint16, pkScript []byte,
-	compressionVersion uint32, preCompressed bool, hasAmount bool) int {
-	scriptVersionSize := serializeSizeVLQ(uint64(scriptVersion))
-	if preCompressed && !hasAmount {
-		return scriptVersionSize + len(pkScript)
-	}
-	if preCompressed && hasAmount {
-		return scriptVersionSize + serializeSizeVLQ(compressTxOutAmount(amount)) +
-			len(pkScript)
-	}
-	if !preCompressed && !hasAmount {
-		return scriptVersionSize + compressedScriptSize(scriptVersion,
-			pkScript, compressionVersion)
-	}
-
-	// if !preCompressed && hasAmount
-	return scriptVersionSize + serializeSizeVLQ(compressTxOutAmount(amount)) +
-		compressedScriptSize(scriptVersion, pkScript, compressionVersion)
+// fields would take when encoded with the format described above.
+func compressedTxOutSize(amount uint64, pkScript []byte) int {
+	return serializeSizeVLQ(compressTxOutAmount(amount)) +
+		compressedScriptSize(pkScript)
 }
 
-// putCompressedTxOut potentially compresses the passed amount and script
-// according to their domain specific compression algorithms and encodes them
-// directly into the passed target byte slice with the format described above.
-// The preCompressed flag indicates the provided amount and script are already
-// compressed in which case the values are not modified.  This is useful since
-// loaded utxo entries are not decompressed until the output is accessed.  The
-// target byte slice must be at least large enough to handle the number of bytes
-// returned by the compressedTxOutSize function or it will panic.
-func putCompressedTxOut(target []byte, amount uint64, scriptVersion uint16,
-	pkScript []byte, compressionVersion uint32, preCompressed bool,
-	hasAmount bool) int {
-	if preCompressed && hasAmount {
-		offset := putVLQ(target, compressTxOutAmount(amount))
-		offset += putVLQ(target[offset:], uint64(scriptVersion))
-		copy(target[offset:], pkScript)
-		return offset + len(pkScript)
-	}
-	if preCompressed && !hasAmount {
-		offset := putVLQ(target, uint64(scriptVersion))
-		copy(target[offset:], pkScript)
-		return offset + len(pkScript)
-	}
-	if !preCompressed && !hasAmount {
-		offset := putVLQ(target, uint64(scriptVersion))
-		offset += putCompressedScript(target[offset:], scriptVersion, pkScript,
-			compressionVersion)
-		return offset
-	}
-
-	// if !preCompressed && hasAmount
+// putCompressedTxOut compresses the passed amount and script according to their
+// domain specific compression algorithms and encodes them directly into the
+// passed target byte slice with the format described above.  The target byte
+// slice must be at least large enough to handle the number of bytes returned by
+// the compressedTxOutSize function or it will panic.
+func putCompressedTxOut(target []byte, amount uint64, pkScript []byte) int {
 	offset := putVLQ(target, compressTxOutAmount(amount))
-	offset += putVLQ(target[offset:], uint64(scriptVersion))
-	offset += putCompressedScript(target[offset:], scriptVersion, pkScript,
-		compressionVersion)
+	offset += putCompressedScript(target[offset:], pkScript)
 	return offset
 }
 
 // decodeCompressedTxOut decodes the passed compressed txout, possibly followed
-// by other data, into its compressed amount and compressed script and returns
-// them along with the number of bytes they occupied.
-func decodeCompressedTxOut(serialized []byte, compressionVersion uint32,
-	hasAmount bool) (int64, uint16, []byte, int, error) {
-	var amount int64
-	var bytesRead int
-	var offset int
-	if hasAmount {
-		// Deserialize the compressed amount and ensure there are bytes
-		// remaining for the compressed script.
-		var compressedAmount uint64
-		compressedAmount, bytesRead = deserializeVLQ(serialized)
-		if bytesRead >= len(serialized) {
-			return 0, 0, nil, bytesRead, errDeserialize("unexpected end of " +
-				"data after compressed amount")
-		}
-		amount = int64(decompressTxOutAmount(compressedAmount))
-		offset += bytesRead
+// by other data, into its uncompressed amount and script and returns them along
+// with the number of bytes they occupied prior to decompression.
+func decodeCompressedTxOut(serialized []byte) (uint64, []byte, int, error) {
+	// Deserialize the compressed amount and ensure there are bytes
+	// remaining for the compressed script.
+	compressedAmount, bytesRead := deserializeVLQ(serialized)
+	if bytesRead >= len(serialized) {
+		return 0, nil, bytesRead, errDeserialize("unexpected end of " +
+			"data after compressed amount")
 	}
-
-	// Decode the script version.
-	var scriptVersion uint64
-	scriptVersion, bytesRead = deserializeVLQ(serialized[offset:])
-	offset += bytesRead
 
 	// Decode the compressed script size and ensure there are enough bytes
 	// left in the slice for it.
-	scriptSize := decodeCompressedScriptSize(serialized[offset:],
-		compressionVersion)
-	if scriptSize < 0 {
-		return 0, 0, nil, offset, errDeserialize("negative script size")
-	}
-	if len(serialized[offset:]) < scriptSize {
-		return 0, 0, nil, offset, errDeserialize(fmt.Sprintf("unexpected end of "+
-			"data after script size (got %v, need %v)", len(serialized[offset:]),
-			scriptSize))
+	scriptSize := decodeCompressedScriptSize(serialized[bytesRead:])
+	if len(serialized[bytesRead:]) < scriptSize {
+		return 0, nil, bytesRead, errDeserialize("unexpected end of " +
+			"data after script size")
 	}
 
-	// Make a copy of the compressed script so the original serialized data
-	// can be released as soon as possible.
-	compressedScript := make([]byte, scriptSize)
-	copy(compressedScript, serialized[offset:offset+scriptSize])
-
-	return amount, uint16(scriptVersion), compressedScript,
-		offset + scriptSize, nil
-}
-
-// -----------------------------------------------------------------------------
-// PicFight specific transaction encoding flags
-//
-// Details about a transaction needed to determine how it may be spent
-// according to consensus rules are given by these flags.
-//
-// The following details are encoded into a single byte, where the index
-// of the bit is given in zeroeth order:
-//     0: Is coinbase
-//     1: Has an expiry
-//   2-3: Transaction type
-//     4: Fully spent
-//   5-7: Unused
-//
-// 0, 1, and 4 are bit flags, while the transaction type is encoded with a bitmask
-// and used to describe the underlying int.
-//
-// The fully spent flag should always come as the *last* flag (highest bit index)
-// in this data type should flags be updated to include more rules in the future,
-// such as rules governing new script OP codes. This ensures that we may still use
-// these flags in the UTX serialized data without consequence, where the last flag
-// indicating fully spent will always be zeroed.
-//
-// -----------------------------------------------------------------------------
-
-const (
-	// txTypeBitmask describes the bitmask that yields the 3rd and 4th bits
-	// from the flags byte.
-	txTypeBitmask = 0x0c
-
-	// txTypeShift is the number of bits to shift falgs to the right to yield the
-	// correct integer value after applying the bitmask with AND.
-	txTypeShift = 2
-)
-
-// encodeFlags encodes transaction flags into a single byte.
-func encodeFlags(isCoinBase bool, hasExpiry bool, txType stake.TxType, fullySpent bool) byte {
-	b := uint8(txType)
-	b <<= txTypeShift
-
-	if isCoinBase {
-		b |= 0x01 // Set bit 0
-	}
-	if hasExpiry {
-		b |= 0x02 // Set bit 1
-	}
-	if fullySpent {
-		b |= 0x10 // Set bit 4
-	}
-
-	return b
-}
-
-// decodeFlags decodes transaction flags from a single byte into their respective
-// data types.
-func decodeFlags(b byte) (bool, bool, stake.TxType, bool) {
-	isCoinBase := b&0x01 != 0
-	hasExpiry := b&(1<<1) != 0
-	fullySpent := b&(1<<4) != 0
-	txType := stake.TxType((b & txTypeBitmask) >> txTypeShift)
-
-	return isCoinBase, hasExpiry, txType, fullySpent
-}
-
-// decodeFlagsFullySpent decodes whether or not a transaction was fully spent.
-func decodeFlagsFullySpent(b byte) bool {
-	return b&(1<<4) != 0
+	// Decompress and return the amount and script.
+	amount := decompressTxOutAmount(compressedAmount)
+	script := decompressScript(serialized[bytesRead : bytesRead+scriptSize])
+	return amount, script, bytesRead + scriptSize, nil
 }

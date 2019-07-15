@@ -1,1469 +1,487 @@
-// Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2013-2017 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package blockchain
 
 import (
-	"bytes"
-	"compress/bzip2"
-	"encoding/gob"
-	"fmt"
-	mrand "math/rand"
-	"os"
-	"path/filepath"
+	"math"
+	"reflect"
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/chaingen"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
-// TestBlockchainSpendJournal tests for whether or not the spend journal is being
-// written to disk correctly on a live blockchain.
-func TestBlockchainSpendJournal(t *testing.T) {
-	// Update parameters to reflect what is expected by the legacy data.
-	params := cloneParams(&chaincfg.RegNetParams)
-	params.GenesisBlock.Header.MerkleRoot = *mustParseHash("a216ea043f0d481a072424af646787794c32bcefd3ed181a090319bbf8a37105")
-	params.GenesisBlock.Header.Timestamp = time.Unix(1401292357, 0)
-	params.GenesisBlock.Transactions[0].TxIn[0].ValueIn = 0
-	params.PubKeyHashAddrID = [2]byte{0x0e, 0x91}
-	params.StakeBaseSigScript = []byte{0xde, 0xad, 0xbe, 0xef}
-	params.OrganizationPkScript = hexToBytes("a914cbb08d6ca783b533b2c7d24a51fbca92d937bf9987")
-	params.BlockOneLedger = []*chaincfg.TokenPayout{
-		{Address: "Sshw6S86G2bV6W32cbc7EhtFy8f93rU6pae", Amount: 100000 * 1e8},
-		{Address: "SsjXRK6Xz6CFuBt6PugBvrkdAa4xGbcZ18w", Amount: 100000 * 1e8},
-		{Address: "SsfXiYkYkCoo31CuVQw428N6wWKus2ZEw5X", Amount: 100000 * 1e8},
+// TestSequenceLocksActive tests the SequenceLockActive function to ensure it
+// works as expected in all possible combinations/scenarios.
+func TestSequenceLocksActive(t *testing.T) {
+	seqLock := func(h int32, s int64) *SequenceLock {
+		return &SequenceLock{
+			Seconds:     s,
+			BlockHeight: h,
+		}
 	}
-	genesisHash := params.GenesisBlock.BlockHash()
-	params.GenesisHash = &genesisHash
 
+	tests := []struct {
+		seqLock     *SequenceLock
+		blockHeight int32
+		mtp         time.Time
+
+		want bool
+	}{
+		// Block based sequence lock with equal block height.
+		{seqLock: seqLock(1000, -1), blockHeight: 1001, mtp: time.Unix(9, 0), want: true},
+
+		// Time based sequence lock with mtp past the absolute time.
+		{seqLock: seqLock(-1, 30), blockHeight: 2, mtp: time.Unix(31, 0), want: true},
+
+		// Block based sequence lock with current height below seq lock block height.
+		{seqLock: seqLock(1000, -1), blockHeight: 90, mtp: time.Unix(9, 0), want: false},
+
+		// Time based sequence lock with current time before lock time.
+		{seqLock: seqLock(-1, 30), blockHeight: 2, mtp: time.Unix(29, 0), want: false},
+
+		// Block based sequence lock at the same height, so shouldn't yet be active.
+		{seqLock: seqLock(1000, -1), blockHeight: 1000, mtp: time.Unix(9, 0), want: false},
+
+		// Time based sequence lock with current time equal to lock time, so shouldn't yet be active.
+		{seqLock: seqLock(-1, 30), blockHeight: 2, mtp: time.Unix(30, 0), want: false},
+	}
+
+	t.Logf("Running %d sequence locks tests", len(tests))
+	for i, test := range tests {
+		got := SequenceLockActive(test.seqLock,
+			test.blockHeight, test.mtp)
+		if got != test.want {
+			t.Fatalf("SequenceLockActive #%d got %v want %v", i,
+				got, test.want)
+		}
+	}
+}
+
+// TestCheckConnectBlockTemplate tests the CheckConnectBlockTemplate function to
+// ensure it fails.
+func TestCheckConnectBlockTemplate(t *testing.T) {
 	// Create a new database and chain instance to run tests against.
-	chain, teardownFunc, err := chainSetup("spendjournalunittest", params)
+	chain, teardownFunc, err := chainSetup("checkconnectblocktemplate",
+		&chaincfg.MainNetParams)
 	if err != nil {
 		t.Errorf("Failed to setup chain instance: %v", err)
 		return
 	}
 	defer teardownFunc()
 
-	// Load up the rest of the blocks up to HEAD.
-	filename := filepath.Join("testdata", "reorgto179.bz2")
-	fi, err := os.Open(filename)
-	if err != nil {
-		t.Errorf("Failed to open %s: %v", filename, err)
-	}
-	bcStream := bzip2.NewReader(fi)
-	defer fi.Close()
+	// Since we're not dealing with the real block chain, set the coinbase
+	// maturity to 1.
+	chain.TstSetCoinbaseMaturity(1)
 
-	// Create a buffer of the read file
-	bcBuf := new(bytes.Buffer)
-	bcBuf.ReadFrom(bcStream)
-
-	// Create decoder from the buffer and a map to store the data
-	bcDecoder := gob.NewDecoder(bcBuf)
-	blockChain := make(map[int64][]byte)
-
-	// Decode the blockchain into the map
-	if err := bcDecoder.Decode(&blockChain); err != nil {
-		t.Errorf("error decoding test blockchain: %v", err.Error())
+	// Load up blocks such that there is a side chain.
+	// (genesis block) -> 1 -> 2 -> 3 -> 4
+	//                          \-> 3a
+	testFiles := []string{
+		"blk_0_to_4.dat.bz2",
+		"blk_3A.dat.bz2",
 	}
 
-	// Load up the short chain
-	finalIdx1 := 179
-	for i := 1; i < finalIdx1+1; i++ {
-		bl, err := pfcutil.NewBlockFromBytes(blockChain[int64(i)])
+	var blocks []*pfcutil.Block
+	for _, file := range testFiles {
+		blockTmp, err := loadBlocks(file)
 		if err != nil {
-			t.Fatalf("NewBlockFromBytes error: %v", err.Error())
+			t.Fatalf("Error loading file: %v\n", err)
 		}
+		blocks = append(blocks, blockTmp...)
+	}
 
-		forkLen, isOrphan, err := chain.ProcessBlock(bl, BFNone)
+	for i := 1; i <= 3; i++ {
+		isMainChain, _, err := chain.ProcessBlock(blocks[i], BFNone)
 		if err != nil {
-			t.Fatalf("ProcessBlock error at height %v: %v", i, err.Error())
+			t.Fatalf("CheckConnectBlockTemplate: Received unexpected error "+
+				"processing block %d: %v", i, err)
 		}
-		isMainChain := !isOrphan && forkLen == 0
 		if !isMainChain {
-			t.Fatalf("block %s (height %d) should have been "+
-				"accepted to the main chain", bl.Hash(),
-				bl.MsgBlock().Header.Height)
+			t.Fatalf("CheckConnectBlockTemplate: Expected block %d to connect "+
+				"to main chain", i)
 		}
 	}
 
-	// Loop through all of the blocks and ensure the number of spent outputs
-	// matches up with the information loaded from the spend journal.
-	err = chain.db.View(func(dbTx database.Tx) error {
-		for i := int64(2); i <= chain.bestChain.Tip().height; i++ {
-			node := chain.bestChain.NodeByHeight(i)
-			if node == nil {
-				str := fmt.Sprintf("no block at height %d exists", i)
-				return errNotInMainChain(str)
-			}
-			block, err := dbFetchBlockByNode(dbTx, node)
-			if err != nil {
-				return err
-			}
+	// Block 3 should fail to connect since it's already inserted.
+	err = chain.CheckConnectBlockTemplate(blocks[3])
+	if err == nil {
+		t.Fatal("CheckConnectBlockTemplate: Did not received expected error " +
+			"on block 3")
+	}
 
-			ntx := countSpentOutputs(block)
-			stxos, err := dbFetchSpendJournalEntry(dbTx, block)
-			if err != nil {
-				return err
-			}
-
-			if ntx != len(stxos) {
-				return fmt.Errorf("bad number of stxos "+
-					"calculated at "+"height %v, got %v "+
-					"expected %v", i, len(stxos), ntx)
-			}
-		}
-
-		return nil
-	})
+	// Block 4 should connect successfully to tip of chain.
+	err = chain.CheckConnectBlockTemplate(blocks[4])
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("CheckConnectBlockTemplate: Received unexpected error on "+
+			"block 4: %v", err)
+	}
+
+	// Block 3a should fail to connect since does not build on chain tip.
+	err = chain.CheckConnectBlockTemplate(blocks[5])
+	if err == nil {
+		t.Fatal("CheckConnectBlockTemplate: Did not received expected error " +
+			"on block 3a")
+	}
+
+	// Block 4 should connect even if proof of work is invalid.
+	invalidPowBlock := *blocks[4].MsgBlock()
+	invalidPowBlock.Header.Nonce++
+	err = chain.CheckConnectBlockTemplate(pfcutil.NewBlock(&invalidPowBlock))
+	if err != nil {
+		t.Fatalf("CheckConnectBlockTemplate: Received unexpected error on "+
+			"block 4 with bad nonce: %v", err)
+	}
+
+	// Invalid block building on chain tip should fail to connect.
+	invalidBlock := *blocks[4].MsgBlock()
+	invalidBlock.Header.Bits--
+	err = chain.CheckConnectBlockTemplate(pfcutil.NewBlock(&invalidBlock))
+	if err == nil {
+		t.Fatal("CheckConnectBlockTemplate: Did not received expected error " +
+			"on block 4 with invalid difficulty bits")
 	}
 }
 
-// TestSequenceLocksActive ensure the sequence locks are detected as active or
-// not as expected in all possible scenarios.
-func TestSequenceLocksActive(t *testing.T) {
-	now := time.Now().Unix()
-	tests := []struct {
-		name          string
-		seqLockHeight int64
-		seqLockTime   int64
-		blockHeight   int64
-		medianTime    int64
-		want          bool
-	}{
-		{
-			// Block based sequence lock with height at min
-			// required.
-			name:          "min active block height",
-			seqLockHeight: 1000,
-			seqLockTime:   -1,
-			blockHeight:   1001,
-			medianTime:    now + 31,
-			want:          true,
-		},
-		{
-			// Time based sequence lock with relative time at min
-			// required.
-			name:          "min active median time",
-			seqLockHeight: -1,
-			seqLockTime:   now + 30,
-			blockHeight:   1001,
-			medianTime:    now + 31,
-			want:          true,
-		},
-		{
-			// Block based sequence lock at same height.
-			name:          "same height",
-			seqLockHeight: 1000,
-			seqLockTime:   -1,
-			blockHeight:   1000,
-			medianTime:    now + 31,
-			want:          false,
-		},
-		{
-			// Time based sequence lock with relative time equal to
-			// lock time.
-			name:          "same median time",
-			seqLockHeight: -1,
-			seqLockTime:   now + 30,
-			blockHeight:   1001,
-			medianTime:    now + 30,
-			want:          false,
-		},
-		{
-			// Block based sequence lock with relative height below
-			// required.
-			name:          "height below required",
-			seqLockHeight: 1000,
-			seqLockTime:   -1,
-			blockHeight:   999,
-			medianTime:    now + 31,
-			want:          false,
-		},
-		{
-			// Time based sequence lock with relative time before
-			// required.
-			name:          "median time before required",
-			seqLockHeight: -1,
-			seqLockTime:   now + 30,
-			blockHeight:   1001,
-			medianTime:    now + 29,
-			want:          false,
-		},
+// TestCheckBlockSanity tests the CheckBlockSanity function to ensure it works
+// as expected.
+func TestCheckBlockSanity(t *testing.T) {
+	powLimit := chaincfg.MainNetParams.PowLimit
+	block := pfcutil.NewBlock(&Block100000)
+	timeSource := NewMedianTime()
+	err := CheckBlockSanity(block, powLimit, timeSource)
+	if err != nil {
+		t.Errorf("CheckBlockSanity: %v", err)
 	}
 
-	for _, test := range tests {
-		seqLock := SequenceLock{
-			MinHeight: test.seqLockHeight,
-			MinTime:   test.seqLockTime,
-		}
-		got := SequenceLockActive(&seqLock, test.blockHeight,
-			time.Unix(test.medianTime, 0))
-		if got != test.want {
-			t.Errorf("%s: mismatched seqence lock status - got %v, "+
-				"want %v", test.name, got, test.want)
+	// Ensure a block that has a timestamp with a precision higher than one
+	// second fails.
+	timestamp := block.MsgBlock().Header.Timestamp
+	block.MsgBlock().Header.Timestamp = timestamp.Add(time.Nanosecond)
+	err = CheckBlockSanity(block, powLimit, timeSource)
+	if err == nil {
+		t.Errorf("CheckBlockSanity: error is nil when it shouldn't be")
+	}
+}
+
+// TestCheckSerializedHeight tests the checkSerializedHeight function with
+// various serialized heights and also does negative tests to ensure errors
+// and handled properly.
+func TestCheckSerializedHeight(t *testing.T) {
+	// Create an empty coinbase template to be used in the tests below.
+	coinbaseOutpoint := wire.NewOutPoint(&chainhash.Hash{}, math.MaxUint32)
+	coinbaseTx := wire.NewMsgTx(1)
+	coinbaseTx.AddTxIn(wire.NewTxIn(coinbaseOutpoint, nil, nil))
+
+	// Expected rule errors.
+	missingHeightError := RuleError{
+		ErrorCode: ErrMissingCoinbaseHeight,
+	}
+	badHeightError := RuleError{
+		ErrorCode: ErrBadCoinbaseHeight,
+	}
+
+	tests := []struct {
+		sigScript  []byte // Serialized data
+		wantHeight int32  // Expected height
+		err        error  // Expected error type
+	}{
+		// No serialized height length.
+		{[]byte{}, 0, missingHeightError},
+		// Serialized height length with no height bytes.
+		{[]byte{0x02}, 0, missingHeightError},
+		// Serialized height length with too few height bytes.
+		{[]byte{0x02, 0x4a}, 0, missingHeightError},
+		// Serialized height that needs 2 bytes to encode.
+		{[]byte{0x02, 0x4a, 0x52}, 21066, nil},
+		// Serialized height that needs 2 bytes to encode, but backwards
+		// endianness.
+		{[]byte{0x02, 0x4a, 0x52}, 19026, badHeightError},
+		// Serialized height that needs 3 bytes to encode.
+		{[]byte{0x03, 0x40, 0x0d, 0x03}, 200000, nil},
+		// Serialized height that needs 3 bytes to encode, but backwards
+		// endianness.
+		{[]byte{0x03, 0x40, 0x0d, 0x03}, 1074594560, badHeightError},
+	}
+
+	t.Logf("Running %d tests", len(tests))
+	for i, test := range tests {
+		msgTx := coinbaseTx.Copy()
+		msgTx.TxIn[0].SignatureScript = test.sigScript
+		tx := pfcutil.NewTx(msgTx)
+
+		err := checkSerializedHeight(tx, test.wantHeight)
+		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
+			t.Errorf("checkSerializedHeight #%d wrong error type "+
+				"got: %v <%T>, want: %T", i, err, err, test.err)
 			continue
 		}
-	}
-}
 
-// quickVoteActivationParams returns a set of test chain parameters which allow
-// for quicker vote activation as compared to various existing network params by
-// reducing the required maturities, the ticket pool size, the stake enabled and
-// validation heights, the proof-of-work block version upgrade window, the stake
-// version interval, and the rule change activation interval.
-func quickVoteActivationParams() *chaincfg.Params {
-	params := cloneParams(&chaincfg.RegNetParams)
-	params.WorkDiffWindowSize = 200000
-	params.WorkDiffWindows = 1
-	params.TargetTimespan = params.TargetTimePerBlock *
-		time.Duration(params.WorkDiffWindowSize)
-	params.CoinbaseMaturity = 2
-	params.BlockEnforceNumRequired = 5
-	params.BlockRejectNumRequired = 7
-	params.BlockUpgradeNumToCheck = 10
-	params.TicketMaturity = 2
-	params.TicketPoolSize = 4
-	params.TicketExpiry = 6 * uint32(params.TicketPoolSize)
-	params.StakeEnabledHeight = int64(params.CoinbaseMaturity) +
-		int64(params.TicketMaturity)
-	params.StakeValidationHeight = int64(params.CoinbaseMaturity) +
-		int64(params.TicketPoolSize)*2
-	params.StakeVersionInterval = 10
-	params.RuleChangeActivationInterval = uint32(params.TicketPoolSize) *
-		uint32(params.TicketsPerBlock)
-	params.RuleChangeActivationQuorum = params.RuleChangeActivationInterval *
-		uint32(params.TicketsPerBlock*100) / 1000
-
-	return params
-}
-
-// TestLegacySequenceLocks ensure that sequence locks within blocks behave as
-// expected according to the legacy semantics in previous version of the
-// software.
-func TestLegacySequenceLocks(t *testing.T) {
-	// Use a set of test chain parameters which allow for quicker vote
-	// activation as compared to various existing network params.
-	params := quickVoteActivationParams()
-
-	// deploymentVer is the deployment version of the ln features vote for the
-	// chain params.
-	const deploymentVer = 6
-
-	// Find the correct deployment for the LN features agenda.
-	voteID := chaincfg.VoteIDLNFeatures
-	var deployment *chaincfg.ConsensusDeployment
-	deployments := params.Deployments[deploymentVer]
-	for deploymentID, depl := range deployments {
-		if depl.Vote.Id == voteID {
-			deployment = &deployments[deploymentID]
-			break
-		}
-	}
-	if deployment == nil {
-		t.Fatalf("Unable to find consensus deployement for %s", voteID)
-	}
-
-	// Find the correct choice for the yes vote.
-	const yesVoteID = "yes"
-	var yesChoice *chaincfg.Choice
-	for _, choice := range deployment.Vote.Choices {
-		if choice.Id == yesVoteID {
-			yesChoice = &choice
-		}
-	}
-	if yesChoice == nil {
-		t.Fatalf("Unable to find vote choice for id %q", yesVoteID)
-	}
-
-	// Create a test generator instance initialized with the genesis block as
-	// the tip.
-	g, err := chaingen.MakeGenerator(params)
-	if err != nil {
-		t.Fatalf("Failed to create generator: %v", err)
-	}
-
-	// Create a new database and chain instance to run tests against.
-	chain, teardownFunc, err := chainSetup("seqlocksoldsemanticstest", params)
-	if err != nil {
-		t.Fatalf("Failed to setup chain instance: %v", err)
-	}
-	defer teardownFunc()
-
-	// accepted processes the current tip block associated with the generator
-	// and expects it to be accepted to the main chain.
-	//
-	// rejected expects the block to be rejected with the provided error code.
-	//
-	// expectTip expects the provided block to be the current tip of the
-	// main chain.
-	//
-	// acceptedToSideChainWithExpectedTip expects the block to be accepted to a
-	// side chain, but the current best chain tip to be the provided value.
-	//
-	// testThresholdState queries the threshold state from the current tip block
-	// associated with the generator and expects the returned state to match the
-	// provided value.
-	accepted := func() {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block %s (hash %s, height %d)", g.TipName(),
-			block.Hash(), blockHeight)
-
-		forkLen, isOrphan, err := chain.ProcessBlock(block, BFNone)
-		if err != nil {
-			t.Fatalf("block %q (hash %s, height %d) should have been "+
-				"accepted: %v", g.TipName(), block.Hash(), blockHeight, err)
-		}
-
-		// Ensure the main chain and orphan flags match the values specified in
-		// the test.
-		isMainChain := !isOrphan && forkLen == 0
-		if !isMainChain {
-			t.Fatalf("block %q (hash %s, height %d) unexpected main chain "+
-				"flag -- got %v, want true", g.TipName(), block.Hash(),
-				blockHeight, isMainChain)
-		}
-		if isOrphan {
-			t.Fatalf("block %q (hash %s, height %d) unexpected orphan flag -- "+
-				"got %v, want false", g.TipName(), block.Hash(), blockHeight,
-				isOrphan)
-		}
-	}
-	rejected := func(code ErrorCode) {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block %s (hash %s, height %d)", g.TipName(),
-			block.Hash(), blockHeight)
-
-		_, _, err := chain.ProcessBlock(block, BFNone)
-		if err == nil {
-			t.Fatalf("block %q (hash %s, height %d) should not have been "+
-				"accepted", g.TipName(), block.Hash(), blockHeight)
-		}
-
-		// Ensure the error code is of the expected type and the reject code
-		// matches the value specified in the test instance.
-		rerr, ok := err.(RuleError)
-		if !ok {
-			t.Fatalf("block %q (hash %s, height %d) returned unexpected error "+
-				"type -- got %T, want blockchain.RuleError", g.TipName(),
-				block.Hash(), blockHeight, err)
-		}
-		if rerr.ErrorCode != code {
-			t.Fatalf("block %q (hash %s, height %d) does not have expected "+
-				"reject code -- got %v, want %v", g.TipName(), block.Hash(),
-				blockHeight, rerr.ErrorCode, code)
-		}
-	}
-	expectTip := func(tipName string) {
-		// Ensure hash and height match.
-		wantTip := g.BlockByName(tipName)
-		best := chain.BestSnapshot()
-		if best.Hash != wantTip.BlockHash() ||
-			best.Height != int64(wantTip.Header.Height) {
-			t.Fatalf("block %q (hash %s, height %d) should be the current tip "+
-				"-- got (hash %s, height %d)", tipName, wantTip.BlockHash(),
-				wantTip.Header.Height, best.Hash, best.Height)
-		}
-	}
-	acceptedToSideChainWithExpectedTip := func(tipName string) {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block %s (hash %s, height %d)", g.TipName(),
-			block.Hash(), blockHeight)
-
-		forkLen, isOrphan, err := chain.ProcessBlock(block, BFNone)
-		if err != nil {
-			t.Fatalf("block %q (hash %s, height %d) should have been "+
-				"accepted: %v", g.TipName(), block.Hash(), blockHeight, err)
-		}
-
-		// Ensure the main chain and orphan flags match the values specified in
-		// the test.
-		isMainChain := !isOrphan && forkLen == 0
-		if isMainChain {
-			t.Fatalf("block %q (hash %s, height %d) unexpected main chain "+
-				"flag -- got %v, want false", g.TipName(), block.Hash(),
-				blockHeight, isMainChain)
-		}
-		if isOrphan {
-			t.Fatalf("block %q (hash %s, height %d) unexpected orphan flag -- "+
-				"got %v, want false", g.TipName(), block.Hash(), blockHeight,
-				isOrphan)
-		}
-
-		expectTip(tipName)
-	}
-	testThresholdState := func(id string, state ThresholdState) {
-		tipHash := g.Tip().BlockHash()
-		s, err := chain.NextThresholdState(&tipHash, deploymentVer, id)
-		if err != nil {
-			t.Fatalf("block %q (hash %s, height %d) unexpected error when "+
-				"retrieving threshold state: %v", g.TipName(), tipHash,
-				g.Tip().Header.Height, err)
-		}
-
-		if s.State != state {
-			t.Fatalf("block %q (hash %s, height %d) unexpected threshold "+
-				"state for %s -- got %v, want %v", g.TipName(), tipHash,
-				g.Tip().Header.Height, id, s.State, state)
-		}
-	}
-
-	// Shorter versions of useful params for convenience.
-	ticketsPerBlock := int64(params.TicketsPerBlock)
-	coinbaseMaturity := params.CoinbaseMaturity
-	stakeEnabledHeight := params.StakeEnabledHeight
-	stakeValidationHeight := params.StakeValidationHeight
-	stakeVerInterval := params.StakeVersionInterval
-	ruleChangeInterval := int64(params.RuleChangeActivationInterval)
-
-	// ---------------------------------------------------------------------
-	// First block.
-	// ---------------------------------------------------------------------
-
-	// Add the required first block.
-	//
-	//   genesis -> bp
-	g.CreatePremineBlock("bp", 0)
-	g.AssertTipHeight(1)
-	accepted()
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to have mature coinbase outputs to work with.
-	//
-	//   genesis -> bp -> bm0 -> bm1 -> ... -> bm#
-	// ---------------------------------------------------------------------
-
-	for i := uint16(0); i < coinbaseMaturity; i++ {
-		blockName := fmt.Sprintf("bm%d", i)
-		g.NextBlock(blockName, nil, nil)
-		g.SaveTipCoinbaseOuts()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(coinbaseMaturity) + 1)
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to reach the stake enabled height while
-	// creating ticket purchases that spend from the coinbases matured
-	// above.  This will also populate the pool of immature tickets.
-	//
-	//   ... -> bm# ... -> bse0 -> bse1 -> ... -> bse#
-	// ---------------------------------------------------------------------
-
-	var ticketsPurchased int
-	for i := int64(0); int64(g.Tip().Header.Height) < stakeEnabledHeight; i++ {
-		outs := g.OldestCoinbaseOuts()
-		ticketOuts := outs[1:]
-		ticketsPurchased += len(ticketOuts)
-		blockName := fmt.Sprintf("bse%d", i)
-		g.NextBlock(blockName, nil, ticketOuts)
-		g.SaveTipCoinbaseOuts()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(stakeEnabledHeight))
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to reach the stake validation height while
-	// continuing to purchase tickets using the coinbases matured above and
-	// allowing the immature tickets to mature and thus become live.
-	//
-	// The blocks are also generated with version 6 to ensure stake version
-	// and ln feature enforcement is reached.
-	//
-	//   ... -> bse# -> bsv0 -> bsv1 -> ... -> bsv#
-	// ---------------------------------------------------------------------
-
-	targetPoolSize := int64(g.Params().TicketPoolSize) * ticketsPerBlock
-	for i := int64(0); int64(g.Tip().Header.Height) < stakeValidationHeight; i++ {
-		// Only purchase tickets until the target ticket pool size is reached.
-		outs := g.OldestCoinbaseOuts()
-		ticketOuts := outs[1:]
-		if ticketsPurchased+len(ticketOuts) > int(targetPoolSize) {
-			ticketsNeeded := int(targetPoolSize) - ticketsPurchased
-			if ticketsNeeded > 0 {
-				ticketOuts = ticketOuts[1 : ticketsNeeded+1]
-			} else {
-				ticketOuts = nil
+		if rerr, ok := err.(RuleError); ok {
+			trerr := test.err.(RuleError)
+			if rerr.ErrorCode != trerr.ErrorCode {
+				t.Errorf("checkSerializedHeight #%d wrong "+
+					"error code got: %v, want: %v", i,
+					rerr.ErrorCode, trerr.ErrorCode)
+				continue
 			}
 		}
-		ticketsPurchased += len(ticketOuts)
-
-		blockName := fmt.Sprintf("bsv%d", i)
-		g.NextBlock(blockName, nil, ticketOuts,
-			chaingen.ReplaceBlockVersion(6))
-		g.SaveTipCoinbaseOuts()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(stakeValidationHeight))
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to reach one block before the next two stake
-	// version intervals with block version 6, stake version 0, and vote
-	// version 6.
-	//
-	// This will result in triggering enforcement of the stake version and
-	// that the stake version is 6.  The treshold state for deployment will
-	// move to started since the next block also coincides with the start of
-	// a new rule change activation interval for the chosen parameters.
-	//
-	//   ... -> bsv# -> bvu0 -> bvu1 -> ... -> bvu#
-	// ---------------------------------------------------------------------
-
-	blocksNeeded := stakeValidationHeight + stakeVerInterval*2 - 1 -
-		int64(g.Tip().Header.Height)
-	for i := int64(0); i < blocksNeeded; i++ {
-		outs := g.OldestCoinbaseOuts()
-		blockName := fmt.Sprintf("bvu%d", i)
-		g.NextBlock(blockName, nil, outs[1:], chaingen.ReplaceBlockVersion(6),
-			chaingen.ReplaceVoteVersions(6))
-		g.SaveTipCoinbaseOuts()
-		accepted()
-	}
-	testThresholdState(voteID, ThresholdStarted)
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to reach the next rule change interval with
-	// block version 6, stake version 6, and vote version 6.  Also, set the
-	// vote bits to include yes votes for the ln feature agenda.
-	//
-	// This will result in moving the threshold state for the ln feature
-	// enforcement to locked in.
-	//
-	//   ... -> bvu# -> bvli0 -> bvli1 -> ... -> bvli#
-	// ---------------------------------------------------------------------
-
-	blocksNeeded = stakeValidationHeight + ruleChangeInterval*2 - 1 -
-		int64(g.Tip().Header.Height)
-	for i := int64(0); i < blocksNeeded; i++ {
-		outs := g.OldestCoinbaseOuts()
-		blockName := fmt.Sprintf("bvli%d", i)
-		g.NextBlock(blockName, nil, outs[1:], chaingen.ReplaceBlockVersion(6),
-			chaingen.ReplaceStakeVersion(6),
-			chaingen.ReplaceVotes(vbPrevBlockValid|yesChoice.Bits, 6))
-		g.SaveTipCoinbaseOuts()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(stakeValidationHeight + ruleChangeInterval*2 - 1))
-	g.AssertBlockVersion(6)
-	g.AssertStakeVersion(6)
-	testThresholdState(voteID, ThresholdLockedIn)
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to reach the next rule change interval with
-	// block version 6, stake version 6, and vote version 6.
-	//
-	// This will result in moving the threshold state for the ln feature
-	// enforcement to active thereby activating it.
-	//
-	//   ... -> bvli# -> bva0 -> bva1 -> ... -> bva#
-	// ---------------------------------------------------------------------
-
-	blocksNeeded = stakeValidationHeight + ruleChangeInterval*3 - 1 -
-		int64(g.Tip().Header.Height)
-	for i := int64(0); i < blocksNeeded; i++ {
-		outs := g.OldestCoinbaseOuts()
-		blockName := fmt.Sprintf("bva%d", i)
-		g.NextBlock(blockName, nil, outs[1:], chaingen.ReplaceBlockVersion(6),
-			chaingen.ReplaceStakeVersion(6), chaingen.ReplaceVoteVersions(6))
-		g.SaveTipCoinbaseOuts()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(stakeValidationHeight + ruleChangeInterval*3 - 1))
-	g.AssertBlockVersion(6)
-	g.AssertStakeVersion(6)
-	testThresholdState(voteID, ThresholdActive)
-
-	// ---------------------------------------------------------------------
-	// Perform a series of sequence lock tests now that ln feature
-	// enforcement is active.
-	// ---------------------------------------------------------------------
-
-	// enableSeqLocks modifies the passed transaction to enable sequence locks
-	// for the provided input.
-	enableSeqLocks := func(tx *wire.MsgTx, txInIdx int) {
-		tx.Version = 2
-		tx.TxIn[txInIdx].Sequence = 0
-	}
-
-	// ---------------------------------------------------------------------
-	// Create block that has a transaction with an input shared with a
-	// transaction in the stake tree and has several outputs used in
-	// subsequent blocks.  Also, enable sequence locks for the first of
-	// those outputs.
-	//
-	//   ... -> b0
-	// ---------------------------------------------------------------------
-
-	outs := g.OldestCoinbaseOuts()
-	b0 := g.NextBlock("b0", &outs[0], outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			// Save the current outputs of the spend tx and clear them.
-			tx := b.Transactions[1]
-			origOut := tx.TxOut[0]
-			origOpReturnOut := tx.TxOut[1]
-			tx.TxOut = tx.TxOut[:0]
-
-			// Evenly split the original output amount over multiple outputs.
-			const numOutputs = 6
-			amount := origOut.Value / numOutputs
-			for i := 0; i < numOutputs; i++ {
-				if i == numOutputs-1 {
-					amount = origOut.Value - amount*(numOutputs-1)
-				}
-				tx.AddTxOut(wire.NewTxOut(int64(amount), origOut.PkScript))
-			}
-
-			// Add the original op return back to the outputs and enable
-			// sequence locks for the first output.
-			tx.AddTxOut(origOpReturnOut)
-			enableSeqLocks(tx, 0)
-		})
-	g.SaveTipCoinbaseOuts()
-	accepted()
-
-	// ---------------------------------------------------------------------
-	// Create block that spends from an output created in the previous
-	// block.
-	//
-	//   ... -> b0 -> b1a
-	// ---------------------------------------------------------------------
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b1a", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			spend := chaingen.MakeSpendableOut(b0, 1, 0)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			enableSeqLocks(tx, 0)
-			b.AddTransaction(tx)
-		})
-	accepted()
-
-	// ---------------------------------------------------------------------
-	// Create block that involves reorganize to a sequence lock spending
-	// from an output created in a block prior to the parent also spent on
-	// on the side chain.
-	//
-	//   ... -> b0 -> b1  -> b2
-	//            \-> b1a
-	// ---------------------------------------------------------------------
-	g.SetTip("b0")
-	g.NextBlock("b1", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6))
-	g.SaveTipCoinbaseOuts()
-	acceptedToSideChainWithExpectedTip("b1a")
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b2", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			spend := chaingen.MakeSpendableOut(b0, 1, 0)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			enableSeqLocks(tx, 0)
-			b.AddTransaction(tx)
-		})
-	g.SaveTipCoinbaseOuts()
-	accepted()
-	expectTip("b2")
-
-	// ---------------------------------------------------------------------
-	// Create block that involves a sequence lock on a vote.
-	//
-	//   ... -> b2 -> b3
-	// ---------------------------------------------------------------------
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b3", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			enableSeqLocks(b.STransactions[0], 0)
-		})
-	g.SaveTipCoinbaseOuts()
-	accepted()
-
-	// ---------------------------------------------------------------------
-	// Create block that involves a sequence lock on a ticket.
-	//
-	//   ... -> b3 -> b4
-	// ---------------------------------------------------------------------
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b4", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			enableSeqLocks(b.STransactions[5], 0)
-		})
-	g.SaveTipCoinbaseOuts()
-	accepted()
-
-	// ---------------------------------------------------------------------
-	// Create two blocks such that the tip block involves a sequence lock
-	// spending from a different output of a transaction the parent block
-	// also spends from.
-	//
-	//   ... -> b4 -> b5 -> b6
-	// ---------------------------------------------------------------------
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b5", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			spend := chaingen.MakeSpendableOut(b0, 1, 1)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			b.AddTransaction(tx)
-		})
-	g.SaveTipCoinbaseOuts()
-	accepted()
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b6", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			spend := chaingen.MakeSpendableOut(b0, 1, 2)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			enableSeqLocks(tx, 0)
-			b.AddTransaction(tx)
-		})
-	g.SaveTipCoinbaseOuts()
-	accepted()
-
-	// ---------------------------------------------------------------------
-	// Create block that involves a sequence lock spending from a regular
-	// tree transaction earlier in the block.  It should be rejected due
-	// to a consensus bug.
-	//
-	//   ... -> b6
-	//            \-> b7
-	// ---------------------------------------------------------------------
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b7", &outs[0], outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			spend := chaingen.MakeSpendableOut(b, 1, 0)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			enableSeqLocks(tx, 0)
-			b.AddTransaction(tx)
-		})
-	rejected(ErrMissingTxOut)
-
-	// ---------------------------------------------------------------------
-	// Create block that involves a sequence lock spending from a block
-	// prior to the parent.  It should be rejected due to a consensus bug.
-	//
-	//   ... -> b6 -> b8
-	//                  \-> b9
-	// ---------------------------------------------------------------------
-
-	g.SetTip("b6")
-	g.NextBlock("b8", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6))
-	g.SaveTipCoinbaseOuts()
-	accepted()
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b9", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			spend := chaingen.MakeSpendableOut(b0, 1, 3)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			enableSeqLocks(tx, 0)
-			b.AddTransaction(tx)
-		})
-	rejected(ErrMissingTxOut)
-
-	// ---------------------------------------------------------------------
-	// Create two blocks such that the tip block involves a sequence lock
-	// spending from a different output of a transaction the parent block
-	// also spends from when the parent block has been disapproved.    It
-	// should be rejected due to a consensus bug.
-	//
-	//   ... -> b8 -> b10
-	//                   \-> b11
-	// ---------------------------------------------------------------------
-
-	const (
-		// vbDisapprovePrev and vbApprovePrev represent no and yes votes,
-		// respectively, on whether or not to approve the previous block.
-		vbDisapprovePrev = 0x0000
-		vbApprovePrev    = 0x0001
-	)
-
-	g.SetTip("b8")
-	g.NextBlock("b10", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVoteVersions(6), func(b *wire.MsgBlock) {
-			spend := chaingen.MakeSpendableOut(b0, 1, 4)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			b.AddTransaction(tx)
-		})
-	g.SaveTipCoinbaseOuts()
-	accepted()
-
-	outs = g.OldestCoinbaseOuts()
-	g.NextBlock("b11", nil, outs[1:],
-		chaingen.ReplaceBlockVersion(6), chaingen.ReplaceStakeVersion(6),
-		chaingen.ReplaceVotes(vbDisapprovePrev, 6), func(b *wire.MsgBlock) {
-			b.Header.VoteBits &^= vbApprovePrev
-			spend := chaingen.MakeSpendableOut(b0, 1, 5)
-			tx := g.CreateSpendTx(&spend, pfcutil.Amount(1))
-			enableSeqLocks(tx, 0)
-			b.AddTransaction(tx)
-		})
-	rejected(ErrMissingTxOut)
-}
-
-// TestCheckBlockSanity tests the context free block sanity checks with blocks
-// not on a chain.
-func TestCheckBlockSanity(t *testing.T) {
-	params := &chaincfg.RegNetParams
-	timeSource := NewMedianTime()
-	block := pfcutil.NewBlock(&badBlock)
-	err := CheckBlockSanity(block, timeSource, params)
-	if err == nil {
-		t.Fatalf("block should fail.\n")
 	}
 }
 
-// TestCheckBlockHeaderContext tests that genesis block passes context headers
-// because its parent is nil.
-func TestCheckBlockHeaderContext(t *testing.T) {
-	// Create a new database for the blocks.
-	params := &chaincfg.RegNetParams
-	dbPath := filepath.Join(os.TempDir(), "examplecheckheadercontext")
-	_ = os.RemoveAll(dbPath)
-	db, err := database.Create("ffldb", dbPath, params.Net)
-	if err != nil {
-		t.Fatalf("Failed to create database: %v\n", err)
-		return
-	}
-	defer os.RemoveAll(dbPath)
-	defer db.Close()
-
-	// Create a new BlockChain instance using the underlying database for
-	// the simnet network.
-	chain, err := New(&Config{
-		DB:          db,
-		ChainParams: params,
-		TimeSource:  NewMedianTime(),
-	})
-	if err != nil {
-		t.Fatalf("Failed to create chain instance: %v\n", err)
-		return
-	}
-
-	err = chain.checkBlockHeaderContext(&params.GenesisBlock.Header, nil, BFNone)
-	if err != nil {
-		t.Fatalf("genesisblock should pass just by definition: %v\n", err)
-		return
-	}
-
-	// Test failing checkBlockHeaderContext when calcNextRequiredDifficulty
-	// fails.
-	block := pfcutil.NewBlock(&badBlock)
-	newNode := newBlockNode(&block.MsgBlock().Header, nil)
-	err = chain.checkBlockHeaderContext(&block.MsgBlock().Header, newNode, BFNone)
-	if err == nil {
-		t.Fatalf("Should fail due to bad diff in newNode\n")
-		return
-	}
-}
-
-// TestTxValidationErrors ensures certain malformed freestanding transactions
-// are rejected as as expected.
-func TestTxValidationErrors(t *testing.T) {
-	// Create a transaction that is too large
-	tx := wire.NewMsgTx()
-	prevOut := wire.NewOutPoint(&chainhash.Hash{0x01}, 0, wire.TxTreeRegular)
-	tx.AddTxIn(wire.NewTxIn(prevOut, 0, nil))
-	pkScript := bytes.Repeat([]byte{0x00}, wire.MaxBlockPayload)
-	tx.AddTxOut(wire.NewTxOut(0, pkScript))
-
-	// Assert the transaction is larger than the max allowed size.
-	txSize := tx.SerializeSize()
-	if txSize <= wire.MaxBlockPayload {
-		t.Fatalf("generated transaction is not large enough -- got "+
-			"%d, want > %d", txSize, wire.MaxBlockPayload)
-	}
-
-	// Ensure transaction is rejected due to being too large.
-	err := CheckTransactionSanity(tx, &chaincfg.MainNetParams)
-	rerr, ok := err.(RuleError)
-	if !ok {
-		t.Fatalf("CheckTransactionSanity: unexpected error type for "+
-			"transaction that is too large -- got %T", err)
-	}
-	if rerr.ErrorCode != ErrTxTooBig {
-		t.Fatalf("CheckTransactionSanity: unexpected error code for "+
-			"transaction that is too large -- got %v, want %v",
-			rerr.ErrorCode, ErrTxTooBig)
-	}
-}
-
-// badBlock is an intentionally bad block that should fail the context-less
-// sanity checks.
-var badBlock = wire.MsgBlock{
+// Block100000 defines block 100,000 of the block chain.  It is used to
+// test Block operations.
+var Block100000 = wire.MsgBlock{
 	Header: wire.BlockHeader{
-		Version:      1,
-		MerkleRoot:   chaincfg.RegNetParams.GenesisBlock.Header.MerkleRoot,
-		VoteBits:     uint16(0x0000),
-		FinalState:   [6]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		Voters:       uint16(0x0000),
-		FreshStake:   uint8(0x00),
-		Revocations:  uint8(0x00),
-		Timestamp:    time.Unix(1401292357, 0), // 2009-01-08 20:54:25 -0600 CST
-		PoolSize:     uint32(0),
-		Bits:         0x207fffff, // 545259519
-		SBits:        int64(0x0000000000000000),
-		Nonce:        0x37580963,
-		StakeVersion: uint32(0),
-		Height:       uint32(0),
+		Version: 1,
+		PrevBlock: chainhash.Hash([32]byte{ // Make go vet happy.
+			0x50, 0x12, 0x01, 0x19, 0x17, 0x2a, 0x61, 0x04,
+			0x21, 0xa6, 0xc3, 0x01, 0x1d, 0xd3, 0x30, 0xd9,
+			0xdf, 0x07, 0xb6, 0x36, 0x16, 0xc2, 0xcc, 0x1f,
+			0x1c, 0xd0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+		}), // 000000000002d01c1fccc21636b607dfd930d31d01c3a62104612a1719011250
+		MerkleRoot: chainhash.Hash([32]byte{ // Make go vet happy.
+			0x66, 0x57, 0xa9, 0x25, 0x2a, 0xac, 0xd5, 0xc0,
+			0xb2, 0x94, 0x09, 0x96, 0xec, 0xff, 0x95, 0x22,
+			0x28, 0xc3, 0x06, 0x7c, 0xc3, 0x8d, 0x48, 0x85,
+			0xef, 0xb5, 0xa4, 0xac, 0x42, 0x47, 0xe9, 0xf3,
+		}), // f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766
+		Timestamp: time.Unix(1293623863, 0), // 2010-12-29 11:57:43 +0000 UTC
+		Bits:      0x1b04864c,               // 453281356
+		Nonce:     0x10572b0f,               // 274148111
 	},
-	Transactions:  []*wire.MsgTx{},
-	STransactions: []*wire.MsgTx{},
-}
-
-// TestCheckConnectBlockTemplate ensures that the code which deals with
-// checking block templates works as expected.
-func TestCheckConnectBlockTemplate(t *testing.T) {
-	// Create a test generator instance initialized with the genesis block
-	// as the tip as well as some cached payment scripts to be used
-	// throughout the tests.
-	params := &chaincfg.RegNetParams
-	g, err := chaingen.MakeGenerator(params)
-	if err != nil {
-		t.Fatalf("Failed to create generator: %v", err)
-	}
-
-	// Create a new database and chain instance to run tests against.
-	chain, teardownFunc, err := chainSetup("connectblktemplatetest", params)
-	if err != nil {
-		t.Fatalf("Failed to setup chain instance: %v", err)
-	}
-	defer teardownFunc()
-
-	// Define some convenience helper functions to process the current tip
-	// block associated with the generator.
-	//
-	// accepted expects the block to be accepted to the main chain.
-	//
-	// rejected expects the block to be rejected with the provided error
-	// code.
-	//
-	// expectTip expects the provided block to be the current tip of the
-	// main chain.
-	//
-	// acceptedToSideChainWithExpectedTip expects the block to be accepted
-	// to a side chain, but the current best chain tip to be the provided
-	// value.
-	//
-	// forceTipReorg forces the chain instance to reorganize the current tip
-	// of the main chain from the given block to the given block.  An error
-	// will result if the provided from block is not actually the current
-	// tip.
-	//
-	// acceptedBlockTemplate expected the block to considered a valid block
-	// template.
-	//
-	// rejectedBlockTemplate expects the block to be considered an invalid
-	// block template due to the provided error code.
-	accepted := func() {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block %s (hash %s, height %d)",
-			g.TipName(), block.Hash(), blockHeight)
-
-		forkLen, isOrphan, err := chain.ProcessBlock(block, BFNone)
-		if err != nil {
-			t.Fatalf("block %q (hash %s, height %d) should "+
-				"have been accepted: %v", g.TipName(),
-				block.Hash(), blockHeight, err)
-		}
-
-		// Ensure the main chain and orphan flags match the values
-		// specified in the test.
-		isMainChain := !isOrphan && forkLen == 0
-		if !isMainChain {
-			t.Fatalf("block %q (hash %s, height %d) unexpected main "+
-				"chain flag -- got %v, want true", g.TipName(),
-				block.Hash(), blockHeight, isMainChain)
-		}
-		if isOrphan {
-			t.Fatalf("block %q (hash %s, height %d) unexpected "+
-				"orphan flag -- got %v, want false", g.TipName(),
-				block.Hash(), blockHeight, isOrphan)
-		}
-	}
-	rejected := func(code ErrorCode) {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block %s (hash %s, height %d)", g.TipName(),
-			block.Hash(), blockHeight)
-
-		_, _, err := chain.ProcessBlock(block, BFNone)
-		if err == nil {
-			t.Fatalf("block %q (hash %s, height %d) should not "+
-				"have been accepted", g.TipName(), block.Hash(),
-				blockHeight)
-		}
-
-		// Ensure the error code is of the expected type and the reject
-		// code matches the value specified in the test instance.
-		rerr, ok := err.(RuleError)
-		if !ok {
-			t.Fatalf("block %q (hash %s, height %d) returned "+
-				"unexpected error type -- got %T, want "+
-				"blockchain.RuleError", g.TipName(),
-				block.Hash(), blockHeight, err)
-		}
-		if rerr.ErrorCode != code {
-			t.Fatalf("block %q (hash %s, height %d) does not have "+
-				"expected reject code -- got %v, want %v",
-				g.TipName(), block.Hash(), blockHeight,
-				rerr.ErrorCode, code)
-		}
-	}
-	expectTip := func(tipName string) {
-		// Ensure hash and height match.
-		wantTip := g.BlockByName(tipName)
-		best := chain.BestSnapshot()
-		if best.Hash != wantTip.BlockHash() ||
-			best.Height != int64(wantTip.Header.Height) {
-			t.Fatalf("block %q (hash %s, height %d) should be "+
-				"the current tip -- got (hash %s, height %d)",
-				tipName, wantTip.BlockHash(),
-				wantTip.Header.Height, best.Hash, best.Height)
-		}
-	}
-	acceptedToSideChainWithExpectedTip := func(tipName string) {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block %s (hash %s, height %d)",
-			g.TipName(), block.Hash(), blockHeight)
-
-		forkLen, isOrphan, err := chain.ProcessBlock(block, BFNone)
-		if err != nil {
-			t.Fatalf("block %q (hash %s, height %d) should "+
-				"have been accepted: %v", g.TipName(),
-				block.Hash(), blockHeight, err)
-		}
-
-		// Ensure the main chain and orphan flags match the values
-		// specified in the test.
-		isMainChain := !isOrphan && forkLen == 0
-		if isMainChain {
-			t.Fatalf("block %q (hash %s, height %d) unexpected main "+
-				"chain flag -- got %v, want false", g.TipName(),
-				block.Hash(), blockHeight, isMainChain)
-		}
-		if isOrphan {
-			t.Fatalf("block %q (hash %s, height %d) unexpected "+
-				"orphan flag -- got %v, want false", g.TipName(),
-				block.Hash(), blockHeight, isOrphan)
-		}
-
-		expectTip(tipName)
-	}
-	forceTipReorg := func(fromTipName, toTipName string) {
-		from := g.BlockByName(fromTipName)
-		to := g.BlockByName(toTipName)
-		err = chain.ForceHeadReorganization(from.BlockHash(), to.BlockHash())
-		if err != nil {
-			t.Fatalf("failed to force header reorg from block %q "+
-				"(hash %s, height %d) to block %q (hash %s, "+
-				"height %d): %v", fromTipName, from.BlockHash(),
-				from.Header.Height, toTipName, to.BlockHash(),
-				to.Header.Height, err)
-		}
-	}
-	acceptedBlockTemplate := func() {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block template %s (hash %s, height %d)",
-			g.TipName(), block.Hash(), blockHeight)
-
-		err := chain.CheckConnectBlockTemplate(block)
-		if err != nil {
-			t.Fatalf("block template %q (hash %s, height %d) should "+
-				"have been accepted: %v", g.TipName(),
-				block.Hash(), blockHeight, err)
-		}
-	}
-	rejectedBlockTemplate := func(code ErrorCode) {
-		msgBlock := g.Tip()
-		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
-		t.Logf("Testing block template %s (hash %s, height %d)",
-			g.TipName(), block.Hash(), blockHeight)
-
-		err := chain.CheckConnectBlockTemplate(block)
-		if err == nil {
-			t.Fatalf("block template %q (hash %s, height %d) should "+
-				"not have been accepted", g.TipName(), block.Hash(),
-				blockHeight)
-		}
-
-		// Ensure the error code is of the expected type and the reject
-		// code matches the value specified in the test instance.
-		rerr, ok := err.(RuleError)
-		if !ok {
-			t.Fatalf("block template %q (hash %s, height %d) "+
-				"returned unexpected error type -- got %T, want "+
-				"blockchain.RuleError", g.TipName(),
-				block.Hash(), blockHeight, err)
-		}
-		if rerr.ErrorCode != code {
-			t.Fatalf("block template %q (hash %s, height %d) does "+
-				"not have expected reject code -- got %v, want %v",
-				g.TipName(), block.Hash(), blockHeight,
-				rerr.ErrorCode, code)
-		}
-	}
-
-	// changeNonce is a munger that modifies the block by changing the header
-	// nonce to a pseudo-random value.
-	prng := mrand.New(mrand.NewSource(0))
-	changeNonce := func(b *wire.MsgBlock) {
-		// Change the nonce so the block isn't actively solved.
-		b.Header.Nonce = prng.Uint32()
-	}
-
-	// Shorter versions of useful params for convenience.
-	ticketsPerBlock := params.TicketsPerBlock
-	coinbaseMaturity := params.CoinbaseMaturity
-	stakeEnabledHeight := params.StakeEnabledHeight
-	stakeValidationHeight := params.StakeValidationHeight
-
-	// ---------------------------------------------------------------------
-	// Premine block templates.
-	// ---------------------------------------------------------------------
-
-	// Produce a premine block with too much coinbase and ensure the block
-	// template is rejected.
-	//
-	//   genesis
-	//          \-> bpbad
-	g.CreatePremineBlock("bpbad", 1)
-	g.AssertTipHeight(1)
-	rejectedBlockTemplate(ErrBadCoinbaseValue)
-
-	// Produce a valid, but unsolved premine block and ensure the block template
-	// is accepted while the unsolved block is rejected.
-	//
-	//   genesis
-	//          \-> bpunsolved
-	g.SetTip("genesis")
-	bpunsolved := g.CreatePremineBlock("bpunsolved", 0, changeNonce)
-	// Since the difficulty is so low in the tests, the block might still
-	// end up being inadvertently solved.  It can't be checked inside the
-	// munger because the block is finalized after the function returns and
-	// those changes could also inadvertently solve the block.  Thus, just
-	// increment the nonce until it's not solved and then replace it in the
-	// generator's state.
-	{
-		origHash := bpunsolved.BlockHash()
-		for chaingen.IsSolved(&bpunsolved.Header) {
-			bpunsolved.Header.Nonce++
-		}
-		g.UpdateBlockState("bpunsolved", origHash, "bpunsolved", bpunsolved)
-	}
-	g.AssertTipHeight(1)
-	acceptedBlockTemplate()
-	rejected(ErrHighHash)
-	expectTip("genesis")
-
-	// Produce a valid and solved premine block.
-	//
-	//   genesis -> bp
-	g.SetTip("genesis")
-	g.CreatePremineBlock("bp", 0)
-	g.AssertTipHeight(1)
-	accepted()
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to have mature coinbase outputs to work with.
-	//
-	// Also, ensure that each block is considered a valid template along the
-	// way.
-	//
-	//   genesis -> bp -> bm0 -> bm1 -> ... -> bm#
-	// ---------------------------------------------------------------------
-
-	var tipName string
-	for i := uint16(0); i < coinbaseMaturity; i++ {
-		blockName := fmt.Sprintf("bm%d", i)
-		g.NextBlock(blockName, nil, nil)
-		g.SaveTipCoinbaseOuts()
-		acceptedBlockTemplate()
-		accepted()
-		tipName = blockName
-	}
-	g.AssertTipHeight(uint32(coinbaseMaturity) + 1)
-
-	// ---------------------------------------------------------------------
-	// Generate block templates that include invalid ticket purchases.
-	// ---------------------------------------------------------------------
-
-	// Create a block template with a ticket that claims too much input
-	// amount.
-	//
-	//   ... -> bm#
-	//             \-> btixt1
-	tempOuts := g.OldestCoinbaseOuts()
-	tempTicketOuts := tempOuts[1:]
-	g.NextBlock("btixt1", nil, tempTicketOuts, func(b *wire.MsgBlock) {
-		changeNonce(b)
-		b.STransactions[3].TxIn[0].ValueIn--
-	})
-	rejectedBlockTemplate(ErrFraudAmountIn)
-
-	// Create a block template with a ticket that does not pay enough.
-	//
-	//   ... -> bm#
-	//             \-> btixt2
-	g.SetTip(tipName)
-	g.NextBlock("btixt2", nil, tempTicketOuts, func(b *wire.MsgBlock) {
-		changeNonce(b)
-		b.STransactions[2].TxOut[0].Value--
-	})
-	rejectedBlockTemplate(ErrNotEnoughStake)
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to reach the stake enabled height while
-	// creating ticket purchases that spend from the coinbases matured
-	// above.  This will also populate the pool of immature tickets.
-	//
-	// Also, ensure that each block is considered a valid template along the
-	// way.
-	//
-	//   ... -> bm# ... -> bse0 -> bse1 -> ... -> bse#
-	// ---------------------------------------------------------------------
-
-	// Use the already popped outputs.
-	g.SetTip(tipName)
-	g.NextBlock("bse0", nil, tempTicketOuts)
-	g.SaveTipCoinbaseOuts()
-	acceptedBlockTemplate()
-	accepted()
-
-	var ticketsPurchased int
-	for i := int64(1); int64(g.Tip().Header.Height) < stakeEnabledHeight; i++ {
-		outs := g.OldestCoinbaseOuts()
-		ticketOuts := outs[1:]
-		ticketsPurchased += len(ticketOuts)
-		blockName := fmt.Sprintf("bse%d", i)
-		g.NextBlock(blockName, nil, ticketOuts)
-		g.SaveTipCoinbaseOuts()
-		acceptedBlockTemplate()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(stakeEnabledHeight))
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to reach the stake validation height while
-	// continuing to purchase tickets using the coinbases matured above and
-	// allowing the immature tickets to mature and thus become live.
-	//
-	// Also, ensure that each block is considered a valid template along the
-	// way.
-	//
-	//   ... -> bse# -> bsv0 -> bsv1 -> ... -> bsv#
-	// ---------------------------------------------------------------------
-
-	targetPoolSize := g.Params().TicketPoolSize * ticketsPerBlock
-	for i := int64(0); int64(g.Tip().Header.Height) < stakeValidationHeight; i++ {
-		// Only purchase tickets until the target ticket pool size is
-		// reached.
-		outs := g.OldestCoinbaseOuts()
-		ticketOuts := outs[1:]
-		if ticketsPurchased+len(ticketOuts) > int(targetPoolSize) {
-			ticketsNeeded := int(targetPoolSize) - ticketsPurchased
-			if ticketsNeeded > 0 {
-				ticketOuts = ticketOuts[1 : ticketsNeeded+1]
-			} else {
-				ticketOuts = nil
-			}
-		}
-		ticketsPurchased += len(ticketOuts)
-
-		blockName := fmt.Sprintf("bsv%d", i)
-		g.NextBlock(blockName, nil, ticketOuts)
-		g.SaveTipCoinbaseOuts()
-		acceptedBlockTemplate()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(stakeValidationHeight))
-
-	// ---------------------------------------------------------------------
-	// Generate enough blocks to have a known distance to the first mature
-	// coinbase outputs for all tests that follow.  These blocks continue
-	// to purchase tickets to avoid running out of votes.
-	//
-	// Also, ensure that each block is considered a valid template along the
-	// way.
-	//
-	//   ... -> bsv# -> bbm0 -> bbm1 -> ... -> bbm#
-	// ---------------------------------------------------------------------
-
-	for i := uint16(0); i < coinbaseMaturity; i++ {
-		outs := g.OldestCoinbaseOuts()
-		blockName := fmt.Sprintf("bbm%d", i)
-		g.NextBlock(blockName, nil, outs[1:])
-		g.SaveTipCoinbaseOuts()
-		acceptedBlockTemplate()
-		accepted()
-	}
-	g.AssertTipHeight(uint32(stakeValidationHeight) + uint32(coinbaseMaturity))
-
-	// Collect spendable outputs into two different slices.  The outs slice
-	// is intended to be used for regular transactions that spend from the
-	// output, while the ticketOuts slice is intended to be used for stake
-	// ticket purchases.
-	var outs []*chaingen.SpendableOut
-	var ticketOuts [][]chaingen.SpendableOut
-	for i := uint16(0); i < coinbaseMaturity; i++ {
-		coinbaseOuts := g.OldestCoinbaseOuts()
-		outs = append(outs, &coinbaseOuts[0])
-		ticketOuts = append(ticketOuts, coinbaseOuts[1:])
-	}
-
-	// ---------------------------------------------------------------------
-	// Generate block templates that build on ancestors of the tip.
-	// ---------------------------------------------------------------------
-
-	// Start by building a few of blocks at current tip (value in parens
-	// is which output is spent):
-	//
-	//   ... -> b1(0) -> b2(1) -> b3(2)
-	g.NextBlock("b1", outs[0], ticketOuts[0])
-	accepted()
-
-	g.NextBlock("b2", outs[1], ticketOuts[1])
-	accepted()
-
-	g.NextBlock("b3", outs[2], ticketOuts[2])
-	accepted()
-
-	// Create a block template that forks from b1.  It should not be allowed
-	// since it is not the current tip or its parent.
-	//
-	//   ... -> b1(0) -> b2(1)  -> b3(2)
-	//               \-> b2at(1)
-	g.SetTip("b1")
-	g.NextBlock("b2at", outs[1], ticketOuts[1], changeNonce)
-	rejectedBlockTemplate(ErrInvalidTemplateParent)
-
-	// Create a block template that forks from b2.  It should be accepted
-	// because it is the current tip's parent.
-	//
-	//   ... -> b2(1) -> b3(2)
-	//               \-> b3at(2)
-	g.SetTip("b2")
-	g.NextBlock("b3at", outs[2], ticketOuts[2], changeNonce)
-	acceptedBlockTemplate()
-
-	// ---------------------------------------------------------------------
-	// Generate block templates that build on the tip's parent, but include
-	// invalid votes.
-	// ---------------------------------------------------------------------
-
-	// Create a block template that forks from b2 (the tip's parent) with
-	// votes that spend invalid tickets.
-	//
-	//   ... -> b2(1) -> b3(2)
-	//               \-> b3bt(2)
-	g.SetTip("b2")
-	g.NextBlock("b3bt", outs[2], ticketOuts[1], changeNonce)
-	rejectedBlockTemplate(ErrMissingTxOut)
-
-	// Same as before but based on the current tip.
-	//
-	//   ... -> b2(1) -> b3(2)
-	//                        \-> b4at(3)
-	g.SetTip("b3")
-	g.NextBlock("b4at", outs[3], ticketOuts[2], changeNonce)
-	rejectedBlockTemplate(ErrMissingTxOut)
-
-	// Create a block template that forks from b2 (the tip's parent) with
-	// a vote that pays too much.
-	//
-	//   ... -> b2(1) -> b3(2)
-	//               \-> b3ct(2)
-	g.SetTip("b2")
-	g.NextBlock("b3ct", outs[2], ticketOuts[2], func(b *wire.MsgBlock) {
-		changeNonce(b)
-		b.STransactions[0].TxOut[0].Value++
-	})
-	rejectedBlockTemplate(ErrSpendTooHigh)
-
-	// Same as before but based on the current tip.
-	//
-	//   ... -> b2(1) -> b3(2)
-	//                        \-> b4bt(3)
-	g.SetTip("b3")
-	g.NextBlock("b4bt", outs[3], ticketOuts[3], func(b *wire.MsgBlock) {
-		changeNonce(b)
-		b.STransactions[0].TxOut[0].Value++
-	})
-	rejectedBlockTemplate(ErrSpendTooHigh)
-
-	// ---------------------------------------------------------------------
-	// Generate block templates that build on the tip and its parent after a
-	// forced reorg.
-	// ---------------------------------------------------------------------
-
-	// Create a fork from b2.  There should not be a reorg since b3 was seen
-	// first.
-	//
-	//   ... -> b2(1) -> b3(2)
-	//               \-> b3a(2)
-	g.SetTip("b2")
-	g.NextBlock("b3a", outs[2], ticketOuts[2])
-	acceptedToSideChainWithExpectedTip("b3")
-
-	// Force tip reorganization to b3a.
-	//
-	//   ... -> b2(1) -> b3a(2)
-	//               \-> b3(2)
-	forceTipReorg("b3", "b3a")
-	expectTip("b3a")
-
-	// Create a block template that forks from b2 (the tip's parent) and
-	// ensure it is still accepted after the forced reorg.
-	//
-	//   ... -> b2(1) -> b3a(2)
-	//               \-> b3dt(2)
-	g.SetTip("b2")
-	g.NextBlock("b3dt", outs[2], ticketOuts[2], changeNonce)
-	acceptedBlockTemplate()
-	expectTip("b3a") // Ensure chain tip didn't change.
-
-	// Create a block template that builds on the current tip and ensure it
-	// it is still accepted after the forced reorg.
-	//
-	//   ... -> b2(1) -> b3a(2)
-	//                         \-> b4ct(3)
-	g.SetTip("b3a")
-	g.NextBlock("b4ct", outs[3], ticketOuts[3], changeNonce)
-	acceptedBlockTemplate()
+	Transactions: []*wire.MsgTx{
+		{
+			Version: 1,
+			TxIn: []*wire.TxIn{
+				{
+					PreviousOutPoint: wire.OutPoint{
+						Hash:  chainhash.Hash{},
+						Index: 0xffffffff,
+					},
+					SignatureScript: []byte{
+						0x04, 0x4c, 0x86, 0x04, 0x1b, 0x02, 0x06, 0x02,
+					},
+					Sequence: 0xffffffff,
+				},
+			},
+			TxOut: []*wire.TxOut{
+				{
+					Value: 0x12a05f200, // 5000000000
+					PkScript: []byte{
+						0x41, // OP_DATA_65
+						0x04, 0x1b, 0x0e, 0x8c, 0x25, 0x67, 0xc1, 0x25,
+						0x36, 0xaa, 0x13, 0x35, 0x7b, 0x79, 0xa0, 0x73,
+						0xdc, 0x44, 0x44, 0xac, 0xb8, 0x3c, 0x4e, 0xc7,
+						0xa0, 0xe2, 0xf9, 0x9d, 0xd7, 0x45, 0x75, 0x16,
+						0xc5, 0x81, 0x72, 0x42, 0xda, 0x79, 0x69, 0x24,
+						0xca, 0x4e, 0x99, 0x94, 0x7d, 0x08, 0x7f, 0xed,
+						0xf9, 0xce, 0x46, 0x7c, 0xb9, 0xf7, 0xc6, 0x28,
+						0x70, 0x78, 0xf8, 0x01, 0xdf, 0x27, 0x6f, 0xdf,
+						0x84, // 65-byte signature
+						0xac, // OP_CHECKSIG
+					},
+				},
+			},
+			LockTime: 0,
+		},
+		{
+			Version: 1,
+			TxIn: []*wire.TxIn{
+				{
+					PreviousOutPoint: wire.OutPoint{
+						Hash: chainhash.Hash([32]byte{ // Make go vet happy.
+							0x03, 0x2e, 0x38, 0xe9, 0xc0, 0xa8, 0x4c, 0x60,
+							0x46, 0xd6, 0x87, 0xd1, 0x05, 0x56, 0xdc, 0xac,
+							0xc4, 0x1d, 0x27, 0x5e, 0xc5, 0x5f, 0xc0, 0x07,
+							0x79, 0xac, 0x88, 0xfd, 0xf3, 0x57, 0xa1, 0x87,
+						}), // 87a157f3fd88ac7907c05fc55e271dc4acdc5605d187d646604ca8c0e9382e03
+						Index: 0,
+					},
+					SignatureScript: []byte{
+						0x49, // OP_DATA_73
+						0x30, 0x46, 0x02, 0x21, 0x00, 0xc3, 0x52, 0xd3,
+						0xdd, 0x99, 0x3a, 0x98, 0x1b, 0xeb, 0xa4, 0xa6,
+						0x3a, 0xd1, 0x5c, 0x20, 0x92, 0x75, 0xca, 0x94,
+						0x70, 0xab, 0xfc, 0xd5, 0x7d, 0xa9, 0x3b, 0x58,
+						0xe4, 0xeb, 0x5d, 0xce, 0x82, 0x02, 0x21, 0x00,
+						0x84, 0x07, 0x92, 0xbc, 0x1f, 0x45, 0x60, 0x62,
+						0x81, 0x9f, 0x15, 0xd3, 0x3e, 0xe7, 0x05, 0x5c,
+						0xf7, 0xb5, 0xee, 0x1a, 0xf1, 0xeb, 0xcc, 0x60,
+						0x28, 0xd9, 0xcd, 0xb1, 0xc3, 0xaf, 0x77, 0x48,
+						0x01, // 73-byte signature
+						0x41, // OP_DATA_65
+						0x04, 0xf4, 0x6d, 0xb5, 0xe9, 0xd6, 0x1a, 0x9d,
+						0xc2, 0x7b, 0x8d, 0x64, 0xad, 0x23, 0xe7, 0x38,
+						0x3a, 0x4e, 0x6c, 0xa1, 0x64, 0x59, 0x3c, 0x25,
+						0x27, 0xc0, 0x38, 0xc0, 0x85, 0x7e, 0xb6, 0x7e,
+						0xe8, 0xe8, 0x25, 0xdc, 0xa6, 0x50, 0x46, 0xb8,
+						0x2c, 0x93, 0x31, 0x58, 0x6c, 0x82, 0xe0, 0xfd,
+						0x1f, 0x63, 0x3f, 0x25, 0xf8, 0x7c, 0x16, 0x1b,
+						0xc6, 0xf8, 0xa6, 0x30, 0x12, 0x1d, 0xf2, 0xb3,
+						0xd3, // 65-byte pubkey
+					},
+					Sequence: 0xffffffff,
+				},
+			},
+			TxOut: []*wire.TxOut{
+				{
+					Value: 0x2123e300, // 556000000
+					PkScript: []byte{
+						0x76, // OP_DUP
+						0xa9, // OP_HASH160
+						0x14, // OP_DATA_20
+						0xc3, 0x98, 0xef, 0xa9, 0xc3, 0x92, 0xba, 0x60,
+						0x13, 0xc5, 0xe0, 0x4e, 0xe7, 0x29, 0x75, 0x5e,
+						0xf7, 0xf5, 0x8b, 0x32,
+						0x88, // OP_EQUALVERIFY
+						0xac, // OP_CHECKSIG
+					},
+				},
+				{
+					Value: 0x108e20f00, // 4444000000
+					PkScript: []byte{
+						0x76, // OP_DUP
+						0xa9, // OP_HASH160
+						0x14, // OP_DATA_20
+						0x94, 0x8c, 0x76, 0x5a, 0x69, 0x14, 0xd4, 0x3f,
+						0x2a, 0x7a, 0xc1, 0x77, 0xda, 0x2c, 0x2f, 0x6b,
+						0x52, 0xde, 0x3d, 0x7c,
+						0x88, // OP_EQUALVERIFY
+						0xac, // OP_CHECKSIG
+					},
+				},
+			},
+			LockTime: 0,
+		},
+		{
+			Version: 1,
+			TxIn: []*wire.TxIn{
+				{
+					PreviousOutPoint: wire.OutPoint{
+						Hash: chainhash.Hash([32]byte{ // Make go vet happy.
+							0xc3, 0x3e, 0xbf, 0xf2, 0xa7, 0x09, 0xf1, 0x3d,
+							0x9f, 0x9a, 0x75, 0x69, 0xab, 0x16, 0xa3, 0x27,
+							0x86, 0xaf, 0x7d, 0x7e, 0x2d, 0xe0, 0x92, 0x65,
+							0xe4, 0x1c, 0x61, 0xd0, 0x78, 0x29, 0x4e, 0xcf,
+						}), // cf4e2978d0611ce46592e02d7e7daf8627a316ab69759a9f3df109a7f2bf3ec3
+						Index: 1,
+					},
+					SignatureScript: []byte{
+						0x47, // OP_DATA_71
+						0x30, 0x44, 0x02, 0x20, 0x03, 0x2d, 0x30, 0xdf,
+						0x5e, 0xe6, 0xf5, 0x7f, 0xa4, 0x6c, 0xdd, 0xb5,
+						0xeb, 0x8d, 0x0d, 0x9f, 0xe8, 0xde, 0x6b, 0x34,
+						0x2d, 0x27, 0x94, 0x2a, 0xe9, 0x0a, 0x32, 0x31,
+						0xe0, 0xba, 0x33, 0x3e, 0x02, 0x20, 0x3d, 0xee,
+						0xe8, 0x06, 0x0f, 0xdc, 0x70, 0x23, 0x0a, 0x7f,
+						0x5b, 0x4a, 0xd7, 0xd7, 0xbc, 0x3e, 0x62, 0x8c,
+						0xbe, 0x21, 0x9a, 0x88, 0x6b, 0x84, 0x26, 0x9e,
+						0xae, 0xb8, 0x1e, 0x26, 0xb4, 0xfe, 0x01,
+						0x41, // OP_DATA_65
+						0x04, 0xae, 0x31, 0xc3, 0x1b, 0xf9, 0x12, 0x78,
+						0xd9, 0x9b, 0x83, 0x77, 0xa3, 0x5b, 0xbc, 0xe5,
+						0xb2, 0x7d, 0x9f, 0xff, 0x15, 0x45, 0x68, 0x39,
+						0xe9, 0x19, 0x45, 0x3f, 0xc7, 0xb3, 0xf7, 0x21,
+						0xf0, 0xba, 0x40, 0x3f, 0xf9, 0x6c, 0x9d, 0xee,
+						0xb6, 0x80, 0xe5, 0xfd, 0x34, 0x1c, 0x0f, 0xc3,
+						0xa7, 0xb9, 0x0d, 0xa4, 0x63, 0x1e, 0xe3, 0x95,
+						0x60, 0x63, 0x9d, 0xb4, 0x62, 0xe9, 0xcb, 0x85,
+						0x0f, // 65-byte pubkey
+					},
+					Sequence: 0xffffffff,
+				},
+			},
+			TxOut: []*wire.TxOut{
+				{
+					Value: 0xf4240, // 1000000
+					PkScript: []byte{
+						0x76, // OP_DUP
+						0xa9, // OP_HASH160
+						0x14, // OP_DATA_20
+						0xb0, 0xdc, 0xbf, 0x97, 0xea, 0xbf, 0x44, 0x04,
+						0xe3, 0x1d, 0x95, 0x24, 0x77, 0xce, 0x82, 0x2d,
+						0xad, 0xbe, 0x7e, 0x10,
+						0x88, // OP_EQUALVERIFY
+						0xac, // OP_CHECKSIG
+					},
+				},
+				{
+					Value: 0x11d260c0, // 299000000
+					PkScript: []byte{
+						0x76, // OP_DUP
+						0xa9, // OP_HASH160
+						0x14, // OP_DATA_20
+						0x6b, 0x12, 0x81, 0xee, 0xc2, 0x5a, 0xb4, 0xe1,
+						0xe0, 0x79, 0x3f, 0xf4, 0xe0, 0x8a, 0xb1, 0xab,
+						0xb3, 0x40, 0x9c, 0xd9,
+						0x88, // OP_EQUALVERIFY
+						0xac, // OP_CHECKSIG
+					},
+				},
+			},
+			LockTime: 0,
+		},
+		{
+			Version: 1,
+			TxIn: []*wire.TxIn{
+				{
+					PreviousOutPoint: wire.OutPoint{
+						Hash: chainhash.Hash([32]byte{ // Make go vet happy.
+							0x0b, 0x60, 0x72, 0xb3, 0x86, 0xd4, 0xa7, 0x73,
+							0x23, 0x52, 0x37, 0xf6, 0x4c, 0x11, 0x26, 0xac,
+							0x3b, 0x24, 0x0c, 0x84, 0xb9, 0x17, 0xa3, 0x90,
+							0x9b, 0xa1, 0xc4, 0x3d, 0xed, 0x5f, 0x51, 0xf4,
+						}), // f4515fed3dc4a19b90a317b9840c243bac26114cf637522373a7d486b372600b
+						Index: 0,
+					},
+					SignatureScript: []byte{
+						0x49, // OP_DATA_73
+						0x30, 0x46, 0x02, 0x21, 0x00, 0xbb, 0x1a, 0xd2,
+						0x6d, 0xf9, 0x30, 0xa5, 0x1c, 0xce, 0x11, 0x0c,
+						0xf4, 0x4f, 0x7a, 0x48, 0xc3, 0xc5, 0x61, 0xfd,
+						0x97, 0x75, 0x00, 0xb1, 0xae, 0x5d, 0x6b, 0x6f,
+						0xd1, 0x3d, 0x0b, 0x3f, 0x4a, 0x02, 0x21, 0x00,
+						0xc5, 0xb4, 0x29, 0x51, 0xac, 0xed, 0xff, 0x14,
+						0xab, 0xba, 0x27, 0x36, 0xfd, 0x57, 0x4b, 0xdb,
+						0x46, 0x5f, 0x3e, 0x6f, 0x8d, 0xa1, 0x2e, 0x2c,
+						0x53, 0x03, 0x95, 0x4a, 0xca, 0x7f, 0x78, 0xf3,
+						0x01, // 73-byte signature
+						0x41, // OP_DATA_65
+						0x04, 0xa7, 0x13, 0x5b, 0xfe, 0x82, 0x4c, 0x97,
+						0xec, 0xc0, 0x1e, 0xc7, 0xd7, 0xe3, 0x36, 0x18,
+						0x5c, 0x81, 0xe2, 0xaa, 0x2c, 0x41, 0xab, 0x17,
+						0x54, 0x07, 0xc0, 0x94, 0x84, 0xce, 0x96, 0x94,
+						0xb4, 0x49, 0x53, 0xfc, 0xb7, 0x51, 0x20, 0x65,
+						0x64, 0xa9, 0xc2, 0x4d, 0xd0, 0x94, 0xd4, 0x2f,
+						0xdb, 0xfd, 0xd5, 0xaa, 0xd3, 0xe0, 0x63, 0xce,
+						0x6a, 0xf4, 0xcf, 0xaa, 0xea, 0x4e, 0xa1, 0x4f,
+						0xbb, // 65-byte pubkey
+					},
+					Sequence: 0xffffffff,
+				},
+			},
+			TxOut: []*wire.TxOut{
+				{
+					Value: 0xf4240, // 1000000
+					PkScript: []byte{
+						0x76, // OP_DUP
+						0xa9, // OP_HASH160
+						0x14, // OP_DATA_20
+						0x39, 0xaa, 0x3d, 0x56, 0x9e, 0x06, 0xa1, 0xd7,
+						0x92, 0x6d, 0xc4, 0xbe, 0x11, 0x93, 0xc9, 0x9b,
+						0xf2, 0xeb, 0x9e, 0xe0,
+						0x88, // OP_EQUALVERIFY
+						0xac, // OP_CHECKSIG
+					},
+				},
+			},
+			LockTime: 0,
+		},
+	},
 }

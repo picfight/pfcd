@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -193,22 +192,6 @@ func readElement(r io.Reader, element interface{}) error {
 	// Attempt to read the element based on the concrete type via fast
 	// type assertions first.
 	switch e := element.(type) {
-	case *uint8:
-		rv, err := binarySerializer.Uint8(r)
-		if err != nil {
-			return err
-		}
-		*e = rv
-		return nil
-
-	case *uint16:
-		rv, err := binarySerializer.Uint16(r, littleEndian)
-		if err != nil {
-			return err
-		}
-		*e = rv
-		return nil
-
 	case *int32:
 		rv, err := binarySerializer.Uint32(r, littleEndian)
 		if err != nil {
@@ -279,13 +262,6 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		return nil
 
-	case *[6]byte:
-		_, err := io.ReadFull(r, e[:])
-		if err != nil {
-			return err
-		}
-		return nil
-
 	// Message header command.
 	case *[CommandSize]uint8:
 		_, err := io.ReadFull(r, e[:])
@@ -296,13 +272,6 @@ func readElement(r io.Reader, element interface{}) error {
 
 	// IP address.
 	case *[16]byte:
-		_, err := io.ReadFull(r, e[:])
-		if err != nil {
-			return err
-		}
-		return nil
-
-	case *[32]byte:
 		_, err := io.ReadFull(r, e[:])
 		if err != nil {
 			return err
@@ -332,12 +301,20 @@ func readElement(r io.Reader, element interface{}) error {
 		*e = InvType(rv)
 		return nil
 
-	case *CurrencyNet:
+	case *BitcoinNet:
 		rv, err := binarySerializer.Uint32(r, littleEndian)
 		if err != nil {
 			return err
 		}
-		*e = CurrencyNet(rv)
+		*e = BitcoinNet(rv)
+		return nil
+
+	case *BloomUpdateType:
+		rv, err := binarySerializer.Uint8(r)
+		if err != nil {
+			return err
+		}
+		*e = BloomUpdateType(rv)
 		return nil
 
 	case *RejectCode:
@@ -456,8 +433,15 @@ func writeElement(w io.Writer, element interface{}) error {
 		}
 		return nil
 
-	case CurrencyNet:
+	case BitcoinNet:
 		err := binarySerializer.PutUint32(w, littleEndian, uint32(e))
+		if err != nil {
+			return err
+		}
+		return nil
+
+	case BloomUpdateType:
+		err := binarySerializer.PutUint8(w, uint8(e))
 		if err != nil {
 			return err
 		}
@@ -647,7 +631,7 @@ func WriteVarString(w io.Writer, pver uint32, str string) error {
 // as a varInt containing the length of the array followed by the bytes
 // themselves.  An error is returned if the length is greater than the
 // passed maxAllowed parameter which helps protect against memory exhaustion
-// attacks and forced panics thorugh malformed messages.  The fieldName
+// attacks and forced panics through malformed messages.  The fieldName
 // parameter is only used for the error message so it provides more context in
 // the error.
 func ReadVarBytes(r io.Reader, pver uint32, maxAllowed uint32,

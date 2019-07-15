@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2017 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
+// Copyright (c) 2017 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,18 +10,20 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/decred/slog"
-	"github.com/jrick/logrotate/rotator"
 	"github.com/picfight/pfcd/addrmgr"
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/connmgr"
 	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/fees"
 	"github.com/picfight/pfcd/mempool"
+	"github.com/picfight/pfcd/mining"
+	"github.com/picfight/pfcd/mining/cpuminer"
+	"github.com/picfight/pfcd/netsync"
 	"github.com/picfight/pfcd/peer"
 	"github.com/picfight/pfcd/txscript"
+
+	"github.com/btcsuite/btclog"
+	"github.com/jrick/logrotate/rotator"
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and
@@ -30,9 +32,7 @@ type logWriter struct{}
 
 func (logWriter) Write(p []byte) (n int, err error) {
 	os.Stdout.Write(p)
-	if logRotator != nil {
-		logRotator.Write(p)
-	}
+	logRotator.Write(p)
 	return len(p), nil
 }
 
@@ -48,7 +48,7 @@ var (
 	// backendLog is the logging backend used to create all subsystem loggers.
 	// The backend must not be used before the log rotator has been initialized,
 	// or data races and/or nil pointer dereferences will occur.
-	backendLog = slog.NewBackend(logWriter{})
+	backendLog = btclog.NewBackend(logWriter{})
 
 	// logRotator is one of the logging outputs.  It should be closed on
 	// application shutdown.
@@ -56,55 +56,52 @@ var (
 
 	adxrLog = backendLog.Logger("ADXR")
 	amgrLog = backendLog.Logger("AMGR")
-	bcdbLog = backendLog.Logger("BCDB")
-	bmgrLog = backendLog.Logger("BMGR")
-	chanLog = backendLog.Logger("CHAN")
 	cmgrLog = backendLog.Logger("CMGR")
-	pfcdLog = backendLog.Logger("PFCD")
+	bcdbLog = backendLog.Logger("BCDB")
+	btcdLog = backendLog.Logger("PFCD")
+	chanLog = backendLog.Logger("CHAN")
 	discLog = backendLog.Logger("DISC")
-	feesLog = backendLog.Logger("FEES")
 	indxLog = backendLog.Logger("INDX")
 	minrLog = backendLog.Logger("MINR")
 	peerLog = backendLog.Logger("PEER")
 	rpcsLog = backendLog.Logger("RPCS")
 	scrpLog = backendLog.Logger("SCRP")
 	srvrLog = backendLog.Logger("SRVR")
-	stkeLog = backendLog.Logger("STKE")
+	syncLog = backendLog.Logger("SYNC")
 	txmpLog = backendLog.Logger("TXMP")
 )
 
 // Initialize package-global logger variables.
 func init() {
 	addrmgr.UseLogger(amgrLog)
-	blockchain.UseLogger(chanLog)
 	connmgr.UseLogger(cmgrLog)
 	database.UseLogger(bcdbLog)
-	fees.UseLogger(feesLog)
+	blockchain.UseLogger(chanLog)
 	indexers.UseLogger(indxLog)
-	mempool.UseLogger(txmpLog)
+	mining.UseLogger(minrLog)
+	cpuminer.UseLogger(minrLog)
 	peer.UseLogger(peerLog)
-	stake.UseLogger(stkeLog)
 	txscript.UseLogger(scrpLog)
+	netsync.UseLogger(syncLog)
+	mempool.UseLogger(txmpLog)
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
-var subsystemLoggers = map[string]slog.Logger{
+var subsystemLoggers = map[string]btclog.Logger{
 	"ADXR": adxrLog,
 	"AMGR": amgrLog,
-	"BCDB": bcdbLog,
-	"BMGR": bmgrLog,
-	"CHAN": chanLog,
 	"CMGR": cmgrLog,
-	"PFCD": pfcdLog,
+	"BCDB": bcdbLog,
+	"PFCD": btcdLog,
+	"CHAN": chanLog,
 	"DISC": discLog,
-	"FEES": feesLog,
 	"INDX": indxLog,
 	"MINR": minrLog,
 	"PEER": peerLog,
 	"RPCS": rpcsLog,
 	"SCRP": scrpLog,
 	"SRVR": srvrLog,
-	"STKE": stkeLog,
+	"SYNC": syncLog,
 	"TXMP": txmpLog,
 }
 
@@ -138,7 +135,7 @@ func setLogLevel(subsystemID string, logLevel string) {
 	}
 
 	// Defaults to info if the log level is invalid.
-	level, _ := slog.LevelFromString(logLevel)
+	level, _ := btclog.LevelFromString(logLevel)
 	logger.SetLevel(level)
 }
 
@@ -162,12 +159,11 @@ func directionString(inbound bool) string {
 	return "outbound"
 }
 
-// fatalf logs a string, then cleanly exits.
-func fatalf(str string) {
-	pfcdLog.Errorf("Unable to create profiler: %v", str)
-	os.Stdout.Sync()
-	if logRotator != nil {
-		logRotator.Close()
+// pickNoun returns the singular or plural form of a noun depending
+// on the count n.
+func pickNoun(n uint64, singular, plural string) string {
+	if n == 1 {
+		return singular
 	}
-	os.Exit(1)
+	return plural
 }

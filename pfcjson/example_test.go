@@ -1,13 +1,14 @@
 // Copyright (c) 2014 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package pfcjson
+package pfcjson_test
 
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/picfight/pfcd/pfcjson"
 )
 
 // This example demonstrates how to create and marshal a command into a JSON-RPC
@@ -16,17 +17,17 @@ func ExampleMarshalCmd() {
 	// Create a new getblock command.  Notice the nil parameter indicates
 	// to use the default parameter for that fields.  This is a common
 	// pattern used in all of the New<Foo>Cmd functions in this package for
-	// optional fields.  Also, notice the call to Bool which is a
+	// optional fields.  Also, notice the call to pfcjson.Bool which is a
 	// convenience function for creating a pointer out of a primitive for
 	// optional parameters.
 	blockHash := "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
-	gbCmd := NewGetBlockCmd(blockHash, Bool(false), nil)
+	gbCmd := pfcjson.NewGetBlockCmd(blockHash, pfcjson.Bool(false), nil)
 
 	// Marshal the command to the format suitable for sending to the RPC
 	// server.  Typically the client would increment the id here which is
 	// request so the response can be identified.
 	id := 1
-	marshalledBytes, err := MarshalCmd("1.0", id, gbCmd)
+	marshalledBytes, err := pfcjson.MarshalCmd(id, gbCmd)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -48,7 +49,7 @@ func ExampleUnmarshalCmd() {
 	data := []byte(`{"jsonrpc":"1.0","method":"getblock","params":["000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",false],"id":1}`)
 
 	// Unmarshal the raw bytes from the wire into a JSON-RPC request.
-	var request Request
+	var request pfcjson.Request
 	if err := json.Unmarshal(data, &request); err != nil {
 		fmt.Println(err)
 		return
@@ -68,14 +69,14 @@ func ExampleUnmarshalCmd() {
 	}
 
 	// Unmarshal the request into a concrete command.
-	cmd, err := UnmarshalCmd(&request)
+	cmd, err := pfcjson.UnmarshalCmd(&request)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Type assert the command to the appropriate type.
-	gbCmd, ok := cmd.(*GetBlockCmd)
+	gbCmd, ok := cmd.(*pfcjson.GetBlockCmd)
 	if !ok {
 		fmt.Printf("Incorrect command type: %T\n", cmd)
 		return
@@ -96,7 +97,7 @@ func ExampleUnmarshalCmd() {
 func ExampleMarshalResponse() {
 	// Marshal a new JSON-RPC response.  For example, this is a response
 	// to a getblockheight request.
-	marshalledBytes, err := MarshalResponse("1.0", 1, 350001, nil)
+	marshalledBytes, err := pfcjson.MarshalResponse(1, 350001, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -108,7 +109,7 @@ func ExampleMarshalResponse() {
 	fmt.Printf("%s\n", marshalledBytes)
 
 	// Output:
-	// {"jsonrpc":"1.0","result":350001,"error":null,"id":1}
+	// {"result":350001,"error":null,"id":1}
 }
 
 // This example demonstrates how to unmarshal a JSON-RPC response and then
@@ -120,7 +121,7 @@ func Example_unmarshalResponse() {
 	data := []byte(`{"result":350001,"error":null,"id":1}`)
 
 	// Unmarshal the raw bytes from the wire into a JSON-RPC response.
-	var response Response
+	var response pfcjson.Response
 	if err := json.Unmarshal(data, &response); err != nil {
 		fmt.Println("Malformed JSON-RPC response:", err)
 		return

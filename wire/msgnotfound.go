@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2015 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,7 +9,7 @@ import (
 	"io"
 )
 
-// MsgNotFound defines a PicFight notfound message which is sent in response to
+// MsgNotFound defines a bitcoin notfound message which is sent in response to
 // a getdata message if any of the requested data in not available on the peer.
 // Each message is limited to a maximum number of inventory vectors, which is
 // currently 50,000.
@@ -33,9 +32,9 @@ func (msg *MsgNotFound) AddInvVect(iv *InvVect) error {
 	return nil
 }
 
-// BtcDecode decodes r using the PicFight protocol encoding into the receiver.
+// PfcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgNotFound) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgNotFound) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
 	count, err := ReadVarInt(r, pver)
 	if err != nil {
 		return err
@@ -44,7 +43,7 @@ func (msg *MsgNotFound) BtcDecode(r io.Reader, pver uint32) error {
 	// Limit to max inventory vectors per message.
 	if count > MaxInvPerMsg {
 		str := fmt.Sprintf("too many invvect in message [%v]", count)
-		return messageError("MsgNotFound.BtcDecode", str)
+		return messageError("MsgNotFound.PfcDecode", str)
 	}
 
 	// Create a contiguous slice of inventory vectors to deserialize into in
@@ -63,9 +62,9 @@ func (msg *MsgNotFound) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the PicFight protocol encoding.
+// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgNotFound) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgNotFound) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	// Limit to max inventory vectors per message.
 	count := len(msg.InvList)
 	if count > MaxInvPerMsg {
@@ -102,7 +101,7 @@ func (msg *MsgNotFound) MaxPayloadLength(pver uint32) uint32 {
 	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
 }
 
-// NewMsgNotFound returns a new PicFight notfound message that conforms to the
+// NewMsgNotFound returns a new bitcoin notfound message that conforms to the
 // Message interface.  See MsgNotFound for details.
 func NewMsgNotFound() *MsgNotFound {
 	return &MsgNotFound{

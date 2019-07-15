@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2016 The btcsuite developers
+// Copyright (c) 2013-2018 The btcsuite developers
 // Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
@@ -28,10 +28,18 @@ import (
 
 const (
 	// MaxProtocolVersion is the max protocol version the peer supports.
-	MaxProtocolVersion = wire.NodeCFVersion
+	MaxProtocolVersion = wire.FeeFilterVersion
+
+	// DefaultTrickleInterval is the min time between attempts to send an
+	// inv message to a peer.
+	DefaultTrickleInterval = 10 * time.Second
+
+	// MinAcceptableProtocolVersion is the lowest protocol version that a
+	// connected peer may support.
+	MinAcceptableProtocolVersion = wire.MultipleAddressVersion
 
 	// outputBufferSize is the number of elements the output channels use.
-	outputBufferSize = 5000
+	outputBufferSize = 50
 
 	// invTrickleSize is the maximum amount of inventory to send in a single
 	// message when trickling inventory to remote peers.
@@ -61,10 +69,6 @@ const (
 	// stalling.  The deadlines are adjusted for callback running times and
 	// only checked on each stall tick interval.
 	stallResponseTimeout = 30 * time.Second
-
-	// trickleTimeout is the duration of the ticker which trickles down the
-	// inventory to a peer.
-	trickleTimeout = 500 * time.Millisecond
 )
 
 var (
@@ -78,7 +82,7 @@ var (
 
 	// sentNonces houses the unique nonces that are generated when pushing
 	// version messages that are used to detect self connections.
-	sentNonces = newLruNonceCache(50)
+	sentNonces = newMruNonceMap(50)
 
 	// allowSelfConns is only used to allow the tests to bypass the self
 	// connection detecting and disconnect logic since they intentionally
@@ -96,104 +100,117 @@ var (
 // handler goroutine blocks until the callback has completed.  Doing so will
 // result in a deadlock.
 type MessageListeners struct {
-	// OnGetAddr is invoked when a peer receives a getaddr wire message.
+	// OnGetAddr is invoked when a peer receives a getaddr bitcoin message.
 	OnGetAddr func(p *Peer, msg *wire.MsgGetAddr)
 
-	// OnAddr is invoked when a peer receives an addr wire message.
+	// OnAddr is invoked when a peer receives an addr bitcoin message.
 	OnAddr func(p *Peer, msg *wire.MsgAddr)
 
-	// OnPing is invoked when a peer receives a ping wire message.
+	// OnPing is invoked when a peer receives a ping bitcoin message.
 	OnPing func(p *Peer, msg *wire.MsgPing)
 
-	// OnPong is invoked when a peer receives a pong wire message.
+	// OnPong is invoked when a peer receives a pong bitcoin message.
 	OnPong func(p *Peer, msg *wire.MsgPong)
 
-	// OnMemPool is invoked when a peer receives a mempool wire message.
+	// OnAlert is invoked when a peer receives an alert bitcoin message.
+	OnAlert func(p *Peer, msg *wire.MsgAlert)
+
+	// OnMemPool is invoked when a peer receives a mempool bitcoin message.
 	OnMemPool func(p *Peer, msg *wire.MsgMemPool)
 
-	// OnGetMiningState is invoked when a peer receives a getminings wire
-	// message.
-	OnGetMiningState func(p *Peer, msg *wire.MsgGetMiningState)
-
-	// OnMiningState is invoked when a peer receives a miningstate wire
-	// message.
-	OnMiningState func(p *Peer, msg *wire.MsgMiningState)
-
-	// OnTx is invoked when a peer receives a tx wire message.
+	// OnTx is invoked when a peer receives a tx bitcoin message.
 	OnTx func(p *Peer, msg *wire.MsgTx)
 
-	// OnBlock is invoked when a peer receives a block wire message.
+	// OnBlock is invoked when a peer receives a block bitcoin message.
 	OnBlock func(p *Peer, msg *wire.MsgBlock, buf []byte)
 
-	// OnCFilter is invoked when a peer receives a cfilter wire message.
+	// OnCFilter is invoked when a peer receives a cfilter bitcoin message.
 	OnCFilter func(p *Peer, msg *wire.MsgCFilter)
 
-	// OnCFHeaders is invoked when a peer receives a cfheaders wire
+	// OnCFHeaders is invoked when a peer receives a cfheaders bitcoin
 	// message.
 	OnCFHeaders func(p *Peer, msg *wire.MsgCFHeaders)
 
-	// OnCFTypes is invoked when a peer receives a cftypes wire message.
-	OnCFTypes func(p *Peer, msg *wire.MsgCFTypes)
+	// OnCFCheckpt is invoked when a peer receives a cfcheckpt bitcoin
+	// message.
+	OnCFCheckpt func(p *Peer, msg *wire.MsgCFCheckpt)
 
-	// OnInv is invoked when a peer receives an inv wire message.
+	// OnInv is invoked when a peer receives an inv bitcoin message.
 	OnInv func(p *Peer, msg *wire.MsgInv)
 
-	// OnHeaders is invoked when a peer receives a headers wire message.
+	// OnHeaders is invoked when a peer receives a headers bitcoin message.
 	OnHeaders func(p *Peer, msg *wire.MsgHeaders)
 
-	// OnNotFound is invoked when a peer receives a notfound wire message.
+	// OnNotFound is invoked when a peer receives a notfound bitcoin
+	// message.
 	OnNotFound func(p *Peer, msg *wire.MsgNotFound)
 
-	// OnGetData is invoked when a peer receives a getdata wire message.
+	// OnGetData is invoked when a peer receives a getdata bitcoin message.
 	OnGetData func(p *Peer, msg *wire.MsgGetData)
 
-	// OnGetBlocks is invoked when a peer receives a getblocks wire message.
+	// OnGetBlocks is invoked when a peer receives a getblocks bitcoin
+	// message.
 	OnGetBlocks func(p *Peer, msg *wire.MsgGetBlocks)
 
-	// OnGetHeaders is invoked when a peer receives a getheaders wire
+	// OnGetHeaders is invoked when a peer receives a getheaders bitcoin
 	// message.
 	OnGetHeaders func(p *Peer, msg *wire.MsgGetHeaders)
 
-	// OnGetCFilter is invoked when a peer receives a getcfilter wire
+	// OnGetCFilters is invoked when a peer receives a getcfilters bitcoin
 	// message.
-	OnGetCFilter func(p *Peer, msg *wire.MsgGetCFilter)
+	OnGetCFilters func(p *Peer, msg *wire.MsgGetCFilters)
 
 	// OnGetCFHeaders is invoked when a peer receives a getcfheaders
-	// wire message.
+	// bitcoin message.
 	OnGetCFHeaders func(p *Peer, msg *wire.MsgGetCFHeaders)
 
-	// OnGetCFTypes is invoked when a peer receives a getcftypes wire
-	// message.
-	OnGetCFTypes func(p *Peer, msg *wire.MsgGetCFTypes)
+	// OnGetCFCheckpt is invoked when a peer receives a getcfcheckpt
+	// bitcoin message.
+	OnGetCFCheckpt func(p *Peer, msg *wire.MsgGetCFCheckpt)
 
-	// OnFeeFilter is invoked when a peer receives a feefilter wire message.
+	// OnFeeFilter is invoked when a peer receives a feefilter bitcoin message.
 	OnFeeFilter func(p *Peer, msg *wire.MsgFeeFilter)
 
-	// OnVersion is invoked when a peer receives a version wire message.
+	// OnFilterAdd is invoked when a peer receives a filteradd bitcoin message.
+	OnFilterAdd func(p *Peer, msg *wire.MsgFilterAdd)
+
+	// OnFilterClear is invoked when a peer receives a filterclear bitcoin
+	// message.
+	OnFilterClear func(p *Peer, msg *wire.MsgFilterClear)
+
+	// OnFilterLoad is invoked when a peer receives a filterload bitcoin
+	// message.
+	OnFilterLoad func(p *Peer, msg *wire.MsgFilterLoad)
+
+	// OnMerkleBlock  is invoked when a peer receives a merkleblock bitcoin
+	// message.
+	OnMerkleBlock func(p *Peer, msg *wire.MsgMerkleBlock)
+
+	// OnVersion is invoked when a peer receives a version bitcoin message.
 	// The caller may return a reject message in which case the message will
 	// be sent to the peer and the peer will be disconnected.
 	OnVersion func(p *Peer, msg *wire.MsgVersion) *wire.MsgReject
 
-	// OnVerAck is invoked when a peer receives a verack wire message.
+	// OnVerAck is invoked when a peer receives a verack bitcoin message.
 	OnVerAck func(p *Peer, msg *wire.MsgVerAck)
 
-	// OnReject is invoked when a peer receives a reject wire message.
+	// OnReject is invoked when a peer receives a reject bitcoin message.
 	OnReject func(p *Peer, msg *wire.MsgReject)
 
-	// OnSendHeaders is invoked when a peer receives a sendheaders wire
+	// OnSendHeaders is invoked when a peer receives a sendheaders bitcoin
 	// message.
 	OnSendHeaders func(p *Peer, msg *wire.MsgSendHeaders)
 
-	// OnRead is invoked when a peer receives a wire message.  It consists
-	// of the number of bytes read, the message, and whether or not an error
-	// in the read occurred.  Typically, callers will opt to use the
-	// callbacks for the specific message types, however this can be useful
-	// for circumstances such as keeping track of server-wide byte counts or
-	// working with custom message types for which the peer does not
-	// directly provide a callback.
+	// OnRead is invoked when a peer receives a bitcoin message.  It
+	// consists of the number of bytes read, the message, and whether or not
+	// an error in the read occurred.  Typically, callers will opt to use
+	// the callbacks for the specific message types, however this can be
+	// useful for circumstances such as keeping track of server-wide byte
+	// counts or working with custom message types for which the peer does
+	// not directly provide a callback.
 	OnRead func(p *Peer, bytesRead int, msg wire.Message, err error)
 
-	// OnWrite is invoked when we write a wire message to a peer.  It
+	// OnWrite is invoked when we write a bitcoin message to a peer.  It
 	// consists of the number of bytes written, the message, and whether or
 	// not an error in the write occurred.  This can be useful for
 	// circumstances such as keeping track of server-wide byte counts.
@@ -227,10 +244,9 @@ type Config struct {
 	// form "major.minor.revision" e.g. "2.6.41".
 	UserAgentVersion string
 
-	// UserAgentComments specifies any additional comments to include the in
-	// user agent to advertise.  This is optional, so it may be nil.  If
-	// specified, the comments should only exist of characters from the
-	// semantic alphabet [a-zA-Z0-9-].
+	// UserAgentComments specify the user agent comments to advertise.  These
+	// values must not contain the illegal characters specified in BIP 14:
+	// '/', ':', '(', ')'.
 	UserAgentComments []string
 
 	// ChainParams identifies which chain parameters the peer is associated
@@ -255,6 +271,10 @@ type Config struct {
 	// Listeners houses callback functions to be invoked on receiving peer
 	// messages.
 	Listeners MessageListeners
+
+	// TrickleInterval is the duration of the ticker which trickles down the
+	// inventory to a peer.
+	TrickleInterval time.Duration
 }
 
 // minUint32 is a helper function to return the minimum of two uint32s.
@@ -267,7 +287,8 @@ func minUint32(a, b uint32) uint32 {
 }
 
 // newNetAddress attempts to extract the IP address and port from the passed
-// net.Addr interface and create a NetAddress structure using that information.
+// net.Addr interface and create a bitcoin NetAddress structure using that
+// information.
 func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, error) {
 	// addr will be a net.TCPAddr when not using a proxy.
 	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
@@ -310,6 +331,7 @@ func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, 
 type outMsg struct {
 	msg      wire.Message
 	doneChan chan<- struct{}
+	encoding wire.MessageEncoding
 }
 
 // stallControlCmd represents the command of a stall control message.
@@ -352,8 +374,8 @@ type StatsSnap struct {
 	Version        uint32
 	UserAgent      string
 	Inbound        bool
-	StartingHeight int64
-	LastBlock      int64
+	StartingHeight int32
+	LastBlock      int32
 	LastPingNonce  uint64
 	LastPingTime   time.Time
 	LastPingMicros int64
@@ -361,7 +383,7 @@ type StatsSnap struct {
 
 // HashFunc is a function which returns a block hash, height and error
 // It is used as a callback to get newest block details.
-type HashFunc func() (hash *chainhash.Hash, height int64, err error)
+type HashFunc func() (hash *chainhash.Hash, height int32, err error)
 
 // AddrFunc is a func which takes an address and returns a related address.
 type AddrFunc func(remoteAddr *wire.NetAddress) *wire.NetAddress
@@ -382,13 +404,13 @@ type HostToNetAddrFunc func(host string, port uint16,
 // It acts as the traffic cop between the external world and the actual
 // goroutine which writes to the network socket.
 
-// Peer provides a basic concurrent safe PicFight peer for handling picfight
+// Peer provides a basic concurrent safe bitcoin peer for handling bitcoin
 // communications via the peer-to-peer protocol.  It provides full duplex
 // reading and writing, automatic handling of the initial handshake process,
 // querying of usage statistics and other information about the remote peer such
 // as its address, user agent, and protocol version, output message queuing,
 // inventory trickling, and the ability to dynamically register and unregister
-// callbacks for handling PicFight protocol messages.
+// callbacks for handling bitcoin protocol messages.
 //
 // Outbound messages are typically queued via QueueMessage or QueueInventory.
 // QueueMessage is intended for all messages, including responses to data such
@@ -423,10 +445,12 @@ type Peer struct {
 	advertisedProtoVer   uint32 // protocol version advertised by remote
 	protocolVersion      uint32 // negotiated protocol version
 	sendHeadersPreferred bool   // peer sent a sendheaders message
-	versionSent          bool
 	verAckReceived       bool
+	witnessEnabled       bool
 
-	knownInventory     *lruInventoryCache
+	wireEncoding wire.MessageEncoding
+
+	knownInventory     *mruInventoryMap
 	prevGetBlocksMtx   sync.Mutex
 	prevGetBlocksBegin *chainhash.Hash
 	prevGetBlocksStop  *chainhash.Hash
@@ -439,8 +463,8 @@ type Peer struct {
 	statsMtx           sync.RWMutex
 	timeOffset         int64
 	timeConnected      time.Time
-	startingHeight     int64
-	lastBlock          int64
+	startingHeight     int32
+	lastBlock          int32
 	lastAnnouncedBlock *chainhash.Hash
 	lastPingNonce      uint64    // Set to nonce if we have a pending ping.
 	lastPingTime       time.Time // Time we sent last ping.
@@ -468,7 +492,7 @@ func (p *Peer) String() string {
 // UpdateLastBlockHeight updates the last known block for the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) UpdateLastBlockHeight(newHeight int64) {
+func (p *Peer) UpdateLastBlockHeight(newHeight int32) {
 	p.statsMtx.Lock()
 	log.Tracef("Updating last block height of peer %v from %v to %v",
 		p.addr, p.lastBlock, newHeight)
@@ -677,7 +701,7 @@ func (p *Peer) ProtocolVersion() uint32 {
 // LastBlock returns the last block of the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) LastBlock() int64 {
+func (p *Peer) LastBlock() int32 {
 	p.statsMtx.RLock()
 	lastBlock := p.lastBlock
 	p.statsMtx.RUnlock()
@@ -704,7 +728,7 @@ func (p *Peer) LastRecv() time.Time {
 // This function is safe fo concurrent access.
 func (p *Peer) LocalAddr() net.Addr {
 	var localAddr net.Addr
-	if p.Connected() {
+	if atomic.LoadInt32(&p.connected) != 0 {
 		localAddr = p.conn.LocalAddr()
 	}
 	return localAddr
@@ -752,7 +776,7 @@ func (p *Peer) TimeOffset() int64 {
 // initial negotiation phase.
 //
 // This function is safe for concurrent access.
-func (p *Peer) StartingHeight() int64 {
+func (p *Peer) StartingHeight() int32 {
 	p.statsMtx.RLock()
 	startingHeight := p.startingHeight
 	p.statsMtx.RUnlock()
@@ -772,6 +796,18 @@ func (p *Peer) WantsHeaders() bool {
 	return sendHeadersPreferred
 }
 
+// IsWitnessEnabled returns true if the peer has signalled that it supports
+// segregated witness.
+//
+// This function is safe for concurrent access.
+func (p *Peer) IsWitnessEnabled() bool {
+	p.flagsMtx.Lock()
+	witnessEnabled := p.witnessEnabled
+	p.flagsMtx.Unlock()
+
+	return witnessEnabled
+}
+
 // PushAddrMsg sends an addr message to the connected peer using the provided
 // addresses.  This function is useful over manually sending the message via
 // QueueMessage since it automatically limits the addresses to the maximum
@@ -781,21 +817,22 @@ func (p *Peer) WantsHeaders() bool {
 //
 // This function is safe for concurrent access.
 func (p *Peer) PushAddrMsg(addresses []*wire.NetAddress) ([]*wire.NetAddress, error) {
+	addressCount := len(addresses)
 
 	// Nothing to send.
-	if len(addresses) == 0 {
+	if addressCount == 0 {
 		return nil, nil
 	}
 
 	msg := wire.NewMsgAddr()
-	msg.AddrList = make([]*wire.NetAddress, len(addresses))
+	msg.AddrList = make([]*wire.NetAddress, addressCount)
 	copy(msg.AddrList, addresses)
 
 	// Randomize the addresses sent if there are more than the maximum allowed.
-	if len(msg.AddrList) > wire.MaxAddrPerMsg {
+	if addressCount > wire.MaxAddrPerMsg {
 		// Shuffle the address list.
-		for i := range msg.AddrList {
-			j := rand.Intn(i + 1)
+		for i := 0; i < wire.MaxAddrPerMsg; i++ {
+			j := i + rand.Intn(addressCount-i)
 			msg.AddrList[i], msg.AddrList[j] = msg.AddrList[j], msg.AddrList[i]
 		}
 
@@ -903,6 +940,12 @@ func (p *Peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *chai
 //
 // This function is safe for concurrent access.
 func (p *Peer) PushRejectMsg(command string, code wire.RejectCode, reason string, hash *chainhash.Hash, wait bool) {
+	// Don't bother sending the reject message if the protocol version
+	// is too low.
+	if p.VersionKnown() && p.ProtocolVersion() < wire.RejectVersion {
+		return
+	}
+
 	msg := wire.NewMsgReject(command, code, reason)
 	if command == wire.CmdTx || command == wire.CmdBlock {
 		if hash == nil {
@@ -926,16 +969,19 @@ func (p *Peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 	<-doneChan
 }
 
-// handlePingMsg is invoked when a peer receives a ping wire message.  For
+// handlePingMsg is invoked when a peer receives a ping bitcoin message.  For
 // recent clients (protocol version > BIP0031Version), it replies with a pong
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
 func (p *Peer) handlePingMsg(msg *wire.MsgPing) {
-	// Include nonce from ping so pong can be identified.
-	p.QueueMessage(wire.NewMsgPong(msg.Nonce), nil)
+	// Only reply with pong if the message is from a new enough client.
+	if p.ProtocolVersion() > wire.BIP0031Version {
+		// Include nonce from ping so pong can be identified.
+		p.QueueMessage(wire.NewMsgPong(msg.Nonce), nil)
+	}
 }
 
-// handlePongMsg is invoked when a peer receives a pong wire message.  It
+// handlePongMsg is invoked when a peer receives a pong bitcoin message.  It
 // updates the ping statistics as required for recent clients (protocol
 // version > BIP0031Version).  There is no effect for older clients or when a
 // ping was not previously sent.
@@ -947,19 +993,21 @@ func (p *Peer) handlePongMsg(msg *wire.MsgPong) {
 	// and overlapping pings will be ignored. It is unlikely to occur
 	// without large usage of the ping rpc call since we ping infrequently
 	// enough that if they overlap we would have timed out the peer.
-	p.statsMtx.Lock()
-	if p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
-		p.lastPingMicros = time.Since(p.lastPingTime).Nanoseconds()
-		p.lastPingMicros /= 1000 // convert to usec.
-		p.lastPingNonce = 0
+	if p.ProtocolVersion() > wire.BIP0031Version {
+		p.statsMtx.Lock()
+		if p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
+			p.lastPingMicros = time.Since(p.lastPingTime).Nanoseconds()
+			p.lastPingMicros /= 1000 // convert to usec.
+			p.lastPingNonce = 0
+		}
+		p.statsMtx.Unlock()
 	}
-	p.statsMtx.Unlock()
 }
 
-// readMessage reads the next wire message from the peer with logging.
-func (p *Peer) readMessage() (wire.Message, []byte, error) {
-	n, msg, buf, err := wire.ReadMessageN(p.conn, p.ProtocolVersion(),
-		p.cfg.ChainParams.Net)
+// readMessage reads the next bitcoin message from the peer with logging.
+func (p *Peer) readMessage(encoding wire.MessageEncoding) (wire.Message, []byte, error) {
+	n, msg, buf, err := wire.ReadMessageWithEncodingN(p.conn,
+		p.ProtocolVersion(), p.cfg.ChainParams.Net, encoding)
 	atomic.AddUint64(&p.bytesReceived, uint64(n))
 	if p.cfg.Listeners.OnRead != nil {
 		p.cfg.Listeners.OnRead(p, n, msg, err)
@@ -989,8 +1037,8 @@ func (p *Peer) readMessage() (wire.Message, []byte, error) {
 	return msg, buf, nil
 }
 
-// writeMessage sends a wire message to the peer with logging.
-func (p *Peer) writeMessage(msg wire.Message) error {
+// writeMessage sends a bitcoin message to the peer with logging.
+func (p *Peer) writeMessage(msg wire.Message, enc wire.MessageEncoding) error {
 	// Don't do anything if we're disconnecting.
 	if atomic.LoadInt32(&p.disconnect) != 0 {
 		return nil
@@ -1012,8 +1060,8 @@ func (p *Peer) writeMessage(msg wire.Message) error {
 	}))
 	log.Tracef("%v", newLogClosure(func() string {
 		var buf bytes.Buffer
-		err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
-			p.cfg.ChainParams.Net)
+		_, err := wire.WriteMessageWithEncodingN(&buf, msg, p.ProtocolVersion(),
+			p.cfg.ChainParams.Net, enc)
 		if err != nil {
 			return err.Error()
 		}
@@ -1021,13 +1069,42 @@ func (p *Peer) writeMessage(msg wire.Message) error {
 	}))
 
 	// Write the message to the peer.
-	n, err := wire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
-		p.cfg.ChainParams.Net)
+	n, err := wire.WriteMessageWithEncodingN(p.conn, msg,
+		p.ProtocolVersion(), p.cfg.ChainParams.Net, enc)
 	atomic.AddUint64(&p.bytesSent, uint64(n))
 	if p.cfg.Listeners.OnWrite != nil {
 		p.cfg.Listeners.OnWrite(p, n, msg, err)
 	}
 	return err
+}
+
+// isAllowedReadError returns whether or not the passed error is allowed without
+// disconnecting the peer.  In particular, regression tests need to be allowed
+// to send malformed messages without the peer being disconnected.
+func (p *Peer) isAllowedReadError(err error) bool {
+	// Only allow read errors in regression test mode.
+	if p.cfg.ChainParams.Net != wire.TestNet {
+		return false
+	}
+
+	// Don't allow the error if it's not specifically a malformed message error.
+	if _, ok := err.(*wire.MessageError); !ok {
+		return false
+	}
+
+	// Don't allow the error if it's not coming from localhost or the
+	// hostname can't be determined for some reason.
+	host, _, err := net.SplitHostPort(p.addr)
+	if err != nil {
+		return false
+	}
+
+	if host != "127.0.0.1" && host != "localhost" {
+		return false
+	}
+
+	// Allowed if all checks passed.
+	return true
 }
 
 // shouldHandleReadError returns whether or not the passed error, which is
@@ -1061,8 +1138,6 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 	// sent asynchronously and as a result of a long backlock of messages,
 	// such as is typical in the case of initial block download, the
 	// response won't be received in time.
-	log.Debugf("Adding deadline for command %s for peer %s", msgCmd, p.addr)
-
 	deadline := time.Now().Add(stallResponseTimeout)
 	switch msgCmd {
 	case wire.CmdVersion:
@@ -1078,8 +1153,9 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 		pendingResponses[wire.CmdInv] = deadline
 
 	case wire.CmdGetData:
-		// Expects a block, tx, or notfound message.
+		// Expects a block, merkleblock, tx, or notfound message.
 		pendingResponses[wire.CmdBlock] = deadline
+		pendingResponses[wire.CmdMerkleBlock] = deadline
 		pendingResponses[wire.CmdTx] = deadline
 		pendingResponses[wire.CmdNotFound] = deadline
 
@@ -1089,9 +1165,6 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 		// headers.
 		deadline = time.Now().Add(stallResponseTimeout * 3)
 		pendingResponses[wire.CmdHeaders] = deadline
-
-	case wire.CmdGetMiningState:
-		pendingResponses[wire.CmdMiningState] = deadline
 	}
 }
 
@@ -1139,10 +1212,13 @@ out:
 				switch msgCmd := msg.message.Command(); msgCmd {
 				case wire.CmdBlock:
 					fallthrough
+				case wire.CmdMerkleBlock:
+					fallthrough
 				case wire.CmdTx:
 					fallthrough
 				case wire.CmdNotFound:
 					delete(pendingResponses, wire.CmdBlock)
+					delete(pendingResponses, wire.CmdMerkleBlock)
 					delete(pendingResponses, wire.CmdTx)
 					delete(pendingResponses, wire.CmdNotFound)
 
@@ -1196,18 +1272,13 @@ out:
 			// don't arrive by their adjusted deadline.
 			for command, deadline := range pendingResponses {
 				if now.Before(deadline.Add(offset)) {
-					log.Debugf("Stall ticker rolling over for peer %s on "+
-						"cmd %s (deadline for data: %s)", p, command,
-						deadline.String())
 					continue
 				}
 
-				if command != wire.CmdMiningState {
-					log.Infof("Peer %s appears to be stalled or "+
-						"misbehaving, %s timeout -- "+
-						"disconnecting", p, command)
-					p.Disconnect()
-				}
+				log.Debugf("Peer %s appears to be stalled or "+
+					"misbehaving, %s timeout -- "+
+					"disconnecting", p, command)
+				p.Disconnect()
 				break
 			}
 
@@ -1248,9 +1319,8 @@ cleanup:
 // inHandler handles all incoming messages for the peer.  It must be run as a
 // goroutine.
 func (p *Peer) inHandler() {
-	// Peers must complete the initial version negotiation within a shorter
-	// timeframe than a general idle timeout.  The timer is then reset below
-	// to idleTimeout for all future messages.
+	// The timer is stopped when a new message is received and reset after it
+	// is processed.
 	idleTimer := time.AfterFunc(idleTimeout, func() {
 		log.Warnf("Peer %s no answer for %s -- disconnecting", p, idleTimeout)
 		p.Disconnect()
@@ -1261,15 +1331,26 @@ out:
 		// Read a message and stop the idle timer as soon as the read
 		// is done.  The timer is reset below for the next iteration if
 		// needed.
-		rmsg, buf, err := p.readMessage()
+		rmsg, buf, err := p.readMessage(p.wireEncoding)
 		idleTimer.Stop()
 		if err != nil {
+			// In order to allow regression tests with malformed messages, don't
+			// disconnect the peer when we're in regression test mode and the
+			// error is one of the allowed errors.
+			if p.isAllowedReadError(err) {
+				log.Errorf("Allowed test error from %s: %v", p, err)
+				idleTimer.Reset(idleTimeout)
+				continue
+			}
+
 			// Only log the error and send reject message if the
 			// local peer is not forcibly disconnecting and the
 			// remote peer has not disconnected.
 			if p.shouldHandleReadError(err) {
 				errMsg := fmt.Sprintf("Can't read message from %s: %v", p, err)
-				log.Errorf(errMsg)
+				if err != io.ErrUnexpectedEOF {
+					log.Errorf(errMsg)
+				}
 
 				// Push a reject message for the malformed message and wait for
 				// the message to be sent before disconnecting.
@@ -1333,19 +1414,14 @@ out:
 				p.cfg.Listeners.OnPong(p, msg)
 			}
 
+		case *wire.MsgAlert:
+			if p.cfg.Listeners.OnAlert != nil {
+				p.cfg.Listeners.OnAlert(p, msg)
+			}
+
 		case *wire.MsgMemPool:
 			if p.cfg.Listeners.OnMemPool != nil {
 				p.cfg.Listeners.OnMemPool(p, msg)
-			}
-
-		case *wire.MsgGetMiningState:
-			if p.cfg.Listeners.OnGetMiningState != nil {
-				p.cfg.Listeners.OnGetMiningState(p, msg)
-			}
-
-		case *wire.MsgMiningState:
-			if p.cfg.Listeners.OnMiningState != nil {
-				p.cfg.Listeners.OnMiningState(p, msg)
 			}
 
 		case *wire.MsgTx:
@@ -1388,9 +1464,9 @@ out:
 				p.cfg.Listeners.OnGetHeaders(p, msg)
 			}
 
-		case *wire.MsgGetCFilter:
-			if p.cfg.Listeners.OnGetCFilter != nil {
-				p.cfg.Listeners.OnGetCFilter(p, msg)
+		case *wire.MsgGetCFilters:
+			if p.cfg.Listeners.OnGetCFilters != nil {
+				p.cfg.Listeners.OnGetCFilters(p, msg)
 			}
 
 		case *wire.MsgGetCFHeaders:
@@ -1398,9 +1474,9 @@ out:
 				p.cfg.Listeners.OnGetCFHeaders(p, msg)
 			}
 
-		case *wire.MsgGetCFTypes:
-			if p.cfg.Listeners.OnGetCFTypes != nil {
-				p.cfg.Listeners.OnGetCFTypes(p, msg)
+		case *wire.MsgGetCFCheckpt:
+			if p.cfg.Listeners.OnGetCFCheckpt != nil {
+				p.cfg.Listeners.OnGetCFCheckpt(p, msg)
 			}
 
 		case *wire.MsgCFilter:
@@ -1413,14 +1489,29 @@ out:
 				p.cfg.Listeners.OnCFHeaders(p, msg)
 			}
 
-		case *wire.MsgCFTypes:
-			if p.cfg.Listeners.OnCFTypes != nil {
-				p.cfg.Listeners.OnCFTypes(p, msg)
-			}
-
 		case *wire.MsgFeeFilter:
 			if p.cfg.Listeners.OnFeeFilter != nil {
 				p.cfg.Listeners.OnFeeFilter(p, msg)
+			}
+
+		case *wire.MsgFilterAdd:
+			if p.cfg.Listeners.OnFilterAdd != nil {
+				p.cfg.Listeners.OnFilterAdd(p, msg)
+			}
+
+		case *wire.MsgFilterClear:
+			if p.cfg.Listeners.OnFilterClear != nil {
+				p.cfg.Listeners.OnFilterClear(p, msg)
+			}
+
+		case *wire.MsgFilterLoad:
+			if p.cfg.Listeners.OnFilterLoad != nil {
+				p.cfg.Listeners.OnFilterLoad(p, msg)
+			}
+
+		case *wire.MsgMerkleBlock:
+			if p.cfg.Listeners.OnMerkleBlock != nil {
+				p.cfg.Listeners.OnMerkleBlock(p, msg)
 			}
 
 		case *wire.MsgReject:
@@ -1464,7 +1555,7 @@ out:
 func (p *Peer) queueHandler() {
 	pendingMsgs := list.New()
 	invSendQueue := list.New()
-	trickleTicker := time.NewTicker(trickleTimeout)
+	trickleTicker := time.NewTicker(p.cfg.TrickleInterval)
 	defer trickleTicker.Stop()
 
 	// We keep the waiting flag so that we know if we have a message queued
@@ -1511,7 +1602,19 @@ out:
 		case iv := <-p.outputInvChan:
 			// No handshake?  They'll find out soon enough.
 			if p.VersionKnown() {
-				invSendQueue.PushBack(iv)
+				// If this is a new block, then we'll blast it
+				// out immediately, sipping the inv trickle
+				// queue.
+				if iv.Type == wire.InvTypeBlock ||
+					iv.Type == wire.InvTypeWitnessBlock {
+
+					invMsg := wire.NewMsgInvSizeHint(1)
+					invMsg.AddInvVect(iv)
+					waiting = queuePacket(outMsg{msg: invMsg},
+						pendingMsgs, waiting)
+				} else {
+					invSendQueue.PushBack(iv)
+				}
 			}
 
 		case <-trickleTicker.C:
@@ -1608,25 +1711,26 @@ func (p *Peer) shouldLogWriteError(err error) bool {
 // goroutine.  It uses a buffered channel to serialize output messages while
 // allowing the sender to continue running asynchronously.
 func (p *Peer) outHandler() {
-	// pingTicker is used to periodically send pings to the remote peer.
-	pingTicker := time.NewTicker(pingInterval)
-	defer pingTicker.Stop()
-
 out:
 	for {
 		select {
 		case msg := <-p.sendQueue:
 			switch m := msg.msg.(type) {
 			case *wire.MsgPing:
-				// Setup ping statistics.
-				p.statsMtx.Lock()
-				p.lastPingNonce = m.Nonce
-				p.lastPingTime = time.Now()
-				p.statsMtx.Unlock()
+				// Only expects a pong message in later protocol
+				// versions.  Also set up statistics.
+				if p.ProtocolVersion() > wire.BIP0031Version {
+					p.statsMtx.Lock()
+					p.lastPingNonce = m.Nonce
+					p.lastPingTime = time.Now()
+					p.statsMtx.Unlock()
+				}
 			}
 
 			p.stallControl <- stallControlMsg{sccSendMessage, msg.msg}
-			if err := p.writeMessage(msg.msg); err != nil {
+
+			err := p.writeMessage(msg.msg, msg.encoding)
+			if err != nil {
 				p.Disconnect()
 				if p.shouldLogWriteError(err) {
 					log.Errorf("Failed to send message to "+
@@ -1648,14 +1752,6 @@ out:
 				msg.doneChan <- struct{}{}
 			}
 			p.sendDoneQueue <- struct{}{}
-
-		case <-pingTicker.C:
-			nonce, err := wire.RandomUint64()
-			if err != nil {
-				log.Errorf("Not sending ping to %s: %v", p, err)
-				continue
-			}
-			p.QueueMessage(wire.NewMsgPing(nonce), nil)
 
 		case <-p.quit:
 			break out
@@ -1684,10 +1780,44 @@ cleanup:
 	log.Tracef("Peer output handler done for %s", p)
 }
 
-// QueueMessage adds the passed wire message to the peer send queue.
+// pingHandler periodically pings the peer.  It must be run as a goroutine.
+func (p *Peer) pingHandler() {
+	pingTicker := time.NewTicker(pingInterval)
+	defer pingTicker.Stop()
+
+out:
+	for {
+		select {
+		case <-pingTicker.C:
+			nonce, err := wire.RandomUint64()
+			if err != nil {
+				log.Errorf("Not sending ping to %s: %v", p, err)
+				continue
+			}
+			p.QueueMessage(wire.NewMsgPing(nonce), nil)
+
+		case <-p.quit:
+			break out
+		}
+	}
+}
+
+// QueueMessage adds the passed bitcoin message to the peer send queue.
 //
 // This function is safe for concurrent access.
 func (p *Peer) QueueMessage(msg wire.Message, doneChan chan<- struct{}) {
+	p.QueueMessageWithEncoding(msg, doneChan, wire.BaseEncoding)
+}
+
+// QueueMessageWithEncoding adds the passed bitcoin message to the peer send
+// queue. This function is identical to QueueMessage, however it allows the
+// caller to specify the wire encoding type that should be used when
+// encoding/decoding blocks and transactions.
+//
+// This function is safe for concurrent access.
+func (p *Peer) QueueMessageWithEncoding(msg wire.Message, doneChan chan<- struct{},
+	encoding wire.MessageEncoding) {
+
 	// Avoid risk of deadlock if goroutine already exited.  The goroutine
 	// we will be sending to hangs around until it knows for a fact that
 	// it is marked as disconnected and *then* it drains the channels.
@@ -1699,7 +1829,7 @@ func (p *Peer) QueueMessage(msg wire.Message, doneChan chan<- struct{}) {
 		}
 		return
 	}
-	p.outputQueue <- outMsg{msg: msg, doneChan: doneChan}
+	p.outputQueue <- outMsg{msg: msg, encoding: encoding, doneChan: doneChan}
 }
 
 // QueueInventory adds the passed inventory to the inventory send queue which
@@ -1722,33 +1852,6 @@ func (p *Peer) QueueInventory(invVect *wire.InvVect) {
 	}
 
 	p.outputInvChan <- invVect
-}
-
-// QueueInventoryImmediate adds the passed inventory to the send queue to be
-// sent immediately.  This should typically only be used for inventory that is
-// time sensitive such as new tip blocks or votes.  Normal inventory should be
-// announced via QueueInventory which instead trickles it to the peer in
-// batches.  Inventory that the peer is already known to have is ignored.
-//
-// This function is safe for concurrent access.
-func (p *Peer) QueueInventoryImmediate(invVect *wire.InvVect) {
-	// Don't announce the inventory if the peer is already known to have it.
-	if p.knownInventory.Exists(invVect) {
-		return
-	}
-
-	// Avoid risk of deadlock if goroutine already exited.  The goroutine
-	// we will be sending to hangs around until it knows for a fact that
-	// it is marked as disconnected and *then* it drains the channels.
-	if !p.Connected() {
-		return
-	}
-
-	// Generate and queue a single inv message with the inventory vector.
-	invMsg := wire.NewMsgInvSizeHint(1)
-	invMsg.AddInvVect(invVect)
-	p.AddKnownInventory(invVect)
-	p.outputQueue <- outMsg{msg: invMsg, doneChan: nil}
 }
 
 // Connected returns whether or not the peer is currently connected.
@@ -1779,7 +1882,7 @@ func (p *Peer) Disconnect() {
 // acceptable then return an error.
 func (p *Peer) readRemoteVersionMsg() error {
 	// Read their version message.
-	remoteMsg, _, err := p.readMessage()
+	remoteMsg, _, err := p.readMessage(wire.LatestEncoding)
 	if err != nil {
 		return err
 	}
@@ -1791,7 +1894,7 @@ func (p *Peer) readRemoteVersionMsg() error {
 		reason := "a version message must precede all others"
 		rejectMsg := wire.NewMsgReject(msg.Command(), wire.RejectMalformed,
 			reason)
-		_ = p.writeMessage(rejectMsg)
+		_ = p.writeMessage(rejectMsg, wire.LatestEncoding)
 		return errors.New(reason)
 	}
 
@@ -1807,47 +1910,64 @@ func (p *Peer) readRemoteVersionMsg() error {
 	p.protocolVersion = minUint32(p.protocolVersion, p.advertisedProtoVer)
 	p.versionKnown = true
 	p.services = msg.Services
-	p.na.Services = msg.Services
 	p.flagsMtx.Unlock()
 	log.Debugf("Negotiated protocol version %d for peer %s",
 		p.protocolVersion, p)
 
-	// Updating a bunch of stats.
+	// Updating a bunch of stats including block based stats, and the
+	// peer's time offset.
 	p.statsMtx.Lock()
-	p.lastBlock = int64(msg.LastBlock)
-	p.startingHeight = int64(msg.LastBlock)
-
-	// Set the peer's time offset.
+	p.lastBlock = msg.LastBlock
+	p.startingHeight = msg.LastBlock
 	p.timeOffset = msg.Timestamp.Unix() - time.Now().Unix()
 	p.statsMtx.Unlock()
 
-	// Set the peer's ID and user agent.
+	// Set the peer's ID, user agent, and potentially the flag which
+	// specifies the witness support is enabled.
 	p.flagsMtx.Lock()
 	p.id = atomic.AddInt32(&nodeCount, 1)
 	p.userAgent = msg.UserAgent
+
+	// Determine if the peer would like to receive witness data with
+	// transactions, or not.
+	if p.services&wire.SFNodeWitness == wire.SFNodeWitness {
+		p.witnessEnabled = true
+	}
 	p.flagsMtx.Unlock()
 
-	// Invoke the callback if specified.  In the case the callback returns a
-	// reject message, notify and disconnect the peer accordingly.
+	// Once the version message has been exchanged, we're able to determine
+	// if this peer knows how to encode witness data over the wire
+	// protocol. If so, then we'll switch to a decoding mode which is
+	// prepared for the new transaction format introduced as part of
+	// BIP0144.
+	if p.services&wire.SFNodeWitness == wire.SFNodeWitness {
+		p.wireEncoding = wire.WitnessEncoding
+	}
+
+	// Invoke the callback if specified.
 	if p.cfg.Listeners.OnVersion != nil {
 		rejectMsg := p.cfg.Listeners.OnVersion(p, msg)
 		if rejectMsg != nil {
-			_ = p.writeMessage(rejectMsg)
+			_ = p.writeMessage(rejectMsg, wire.LatestEncoding)
 			return errors.New(rejectMsg.Reason)
 		}
 	}
 
 	// Notify and disconnect clients that have a protocol version that is
 	// too old.
-	if msg.ProtocolVersion < int32(wire.InitialProcotolVersion) {
+	//
+	// NOTE: If minAcceptableProtocolVersion is raised to be higher than
+	// wire.RejectVersion, this should send a reject packet before
+	// disconnecting.
+	if uint32(msg.ProtocolVersion) < MinAcceptableProtocolVersion {
 		// Send a reject message indicating the protocol version is
 		// obsolete and wait for the message to be sent before
 		// disconnecting.
 		reason := fmt.Sprintf("protocol version must be %d or greater",
-			wire.InitialProcotolVersion)
+			MinAcceptableProtocolVersion)
 		rejectMsg := wire.NewMsgReject(msg.Command(), wire.RejectObsolete,
 			reason)
-		_ = p.writeMessage(rejectMsg)
+		_ = p.writeMessage(rejectMsg, wire.LatestEncoding)
 		return errors.New(reason)
 	}
 
@@ -1857,7 +1977,7 @@ func (p *Peer) readRemoteVersionMsg() error {
 // localVersionMsg creates a version message that can be used to send to the
 // remote peer.
 func (p *Peer) localVersionMsg() (*wire.MsgVersion, error) {
-	var blockNum int64
+	var blockNum int32
 	if p.cfg.NewestBlock != nil {
 		var err error
 		_, blockNum, err = p.cfg.NewestBlock()
@@ -1896,14 +2016,11 @@ func (p *Peer) localVersionMsg() (*wire.MsgVersion, error) {
 	// Generate a unique nonce for this peer so self connections can be
 	// detected.  This is accomplished by adding it to a size-limited map of
 	// recently seen nonces.
-	nonce, err := wire.RandomUint64()
-	if err != nil {
-		return nil, err
-	}
+	nonce := uint64(rand.Int63())
 	sentNonces.Add(nonce)
 
 	// Version message.
-	msg := wire.NewMsgVersion(ourNA, theirNA, nonce, int32(blockNum))
+	msg := wire.NewMsgVersion(ourNA, theirNA, nonce, blockNum)
 	msg.AddUserAgent(p.cfg.UserAgentName, p.cfg.UserAgentVersion,
 		p.cfg.UserAgentComments...)
 
@@ -1911,7 +2028,7 @@ func (p *Peer) localVersionMsg() (*wire.MsgVersion, error) {
 	msg.Services = p.cfg.Services
 
 	// Advertise our max supported protocol version.
-	msg.ProtocolVersion = int32(p.ProtocolVersion())
+	msg.ProtocolVersion = int32(p.cfg.ProtocolVersion)
 
 	// Advertise if inv messages for transactions are desired.
 	msg.DisableRelayTx = p.cfg.DisableRelayTx
@@ -1926,14 +2043,7 @@ func (p *Peer) writeLocalVersionMsg() error {
 		return err
 	}
 
-	if err := p.writeMessage(localVerMsg); err != nil {
-		return err
-	}
-
-	p.flagsMtx.Lock()
-	p.versionSent = true
-	p.flagsMtx.Unlock()
-	return nil
+	return p.writeMessage(localVerMsg, wire.LatestEncoding)
 }
 
 // negotiateInboundProtocol waits to receive a version message from the peer
@@ -1990,15 +2100,15 @@ func (p *Peer) start() error {
 	go p.inHandler()
 	go p.queueHandler()
 	go p.outHandler()
+	go p.pingHandler()
 
 	// Send our verack message now that the IO processing machinery has started.
 	p.QueueMessage(wire.NewMsgVerAck(), nil)
 	return nil
 }
 
-// AssociateConnection associates the given conn to the peer.
-// Calling this function when the peer is already connected will
-// have no effect.
+// AssociateConnection associates the given conn to the peer.   Calling this
+// function when the peer is already connected will have no effect.
 func (p *Peer) AssociateConnection(conn net.Conn) {
 	// Already connected?
 	if !atomic.CompareAndSwapInt32(&p.connected, 0, 1) {
@@ -2023,12 +2133,12 @@ func (p *Peer) AssociateConnection(conn net.Conn) {
 		p.na = na
 	}
 
-	go func(peer *Peer) {
-		if err := peer.start(); err != nil {
-			log.Debugf("Cannot start peer %v: %v", peer, err)
-			peer.Disconnect()
+	go func() {
+		if err := p.start(); err != nil {
+			log.Debugf("Cannot start peer %v: %v", p, err)
+			p.Disconnect()
 		}
-	}(p)
+	}()
 }
 
 // WaitForDisconnect waits until the peer has completely disconnected and all
@@ -2039,15 +2149,15 @@ func (p *Peer) WaitForDisconnect() {
 	<-p.quit
 }
 
-// newPeerBase returns a new base PicFight peer based on the inbound flag.  This
+// newPeerBase returns a new base bitcoin peer based on the inbound flag.  This
 // is used by the NewInboundPeer and NewOutboundPeer functions to perform base
 // setup needed by both types of peers.
-func newPeerBase(cfg *Config, inbound bool) *Peer {
-	// Default to the max supported protocol version.  Override to the
-	// version specified by the caller if configured.
-	protocolVersion := MaxProtocolVersion
-	if cfg.ProtocolVersion != 0 {
-		protocolVersion = cfg.ProtocolVersion
+func newPeerBase(origCfg *Config, inbound bool) *Peer {
+	// Default to the max supported protocol version if not specified by the
+	// caller.
+	cfg := *origCfg // Copy to avoid mutating caller.
+	if cfg.ProtocolVersion == 0 {
+		cfg.ProtocolVersion = MaxProtocolVersion
 	}
 
 	// Set the chain parameters to testnet if the caller did not specify any.
@@ -2055,9 +2165,15 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		cfg.ChainParams = &chaincfg.TestNet3Params
 	}
 
+	// Set the trickle interval if a non-positive value is specified.
+	if cfg.TrickleInterval <= 0 {
+		cfg.TrickleInterval = DefaultTrickleInterval
+	}
+
 	p := Peer{
 		inbound:         inbound,
-		knownInventory:  newLruInventoryCache(maxKnownInventory),
+		wireEncoding:    wire.BaseEncoding,
+		knownInventory:  newMruInventoryMap(maxKnownInventory),
 		stallControl:    make(chan stallControlMsg, 1), // nonblocking sync
 		outputQueue:     make(chan outMsg, outputBufferSize),
 		sendQueue:       make(chan outMsg, 1),   // nonblocking sync
@@ -2067,20 +2183,20 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		queueQuit:       make(chan struct{}),
 		outQuit:         make(chan struct{}),
 		quit:            make(chan struct{}),
-		cfg:             *cfg, // Copy so caller can't mutate.
+		cfg:             cfg, // Copy so caller can't mutate.
 		services:        cfg.Services,
-		protocolVersion: protocolVersion,
+		protocolVersion: cfg.ProtocolVersion,
 	}
 	return &p
 }
 
-// NewInboundPeer returns a new inbound PicFight peer. Use Start to begin
+// NewInboundPeer returns a new inbound bitcoin peer. Use Start to begin
 // processing incoming and outgoing messages.
 func NewInboundPeer(cfg *Config) *Peer {
 	return newPeerBase(cfg, true)
 }
 
-// NewOutboundPeer returns a new outbound PicFight peer.
+// NewOutboundPeer returns a new outbound bitcoin peer.
 func NewOutboundPeer(cfg *Config, addr string) (*Peer, error) {
 	p := newPeerBase(cfg, false)
 	p.addr = addr

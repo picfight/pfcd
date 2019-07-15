@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -14,12 +13,12 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 )
 
-// MessageHeaderSize is the number of bytes in a PicFight message header.
-// PicFight network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
+// MessageHeaderSize is the number of bytes in a bitcoin message header.
+// Bitcoin network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
 // checksum 4 bytes.
 const MessageHeaderSize = 24
 
-// CommandSize is the fixed size of all commands in the common PicFight message
+// CommandSize is the fixed size of all commands in the common bitcoin message
 // header.  Shorter commands must be zero padded.
 const CommandSize = 12
 
@@ -27,43 +26,64 @@ const CommandSize = 12
 // individual limits imposed by messages themselves.
 const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
-// Commands used in message headers which describe the type of message.
+// Commands used in bitcoin message headers which describe the type of message.
 const (
-	CmdVersion        = "version"
-	CmdVerAck         = "verack"
-	CmdGetAddr        = "getaddr"
-	CmdAddr           = "addr"
-	CmdGetBlocks      = "getblocks"
-	CmdInv            = "inv"
-	CmdGetData        = "getdata"
-	CmdNotFound       = "notfound"
-	CmdBlock          = "block"
-	CmdTx             = "tx"
-	CmdGetHeaders     = "getheaders"
-	CmdHeaders        = "headers"
-	CmdPing           = "ping"
-	CmdPong           = "pong"
-	CmdMemPool        = "mempool"
-	CmdMiningState    = "miningstate"
-	CmdGetMiningState = "getminings"
-	CmdReject         = "reject"
-	CmdSendHeaders    = "sendheaders"
-	CmdFeeFilter      = "feefilter"
-	CmdGetCFilter     = "getcfilter"
-	CmdGetCFHeaders   = "getcfheaders"
-	CmdGetCFTypes     = "getcftypes"
-	CmdCFilter        = "cfilter"
-	CmdCFHeaders      = "cfheaders"
-	CmdCFTypes        = "cftypes"
+	CmdVersion      = "version"
+	CmdVerAck       = "verack"
+	CmdGetAddr      = "getaddr"
+	CmdAddr         = "addr"
+	CmdGetBlocks    = "getblocks"
+	CmdInv          = "inv"
+	CmdGetData      = "getdata"
+	CmdNotFound     = "notfound"
+	CmdBlock        = "block"
+	CmdTx           = "tx"
+	CmdGetHeaders   = "getheaders"
+	CmdHeaders      = "headers"
+	CmdPing         = "ping"
+	CmdPong         = "pong"
+	CmdAlert        = "alert"
+	CmdMemPool      = "mempool"
+	CmdFilterAdd    = "filteradd"
+	CmdFilterClear  = "filterclear"
+	CmdFilterLoad   = "filterload"
+	CmdMerkleBlock  = "merkleblock"
+	CmdReject       = "reject"
+	CmdSendHeaders  = "sendheaders"
+	CmdFeeFilter    = "feefilter"
+	CmdGetCFilters  = "getcfilters"
+	CmdGetCFHeaders = "getcfheaders"
+	CmdGetCFCheckpt = "getcfcheckpt"
+	CmdCFilter      = "cfilter"
+	CmdCFHeaders    = "cfheaders"
+	CmdCFCheckpt    = "cfcheckpt"
 )
 
-// Message is an interface that describes a PicFight message.  A type that
+// MessageEncoding represents the wire message encoding format to be used.
+type MessageEncoding uint32
+
+const (
+	// BaseEncoding encodes all messages in the default format specified
+	// for the Bitcoin wire protocol.
+	BaseEncoding MessageEncoding = 1 << iota
+
+	// WitnessEncoding encodes all messages other than transaction messages
+	// using the default Bitcoin wire protocol specification. For transaction
+	// messages, the new encoding format detailed in BIP0144 will be used.
+	WitnessEncoding
+)
+
+// LatestEncoding is the most recently specified encoding for the Bitcoin wire
+// protocol.
+var LatestEncoding = WitnessEncoding
+
+// Message is an interface that describes a bitcoin message.  A type that
 // implements Message has complete control over the representation of its data
 // and may therefore contain additional or fewer fields than those which
 // are used directly in the protocol encoded message.
 type Message interface {
-	BtcDecode(io.Reader, uint32) error
-	BtcEncode(io.Writer, uint32) error
+	PfcDecode(io.Reader, uint32, MessageEncoding) error
+	BtcEncode(io.Writer, uint32, MessageEncoding) error
 	Command() string
 	MaxPayloadLength(uint32) uint32
 }
@@ -115,14 +135,23 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdHeaders:
 		msg = &MsgHeaders{}
 
+	case CmdAlert:
+		msg = &MsgAlert{}
+
 	case CmdMemPool:
 		msg = &MsgMemPool{}
 
-	case CmdMiningState:
-		msg = &MsgMiningState{}
+	case CmdFilterAdd:
+		msg = &MsgFilterAdd{}
 
-	case CmdGetMiningState:
-		msg = &MsgGetMiningState{}
+	case CmdFilterClear:
+		msg = &MsgFilterClear{}
+
+	case CmdFilterLoad:
+		msg = &MsgFilterLoad{}
+
+	case CmdMerkleBlock:
+		msg = &MsgMerkleBlock{}
 
 	case CmdReject:
 		msg = &MsgReject{}
@@ -133,14 +162,14 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdFeeFilter:
 		msg = &MsgFeeFilter{}
 
-	case CmdGetCFilter:
-		msg = &MsgGetCFilter{}
+	case CmdGetCFilters:
+		msg = &MsgGetCFilters{}
 
 	case CmdGetCFHeaders:
 		msg = &MsgGetCFHeaders{}
 
-	case CmdGetCFTypes:
-		msg = &MsgGetCFTypes{}
+	case CmdGetCFCheckpt:
+		msg = &MsgGetCFCheckpt{}
 
 	case CmdCFilter:
 		msg = &MsgCFilter{}
@@ -148,8 +177,8 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdCFHeaders:
 		msg = &MsgCFHeaders{}
 
-	case CmdCFTypes:
-		msg = &MsgCFTypes{}
+	case CmdCFCheckpt:
+		msg = &MsgCFCheckpt{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
@@ -157,15 +186,15 @@ func makeEmptyMessage(command string) (Message, error) {
 	return msg, nil
 }
 
-// messageHeader defines the header structure for all PicFight protocol messages.
+// messageHeader defines the header structure for all bitcoin protocol messages.
 type messageHeader struct {
-	magic    CurrencyNet // 4 bytes
-	command  string      // 12 bytes
-	length   uint32      // 4 bytes
-	checksum [4]byte     // 4 bytes
+	magic    BitcoinNet // 4 bytes
+	command  string     // 12 bytes
+	length   uint32     // 4 bytes
+	checksum [4]byte    // 4 bytes
 }
 
-// readMessageHeader reads a PicFight message header from r.
+// readMessageHeader reads a bitcoin message header from r.
 func readMessageHeader(r io.Reader) (int, *messageHeader, error) {
 	// Since readElements doesn't return the amount of bytes read, attempt
 	// to read the entire header into a buffer first in case there is a
@@ -209,10 +238,31 @@ func discardInput(r io.Reader, n uint32) {
 	}
 }
 
-// WriteMessageN writes a PicFight Message to w including the necessary header
+// WriteMessageN writes a bitcoin Message to w including the necessary header
 // information and returns the number of bytes written.    This function is the
 // same as WriteMessage except it also returns the number of bytes written.
-func WriteMessageN(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) (int, error) {
+func WriteMessageN(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) (int, error) {
+	return WriteMessageWithEncodingN(w, msg, pver, btcnet, BaseEncoding)
+}
+
+// WriteMessage writes a bitcoin Message to w including the necessary header
+// information.  This function is the same as WriteMessageN except it doesn't
+// doesn't return the number of bytes written.  This function is mainly provided
+// for backwards compatibility with the original API, but it's also useful for
+// callers that don't care about byte counts.
+func WriteMessage(w io.Writer, msg Message, pver uint32, btcnet BitcoinNet) error {
+	_, err := WriteMessageN(w, msg, pver, btcnet)
+	return err
+}
+
+// WriteMessageWithEncodingN writes a bitcoin Message to w including the
+// necessary header information and returns the number of bytes written.
+// This function is the same as WriteMessageN except it also allows the caller
+// to specify the message encoding format to be used when serializing wire
+// messages.
+func WriteMessageWithEncodingN(w io.Writer, msg Message, pver uint32,
+	btcnet BitcoinNet, encoding MessageEncoding) (int, error) {
+
 	totalBytes := 0
 
 	// Enforce max command size.
@@ -227,7 +277,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) (i
 
 	// Encode the message payload.
 	var bw bytes.Buffer
-	err := msg.BtcEncode(&bw, pver)
+	err := msg.BtcEncode(&bw, pver, encoding)
 	if err != nil {
 		return totalBytes, err
 	}
@@ -253,10 +303,10 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) (i
 
 	// Create header for the message.
 	hdr := messageHeader{}
-	hdr.magic = pfcnet
+	hdr.magic = btcnet
 	hdr.command = cmd
 	hdr.length = uint32(lenp)
-	copy(hdr.checksum[:], chainhash.HashB(payload)[0:4])
+	copy(hdr.checksum[:], chainhash.DoubleHashB(payload)[0:4])
 
 	// Encode the header for the message.  This is done to a buffer
 	// rather than directly to the writer since writeElements doesn't
@@ -277,22 +327,15 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) (i
 	return totalBytes, err
 }
 
-// WriteMessage writes a PicFight Message to w including the necessary header
-// information.  This function is the same as WriteMessageN except it doesn't
-// doesn't return the number of bytes written.  This function is mainly provided
-// for backwards compatibility with the original API, but it's also useful for
-// callers that don't care about byte counts.
-func WriteMessage(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) error {
-	_, err := WriteMessageN(w, msg, pver, pfcnet)
-	return err
-}
+// ReadMessageWithEncodingN reads, validates, and parses the next bitcoin Message
+// from r for the provided protocol version and bitcoin network.  It returns the
+// number of bytes read in addition to the parsed Message and raw bytes which
+// comprise the message.  This function is the same as ReadMessageN except it
+// allows the caller to specify which message encoding is to to consult when
+// decoding wire messages.
+func ReadMessageWithEncodingN(r io.Reader, pver uint32, btcnet BitcoinNet,
+	enc MessageEncoding) (int, Message, []byte, error) {
 
-// ReadMessageN reads, validates, and parses the next PicFight Message from r for
-// the provided protocol version and PicFight network.  It returns the number of
-// bytes read in addition to the parsed Message and raw bytes which comprise the
-// message.  This function is the same as ReadMessage except it also returns the
-// number of bytes read.
-func ReadMessageN(r io.Reader, pver uint32, pfcnet CurrencyNet) (int, Message, []byte, error) {
 	totalBytes := 0
 	n, hdr, err := readMessageHeader(r)
 	totalBytes += n
@@ -309,8 +352,8 @@ func ReadMessageN(r io.Reader, pver uint32, pfcnet CurrencyNet) (int, Message, [
 
 	}
 
-	// Check for messages from the wrong PicFight network.
-	if hdr.magic != pfcnet {
+	// Check for messages from the wrong bitcoin network.
+	if hdr.magic != btcnet {
 		discardInput(r, hdr.length)
 		str := fmt.Sprintf("message from other network [%v]", hdr.magic)
 		return totalBytes, nil, nil, messageError("ReadMessage", str)
@@ -353,7 +396,7 @@ func ReadMessageN(r io.Reader, pver uint32, pfcnet CurrencyNet) (int, Message, [
 	}
 
 	// Test checksum.
-	checksum := chainhash.HashB(payload)[0:4]
+	checksum := chainhash.DoubleHashB(payload)[0:4]
 	if !bytes.Equal(checksum[:], hdr.checksum[:]) {
 		str := fmt.Sprintf("payload checksum failed - header "+
 			"indicates %v, but actual checksum is %v.",
@@ -362,9 +405,9 @@ func ReadMessageN(r io.Reader, pver uint32, pfcnet CurrencyNet) (int, Message, [
 	}
 
 	// Unmarshal message.  NOTE: This must be a *bytes.Buffer since the
-	// MsgVersion BtcDecode function requires it.
+	// MsgVersion PfcDecode function requires it.
 	pr := bytes.NewBuffer(payload)
-	err = msg.BtcDecode(pr, pver)
+	err = msg.PfcDecode(pr, pver, enc)
 	if err != nil {
 		return totalBytes, nil, nil, err
 	}
@@ -372,13 +415,22 @@ func ReadMessageN(r io.Reader, pver uint32, pfcnet CurrencyNet) (int, Message, [
 	return totalBytes, msg, payload, nil
 }
 
-// ReadMessage reads, validates, and parses the next PicFight Message from r for
-// the provided protocol version and PicFight network.  It returns the parsed
+// ReadMessageN reads, validates, and parses the next bitcoin Message from r for
+// the provided protocol version and bitcoin network.  It returns the number of
+// bytes read in addition to the parsed Message and raw bytes which comprise the
+// message.  This function is the same as ReadMessage except it also returns the
+// number of bytes read.
+func ReadMessageN(r io.Reader, pver uint32, btcnet BitcoinNet) (int, Message, []byte, error) {
+	return ReadMessageWithEncodingN(r, pver, btcnet, BaseEncoding)
+}
+
+// ReadMessage reads, validates, and parses the next bitcoin Message from r for
+// the provided protocol version and bitcoin network.  It returns the parsed
 // Message and raw bytes which comprise the message.  This function only differs
 // from ReadMessageN in that it doesn't return the number of bytes read.  This
 // function is mainly provided for backwards compatibility with the original
 // API, but it's also useful for callers that don't care about byte counts.
-func ReadMessage(r io.Reader, pver uint32, pfcnet CurrencyNet) (Message, []byte, error) {
-	_, msg, buf, err := ReadMessageN(r, pver, pfcnet)
+func ReadMessage(r io.Reader, pver uint32, btcnet BitcoinNet) (Message, []byte, error) {
+	_, msg, buf, err := ReadMessageN(r, pver, btcnet)
 	return msg, buf, err
 }

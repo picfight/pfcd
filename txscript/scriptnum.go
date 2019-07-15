@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2017 The btcsuite developers
-// Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -13,13 +12,9 @@ const (
 	maxInt32 = 1<<31 - 1
 	minInt32 = -1 << 31
 
-	// mathOpCodeMaxScriptNumLen is the maximum number of bytes data being
-	// interpreted as an integer may be for the majority of op codes.
-	mathOpCodeMaxScriptNumLen = 4
-
-	// altSigSuitesMaxscriptNumLen is the maximum number of bytes for the
-	// type of alternative signature suite
-	altSigSuitesMaxscriptNumLen = 1
+	// defaultScriptNumLen is the default number of bytes
+	// data being interpreted as an integer may be.
+	defaultScriptNumLen = 4
 )
 
 // scriptNum represents a numeric value used in the scripting engine with
@@ -180,26 +175,28 @@ func (n scriptNum) Int32() int32 {
 // requireMinimal enabled.
 //
 // The scriptNumLen is the maximum number of bytes the encoded value can be
-// before an ErrNumberTooBig is returned.  This effectively limits the range of
-// allowed values.
+// before an ErrStackNumberTooBig is returned.  This effectively limits the
+// range of allowed values.
 // WARNING:  Great care should be taken if passing a value larger than
 // defaultScriptNumLen, which could lead to addition and multiplication
 // overflows.
 //
 // See the Bytes function documentation for example encodings.
-func makeScriptNum(v []byte, scriptNumLen int) (scriptNum, error) {
+func makeScriptNum(v []byte, requireMinimal bool, scriptNumLen int) (scriptNum, error) {
 	// Interpreting data requires that it is not larger than
 	// the the passed scriptNumLen value.
 	if len(v) > scriptNumLen {
 		str := fmt.Sprintf("numeric value encoded as %x is %d bytes "+
 			"which exceeds the max allowed of %d", v, len(v),
 			scriptNumLen)
-		return 0, scriptError(ErrNumOutOfRange, str)
+		return 0, scriptError(ErrNumberTooBig, str)
 	}
 
-	// Enforce minimal encoding.
-	if err := checkMinimalDataEncoding(v); err != nil {
-		return 0, err
+	// Enforce minimal encoded if requested.
+	if requireMinimal {
+		if err := checkMinimalDataEncoding(v); err != nil {
+			return 0, err
+		}
 	}
 
 	// Zero is encoded as an empty byte slice.

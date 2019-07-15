@@ -2,7 +2,7 @@
 *~
 
 # Databases
-pfcd.db
+btcd.db
 *-shm
 *-wal
 
@@ -18,7 +18,6 @@ pfcd.db
 _obj
 _test
 vendor
-.idea
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -32,13 +31,5 @@ _cgo_export.*
 
 _testmain.go
 
-# Binaries
 *.exe
-pfcd
-cmd/addblock/addblock
-cmd/checkdevpremine/checkdevpremine
-cmd/pfcctl/pfcctl
-cmd/findcheckpoint/findcheckpoint
-cmd/gencerts/gencerts
-cmd/promptsecret/promptsecret
 \.idea/

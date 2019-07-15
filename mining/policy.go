@@ -1,5 +1,4 @@
 // Copyright (c) 2014-2016 The btcsuite developers
-// Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,8 +6,8 @@ package mining
 
 import (
 	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/pfcutil"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/pfcutil"
 )
 
 const (
@@ -22,19 +21,27 @@ const (
 // the generation of block templates.  See the documentation for
 // NewBlockTemplate for more details on each of these parameters are used.
 type Policy struct {
-	// BlockMinSize is the minimum block size in bytes to be used when
+	// BlockMinWeight is the minimum block weight to be used when
 	// generating a block template.
+	BlockMinWeight uint32
+
+	// BlockMaxWeight is the maximum block weight to be used when
+	// generating a block template.
+	BlockMaxWeight uint32
+
+	// BlockMinWeight is the minimum block size to be used when generating
+	// a block template.
 	BlockMinSize uint32
 
-	// BlockMaxSize is the maximum block size in bytes to be used when
-	// generating a block template.
+	// BlockMaxSize is the maximum block size to be used when generating a
+	// block template.
 	BlockMaxSize uint32
 
 	// BlockPrioritySize is the size in bytes for high-priority / low-fee
 	// transactions to be used when generating a block template.
 	BlockPrioritySize uint32
 
-	// TxMinFreeFee is the minimum fee in Atoms/1000 bytes that is
+	// TxMinFreeFee is the minimum fee in Satoshi/1000 bytes that is
 	// required for a transaction to be treated as free for mining purposes
 	// (block template generation).
 	TxMinFreeFee pfcutil.Amount
@@ -55,21 +62,19 @@ func minInt(a, b int) int {
 // age is the sum of this value for each txin.  Any inputs to the transaction
 // which are currently in the mempool and hence not mined into a block yet,
 // contribute no additional input age to the transaction.
-func calcInputValueAge(tx *wire.MsgTx, utxoView *blockchain.UtxoViewpoint, nextBlockHeight int64) float64 {
+func calcInputValueAge(tx *wire.MsgTx, utxoView *blockchain.UtxoViewpoint, nextBlockHeight int32) float64 {
 	var totalInputAge float64
 	for _, txIn := range tx.TxIn {
 		// Don't attempt to accumulate the total input age if the
 		// referenced transaction output doesn't exist.
-		originHash := &txIn.PreviousOutPoint.Hash
-		originIndex := txIn.PreviousOutPoint.Index
-		txEntry := utxoView.LookupEntry(originHash)
-		if txEntry != nil && !txEntry.IsOutputSpent(originIndex) {
+		entry := utxoView.LookupEntry(txIn.PreviousOutPoint)
+		if entry != nil && !entry.IsSpent() {
 			// Inputs with dependencies currently in the mempool
 			// have their block height set to a special constant.
-			// Their input age should be computed as zero since
-			// their parent hasn't made it into a block yet.
-			var inputAge int64
-			originHeight := txEntry.BlockHeight()
+			// Their input age should computed as zero since their
+			// parent hasn't made it into a block yet.
+			var inputAge int32
+			originHeight := entry.BlockHeight()
 			if originHeight == UnminedHeight {
 				inputAge = 0
 			} else {
@@ -77,8 +82,8 @@ func calcInputValueAge(tx *wire.MsgTx, utxoView *blockchain.UtxoViewpoint, nextB
 			}
 
 			// Sum the input value times age.
-			inputValue := txEntry.AmountByIndex(originIndex)
-			totalInputAge += float64(inputValue * inputAge)
+			inputValue := entry.Amount()
+			totalInputAge += float64(inputValue * int64(inputAge))
 		}
 	}
 
@@ -89,7 +94,7 @@ func calcInputValueAge(tx *wire.MsgTx, utxoView *blockchain.UtxoViewpoint, nextB
 // of each of its input values multiplied by their age (# of confirmations).
 // Thus, the final formula for the priority is:
 // sum(inputValue * inputAge) / adjustedTxSize
-func CalcPriority(tx *wire.MsgTx, utxoView *blockchain.UtxoViewpoint, nextBlockHeight int64) float64 {
+func CalcPriority(tx *wire.MsgTx, utxoView *blockchain.UtxoViewpoint, nextBlockHeight int32) float64 {
 	// In order to encourage spending multiple old unspent transaction
 	// outputs thereby reducing the total set, don't count the constant
 	// overhead for each input as well as enough bytes of the signature

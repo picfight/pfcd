@@ -1,5 +1,4 @@
 // Copyright (c) 2015-2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,10 +6,23 @@ package treap
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"math/rand"
 	"reflect"
 	"testing"
 )
+
+// fromHex converts the passed hex string into a byte slice and will panic if
+// there is an error.  This is only provided for the hard-coded constants so
+// errors in the source code can be detected. It will only (and must only) be
+// called for initialization purposes.
+func fromHex(s string) []byte {
+	r, err := hex.DecodeString(s)
+	if err != nil {
+		panic("invalid hex in source file: " + s)
+	}
+	return r
+}
 
 // serializeUint32 returns the big-endian encoding of the passed uint32.
 func serializeUint32(ui uint32) []byte {

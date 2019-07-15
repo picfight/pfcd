@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2015 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,17 +9,13 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 
-	"github.com/picfight/pfcd/internal/version"
-	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
-
 	flags "github.com/jessevdk/go-flags"
+	"github.com/picfight/pfcd/pfcjson"
+	"github.com/picfight/pfcutil"
 )
 
 const (
@@ -31,14 +26,13 @@ const (
 )
 
 var (
-	pfcdHomeDir            = pfcutil.AppDataDir("pfcd", false)
-	pfcctlHomeDir          = pfcutil.AppDataDir("pfcctl", false)
-	pfcwalletHomeDir       = pfcutil.AppDataDir("pfcwallet", false)
-	defaultConfigFile      = filepath.Join(pfcctlHomeDir, "pfcctl.conf")
-	defaultRPCServer       = "localhost"
-	defaultWalletRPCServer = "localhost"
-	defaultRPCCertFile     = filepath.Join(pfcdHomeDir, "rpc.cert")
-	defaultWalletCertFile  = filepath.Join(pfcwalletHomeDir, "rpc.cert")
+	btcdHomeDir           = pfcutil.AppDataDir("pfcd", false)
+	btcctlHomeDir         = pfcutil.AppDataDir("btcctl", false)
+	btcwalletHomeDir      = pfcutil.AppDataDir("btcwallet", false)
+	defaultConfigFile     = filepath.Join(btcctlHomeDir, "btcctl.conf")
+	defaultRPCServer      = "localhost"
+	defaultRPCCertFile    = filepath.Join(btcdHomeDir, "rpc.cert")
+	defaultWalletCertFile = filepath.Join(btcwalletHomeDir, "rpc.cert")
 )
 
 // listCommands categorizes and lists all of the usable commands along with
@@ -94,53 +88,51 @@ func listCommands() {
 	}
 }
 
-// config defines the configuration options for pfcctl.
+// config defines the configuration options for btcctl.
 //
 // See loadConfig for details on the configuration load process.
 type config struct {
-	ShowVersion     bool   `short:"V" long:"version" description:"Display version information and exit"`
-	ListCommands    bool   `short:"l" long:"listcommands" description:"List all of the supported commands and exit"`
-	ConfigFile      string `short:"C" long:"configfile" description:"Path to configuration file"`
-	RPCUser         string `short:"u" long:"rpcuser" description:"RPC username"`
-	RPCPassword     string `short:"P" long:"rpcpass" default-mask:"-" description:"RPC password"`
-	RPCServer       string `short:"s" long:"rpcserver" description:"RPC server to connect to"`
-	WalletRPCServer string `short:"w" long:"walletrpcserver" description:"Wallet RPC server to connect to"`
-	RPCCert         string `short:"c" long:"rpccert" description:"RPC server certificate chain for validation"`
-	PrintJSON       bool   `short:"j" long:"json" description:"Print json messages sent and received"`
-	NoTLS           bool   `long:"notls" description:"Disable TLS"`
-	Proxy           string `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
-	ProxyUser       string `long:"proxyuser" description:"Username for proxy server"`
-	ProxyPass       string `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
-	TestNet         bool   `long:"testnet" description:"Connect to testnet"`
-	SimNet          bool   `long:"simnet" description:"Connect to the simulation test network"`
-	TLSSkipVerify   bool   `long:"skipverify" description:"Do not verify tls certificates (not recommended!)"`
-	Wallet          bool   `long:"wallet" description:"Connect to wallet"`
+	ShowVersion   bool   `short:"V" long:"version" description:"Display version information and exit"`
+	ListCommands  bool   `short:"l" long:"listcommands" description:"List all of the supported commands and exit"`
+	ConfigFile    string `short:"C" long:"configfile" description:"Path to configuration file"`
+	RPCUser       string `short:"u" long:"rpcuser" description:"RPC username"`
+	RPCPassword   string `short:"P" long:"rpcpass" default-mask:"-" description:"RPC password"`
+	RPCServer     string `short:"s" long:"rpcserver" description:"RPC server to connect to"`
+	RPCCert       string `short:"c" long:"rpccert" description:"RPC server certificate chain for validation"`
+	NoTLS         bool   `long:"notls" description:"Disable TLS"`
+	Proxy         string `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
+	ProxyUser     string `long:"proxyuser" description:"Username for proxy server"`
+	ProxyPass     string `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
+	TestNet3      bool   `long:"testnet" description:"Connect to testnet"`
+	SimNet        bool   `long:"simnet" description:"Connect to the simulation test network"`
+	TLSSkipVerify bool   `long:"skipverify" description:"Do not verify tls certificates (not recommended!)"`
+	Wallet        bool   `long:"wallet" description:"Connect to wallet"`
 }
 
 // normalizeAddress returns addr with the passed default port appended if
 // there is not already a port specified.
-func normalizeAddress(addr string, useTestNet, useSimNet, useWallet bool) string {
+func normalizeAddress(addr string, useTestNet3, useSimNet, useWallet bool) string {
 	_, _, err := net.SplitHostPort(addr)
 	if err != nil {
 		var defaultPort string
 		switch {
-		case useTestNet:
+		case useTestNet3:
 			if useWallet {
-				defaultPort = "19110"
+				defaultPort = "18332"
 			} else {
-				defaultPort = "19709"
+				defaultPort = "18334"
 			}
 		case useSimNet:
 			if useWallet {
-				defaultPort = "19557"
+				defaultPort = "18554"
 			} else {
-				defaultPort = "19556"
+				defaultPort = "18556"
 			}
 		default:
 			if useWallet {
-				defaultPort = "9110"
+				defaultPort = "8332"
 			} else {
-				defaultPort = "9709"
+				defaultPort = "8334"
 			}
 		}
 
@@ -149,68 +141,18 @@ func normalizeAddress(addr string, useTestNet, useSimNet, useWallet bool) string
 	return addr
 }
 
-// cleanAndExpandPath expands environment variables and leading ~ in the
+// cleanAndExpandPath expands environement variables and leading ~ in the
 // passed path, cleans the result, and returns it.
 func cleanAndExpandPath(path string) string {
-	// Nothing to do when no path is given.
-	if path == "" {
-		return path
+	// Expand initial ~ to OS specific home directory.
+	if strings.HasPrefix(path, "~") {
+		homeDir := filepath.Dir(btcctlHomeDir)
+		path = strings.Replace(path, "~", homeDir, 1)
 	}
 
-	// NOTE: The os.ExpandEnv doesn't work with Windows cmd.exe-style
-	// %VARIABLE%, but the variables can still be expanded via POSIX-style
-	// $VARIABLE.
-	path = os.ExpandEnv(path)
-
-	if !strings.HasPrefix(path, "~") {
-		return filepath.Clean(path)
-	}
-
-	// Expand initial ~ to the current user's home directory, or ~otheruser
-	// to otheruser's home directory.  On Windows, both forward and backward
-	// slashes can be used.
-	path = path[1:]
-
-	var pathSeparators string
-	if runtime.GOOS == "windows" {
-		pathSeparators = string(os.PathSeparator) + "/"
-	} else {
-		pathSeparators = string(os.PathSeparator)
-	}
-
-	userName := ""
-	if i := strings.IndexAny(path, pathSeparators); i != -1 {
-		userName = path[:i]
-		path = path[i:]
-	}
-
-	homeDir := ""
-	var u *user.User
-	var err error
-	if userName == "" {
-		u, err = user.Current()
-	} else {
-		u, err = user.Lookup(userName)
-	}
-	if err == nil {
-		homeDir = u.HomeDir
-	}
-	// Fallback to CWD if user lookup fails or user has no home directory.
-	if homeDir == "" {
-		homeDir = "."
-	}
-
-	return filepath.Join(homeDir, path)
-}
-
-// filesExists reports whether the named file or directory exists.
-func fileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
+	// NOTE: The os.ExpandEnv doesn't work with Windows-style %VARIABLE%,
+	// but they variables can still be expanded via POSIX-style $VARIABLE.
+	return filepath.Clean(os.ExpandEnv(path))
 }
 
 // loadConfig initializes and parses the config using a config file and command
@@ -228,10 +170,9 @@ func fileExists(name string) bool {
 func loadConfig() (*config, []string, error) {
 	// Default config.
 	cfg := config{
-		ConfigFile:      defaultConfigFile,
-		RPCServer:       defaultRPCServer,
-		RPCCert:         defaultRPCCertFile,
-		WalletRPCServer: defaultWalletRPCServer,
+		ConfigFile: defaultConfigFile,
+		RPCServer:  defaultRPCServer,
+		RPCCert:    defaultRPCCertFile,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -242,20 +183,14 @@ func loadConfig() (*config, []string, error) {
 	preParser := flags.NewParser(&preCfg, flags.HelpFlag)
 	_, err := preParser.Parse()
 	if err != nil {
-		if e, ok := err.(*flags.Error); ok && e.Type != flags.ErrHelp {
+		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
 			fmt.Fprintln(os.Stderr, err)
 			fmt.Fprintln(os.Stderr, "")
 			fmt.Fprintln(os.Stderr, "The special parameter `-` "+
 				"indicates that a parameter should be read "+
-				"from the\nnext unread line from standard input.")
-			os.Exit(1)
-		} else if ok && e.Type == flags.ErrHelp {
-			fmt.Fprintln(os.Stdout, err)
-			fmt.Fprintln(os.Stdout, "")
-			fmt.Fprintln(os.Stdout, "The special parameter `-` "+
-				"indicates that a parameter should be read "+
-				"from the\nnext unread line from standard input.")
-			os.Exit(0)
+				"from the\nnext unread line from standard "+
+				"input.")
+			return nil, nil, err
 		}
 	}
 
@@ -264,7 +199,7 @@ func loadConfig() (*config, []string, error) {
 	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
 	usageMessage := fmt.Sprintf("Use %s -h to show options", appName)
 	if preCfg.ShowVersion {
-		fmt.Println(appName, "version", version.String())
+		fmt.Println(appName, "version", version())
 		os.Exit(0)
 	}
 
@@ -275,8 +210,16 @@ func loadConfig() (*config, []string, error) {
 		os.Exit(0)
 	}
 
-	if !fileExists(preCfg.ConfigFile) {
-		err := createDefaultConfigFile(preCfg.ConfigFile)
+	if _, err := os.Stat(preCfg.ConfigFile); os.IsNotExist(err) {
+		// Use config file for RPC server to create default btcctl config
+		var serverConfigPath string
+		if preCfg.Wallet {
+			serverConfigPath = filepath.Join(btcwalletHomeDir, "btcwallet.conf")
+		} else {
+			serverConfigPath = filepath.Join(btcdHomeDir, "pfcd.conf")
+		}
+
+		err := createDefaultConfigFile(preCfg.ConfigFile, serverConfigPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating a default config file: %v\n", err)
 		}
@@ -305,14 +248,14 @@ func loadConfig() (*config, []string, error) {
 
 	// Multiple networks can't be selected simultaneously.
 	numNets := 0
-	if cfg.TestNet {
+	if cfg.TestNet3 {
 		numNets++
 	}
 	if cfg.SimNet {
 		numNets++
 	}
 	if numNets > 1 {
-		str := "%s: the testnet and simnet params can't be used " +
+		str := "%s: The testnet and simnet params can't be used " +
 			"together -- choose one of the two"
 		err := fmt.Errorf(str, "loadConfig")
 		fmt.Fprintln(os.Stderr, err)
@@ -325,40 +268,28 @@ func loadConfig() (*config, []string, error) {
 		cfg.RPCCert = defaultWalletCertFile
 	}
 
-	// When the --wallet flag is specified, use the walletrpcserver port
-	// if specified.
-	if cfg.Wallet && cfg.WalletRPCServer != defaultWalletRPCServer {
-		cfg.RPCServer = cfg.WalletRPCServer
-	}
 	// Handle environment variable expansion in the RPC certificate path.
 	cfg.RPCCert = cleanAndExpandPath(cfg.RPCCert)
 
 	// Add default port to RPC server based on --testnet and --wallet flags
 	// if needed.
-	cfg.RPCServer = normalizeAddress(cfg.RPCServer, cfg.TestNet,
+	cfg.RPCServer = normalizeAddress(cfg.RPCServer, cfg.TestNet3,
 		cfg.SimNet, cfg.Wallet)
 
 	return &cfg, remainingArgs, nil
 }
 
 // createDefaultConfig creates a basic config file at the given destination path.
-// For this it tries to read the pfcd config file at its default path, and extract
-// the RPC user and password from it.
-func createDefaultConfigFile(destinationPath string) error {
-	// Nothing to do when there is no existing pfcd conf file at the default
-	// path to extract the details from.
-	pfcdConfigPath := filepath.Join(pfcdHomeDir, "pfcd.conf")
-	if !fileExists(pfcdConfigPath) {
-		return nil
-	}
-
-	// Read pfcd.conf from its default path
-	pfcdConfigFile, err := os.Open(pfcdConfigPath)
+// For this it tries to read the config file for the RPC server (either btcd or
+// btcwallet), and extract the RPC user and password from it.
+func createDefaultConfigFile(destinationPath, serverConfigPath string) error {
+	// Read the RPC server config
+	serverConfigFile, err := os.Open(serverConfigPath)
 	if err != nil {
 		return err
 	}
-	defer pfcdConfigFile.Close()
-	content, err := ioutil.ReadAll(pfcdConfigFile)
+	defer serverConfigFile.Close()
+	content, err := ioutil.ReadAll(serverConfigFile)
 	if err != nil {
 		return err
 	}
@@ -385,6 +316,13 @@ func createDefaultConfigFile(destinationPath string) error {
 		return nil
 	}
 
+	// Extract the notls
+	noTLSRegexp, err := regexp.Compile(`(?m)^\s*notls=(0|1)(?:\s|$)`)
+	if err != nil {
+		return err
+	}
+	noTLSSubmatches := noTLSRegexp.FindSubmatch(content)
+
 	// Create the destination directory if it does not exists
 	err = os.MkdirAll(filepath.Dir(destinationPath), 0700)
 	if err != nil {
@@ -399,8 +337,13 @@ func createDefaultConfigFile(destinationPath string) error {
 	}
 	defer dest.Close()
 
-	dest.WriteString(fmt.Sprintf("rpcuser=%s\nrpcpass=%s",
-		string(userSubmatches[1]), string(passSubmatches[1])))
+	destString := fmt.Sprintf("rpcuser=%s\nrpcpass=%s\n",
+		string(userSubmatches[1]), string(passSubmatches[1]))
+	if noTLSSubmatches != nil {
+		destString += fmt.Sprintf("notls=%s\n", noTLSSubmatches[1])
+	}
+
+	dest.WriteString(destString)
 
 	return nil
 }

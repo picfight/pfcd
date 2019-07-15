@@ -1,5 +1,4 @@
 // Copyright (c) 2013-2016 The btcsuite developers
-// Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -133,10 +132,11 @@ func TestGetHeadersWire(t *testing.T) {
 	}
 
 	tests := []struct {
-		in   *MsgGetHeaders // Message to encode
-		out  *MsgGetHeaders // Expected decoded message
-		buf  []byte         // Wire encoding
-		pver uint32         // Protocol version for wire encoding
+		in   *MsgGetHeaders  // Message to encode
+		out  *MsgGetHeaders  // Expected decoded message
+		buf  []byte          // Wire encoding
+		pver uint32          // Protocol version for wire encoding
+		enc  MessageEncoding // Message encoding format
 	}{
 		// Latest protocol version with no block locators.
 		{
@@ -144,6 +144,7 @@ func TestGetHeadersWire(t *testing.T) {
 			noLocators,
 			noLocatorsEncoded,
 			ProtocolVersion,
+			BaseEncoding,
 		},
 
 		// Latest protocol version with multiple block locators.
@@ -152,6 +153,79 @@ func TestGetHeadersWire(t *testing.T) {
 			multiLocators,
 			multiLocatorsEncoded,
 			ProtocolVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0035Version with no block locators.
+		{
+			noLocators,
+			noLocators,
+			noLocatorsEncoded,
+			BIP0035Version,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0035Version with multiple block locators.
+		{
+			multiLocators,
+			multiLocators,
+			multiLocatorsEncoded,
+			BIP0035Version,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0031Version with no block locators.
+		{
+			noLocators,
+			noLocators,
+			noLocatorsEncoded,
+			BIP0031Version,
+			BaseEncoding,
+		},
+
+		// Protocol version BIP0031Versionwith multiple block locators.
+		{
+			multiLocators,
+			multiLocators,
+			multiLocatorsEncoded,
+			BIP0031Version,
+			BaseEncoding,
+		},
+
+		// Protocol version NetAddressTimeVersion with no block locators.
+		{
+			noLocators,
+			noLocators,
+			noLocatorsEncoded,
+			NetAddressTimeVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version NetAddressTimeVersion multiple block locators.
+		{
+			multiLocators,
+			multiLocators,
+			multiLocatorsEncoded,
+			NetAddressTimeVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version MultipleAddressVersion with no block locators.
+		{
+			noLocators,
+			noLocators,
+			noLocatorsEncoded,
+			MultipleAddressVersion,
+			BaseEncoding,
+		},
+
+		// Protocol version MultipleAddressVersion multiple block locators.
+		{
+			multiLocators,
+			multiLocators,
+			multiLocatorsEncoded,
+			MultipleAddressVersion,
+			BaseEncoding,
 		},
 	}
 
@@ -159,7 +233,7 @@ func TestGetHeadersWire(t *testing.T) {
 	for i, test := range tests {
 		// Encode the message to wire format.
 		var buf bytes.Buffer
-		err := test.in.BtcEncode(&buf, test.pver)
+		err := test.in.BtcEncode(&buf, test.pver, test.enc)
 		if err != nil {
 			t.Errorf("BtcEncode #%d error %v", i, err)
 			continue
@@ -173,13 +247,13 @@ func TestGetHeadersWire(t *testing.T) {
 		// Decode the message from wire format.
 		var msg MsgGetHeaders
 		rbuf := bytes.NewReader(test.buf)
-		err = msg.BtcDecode(rbuf, test.pver)
+		err = msg.PfcDecode(rbuf, test.pver, test.enc)
 		if err != nil {
-			t.Errorf("BtcDecode #%d error %v", i, err)
+			t.Errorf("PfcDecode #%d error %v", i, err)
 			continue
 		}
 		if !reflect.DeepEqual(&msg, test.out) {
-			t.Errorf("BtcDecode #%d\n got: %s want: %s", i,
+			t.Errorf("PfcDecode #%d\n got: %s want: %s", i,
 				spew.Sdump(&msg), spew.Sdump(test.out))
 			continue
 		}
@@ -253,30 +327,31 @@ func TestGetHeadersWireErrors(t *testing.T) {
 	}
 
 	tests := []struct {
-		in       *MsgGetHeaders // Value to encode
-		buf      []byte         // Wire encoding
-		pver     uint32         // Protocol version for wire encoding
-		max      int            // Max size of fixed buffer to induce errors
-		writeErr error          // Expected write error
-		readErr  error          // Expected read error
+		in       *MsgGetHeaders  // Value to encode
+		buf      []byte          // Wire encoding
+		pver     uint32          // Protocol version for wire encoding
+		enc      MessageEncoding // Message encoding format
+		max      int             // Max size of fixed buffer to induce errors
+		writeErr error           // Expected write error
+		readErr  error           // Expected read error
 	}{
 		// Force error in protocol version.
-		{baseGetHeaders, baseGetHeadersEncoded, pver, 0, io.ErrShortWrite, io.EOF},
+		{baseGetHeaders, baseGetHeadersEncoded, pver, BaseEncoding, 0, io.ErrShortWrite, io.EOF},
 		// Force error in block locator hash count.
-		{baseGetHeaders, baseGetHeadersEncoded, pver, 4, io.ErrShortWrite, io.EOF},
+		{baseGetHeaders, baseGetHeadersEncoded, pver, BaseEncoding, 4, io.ErrShortWrite, io.EOF},
 		// Force error in block locator hashes.
-		{baseGetHeaders, baseGetHeadersEncoded, pver, 5, io.ErrShortWrite, io.EOF},
+		{baseGetHeaders, baseGetHeadersEncoded, pver, BaseEncoding, 5, io.ErrShortWrite, io.EOF},
 		// Force error in stop hash.
-		{baseGetHeaders, baseGetHeadersEncoded, pver, 69, io.ErrShortWrite, io.EOF},
+		{baseGetHeaders, baseGetHeadersEncoded, pver, BaseEncoding, 69, io.ErrShortWrite, io.EOF},
 		// Force error with greater than max block locator hashes.
-		{maxGetHeaders, maxGetHeadersEncoded, pver, 7, wireErr, wireErr},
+		{maxGetHeaders, maxGetHeadersEncoded, pver, BaseEncoding, 7, wireErr, wireErr},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
 		// Encode to wire format.
 		w := newFixedWriter(test.max)
-		err := test.in.BtcEncode(w, test.pver)
+		err := test.in.BtcEncode(w, test.pver, test.enc)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.writeErr) {
 			t.Errorf("BtcEncode #%d wrong error got: %v, want: %v",
 				i, err, test.writeErr)
@@ -296,9 +371,9 @@ func TestGetHeadersWireErrors(t *testing.T) {
 		// Decode from wire format.
 		var msg MsgGetHeaders
 		r := newFixedReader(test.max, test.buf)
-		err = msg.BtcDecode(r, test.pver)
+		err = msg.PfcDecode(r, test.pver, test.enc)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.readErr) {
-			t.Errorf("BtcDecode #%d wrong error got: %v, want: %v",
+			t.Errorf("PfcDecode #%d wrong error got: %v, want: %v",
 				i, err, test.readErr)
 			continue
 		}
@@ -307,7 +382,7 @@ func TestGetHeadersWireErrors(t *testing.T) {
 		// equality.
 		if _, ok := err.(*MessageError); !ok {
 			if err != test.readErr {
-				t.Errorf("BtcDecode #%d wrong error got: %v, "+
+				t.Errorf("PfcDecode #%d wrong error got: %v, "+
 					"want: %v", i, err, test.readErr)
 				continue
 			}

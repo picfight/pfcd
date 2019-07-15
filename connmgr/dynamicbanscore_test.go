@@ -1,5 +1,4 @@
 // Copyright (c) 2016 The btcsuite developers
-// Copyright (c) 2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -39,8 +38,8 @@ func TestDynamicBanScoreLifetime(t *testing.T) {
 	var bs DynamicBanScore
 	base := time.Now()
 
-	_ = bs.increase(0, math.MaxUint32, base)
-	r := bs.int(base.Add(Lifetime * time.Second))
+	r := bs.increase(0, math.MaxUint32, base)
+	r = bs.int(base.Add(Lifetime * time.Second))
 	if r != 3 { // 3, not 4 due to precision loss and truncating 3.999...
 		t.Errorf("Pre max age check with MaxUint32 failed - %d", r)
 	}
