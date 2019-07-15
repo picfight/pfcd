@@ -2225,7 +2225,7 @@ func (c *Client) ImportPubKeyRescan(pubKey string, rescan bool) error {
 // Miscellaneous Functions
 // ***********************
 
-// NOTE: While getinfo is implemented here (in wallet.go), a btcd chain server
+// NOTE: While getinfo is implemented here (in wallet.go), a pfcd chain server
 // will respond to getinfo requests as well, excluding any wallet information.
 
 // FutureGetInfoResult is a future promise to deliver the result of a

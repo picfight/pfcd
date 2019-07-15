@@ -175,7 +175,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"version":               handleVersion,
 }
 
-// list of commands that we recognize, but for which btcd has no support because
+// list of commands that we recognize, but for which pfcd has no support because
 // it lacks support for wallet functionality. For these commands the user
 // should ask a connected instance of btcwallet.
 var rpcAskWallet = map[string]struct{}{

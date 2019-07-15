@@ -32,7 +32,7 @@ const (
 // elog is used to send messages to the Windows event log.
 var elog *eventlog.Log
 
-// logServiceStartOfDay logs information about btcd when the main server has
+// logServiceStartOfDay logs information about pfcd when the main server has
 // been started to the Windows event log.
 func logServiceStartOfDay(srvr *server) {
 	var message string
@@ -110,7 +110,7 @@ loop:
 	return false, 0
 }
 
-// installService attempts to install the btcd service.  Typically this should
+// installService attempts to install the pfcd service.  Typically this should
 // be done by the msi installer, but it is provided here since it can be useful
 // for development.
 func installService() error {
@@ -159,7 +159,7 @@ func installService() error {
 	return eventlog.InstallAsEventCreate(svcName, eventsSupported)
 }
 
-// removeService attempts to uninstall the btcd service.  Typically this should
+// removeService attempts to uninstall the pfcd service.  Typically this should
 // be done by the msi uninstaller, but it is provided here since it can be
 // useful for development.  Not the eventlog entry is intentionally not removed
 // since it would invalidate any existing event log messages.
@@ -182,7 +182,7 @@ func removeService() error {
 	return service.Delete()
 }
 
-// startService attempts to start the btcd service.
+// startService attempts to start the pfcd service.
 func startService() error {
 	// Connect to the windows service manager.
 	serviceManager, err := mgr.Connect()

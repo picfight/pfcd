@@ -12,7 +12,7 @@ is extremely stable and has been in production use since October 2013.
 
 It properly downloads, validates, and serves the block chain using the exact
 rules (including consensus bugs) for block acceptance as Picfightcoin Core.  We have
-taken great care to avoid btcd causing a fork to the block chain.  It includes a
+taken great care to avoid pfcd causing a fork to the block chain.  It includes a
 full block validation testing framework which contains all of the 'official'
 block acceptance tests (and some additional ones) that is run on every pull
 request to help ensure it properly follows consensus.  Also, it passes all of
@@ -24,7 +24,7 @@ ensures all individual transactions admitted to the pool follow the rules
 required by the block chain and also includes more strict checks which filter
 transactions based on miner requirements ("standard" transactions).
 
-One key difference between btcd and Picfightcoin Core is that btcd does *NOT* include
+One key difference between pfcd and Picfightcoin Core is that pfcd does *NOT* include
 wallet functionality and this was a very intentional design decision.  See the
 blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
 for more details.  This means you can't actually make or receive payments
@@ -67,7 +67,7 @@ $ cd $GOPATH/src/github.com/picfight/pfcd
 $ GO111MODULE=on go install -v . ./cmd/...
 ```
 
-- btcd (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
+- pfcd (and utilities) will now be installed in ```$GOPATH/bin```.  If you did
   not already add the bin directory to your system path during Go installation,
   we recommend you do so now.
 
@@ -95,7 +95,7 @@ configuration.
 
 #### Windows (Installed from MSI)
 
-Launch btcd from your Start menu.
+Launch pfcd from your Start menu.
 
 #### Linux/BSD/POSIX/Source
 
