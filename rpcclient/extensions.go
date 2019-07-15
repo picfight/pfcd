@@ -46,7 +46,7 @@ func (r FutureDebugLevelResult) Receive() (string, error) {
 //
 // See DebugLevel for the blocking version and more details.
 //
-// NOTE: This is a btcd extension.
+// NOTE: This is a pfcd extension.
 func (c *Client) DebugLevelAsync(levelSpec string) FutureDebugLevelResult {
 	cmd := pfcjson.NewDebugLevelCmd(levelSpec)
 	return c.sendCmd(cmd)
@@ -61,7 +61,7 @@ func (c *Client) DebugLevelAsync(levelSpec string) FutureDebugLevelResult {
 // Additionally, the special keyword 'show' can be used to get a list of the
 // available subsystems.
 //
-// NOTE: This is a btcd extension.
+// NOTE: This is a pfcd extension.
 func (c *Client) DebugLevel(levelSpec string) (string, error) {
 	return c.DebugLevelAsync(levelSpec).Receive()
 }
@@ -127,7 +127,7 @@ func (r FutureListAddressTransactionsResult) Receive() ([]pfcjson.ListTransactio
 //
 // See ListAddressTransactions for the blocking version and more details.
 //
-// NOTE: This is a btcd extension.
+// NOTE: This is a pfcd extension.
 func (c *Client) ListAddressTransactionsAsync(addresses []pfcutil.Address, account string) FutureListAddressTransactionsResult {
 	// Convert addresses to strings.
 	addrs := make([]string, 0, len(addresses))
@@ -180,7 +180,7 @@ func (r FutureGetBestBlockResult) Receive() (*chainhash.Hash, int32, error) {
 //
 // See GetBestBlock for the blocking version and more details.
 //
-// NOTE: This is a btcd extension.
+// NOTE: This is a pfcd extension.
 func (c *Client) GetBestBlockAsync() FutureGetBestBlockResult {
 	cmd := pfcjson.NewGetBestBlockCmd()
 	return c.sendCmd(cmd)
@@ -189,7 +189,7 @@ func (c *Client) GetBestBlockAsync() FutureGetBestBlockResult {
 // GetBestBlock returns the hash and height of the block in the longest (best)
 // chain.
 //
-// NOTE: This is a btcd extension.
+// NOTE: This is a pfcd extension.
 func (c *Client) GetBestBlock() (*chainhash.Hash, int32, error) {
 	return c.GetBestBlockAsync().Receive()
 }
@@ -222,7 +222,7 @@ func (r FutureGetCurrentNetResult) Receive() (wire.PicfightcoinNet, error) {
 //
 // See GetCurrentNet for the blocking version and more details.
 //
-// NOTE: This is a btcd extension.
+// NOTE: This is a pfcd extension.
 func (c *Client) GetCurrentNetAsync() FutureGetCurrentNetResult {
 	cmd := pfcjson.NewGetCurrentNetCmd()
 	return c.sendCmd(cmd)
@@ -230,7 +230,7 @@ func (c *Client) GetCurrentNetAsync() FutureGetCurrentNetResult {
 
 // GetCurrentNet returns the network the server is running on.
 //
-// NOTE: This is a btcd extension.
+// NOTE: This is a pfcd extension.
 func (c *Client) GetCurrentNet() (wire.PicfightcoinNet, error) {
 	return c.GetCurrentNetAsync().Receive()
 }

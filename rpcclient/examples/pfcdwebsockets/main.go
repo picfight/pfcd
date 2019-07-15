@@ -31,7 +31,7 @@ func main() {
 		},
 	}
 
-	// Connect to local btcd RPC server using websockets.
+	// Connect to local pfcd RPC server using websockets.
 	btcdHomeDir := pfcutil.AppDataDir("pfcd", false)
 	certs, err := ioutil.ReadFile(filepath.Join(btcdHomeDir, "rpc.cert"))
 	if err != nil {

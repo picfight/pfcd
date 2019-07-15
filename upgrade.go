@@ -28,7 +28,7 @@ func dirEmpty(dirPath string) (bool, error) {
 	return len(names) == 0, nil
 }
 
-// oldPfcdHomeDir returns the OS specific home directory btcd used prior to
+// oldPfcdHomeDir returns the OS specific home directory pfcd used prior to
 // version 0.3.3.  This has since been replaced with pfcutil.AppDataDir, but
 // this function is still provided for the automatic upgrade path.
 func oldPfcdHomeDir() string {
@@ -49,7 +49,7 @@ func oldPfcdHomeDir() string {
 }
 
 // upgradeDBPathNet moves the database for a specific network from its
-// location prior to btcd version 0.2.0 and uses heuristics to ascertain the old
+// location prior to pfcd version 0.2.0 and uses heuristics to ascertain the old
 // database type to rename to the new format.
 func upgradeDBPathNet(oldDbPath, netName string) error {
 	// Prior to version 0.2.0, the database was named the same thing for
@@ -165,7 +165,7 @@ func upgradeDataPaths() error {
 	return nil
 }
 
-// doUpgrades performs upgrades to btcd as new versions require it.
+// doUpgrades performs upgrades to pfcd as new versions require it.
 func doUpgrades() error {
 	err := upgradeDBPaths()
 	if err != nil {

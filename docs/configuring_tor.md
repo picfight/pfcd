@@ -24,7 +24,7 @@
 btcd provides full support for anonymous networking via the
 [Tor Project](https://www.torproject.org/), including [client-only](#Client)
 and [hidden service](#HiddenService) configurations along with
-[stream isolation](#TorStreamIsolation).  In addition, btcd supports a hybrid,
+[stream isolation](#TorStreamIsolation).  In addition, pfcd supports a hybrid,
 [bridge mode](#Bridge) which is not anonymous, but allows it to operate as a
 bridge between regular nodes and hidden service nodes without routing the
 regular connections through Tor.
@@ -42,15 +42,15 @@ hidden service for this reason.
 
 **2.1 Description**<br />
 
-Configuring btcd as a Tor client is straightforward.  The first step is
+Configuring pfcd as a Tor client is straightforward.  The first step is
 obviously to install Tor and ensure it is working. Once that is done, all that
-typically needs to be done is to specify the `--proxy` flag via the btcd command
-line or in the btcd configuration file.  Typically the Tor proxy address will be
+typically needs to be done is to specify the `--proxy` flag via the pfcd command
+line or in the pfcd configuration file.  Typically the Tor proxy address will be
 127.0.0.1:9050 (if using standalone Tor) or 127.0.0.1:9150 (if using the Tor
 Browser Bundle).  If you have Tor configured to require a username and password,
 you may specify them with the `--proxyuser` and `--proxypass` flags.
 
-By default, btcd assumes the proxy specified with `--proxy` is a Tor proxy and
+By default, pfcd assumes the proxy specified with `--proxy` is a Tor proxy and
 hence will send all traffic, including DNS resolution requests, via the
 specified proxy.
 
@@ -88,7 +88,7 @@ The first step is to configure Tor to provide a hidden service.  Documentation
 for this can be found on the Tor project website
 [here](https://www.torproject.org/docs/tor-hidden-service.html.en).  However,
 there is no need to install a web server locally as the linked instructions
-discuss since btcd will act as the server.
+discuss since pfcd will act as the server.
 
 In short, the instructions linked above entail modifying your `torrc` file to
 add something similar to the following, restarting Tor, and opening the
@@ -101,7 +101,7 @@ HiddenServicePort 8333 127.0.0.1:8333
 ```
 
 Once Tor is configured to provide the hidden service and you have obtained your
-generated .onion address, configuring btcd as a Tor hidden service requires
+generated .onion address, configuring pfcd as a Tor hidden service requires
 three flags:
 * `--proxy` to identify the Tor (SOCKS 5) proxy to use for outgoing traffic.
   This is typically 127.0.0.1:9050.
@@ -143,7 +143,7 @@ from a .onion address is sent through Tor while other traffic is sent normally.
 _As a result, this mode is **NOT** anonymous._
 
 This mode works by specifying an onion-specific proxy, which is pointed at Tor,
-by using the `--onion` flag via the btcd command line or in the btcd
+by using the `--onion` flag via the pfcd command line or in the btcd
 configuration file.  If you have Tor configured to require a username and
 password, you may specify them with the `--onionuser` and `--onionpass` flags.
 
