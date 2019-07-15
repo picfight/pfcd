@@ -31,7 +31,7 @@ var (
 	cfg *config
 )
 
-// winServiceMain is only invoked on Windows.  It detects when btcd is running
+// winServiceMain is only invoked on Windows.  It detects when pfcd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
 
@@ -87,7 +87,7 @@ func btcdMain(serverChan chan<- *server) error {
 		defer pprof.StopCPUProfile()
 	}
 
-	// Perform upgrades to btcd as new versions require it.
+	// Perform upgrades to pfcd as new versions require it.
 	if err := doUpgrades(); err != nil {
 		btcdLog.Errorf("%v", err)
 		return err

@@ -64,10 +64,10 @@ var (
 // Harness to exercise functionality.
 type HarnessTestCase func(r *Harness, t *testing.T)
 
-// Harness fully encapsulates an active btcd process to provide a unified
+// Harness fully encapsulates an active pfcd process to provide a unified
 // platform for creating rpc driven integration tests involving btcd. The
-// active btcd node will typically be run in simnet mode in order to allow for
-// easy generation of test blockchains.  The active btcd process is fully
+// active pfcd node will typically be run in simnet mode in order to allow for
+// easy generation of test blockchains.  The active pfcd process is fully
 // managed by Harness, which handles the necessary initialization, and teardown
 // of the process along with any temporary directories created as a result.
 // Multiple Harness instances may be run concurrently, in order to allow for
@@ -214,7 +214,7 @@ func New(activeNet *chaincfg.Params, handlers *rpcclient.NotificationHandlers,
 // NOTE: This method and TearDown should always be called from the same
 // goroutine as they are not concurrent safe.
 func (h *Harness) SetUp(createTestChain bool, numMatureOutputs uint32) error {
-	// Start the btcd node itself. This spawns a new process which will be
+	// Start the pfcd node itself. This spawns a new process which will be
 	// managed
 	if err := h.node.start(); err != nil {
 		return err
@@ -232,7 +232,7 @@ func (h *Harness) SetUp(createTestChain bool, numMatureOutputs uint32) error {
 		return err
 	}
 
-	// Ensure btcd properly dispatches our registered call-back for each new
+	// Ensure pfcd properly dispatches our registered call-back for each new
 	// block. Otherwise, the memWallet won't function properly.
 	if err := h.Node.NotifyBlocks(); err != nil {
 		return err

@@ -4,7 +4,7 @@
 // license that can be found in the LICENSE file.
 
 // NOTE: This file is intended to house the RPC commands that are supported by
-// a chain server with btcd extensions.
+// a chain server with pfcd extensions.
 
 package pfcjson
 

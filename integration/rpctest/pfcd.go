@@ -18,14 +18,14 @@ var (
 	compileMtx sync.Mutex
 
 	// executablePath is the path to the compiled executable. This is the empty
-	// string until btcd is compiled. This should not be accessed directly;
+	// string until pfcd is compiled. This should not be accessed directly;
 	// instead use the function btcdExecutablePath().
 	executablePath string
 )
 
-// btcdExecutablePath returns a path to the btcd executable to be used by
+// btcdExecutablePath returns a path to the pfcd executable to be used by
 // rpctests. To ensure the code tests against the most up-to-date version of
-// pfcd, this method compiles btcd the first time it is called. After that, the
+// pfcd, this method compiles pfcd the first time it is called. After that, the
 // generated binary is used for subsequent test harnesses. The executable file
 // is not cleaned up, but since it lives at a static path in a temp directory,
 // it is not a big deal.
@@ -33,7 +33,7 @@ func btcdExecutablePath() (string, error) {
 	compileMtx.Lock()
 	defer compileMtx.Unlock()
 
-	// If btcd has already been compiled, just use that.
+	// If pfcd has already been compiled, just use that.
 	if len(executablePath) != 0 {
 		return executablePath, nil
 	}
@@ -43,7 +43,7 @@ func btcdExecutablePath() (string, error) {
 		return "", err
 	}
 
-	// Build btcd and output an executable in a static temp path.
+	// Build pfcd and output an executable in a static temp path.
 	outputPath := filepath.Join(testDir, "pfcd")
 	if runtime.GOOS == "windows" {
 		outputPath += ".exe"
