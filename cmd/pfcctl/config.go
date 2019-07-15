@@ -28,11 +28,11 @@ const (
 var (
 	btcdHomeDir           = pfcutil.AppDataDir("pfcd", false)
 	btcctlHomeDir         = pfcutil.AppDataDir("btcctl", false)
-	btcwalletHomeDir      = pfcutil.AppDataDir("btcwallet", false)
+	pfcwalletHomeDir      = pfcutil.AppDataDir("pfcwallet", false)
 	defaultConfigFile     = filepath.Join(btcctlHomeDir, "btcctl.conf")
 	defaultRPCServer      = "localhost"
 	defaultRPCCertFile    = filepath.Join(btcdHomeDir, "rpc.cert")
-	defaultWalletCertFile = filepath.Join(btcwalletHomeDir, "rpc.cert")
+	defaultWalletCertFile = filepath.Join(pfcwalletHomeDir, "rpc.cert")
 )
 
 // listCommands categorizes and lists all of the usable commands along with
@@ -214,7 +214,7 @@ func loadConfig() (*config, []string, error) {
 		// Use config file for RPC server to create default btcctl config
 		var serverConfigPath string
 		if preCfg.Wallet {
-			serverConfigPath = filepath.Join(btcwalletHomeDir, "btcwallet.conf")
+			serverConfigPath = filepath.Join(pfcwalletHomeDir, "pfcwallet.conf")
 		} else {
 			serverConfigPath = filepath.Join(btcdHomeDir, "pfcd.conf")
 		}
@@ -281,7 +281,7 @@ func loadConfig() (*config, []string, error) {
 
 // createDefaultConfig creates a basic config file at the given destination path.
 // For this it tries to read the config file for the RPC server (either pfcd or
-// btcwallet), and extract the RPC user and password from it.
+// pfcwallet), and extract the RPC user and password from it.
 func createDefaultConfigFile(destinationPath, serverConfigPath string) error {
 	// Read the RPC server config
 	serverConfigFile, err := os.Open(serverConfigPath)

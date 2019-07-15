@@ -453,7 +453,7 @@ Changes in 0.9.0 (Sat Sep 20 2014)
       as height (https://github.com/conformal/btcd/issues/151)
   - btcctl utility changes:
     - Accept --simnet flag which automatically selects the appropriate port
-      and TLS certificates needed to communicate with pfcd and btcwallet on
+      and TLS certificates needed to communicate with pfcd and pfcwallet on
       the simulation test network
     - Fix createrawtransaction command to send amounts denominated in PFC
     - Add estimatefee command
@@ -465,7 +465,7 @@ Changes in 0.9.0 (Sat Sep 20 2014)
     - Add signrawtransaction command
   - addblock utility changes:
     - Accept --simnet flag which automatically selects the appropriate port
-      and TLS certificates needed to communicate with btcd and btcwallet on
+      and TLS certificates needed to communicate with pfcd and pfcwallet on
       the simulation test network
   - Notable developer-related package changes:
     - Provide a new bloom package in pfcutil which allows creating and
@@ -575,13 +575,13 @@ Changes in 0.8.0-beta (Sun May 25 2014)
     - Add setgenerate command
     - Accept --testnet and --wallet flags which automatically select
       the appropriate port and TLS certificates needed to communicate
-      with btcd and btcwallet (https://github.com/conformal/btcd/issues/112)
+      with pfcd and pfcwallet (https://github.com/conformal/btcd/issues/112)
     - Allow path expansion from config file entries
       (https://github.com/conformal/btcd/issues/113)
     - Minor refactor simplify handling of options
   - addblock utility changes:
     - Improve logging by making it consistent with the logging provided by
-      btcd (https://github.com/conformal/btcd/issues/90)
+      pfcd (https://github.com/conformal/btcd/issues/90)
   - Improve several package APIs for developers:
     - Add new amount type for consistently handling monetary values
     - Add new coin selector API
