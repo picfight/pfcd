@@ -21,13 +21,13 @@ func (msg *fakeMessage) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding)
 	return nil
 }
 
-// BtcEncode writes the payload field of the fake message or forces an error
+// PfcEncode writes the payload field of the fake message or forces an error
 // if the forceEncodeErr flag of the fake message is set.  It also satisfies the
 // wire.Message interface.
-func (msg *fakeMessage) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
+func (msg *fakeMessage) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if msg.forceEncodeErr {
 		err := &MessageError{
-			Func:        "fakeMessage.BtcEncode",
+			Func:        "fakeMessage.PfcEncode",
 			Description: "intentional error",
 		}
 		return err

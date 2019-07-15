@@ -88,13 +88,13 @@ func (msg *MsgMerkleBlock) PfcDecode(r io.Reader, pver uint32, enc MessageEncodi
 	return err
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgMerkleBlock) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
+func (msg *MsgMerkleBlock) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0037Version {
 		str := fmt.Sprintf("merkleblock message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgMerkleBlock.BtcEncode", str)
+		return messageError("MsgMerkleBlock.PfcEncode", str)
 	}
 
 	// Read num transaction hashes and limit to max.

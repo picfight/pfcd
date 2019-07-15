@@ -394,8 +394,8 @@ func BenchmarkDecodeGetHeaders(b *testing.B) {
 
 	// Serialize it so the bytes are available to test the decode below.
 	var bb bytes.Buffer
-	if err := m.BtcEncode(&bb, pver, LatestEncoding); err != nil {
-		b.Fatalf("MsgGetHeaders.BtcEncode: unexpected error: %v", err)
+	if err := m.PfcEncode(&bb, pver, LatestEncoding); err != nil {
+		b.Fatalf("MsgGetHeaders.PfcEncode: unexpected error: %v", err)
 	}
 	buf := bb.Bytes()
 
@@ -424,8 +424,8 @@ func BenchmarkDecodeHeaders(b *testing.B) {
 
 	// Serialize it so the bytes are available to test the decode below.
 	var bb bytes.Buffer
-	if err := m.BtcEncode(&bb, pver, LatestEncoding); err != nil {
-		b.Fatalf("MsgHeaders.BtcEncode: unexpected error: %v", err)
+	if err := m.PfcEncode(&bb, pver, LatestEncoding); err != nil {
+		b.Fatalf("MsgHeaders.PfcEncode: unexpected error: %v", err)
 	}
 	buf := bb.Bytes()
 
@@ -454,8 +454,8 @@ func BenchmarkDecodeGetBlocks(b *testing.B) {
 
 	// Serialize it so the bytes are available to test the decode below.
 	var bb bytes.Buffer
-	if err := m.BtcEncode(&bb, pver, LatestEncoding); err != nil {
-		b.Fatalf("MsgGetBlocks.BtcEncode: unexpected error: %v", err)
+	if err := m.PfcEncode(&bb, pver, LatestEncoding); err != nil {
+		b.Fatalf("MsgGetBlocks.PfcEncode: unexpected error: %v", err)
 	}
 	buf := bb.Bytes()
 
@@ -481,8 +481,8 @@ func BenchmarkDecodeAddr(b *testing.B) {
 
 	// Serialize it so the bytes are available to test the decode below.
 	var bb bytes.Buffer
-	if err := ma.BtcEncode(&bb, pver, LatestEncoding); err != nil {
-		b.Fatalf("MsgAddr.BtcEncode: unexpected error: %v", err)
+	if err := ma.PfcEncode(&bb, pver, LatestEncoding); err != nil {
+		b.Fatalf("MsgAddr.PfcEncode: unexpected error: %v", err)
 	}
 	buf := bb.Bytes()
 
@@ -511,8 +511,8 @@ func BenchmarkDecodeInv(b *testing.B) {
 
 	// Serialize it so the bytes are available to test the decode below.
 	var bb bytes.Buffer
-	if err := m.BtcEncode(&bb, pver, LatestEncoding); err != nil {
-		b.Fatalf("MsgInv.BtcEncode: unexpected error: %v", err)
+	if err := m.PfcEncode(&bb, pver, LatestEncoding); err != nil {
+		b.Fatalf("MsgInv.PfcEncode: unexpected error: %v", err)
 	}
 	buf := bb.Bytes()
 
@@ -541,8 +541,8 @@ func BenchmarkDecodeNotFound(b *testing.B) {
 
 	// Serialize it so the bytes are available to test the decode below.
 	var bb bytes.Buffer
-	if err := m.BtcEncode(&bb, pver, LatestEncoding); err != nil {
-		b.Fatalf("MsgNotFound.BtcEncode: unexpected error: %v", err)
+	if err := m.PfcEncode(&bb, pver, LatestEncoding); err != nil {
+		b.Fatalf("MsgNotFound.PfcEncode: unexpected error: %v", err)
 	}
 	buf := bb.Bytes()
 
@@ -579,8 +579,8 @@ func BenchmarkDecodeMerkleBlock(b *testing.B) {
 
 	// Serialize it so the bytes are available to test the decode below.
 	var bb bytes.Buffer
-	if err := m.BtcEncode(&bb, pver, LatestEncoding); err != nil {
-		b.Fatalf("MsgMerkleBlock.BtcEncode: unexpected error: %v", err)
+	if err := m.PfcEncode(&bb, pver, LatestEncoding); err != nil {
+		b.Fatalf("MsgMerkleBlock.PfcEncode: unexpected error: %v", err)
 	}
 	buf := bb.Bytes()
 

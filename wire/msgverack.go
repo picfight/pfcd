@@ -21,9 +21,9 @@ func (msg *MsgVerAck) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) e
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgVerAck) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
+func (msg *MsgVerAck) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	return nil
 }
 

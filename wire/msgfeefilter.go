@@ -31,13 +31,13 @@ func (msg *MsgFeeFilter) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding
 	return readElement(r, &msg.MinFee)
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgFeeFilter) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
+func (msg *MsgFeeFilter) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < FeeFilterVersion {
 		str := fmt.Sprintf("feefilter message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgFeeFilter.BtcEncode", str)
+		return messageError("MsgFeeFilter.PfcEncode", str)
 	}
 
 	return writeElement(w, msg.MinFee)

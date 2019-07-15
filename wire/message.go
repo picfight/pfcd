@@ -83,7 +83,7 @@ var LatestEncoding = WitnessEncoding
 // are used directly in the protocol encoded message.
 type Message interface {
 	PfcDecode(io.Reader, uint32, MessageEncoding) error
-	BtcEncode(io.Writer, uint32, MessageEncoding) error
+	PfcEncode(io.Writer, uint32, MessageEncoding) error
 	Command() string
 	MaxPayloadLength(uint32) uint32
 }
@@ -277,7 +277,7 @@ func WriteMessageWithEncodingN(w io.Writer, msg Message, pver uint32,
 
 	// Encode the message payload.
 	var bw bytes.Buffer
-	err := msg.BtcEncode(&bw, pver, encoding)
+	err := msg.PfcEncode(&bw, pver, encoding)
 	if err != nil {
 		return totalBytes, err
 	}

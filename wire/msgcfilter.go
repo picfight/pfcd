@@ -55,14 +55,14 @@ func (msg *MsgCFilter) PfcDecode(r io.Reader, pver uint32, _ MessageEncoding) er
 	return err
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgCFilter) BtcEncode(w io.Writer, pver uint32, _ MessageEncoding) error {
+func (msg *MsgCFilter) PfcEncode(w io.Writer, pver uint32, _ MessageEncoding) error {
 	size := len(msg.Data)
 	if size > MaxCFilterDataSize {
 		str := fmt.Sprintf("cfilter size too large for message "+
 			"[size %v, max %v]", size, MaxCFilterDataSize)
-		return messageError("MsgCFilter.BtcEncode", str)
+		return messageError("MsgCFilter.PfcEncode", str)
 	}
 
 	err := writeElement(w, msg.FilterType)

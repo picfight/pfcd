@@ -29,13 +29,13 @@ func (msg *MsgMemPool) PfcDecode(r io.Reader, pver uint32, enc MessageEncoding) 
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// PfcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgMemPool) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
+func (msg *MsgMemPool) PfcEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
 	if pver < BIP0035Version {
 		str := fmt.Sprintf("mempool message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgMemPool.BtcEncode", str)
+		return messageError("MsgMemPool.PfcEncode", str)
 	}
 
 	return nil
