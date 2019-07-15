@@ -32,7 +32,7 @@ represent real money and introducing bugs and security vulnerabilities can have
 far more dire consequences than in typical projects where having a small bug is
 minimal by comparison.  In the world of cryptocurrencies, even the smallest bug
 in the wrong area can cost people a significant amount of money.  For this
-reason, the btcd suite has a formalized and rigorous development process which
+reason, the pfcd suite has a formalized and rigorous development process which
 is outlined on this page.
 
 We highly encourage code contributions, however it is imperative that you adhere
@@ -109,7 +109,7 @@ This approach has several benefits:
 
 ### 4.2 Testing
 
-One of the major design goals of all core btcd packages is to aim for complete
+One of the major design goals of all core pfcd packages is to aim for complete
 test coverage.  This is financial software so bugs and regressions can cost
 people real money.  For this reason every effort must be taken to ensure the
 code is as accurate and bug-free as possible.  Thorough testing is a good way to
@@ -352,4 +352,4 @@ Rejoice as you will now be listed as a [contributor](https://github.com/picfight
 
 All contributions must be licensed with the
 [ISC license](https://github.com/picfight/pfcd/blob/master/LICENSE).  This is
-the same license as all of the code in the btcd suite.
+the same license as all of the code in the pfcd suite.

@@ -25,7 +25,7 @@ Command Line Examples:
 |--listen=127.0.0.1:8337 --listen=[::1]:8333|IPv4 localhost on port 8337 and IPv6 localhost on port 8333|
 |--listen=:8333 --listen=:8337|all interfaces on ports 8333 and 8337|
 
-The following config file would configure btcd to only listen on localhost for both IPv4 and IPv6:
+The following config file would configure pfcd to only listen on localhost for both IPv4 and IPv6:
 
 ```text
 [Application Options]

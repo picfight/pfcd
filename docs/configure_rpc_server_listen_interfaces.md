@@ -38,7 +38,7 @@ Command Line Examples:
 |--rpclisten=127.0.0.1:8337 --listen=[::1]:8334|IPv4 localhost on port 8337 and IPv6 localhost on port 8334|
 |--rpclisten=:8334 --listen=:8337|all interfaces on ports 8334 and 8337|
 
-The following config file would configure the btcd RPC server to listen to all interfaces on the default port, including external interfaces, for both IPv4 and IPv6:
+The following config file would configure the pfcd RPC server to listen to all interfaces on the default port, including external interfaces, for both IPv4 and IPv6:
 
 ```text
 [Application Options]

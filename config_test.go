@@ -29,7 +29,7 @@ func TestCreateDefaultConfigFile(t *testing.T) {
 	}
 	testpath := filepath.Join(tmpDir, "test.conf")
 
-	// copy config file to location of btcd binary
+	// copy config file to location of pfcd binary
 	data, err := ioutil.ReadFile(sampleConfigFile)
 	if err != nil {
 		t.Fatalf("Failed reading sample config file: %v", err)

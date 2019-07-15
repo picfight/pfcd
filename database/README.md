@@ -7,7 +7,7 @@ database
 
 Package database provides a block and metadata storage database.
 
-Please note that this package is intended to enable btcd to support different
+Please note that this package is intended to enable pfcd to support different
 database backends and is not something that a client can directly access as only
 one entity can have the database open at a time (for most database backends),
 and that entity will be btcd.
