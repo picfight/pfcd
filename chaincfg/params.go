@@ -111,7 +111,7 @@ type Params struct {
 	Name string
 
 	// Net defines the magic bytes used to identify the network.
-	Net wire.BitcoinNet
+	Net wire.PicfightcoinNet
 
 	// DefaultPort defines the default peer-to-peer port for the network.
 	DefaultPort string
@@ -591,7 +591,7 @@ var (
 )
 
 var (
-	registeredNets       = make(map[wire.BitcoinNet]struct{})
+	registeredNets       = make(map[wire.PicfightcoinNet]struct{})
 	pubKeyHashAddrIDs    = make(map[byte]struct{})
 	scriptHashAddrIDs    = make(map[byte]struct{})
 	bech32SegwitPrefixes = make(map[string]struct{})

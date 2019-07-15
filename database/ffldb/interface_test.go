@@ -46,7 +46,7 @@ var (
 
 // loadBlocks loads the blocks contained in the testdata directory and returns
 // a slice of them.
-func loadBlocks(t *testing.T, dataFile string, network wire.BitcoinNet) ([]*pfcutil.Block, error) {
+func loadBlocks(t *testing.T, dataFile string, network wire.PicfightcoinNet) ([]*pfcutil.Block, error) {
 	// Open the file that contains the blocks for reading.
 	fi, err := os.Open(dataFile)
 	if err != nil {

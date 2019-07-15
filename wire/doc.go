@@ -113,10 +113,10 @@ function.  It accepts any io.Reader, but typically this will be a net.Conn to
 a remote node running a bitcoin peer.  Example syntax is:
 
 	// Reads and validates the next bitcoin message from conn using the
-	// protocol version pver and the bitcoin network btcnet.  The returns
+	// protocol version pver and the bitcoin network pfcnet.  The returns
 	// are a wire.Message, a []byte which contains the unmarshalled
 	// raw payload, and a possible error.
-	msg, rawPayload, err := wire.ReadMessage(conn, pver, btcnet)
+	msg, rawPayload, err := wire.ReadMessage(conn, pver, pfcnet)
 	if err != nil {
 		// Log and handle the error
 	}
@@ -132,9 +132,9 @@ from a remote peer is:
 	msg := wire.NewMsgGetAddr()
 
 	// Writes a bitcoin message msg to conn using the protocol version
-	// pver, and the bitcoin network btcnet.  The return is a possible
+	// pver, and the bitcoin network pfcnet.  The return is a possible
 	// error.
-	err := wire.WriteMessage(conn, msg, pver, btcnet)
+	err := wire.WriteMessage(conn, msg, pver, pfcnet)
 	if err != nil {
 		// Log and handle the error
 	}

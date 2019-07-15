@@ -472,7 +472,7 @@ Changes in 0.9.0 (Sat Sep 20 2014)
       working with BIP0037 bloom filters
     - Provide a new hdkeychain package in pfcutil which allows working with
       BIP0032 hierarchical deterministic key chains
-    - Introduce a new btcnet package which houses network parameters
+    - Introduce a new pfcnet package which houses network parameters
     - Provide new simnet network (--simnet) which is useful for private
       simulation testing
     - Enforce low S values in serialized signatures as detailed in BIP0062
@@ -512,7 +512,7 @@ Changes in 0.8.0-beta (Sun May 25 2014)
       (https://github.com/conformal/btcd/issues/128)
     - Reduce max bytes allowed for a standard nulldata transaction to 40 for
       compatibility with the reference client
-    - Introduce a new btcnet package which houses all of the network params
+    - Introduce a new pfcnet package which houses all of the network params
       for each network (mainnet, testnet3, regtest) to ultimately enable
       easier addition and tweaking of networks without needing to change
       several packages

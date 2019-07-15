@@ -106,7 +106,7 @@ type writeCursor struct {
 type blockStore struct {
 	// network is the specific network to use in the flat files for each
 	// block.
-	network wire.BitcoinNet
+	network wire.PicfightcoinNet
 
 	// basePath is the base path used for the flat block files and metadata.
 	basePath string
@@ -738,7 +738,7 @@ func scanBlockFiles(dbPath string) (int, uint32) {
 
 // newBlockStore returns a new block store with the current block file number
 // and offset set and all fields initialized.
-func newBlockStore(basePath string, network wire.BitcoinNet) *blockStore {
+func newBlockStore(basePath string, network wire.PicfightcoinNet) *blockStore {
 	// Look for the end of the latest block to file to determine what the
 	// write cursor position is from the viewpoing of the block files on
 	// disk.
