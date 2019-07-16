@@ -1,4 +1,3 @@
-btcd
 ====
 
 [![Build Status](https://travis-ci.org/picfight/pfcd.png?branch=master)](https://travis-ci.org/picfight/pfcd)
