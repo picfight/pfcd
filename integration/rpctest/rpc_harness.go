@@ -65,7 +65,7 @@ var (
 type HarnessTestCase func(r *Harness, t *testing.T)
 
 // Harness fully encapsulates an active pfcd process to provide a unified
-// platform for creating rpc driven integration tests involving btcd. The
+// platform for creating rpc driven integration tests involving pfcd. The
 // active pfcd node will typically be run in simnet mode in order to allow for
 // easy generation of test blockchains.  The active pfcd process is fully
 // managed by Harness, which handles the necessary initialization, and teardown

@@ -60,7 +60,7 @@ is using.
 
 ### 5. How do I use bootstrap.dat with btcd?
 
-btcd comes with a separate utility named `addblock` which can be used to import
+pfcd comes with a separate utility named `addblock` which can be used to import
 `bootstrap.dat`.  This approach is used since the import is a one-time operation
 and we prefer to keep the daemon itself as lightweight as possible.
 

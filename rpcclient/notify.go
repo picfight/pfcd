@@ -180,7 +180,7 @@ type NotificationHandlers struct {
 	OnTxAcceptedVerbose func(txDetails *pfcjson.TxRawResult)
 
 	// OnPfcdConnected is invoked when a wallet connects or disconnects from
-	// btcd.
+	// pfcd.
 	//
 	// This will only be available when client is connected to a wallet
 	// server such as pfcwallet.

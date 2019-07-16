@@ -1,4 +1,4 @@
-btcd Websockets Example
+pfcd Websockets Example
 =======================
 
 This example shows how to use the rpcclient package to connect to a pfcd RPC

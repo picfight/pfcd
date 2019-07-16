@@ -45,7 +45,7 @@ differences between pfcd and bitcoind as far as how RPCs are serviced:
 
 Websockets are the preferred transport for pfcd RPC and are used by applications
 such as [pfcwallet](https://github.com/picfight/pfcwallet) for inter-process
-communication with btcd.  The websocket connection endpoint for pfcd is
+communication with pfcd.  The websocket connection endpoint for pfcd is
 `wss://your_ip_or_domain:8334/ws`.
 
 In addition to the [standard API](#Methods), an [extension API](#WSExtMethods)
@@ -71,7 +71,7 @@ indicates, the [Websocket-specific extension](#WSExtMethods) methods can only be
 accessed when connected via Websockets.
 
 As mentioned in the [overview](#Overview), the websocket connection endpoint for
-btcd is `wss://your_ip_or_domain:8334/ws`.
+pfcd is `wss://your_ip_or_domain:8334/ws`.
 
 The most important differences between the two transports as it pertains to the
 JSON-RPC API are:
@@ -532,8 +532,8 @@ Example Return|`{`<br />&nbsp;&nbsp;`"bytes": 310768,`<br />&nbsp;&nbsp;`"size":
 |---|---|
 |Method|stop|
 |Parameters|None|
-|Description|Shutdown btcd.|
-|Returns|`"btcd stopping."` (string)|
+|Description|Shutdown pfcd.|
+|Returns|`"pfcd stopping."` (string)|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -555,7 +555,7 @@ Example Return|`{`<br />&nbsp;&nbsp;`"bytes": 310768,`<br />&nbsp;&nbsp;`"size":
 |Method|verifychain|
 |Parameters|1. checklevel (numeric, optional, default=3) - how in-depth the verification is (0=least amount of checks, higher levels are clamped to the highest supported level)<br />2. numblocks (numeric, optional, default=288) - the number of blocks starting from the end of the chain to verify|
 |Description|Verifies the block chain database.<br />The actual checks performed by the `checklevel` parameter is implementation specific.  For pfcd this is:<br />`checklevel=0` - Look up each block and ensure it can be loaded from the database.<br />`checklevel=1` - Perform basic context-free sanity checks on each block.|
-|Notes|<font color="orange">Pfcd currently only supports `checklevel` 0 and 1, but the default is still 3 for compatibility.  Per the information in the Parameters section above, higher levels are automatically clamped to the highest supported level, so this means the default is effectively 1 for btcd.</font>|
+|Notes|<font color="orange">Pfcd currently only supports `checklevel` 0 and 1, but the default is still 3 for compatibility.  Per the information in the Parameters section above, higher levels are automatically clamped to the highest supported level, so this means the default is effectively 1 for pfcd.</font>|
 |Returns|`true` or `false` (boolean)|
 |Example Return|`true`|
 [Return to Overview](#MethodOverview)<br />
@@ -669,7 +669,7 @@ The following is an overview of the RPC methods which are implemented by pfcd, b
 |---|---|
 |Method|version|
 |Parameters|None|
-|Description|Returns the version of the JSON-RPC API built into this release of btcd.|
+|Description|Returns the version of the JSON-RPC API built into this release of pfcd.|
 |Returns|`{ (json object)`<br />&nbsp;&nbsp;`"btcdjsonrpcapi": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"versionstring": "x.y.z",  (string) the version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"major": x,  (numeric) the major version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"minor": y,  (numeric) the minor version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"patch": z,  (numeric) the patch version of the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"prerelease": "",  (string) prerelease info for the JSON-RPC API`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"buildmetadata": ""  (string) metadata about the server build`<br />&nbsp;&nbsp;`}`<br />`}`|
 |Example Return|`{`<br />&nbsp;&nbsp;`"btcdjsonrpcapi": {`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"versionstring": "1.0.0",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"major": 1,  `<br />&nbsp;&nbsp;&nbsp;&nbsp;`"minor": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"patch": 0,`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"prerelease": "",`<br />&nbsp;&nbsp;&nbsp;&nbsp;`"buildmetadata": ""`<br />&nbsp;&nbsp;`}`<br />`}`|
 [Return to Overview](#MethodOverview)<br />
@@ -892,7 +892,7 @@ user.  Click the method name for further details such as parameter and return in
 
 ### 8. Notifications (Websocket-specific)
 
-btcd uses standard JSON-RPC notifications to notify clients of changes, rather than requiring clients to poll pfcd for updates.  JSON-RPC notifications are a subset of requests, but do not contain an ID.  The notification type is categorized by the `method` field and additional details are sent as a JSON array in the `params` field.
+pfcd uses standard JSON-RPC notifications to notify clients of changes, rather than requiring clients to poll pfcd for updates.  JSON-RPC notifications are a subset of requests, but do not contain an ID.  The notification type is categorized by the `method` field and additional details are sent as a JSON array in the `params` field.
 
 <a name="NotificationOverview" />
 

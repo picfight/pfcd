@@ -24,7 +24,7 @@ type params struct {
 // (wire.MainNet).  NOTE: The RPC port is intentionally different than the
 // reference implementation because pfcd does not handle wallet requests.  The
 // separate wallet process listens on the well-known port and forwards requests
-// it does not handle on to btcd.  This approach allows the wallet process
+// it does not handle on to pfcd.  This approach allows the wallet process
 // to emulate the full reference implementation RPC API.
 var mainNetParams = params{
 	Params:  &chaincfg.MainNetParams,

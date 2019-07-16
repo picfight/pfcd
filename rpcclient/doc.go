@@ -20,7 +20,7 @@ between HTTP POST and websockets.
 
 By default, this client assumes the RPC server supports websockets and has
 TLS enabled.  In practice, this currently means it assumes you are talking to
-btcd or pfcwallet by default.  However, configuration options are provided to
+pfcd or pfcwallet by default.  However, configuration options are provided to
 fall back to HTTP POST and disable TLS to support talking with inferior picfightcoin
 core style RPC servers.
 

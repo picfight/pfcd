@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-btcd is a full-node picfightcoin implementation written in Go.
+pfcd is a full-node picfightcoin implementation written in Go.
 
 The default options are sane for most users.  This means pfcd will work 'out of
 the box' for most users.  However, there are also a wide variety of flags that

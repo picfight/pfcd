@@ -19,7 +19,7 @@ implement and the API is not stable yet.
 ## Documentation
 
 * [API Reference](http://godoc.org/github.com/picfight/pfcd/rpcclient)
-* [btcd Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/btcdwebsockets)
+* [pfcd Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/btcdwebsockets)
   Connects to a pfcd RPC server using TLS-secured websockets, registers for
   block connected and block disconnected notifications, and gets the current
   block count

@@ -5,7 +5,7 @@ btcd
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd)
 
-btcd is an alternative full node picfightcoin implementation written in Go (golang).
+pfcd is an alternative full node picfightcoin implementation written in Go (golang).
 
 This project is currently under active development and is in a Beta state.  It
 is extremely stable and has been in production use since October 2013.
@@ -28,7 +28,7 @@ One key difference between pfcd and Picfightcoin Core is that pfcd does *NOT* in
 wallet functionality and this was a very intentional design decision.  See the
 blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
 for more details.  This means you can't actually make or receive payments
-directly with btcd.  That functionality is provided by the
+directly with pfcd.  That functionality is provided by the
 [pfcwallet](https://github.com/picfight/pfcwallet) and
 [Paymetheus](https://github.com/btcsuite/Paymetheus) (Windows-only) projects
 which are both under active development.
@@ -89,7 +89,7 @@ $ GO111MODULE=on go install -v . ./cmd/...
 
 ## Getting Started
 
-btcd has several configuration options available to tweak how it runs, but all
+pfcd has several configuration options available to tweak how it runs, but all
 of the basic operations described in the intro section work with zero
 configuration.
 
@@ -100,7 +100,7 @@ Launch pfcd from your Start menu.
 #### Linux/BSD/POSIX/Source
 
 ```bash
-$ ./btcd
+$ ./pfcd
 ```
 
 ## IRC
@@ -140,4 +140,4 @@ verify the signature perform the following:
 
 ## License
 
-btcd is licensed under the [copyfree](http://copyfree.org) ISC License.
+pfcd is licensed under the [copyfree](http://copyfree.org) ISC License.

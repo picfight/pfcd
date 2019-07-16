@@ -21,7 +21,7 @@
 
 ### 1. Overview
 
-btcd provides full support for anonymous networking via the
+pfcd provides full support for anonymous networking via the
 [Tor Project](https://www.torproject.org/), including [client-only](#Client)
 and [hidden service](#HiddenService) configurations along with
 [stream isolation](#TorStreamIsolation).  In addition, pfcd supports a hybrid,
@@ -63,7 +63,7 @@ not be reachable for inbound connections unless you also configure a Tor
 **2.2 Command Line Example**<br />
 
 ```bash
-$ ./btcd --proxy=127.0.0.1:9050
+$ ./pfcd --proxy=127.0.0.1:9050
 ```
 
 <a name="ClientConfigFileExample" />
@@ -114,7 +114,7 @@ three flags:
 **3.2 Command Line Example**<br />
 
 ```bash
-$ ./btcd --proxy=127.0.0.1:9050 --listen=127.0.0.1 --externalip=fooanon.onion
+$ ./pfcd --proxy=127.0.0.1:9050 --listen=127.0.0.1 --externalip=fooanon.onion
 ```
 
 <a name="HiddenServiceConfigFileExample" />
@@ -137,7 +137,7 @@ externalip=fooanon.onion
 
 **4.1 Description**<br />
 
-btcd provides support for operating as a bridge between regular nodes and hidden
+pfcd provides support for operating as a bridge between regular nodes and hidden
 service nodes.  In particular this means only traffic which is directed to or
 from a .onion address is sent through Tor while other traffic is sent normally.
 _As a result, this mode is **NOT** anonymous._
@@ -159,7 +159,7 @@ routed via Tor due to the `--onion` flag.
 **4.2 Command Line Example**<br />
 
 ```bash
-$ ./btcd --onion=127.0.0.1:9050 --externalip=fooanon.onion
+$ ./pfcd --onion=127.0.0.1:9050 --externalip=fooanon.onion
 ```
 
 <a name="BridgeConfigFileExample" />
@@ -184,7 +184,7 @@ externalip=fooanon.onion
 Tor stream isolation forces Tor to build a new circuit for each connection
 making it harder to correlate connections.
 
-btcd provides support for Tor stream isolation by using the `--torisolation`
+pfcd provides support for Tor stream isolation by using the `--torisolation`
 flag.  This option requires --proxy or --onionproxy to be set.
 
 <a name="TorStreamIsolationCLIExample" />
@@ -192,7 +192,7 @@ flag.  This option requires --proxy or --onionproxy to be set.
 **5.2 Command Line Example**<br />
 
 ```bash
-$ ./btcd --proxy=127.0.0.1:9050 --torisolation
+$ ./pfcd --proxy=127.0.0.1:9050 --torisolation
 ```
 
 <a name="TorStreamIsolationFileExample" />

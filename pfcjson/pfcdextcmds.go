@@ -45,14 +45,14 @@ func NewNodeCmd(subCmd NodeSubCmd, target string, connectSubCmd *string) *NodeCm
 }
 
 // DebugLevelCmd defines the debuglevel JSON-RPC command.  This command is not a
-// standard Picfightcoin command.  It is an extension for btcd.
+// standard Picfightcoin command.  It is an extension for pfcd.
 type DebugLevelCmd struct {
 	LevelSpec string
 }
 
 // NewDebugLevelCmd returns a new DebugLevelCmd which can be used to issue a
 // debuglevel JSON-RPC command.  This command is not a standard Picfightcoin command.
-// It is an extension for btcd.
+// It is an extension for pfcd.
 func NewDebugLevelCmd(levelSpec string) *DebugLevelCmd {
 	return &DebugLevelCmd{
 		LevelSpec: levelSpec,

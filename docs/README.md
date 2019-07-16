@@ -25,7 +25,7 @@
 
 ### 1. About
 
-btcd is a full node picfightcoin implementation written in [Go](http://golang.org),
+pfcd is a full node picfightcoin implementation written in [Go](http://golang.org),
 licensed under the [copyfree](http://www.copyfree.org) ISC License.
 
 This project is currently under active development and is in a Beta state.  It
@@ -49,7 +49,7 @@ One key difference between pfcd and Picfightcoin Core is that pfcd does *NOT* in
 wallet functionality and this was a very intentional design decision.  See the
 blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
 for more details.  This means you can't actually make or receive payments
-directly with btcd.  That functionality is provided by the
+directly with pfcd.  That functionality is provided by the
 [pfcwallet](https://github.com/picfight/pfcwallet) and
 [Paymetheus](https://github.com/btcsuite/Paymetheus) (Windows-only) projects
 which are both under active development.
@@ -62,7 +62,7 @@ which are both under active development.
 
 **2.1 Installation**
 
-The first step is to install btcd.  See one of the following sections for
+The first step is to install pfcd.  See one of the following sections for
 details on how to install on the supported operating systems.
 
 <a name="WindowsInstallation" />
@@ -126,7 +126,7 @@ $ git pull && GO111MODULE=on go install -v . ./cmd/...
 
 **2.2 Configuration**
 
-btcd has a number of [configuration](http://godoc.org/github.com/picfight/pfcd)
+pfcd has a number of [configuration](http://godoc.org/github.com/picfight/pfcd)
 options, which can be viewed by running: `$ pfcd --help`.
 
 <a name="PfcctlConfig" />
@@ -164,7 +164,7 @@ For a list of available options, run: `$ btcctl --help`
 
 **2.4 Mining**
 
-btcd supports the `getblocktemplate` RPC.
+pfcd supports the `getblocktemplate` RPC.
 The limited user cannot access this RPC.
 
 
@@ -186,8 +186,8 @@ certificate into the default system Certificate Authority list.
 
 **Ubuntu**
 
-1. Copy rpc.cert to /usr/share/ca-certificates: `# cp /home/user/.btcd/rpc.cert /usr/share/ca-certificates/btcd.crt`
-2. Add btcd.crt to /etc/ca-certificates.conf: `# echo btcd.crt >> /etc/ca-certificates.conf`
+1. Copy rpc.cert to /usr/share/ca-certificates: `# cp /home/user/.btcd/rpc.cert /usr/share/ca-certificates/pfcd.crt`
+2. Add pfcd.crt to /etc/ca-certificates.conf: `# echo pfcd.crt >> /etc/ca-certificates.conf`
 3. Update the CA certificate list: `# update-ca-certificates`
 
 **3. Set your mining software url to use https.**
@@ -225,7 +225,7 @@ configuration necessary, however, there is an optional method to use a
 
 **3.1 Wallet**
 
-btcd was intentionally developed without an integrated wallet for security
+pfcd was intentionally developed without an integrated wallet for security
 reasons.  Please see [pfcwallet](https://github.com/picfight/pfcwallet) for more
 information.
 
