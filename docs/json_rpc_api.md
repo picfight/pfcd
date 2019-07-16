@@ -26,7 +26,7 @@
 
 ### 1. Overview
 
-btcd provides a [JSON-RPC](http://json-rpc.org/wiki/specification) API that is
+pfcd provides a [JSON-RPC](http://json-rpc.org/wiki/specification) API that is
 fully compatible with the original bitcoind/bitcoin-qt.  There are a few key
 differences between pfcd and bitcoind as far as how RPCs are serviced:
 * Unlike bitcoind that has the wallet and chain intermingled in the same process
@@ -138,7 +138,7 @@ authenticated will cause the websocket to be closed immediately.
 
 ### 4. Command-line Utility
 
-btcd comes with a separate utility named `btcctl` which can be used to issue
+pfcd comes with a separate utility named `pfcctl` which can be used to issue
 these RPC commands via HTTP POST requests to pfcd after configuring it with the
 information in the [Authentication](#Authentication) section above.  It can also
 be used to communicate with any server/daemon/service which provides a JSON-RPC
@@ -181,7 +181,7 @@ the method name for further details such as parameter and return information.
 |22|[getrawtransaction](#getrawtransaction)|Y|Returns information about a transaction given its hash.|
 |23|[help](#help)|Y|Returns a list of all commands or help for a specified command.|
 |24|[ping](#ping)|N|Queues a ping to be sent to each connected peer.|
-|25|[sendrawtransaction](#sendrawtransaction)|Y|Submits the serialized, hex-encoded transaction to the local peer and relays it to the network.<br /><font color="orange">btcd does not yet implement the `allowhighfees` parameter, so it has no effect</font>|
+|25|[sendrawtransaction](#sendrawtransaction)|Y|Submits the serialized, hex-encoded transaction to the local peer and relays it to the network.<br /><font color="orange">pfcd does not yet implement the `allowhighfees` parameter, so it has no effect</font>|
 |26|[setgenerate](#setgenerate) |N|Set the server to generate coins (mine) or not.<br/>NOTE: Since pfcd does not have the wallet integrated to provide payment addresses, pfcd must be configured via the `--miningaddr` option to provide which payment addresses to pay created blocks to for this RPC to function.|
 |27|[stop](#stop)|N|Shutdown btcd.|
 |28|[submitblock](#submitblock)|Y|Attempts to submit a new serialized, hex-encoded block to the network.|
@@ -509,7 +509,7 @@ Example Return|`{`<br />&nbsp;&nbsp;`"bytes": 310768,`<br />&nbsp;&nbsp;`"size":
 |Method|sendrawtransaction|
 |Parameters|1. signedhex (string, required) serialized, hex-encoded signed transaction<br />2. allowhighfees (boolean, optional, default=false) whether or not to allow insanely high fees|
 |Description|Submits the serialized, hex-encoded transaction to the local peer and relays it to the network.|
-|Notes|<font color="orange">btcd does not yet implement the `allowhighfees` parameter, so it has no effect</font>|
+|Notes|<font color="orange">pfcd does not yet implement the `allowhighfees` parameter, so it has no effect</font>|
 |Returns|`"hash" (string) the hash of the transaction`|
 |Example Return|`"1697a19cede08694278f19584e8dcc87945f40c6b59a942dd8906f133ad3f9cc"`|
 [Return to Overview](#MethodOverview)<br />
