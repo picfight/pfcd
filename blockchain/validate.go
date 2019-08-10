@@ -18,31 +18,6 @@ import (
 	"github.com/picfight/pfcutil"
 )
 
-const (
-	// MaxTimeOffsetSeconds is the maximum number of seconds a block time
-	// is allowed to be ahead of the current time.  This is currently 2
-	// hours.
-	MaxTimeOffsetSeconds = 2 * 60 * 60
-
-	// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
-	MinCoinbaseScriptLen = 2
-
-	// MaxCoinbaseScriptLen is the maximum length a coinbase script can be.
-	MaxCoinbaseScriptLen = 100
-
-	// medianTimeBlocks is the number of previous blocks which should be
-	// used to calculate the median time used to validate block timestamps.
-	medianTimeBlocks = 11
-
-	// serializedHeightVersion is the block version which changed block
-	// coinbases to start with the serialized block height.
-	serializedHeightVersion = 2
-
-	// baseSubsidy is the starting subsidy amount for mined blocks.  This
-	// value is halved every SubsidyHalvingInterval blocks.
-	baseSubsidy = 50 * pfcutil.SatoshiPerPicfightcoin
-)
-
 var (
 	// zeroHash is the zero value for a chainhash.Hash and is defined as
 	// a package level variable to avoid the need to create a new instance
@@ -74,8 +49,8 @@ func isNullOutpoint(outpoint *wire.OutPoint) bool {
 // coinbase transaction. Judgement is based on the block version in the block
 // header. Blocks with version 2 and above satisfy this criteria. See BIP0034
 // for further information.
-func ShouldHaveSerializedBlockHeight(header *wire.BlockHeader) bool {
-	return header.Version >= serializedHeightVersion
+func ShouldHaveSerializedBlockHeight(chainParams *chaincfg.Params, header *wire.BlockHeader) bool {
+	return header.Version >= chainParams.SerializedHeightVersion
 }
 
 // IsCoinBaseTx determines whether or not a transaction is a coinbase.  A coinbase
@@ -192,17 +167,12 @@ func isBIP0030Node(node *blockNode) bool {
 // At the target block generation rate for the main network, this is
 // approximately every 4 years.
 func CalcBlockSubsidy(height int32, chainParams *chaincfg.Params) int64 {
-	if chainParams.SubsidyReductionInterval == 0 {
-		return baseSubsidy
-	}
-
-	// Equivalent to: baseSubsidy / 2^(height/subsidyHalvingInterval)
-	return baseSubsidy >> uint(height/chainParams.SubsidyReductionInterval)
+	return chainParams.BaseSubsidy
 }
 
 // CheckTransactionSanity performs some preliminary checks on a transaction to
 // ensure it is sane.  These checks are context free.
-func CheckTransactionSanity(tx *pfcutil.Tx) error {
+func CheckTransactionSanity(chainParams *chaincfg.Params, tx *pfcutil.Tx) error {
 	// A transaction must have at least one input.
 	msgTx := tx.MsgTx()
 	if len(msgTx.TxIn) == 0 {
@@ -276,10 +246,10 @@ func CheckTransactionSanity(tx *pfcutil.Tx) error {
 	// Coinbase script length must be between min and max length.
 	if IsCoinBase(tx) {
 		slen := len(msgTx.TxIn[0].SignatureScript)
-		if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+		if slen < chainParams.MinCoinbaseScriptLen || slen > chainParams.MaxCoinbaseScriptLen {
 			str := fmt.Sprintf("coinbase transaction script length "+
 				"of %d is out of range (min: %d, max: %d)",
-				slen, MinCoinbaseScriptLen, MaxCoinbaseScriptLen)
+				slen, chainParams.MinCoinbaseScriptLen, chainParams.MaxCoinbaseScriptLen)
 			return ruleError(ErrBadCoinbaseScriptLen, str)
 		}
 	} else {
@@ -427,7 +397,7 @@ func CountP2SHSigOps(tx *pfcutil.Tx, isCoinBaseTx bool, utxoView *UtxoViewpoint)
 //
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkProofOfWork.
-func checkBlockHeaderSanity(header *wire.BlockHeader, powLimit *big.Int, timeSource MedianTimeSource, flags BehaviorFlags) error {
+func checkBlockHeaderSanity(chainParams *chaincfg.Params, header *wire.BlockHeader, powLimit *big.Int, timeSource MedianTimeSource, flags BehaviorFlags) error {
 	// Ensure the proof of work bits in the block header is in min/max range
 	// and the block hash is less than the target value described by the
 	// bits.
@@ -448,8 +418,8 @@ func checkBlockHeaderSanity(header *wire.BlockHeader, powLimit *big.Int, timeSou
 	}
 
 	// Ensure the block time is not too far in the future.
-	maxTimestamp := timeSource.AdjustedTime().Add(time.Second *
-		MaxTimeOffsetSeconds)
+	timeVal := time.Duration(chainParams.MaxTimeOffsetSeconds) * time.Second;
+	maxTimestamp := timeSource.AdjustedTime().Add(timeVal)
 	if header.Timestamp.After(maxTimestamp) {
 		str := fmt.Sprintf("block timestamp of %v is too far in the "+
 			"future", header.Timestamp)
@@ -464,10 +434,10 @@ func checkBlockHeaderSanity(header *wire.BlockHeader, powLimit *big.Int, timeSou
 //
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkBlockHeaderSanity.
-func checkBlockSanity(block *pfcutil.Block, powLimit *big.Int, timeSource MedianTimeSource, flags BehaviorFlags) error {
+func checkBlockSanity(chainParams *chaincfg.Params, block *pfcutil.Block, powLimit *big.Int, timeSource MedianTimeSource, flags BehaviorFlags) error {
 	msgBlock := block.MsgBlock()
 	header := &msgBlock.Header
-	err := checkBlockHeaderSanity(header, powLimit, timeSource, flags)
+	err := checkBlockHeaderSanity(chainParams, header, powLimit, timeSource, flags)
 	if err != nil {
 		return err
 	}
@@ -515,7 +485,7 @@ func checkBlockSanity(block *pfcutil.Block, powLimit *big.Int, timeSource Median
 	// Do some preliminary checks on each transaction to ensure they are
 	// sane before continuing.
 	for _, tx := range transactions {
-		err := CheckTransactionSanity(tx)
+		err := CheckTransactionSanity(chainParams, tx)
 		if err != nil {
 			return err
 		}
@@ -571,20 +541,20 @@ func checkBlockSanity(block *pfcutil.Block, powLimit *big.Int, timeSource Median
 
 // CheckBlockSanity performs some preliminary checks on a block to ensure it is
 // sane before continuing with block processing.  These checks are context free.
-func CheckBlockSanity(block *pfcutil.Block, powLimit *big.Int, timeSource MedianTimeSource) error {
-	return checkBlockSanity(block, powLimit, timeSource, BFNone)
+func CheckBlockSanity(chainParams *chaincfg.Params, block *pfcutil.Block, powLimit *big.Int, timeSource MedianTimeSource) error {
+	return checkBlockSanity(chainParams, block, powLimit, timeSource, BFNone)
 }
 
 // ExtractCoinbaseHeight attempts to extract the height of the block from the
 // scriptSig of a coinbase transaction.  Coinbase heights are only present in
 // blocks of version 2 or later.  This was added as part of BIP0034.
-func ExtractCoinbaseHeight(coinbaseTx *pfcutil.Tx) (int32, error) {
+func ExtractCoinbaseHeight(chainParams *chaincfg.Params, coinbaseTx *pfcutil.Tx) (int32, error) {
 	sigScript := coinbaseTx.MsgTx().TxIn[0].SignatureScript
 	if len(sigScript) < 1 {
 		str := "the coinbase signature script for blocks of " +
 			"version %d or greater must start with the " +
 			"length of the serialized block height"
-		str = fmt.Sprintf(str, serializedHeightVersion)
+		str = fmt.Sprintf(str, chainParams.SerializedHeightVersion)
 		return 0, ruleError(ErrMissingCoinbaseHeight, str)
 	}
 
@@ -618,8 +588,8 @@ func ExtractCoinbaseHeight(coinbaseTx *pfcutil.Tx) (int32, error) {
 
 // checkSerializedHeight checks if the signature script in the passed
 // transaction starts with the serialized block height of wantHeight.
-func checkSerializedHeight(coinbaseTx *pfcutil.Tx, wantHeight int32) error {
-	serializedHeight, err := ExtractCoinbaseHeight(coinbaseTx)
+func checkSerializedHeight(chainParams *chaincfg.Params, coinbaseTx *pfcutil.Tx, wantHeight int32) error {
+	serializedHeight, err := ExtractCoinbaseHeight(chainParams, coinbaseTx)
 	if err != nil {
 		return err
 	}
@@ -723,7 +693,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *wire.BlockHeader, prevNode 
 // for how the flags modify its behavior.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockContext(chainParams *chaincfg.Params, block *pfcutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
 	// Perform all block header related validation checks.
 	header := &block.MsgBlock().Header
 	err := b.checkBlockHeaderContext(header, prevNode, flags)
@@ -768,11 +738,11 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 		// blocks whose version is the serializedHeightVersion or newer
 		// once a majority of the network has upgraded.  This is part of
 		// BIP0034.
-		if ShouldHaveSerializedBlockHeight(header) &&
+		if ShouldHaveSerializedBlockHeight(chainParams, header) &&
 			blockHeight >= b.chainParams.BIP0034Height {
 
 			coinbaseTx := block.Transactions()[0]
-			err := checkSerializedHeight(coinbaseTx, blockHeight)
+			err := checkSerializedHeight(b.chainParams, coinbaseTx, blockHeight)
 			if err != nil {
 				return err
 			}
@@ -1260,12 +1230,12 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 		return ruleError(ErrPrevBlockNotBest, str)
 	}
 
-	err := checkBlockSanity(block, b.chainParams.PowLimit, b.timeSource, flags)
+	err := checkBlockSanity(b.chainParams, block, b.chainParams.PowLimit, b.timeSource, flags)
 	if err != nil {
 		return err
 	}
 
-	err = b.checkBlockContext(block, tip, flags)
+	err = b.checkBlockContext(b.chainParams, block, tip, flags)
 	if err != nil {
 		return err
 	}

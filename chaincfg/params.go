@@ -38,6 +38,8 @@ var (
 	// simNetPowLimit is the highest proof of work value a Picfightcoin block
 	// can have for the simulation test network.  It is the value 2^255 - 1.
 	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+
+	SatoshiPerPicfightcoin int64 = 1e8
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
@@ -146,7 +148,8 @@ type Params struct {
 
 	// SubsidyReductionInterval is the interval of blocks before the subsidy
 	// is reduced.
-	SubsidyReductionInterval int32
+	// DEPRECATED
+	// SubsidyReductionInterval int32
 
 	// TargetTimespan is the desired amount of time that should elapse
 	// before the block difficulty requirement is examined to determine how
@@ -219,6 +222,27 @@ type Params struct {
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
 	HDCoinType uint32
+
+	// Block-chain parameters
+
+	// MaxTimeOffsetSeconds is the maximum number of seconds a block time
+	// is allowed to be ahead of the current time.  This is currently 2
+	// hours.
+	MaxTimeOffsetSeconds int64
+	// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
+	MinCoinbaseScriptLen int
+	// MaxCoinbaseScriptLen is the maximum length a coinbase script can be.
+	MaxCoinbaseScriptLen int
+	// MedianTimeBlocks is the number of previous blocks which should be
+	// used to calculate the median time used to validate block timestamps.
+	MedianTimeBlocks int64
+	// SerializedHeightVersion is the block version which changed block
+	// coinbases to start with the serialized block height.
+	SerializedHeightVersion int32
+	// BaseSubsidy is the starting subsidy amount for mined blocks.  This
+	// value is halved every SubsidyHalvingInterval blocks.
+	BaseSubsidy            int64
+
 }
 
 // MainNetParams defines the network parameters for the main Picfightcoin network.
@@ -235,6 +259,14 @@ var MainNetParams = Params{
 		{"seed.bitcoin.jonasschnelli.ch", true},
 	},
 
+	// Blockchain parameters
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks: 11,
+	SerializedHeightVersion: 2,
+	BaseSubsidy: 50 * SatoshiPerPicfightcoin,
+
 	// Chain parameters
 	GenesisBlock:             &genesisBlock,
 	GenesisHash:              &genesisHash,
@@ -244,7 +276,7 @@ var MainNetParams = Params{
 	BIP0065Height:            388381, // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
 	BIP0066Height:            363725, // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
 	CoinbaseMaturity:         100,
-	SubsidyReductionInterval: 210000,
+	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
@@ -337,6 +369,14 @@ var RegressionNetParams = Params{
 	DefaultPort: "18444",
 	DNSSeeds:    []DNSSeed{},
 
+	// Blockchain parameters
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks: 11,
+	SerializedHeightVersion: 2,
+	BaseSubsidy: 50 * SatoshiPerPicfightcoin,
+
 	// Chain parameters
 	GenesisBlock:             &regTestGenesisBlock,
 	GenesisHash:              &regTestGenesisHash,
@@ -346,7 +386,7 @@ var RegressionNetParams = Params{
 	BIP0034Height:            100000000, // Not active - Permit ver 1 blocks
 	BIP0065Height:            1351,      // Used by regression tests
 	BIP0066Height:            1251,      // Used by regression tests
-	SubsidyReductionInterval: 150,
+	//SubsidyReductionInterval: 150,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
@@ -416,6 +456,14 @@ var TestNet3Params = Params{
 		{"testnet-seed.bluematt.me", false},
 	},
 
+	// Blockchain parameters
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks: 11,
+	SerializedHeightVersion: 2,
+	BaseSubsidy: 50 * SatoshiPerPicfightcoin,
+
 	// Chain parameters
 	GenesisBlock:             &testNet3GenesisBlock,
 	GenesisHash:              &testNet3GenesisHash,
@@ -425,7 +473,7 @@ var TestNet3Params = Params{
 	BIP0065Height:            581885, // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
 	BIP0066Height:            330776, // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
 	CoinbaseMaturity:         100,
-	SubsidyReductionInterval: 210000,
+	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
@@ -511,6 +559,14 @@ var SimNetParams = Params{
 	DefaultPort: "18555",
 	DNSSeeds:    []DNSSeed{}, // NOTE: There must NOT be any seeds.
 
+	// Blockchain parameters
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks: 11,
+	SerializedHeightVersion: 2,
+	BaseSubsidy: 50 * SatoshiPerPicfightcoin,
+
 	// Chain parameters
 	GenesisBlock:             &simNetGenesisBlock,
 	GenesisHash:              &simNetGenesisHash,
@@ -520,7 +576,7 @@ var SimNetParams = Params{
 	BIP0065Height:            0, // Always active on simnet
 	BIP0066Height:            0, // Always active on simnet
 	CoinbaseMaturity:         100,
-	SubsidyReductionInterval: 210000,
+	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
