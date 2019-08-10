@@ -39,7 +39,7 @@ var (
 	// can have for the simulation test network.  It is the value 2^255 - 1.
 	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
-	SatoshiPerPicfightcoin = 1e8
+	SatoshiPerPicfightcoin = int64(1e8)
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
