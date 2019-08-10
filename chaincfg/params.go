@@ -249,7 +249,7 @@ type Params struct {
 // MainNetParams defines the network parameters for the main Picfightcoin network.
 var MainNetParams = Params{
 	Name:             "mainnet",
-	NodeBuildVersion: "build-00001.mainnet",
+	NodeBuildVersion: "build-00002.mainnet",
 	Net:              wire.MainNet,
 	DefaultPort:      "8333",
 	DNSSeeds: []DNSSeed{
@@ -367,7 +367,7 @@ var MainNetParams = Params{
 // 3), this network is sometimes simply called "testnet".
 var RegressionNetParams = Params{
 	Name:             "regtest",
-	NodeBuildVersion: "build-00001.regtest",
+	NodeBuildVersion: "build-00002.regtest",
 	Net:              wire.TestNet,
 	DefaultPort:      "18444",
 	DNSSeeds:         []DNSSeed{},
@@ -450,7 +450,7 @@ var RegressionNetParams = Params{
 // network is sometimes simply called "testnet".
 var TestNet3Params = Params{
 	Name:             "testnet3",
-	NodeBuildVersion: "build-00001.testnet3",
+	NodeBuildVersion: "build-00002.testnet3",
 	Net:              wire.TestNet3,
 	DefaultPort:      "18333",
 	DNSSeeds: []DNSSeed{
@@ -559,7 +559,7 @@ var TestNet3Params = Params{
 // just turn into another public testnet.
 var SimNetParams = Params{
 	Name:             "simnet",
-	NodeBuildVersion: "build-00001.simnet",
+	NodeBuildVersion: "build-00002.simnet",
 	Net:              wire.SimNet,
 	DefaultPort:      "18555",
 	DNSSeeds:         []DNSSeed{}, // NOTE: There must NOT be any seeds.
