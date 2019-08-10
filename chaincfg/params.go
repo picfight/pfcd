@@ -267,7 +267,7 @@ var MainNetParams = Params{
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
 	SerializedHeightVersion: 2,
-	BaseSubsidy:             50 * SatoshiPerPicfightcoin,
+	BaseSubsidy:             1 * SatoshiPerPicfightcoin,
 
 	// Chain parameters
 	GenesisBlock:     &genesisBlock,
@@ -280,7 +280,7 @@ var MainNetParams = Params{
 	CoinbaseMaturity: 100,
 	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
+	TargetTimePerBlock:       time.Minute * 1,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0,
