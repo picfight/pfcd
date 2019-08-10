@@ -247,6 +247,10 @@ var helpDescsEnUS = map[string]string{
 	"getblockcount--synopsis": "Returns the number of blocks in the longest block chain.",
 	"getblockcount--result0":  "The current block count",
 
+	// GetBuildVersionCmd help.
+	"getbuildversion--synopsis": "Returns code version of the node executable",
+	"getbuildversionresult-version_string":  "result string",
+
 	// GetBlockHashCmd help.
 	"getblockhash--synopsis": "Returns hash of the block in best block chain at the given height.",
 	"getblockhash-index":     "The block height",
@@ -688,7 +692,7 @@ var rpcResultTypes = map[string][]interface{}{
 	"getblockcount":         {(*int64)(nil)},
 	"getblockhash":          {(*string)(nil)},
 	"getblockheader":        {(*string)(nil), (*pfcjson.GetBlockHeaderVerboseResult)(nil)},
-	"getbuildversion":       {(*string)(nil), (*pfcjson.GetBuildVersionResult)(nil)},
+	"getbuildversion":       {(*pfcjson.GetBuildVersionResult)(nil)},
 	"getblocktemplate":      {(*pfcjson.GetBlockTemplateResult)(nil), (*string)(nil), nil},
 	"getblockchaininfo":     {(*pfcjson.GetBlockChainInfoResult)(nil)},
 	"getcfilter":            {(*string)(nil)},

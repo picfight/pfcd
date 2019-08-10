@@ -178,6 +178,7 @@ func NewGetBlockHashCmd(index int64) *GetBlockHashCmd {
 	}
 }
 
+// GetBuildVersionCmd defines the getbuildversion JSON-RPC command.
 type GetBuildVersionCmd struct {
 }
 
