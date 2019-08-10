@@ -151,10 +151,11 @@ func TestCheckConnectBlockTemplate(t *testing.T) {
 // TestCheckBlockSanity tests the CheckBlockSanity function to ensure it works
 // as expected.
 func TestCheckBlockSanity(t *testing.T) {
-	powLimit := chaincfg.MainNetParams.PowLimit
+	net := &chaincfg.MainNetParams
+	powLimit := net.PowLimit
 	block := pfcutil.NewBlock(&Block100000)
 	timeSource := NewMedianTime()
-	err := CheckBlockSanity(block, powLimit, timeSource)
+	err := CheckBlockSanity(net, block, powLimit, timeSource)
 	if err != nil {
 		t.Errorf("CheckBlockSanity: %v", err)
 	}
@@ -163,7 +164,7 @@ func TestCheckBlockSanity(t *testing.T) {
 	// second fails.
 	timestamp := block.MsgBlock().Header.Timestamp
 	block.MsgBlock().Header.Timestamp = timestamp.Add(time.Nanosecond)
-	err = CheckBlockSanity(block, powLimit, timeSource)
+	err = CheckBlockSanity(net, block, powLimit, timeSource)
 	if err == nil {
 		t.Errorf("CheckBlockSanity: error is nil when it shouldn't be")
 	}
@@ -215,7 +216,7 @@ func TestCheckSerializedHeight(t *testing.T) {
 		msgTx.TxIn[0].SignatureScript = test.sigScript
 		tx := pfcutil.NewTx(msgTx)
 
-		err := checkSerializedHeight(tx, test.wantHeight)
+		err := checkSerializedHeight(nil, tx, test.wantHeight)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
 			t.Errorf("checkSerializedHeight #%d wrong error type "+
 				"got: %v <%T>, want: %T", i, err, err, test.err)
@@ -244,13 +245,13 @@ var Block100000 = wire.MsgBlock{
 			0x21, 0xa6, 0xc3, 0x01, 0x1d, 0xd3, 0x30, 0xd9,
 			0xdf, 0x07, 0xb6, 0x36, 0x16, 0xc2, 0xcc, 0x1f,
 			0x1c, 0xd0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-		}), // 000000000002d01c1fccc21636b607dfd930d31d01c3a62104612a1719011250
+		}),                                  // 000000000002d01c1fccc21636b607dfd930d31d01c3a62104612a1719011250
 		MerkleRoot: chainhash.Hash([32]byte{ // Make go vet happy.
 			0x66, 0x57, 0xa9, 0x25, 0x2a, 0xac, 0xd5, 0xc0,
 			0xb2, 0x94, 0x09, 0x96, 0xec, 0xff, 0x95, 0x22,
 			0x28, 0xc3, 0x06, 0x7c, 0xc3, 0x8d, 0x48, 0x85,
 			0xef, 0xb5, 0xa4, 0xac, 0x42, 0x47, 0xe9, 0xf3,
-		}), // f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766
+		}),                                  // f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766
 		Timestamp: time.Unix(1293623863, 0), // 2010-12-29 11:57:43 +0000 UTC
 		Bits:      0x1b04864c,               // 453281356
 		Nonce:     0x10572b0f,               // 274148111

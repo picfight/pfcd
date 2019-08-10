@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/picfight/pfcd/chaincfg"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -20,7 +21,7 @@ var testNoncePrng = rand.New(rand.NewSource(0))
 // chainedNodes returns the specified number of nodes constructed such that each
 // subsequent node points to the previous one to create a chain.  The first node
 // will point to the passed parent which can be nil if desired.
-func chainedNodes(parent *blockNode, numNodes int) []*blockNode {
+func chainedNodes(chainParams *chaincfg.Params, parent *blockNode, numNodes int) []*blockNode {
 	nodes := make([]*blockNode, numNodes)
 	tip := parent
 	for i := 0; i < numNodes; i++ {
@@ -30,7 +31,7 @@ func chainedNodes(parent *blockNode, numNodes int) []*blockNode {
 		if tip != nil {
 			header.PrevBlock = tip.hash
 		}
-		nodes[i] = newBlockNode(&header, tip)
+		nodes[i] = newBlockNode(chainParams, &header, tip)
 		tip = nodes[i]
 	}
 	return nodes
@@ -77,9 +78,9 @@ func TestChainView(t *testing.T) {
 	// 0 -> 1 -> 2  -> 3  -> 4
 	//       \-> 2a -> 3a -> 4a  -> 5a -> 6a -> 7a -> ... -> 26a
 	//             \-> 3a'-> 4a' -> 5a'
-	branch0Nodes := chainedNodes(nil, 5)
-	branch1Nodes := chainedNodes(branch0Nodes[1], 25)
-	branch2Nodes := chainedNodes(branch1Nodes[0], 3)
+	branch0Nodes := chainedNodes(nil, nil, 5)
+	branch1Nodes := chainedNodes(nil, branch0Nodes[1], 25)
+	branch2Nodes := chainedNodes(nil, branch1Nodes[0], 3)
 
 	tip := tstTip
 	tests := []struct {
@@ -306,8 +307,8 @@ testLoop:
 // unrelated histories.
 func TestChainViewForkCorners(t *testing.T) {
 	// Construct two unrelated single branch synthetic block indexes.
-	branchNodes := chainedNodes(nil, 5)
-	unrelatedBranchNodes := chainedNodes(nil, 7)
+	branchNodes := chainedNodes(nil, nil, 5)
+	unrelatedBranchNodes := chainedNodes(nil, nil, 7)
 
 	// Create chain views for the two unrelated histories.
 	view1 := newChainView(tstTip(branchNodes))
@@ -342,8 +343,8 @@ func TestChainViewSetTip(t *testing.T) {
 	// structure.
 	// 0 -> 1 -> 2  -> 3  -> 4
 	//       \-> 2a -> 3a -> 4a  -> 5a -> 6a -> 7a -> ... -> 26a
-	branch0Nodes := chainedNodes(nil, 5)
-	branch1Nodes := chainedNodes(branch0Nodes[1], 25)
+	branch0Nodes := chainedNodes(nil, nil, 5)
+	branch1Nodes := chainedNodes(nil, branch0Nodes[1], 25)
 
 	tip := tstTip
 	tests := []struct {
@@ -445,7 +446,7 @@ func TestChainViewNil(t *testing.T) {
 	}
 
 	// Ensure an uninitialized view does not report it contains nodes.
-	fakeNode := chainedNodes(nil, 1)[0]
+	fakeNode := chainedNodes(nil, nil, 1)[0]
 	if view.Contains(fakeNode) {
 		t.Fatalf("Contains: view claims it contains node %v", fakeNode)
 	}
@@ -476,7 +477,7 @@ func TestChainViewNil(t *testing.T) {
 
 	// Ensure attempting to get a block locator for a node that exists still
 	// works as intended.
-	branchNodes := chainedNodes(nil, 50)
+	branchNodes := chainedNodes(nil, nil, 50)
 	wantLocator := locatorHashes(branchNodes, 49, 48, 47, 46, 45, 44, 43,
 		42, 41, 40, 39, 38, 36, 32, 24, 8, 0)
 	locator := view.BlockLocator(tstTip(branchNodes))

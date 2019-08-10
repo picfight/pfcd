@@ -554,7 +554,11 @@ func ExtractCoinbaseHeight(chainParams *chaincfg.Params, coinbaseTx *pfcutil.Tx)
 		str := "the coinbase signature script for blocks of " +
 			"version %d or greater must start with the " +
 			"length of the serialized block height"
-		str = fmt.Sprintf(str, chainParams.SerializedHeightVersion)
+		var H int32 = -1
+		if chainParams != nil {
+			H = chainParams.SerializedHeightVersion;
+		}
+		str = fmt.Sprintf(str, H)
 		return 0, ruleError(ErrMissingCoinbaseHeight, str)
 	}
 

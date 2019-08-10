@@ -131,7 +131,7 @@ func TestCalcSequenceLock(t *testing.T) {
 	numBlocksToActivate := (netParams.MinerConfirmationWindow * 3)
 	for i := uint32(0); i < numBlocksToActivate; i++ {
 		blockTime = blockTime.Add(time.Second)
-		node = newFakeNode(node, blockVersion, 0, blockTime)
+		node = newFakeNode(netParams, node, blockVersion, 0, blockTime)
 		chain.index.AddNode(node)
 		chain.bestChain.SetTip(node)
 	}
@@ -469,9 +469,11 @@ func TestLocateInventory(t *testing.T) {
 	// 	genesis -> 1 -> 2 -> ... -> 15 -> 16  -> 17  -> 18
 	// 	                              \-> 16a -> 17a
 	tip := tstTip
+
 	chain := newFakeChain(&chaincfg.MainNetParams)
-	branch0Nodes := chainedNodes(chain.bestChain.Genesis(), 18)
-	branch1Nodes := chainedNodes(branch0Nodes[14], 2)
+	chainCfg := chain.chainParams
+	branch0Nodes := chainedNodes(chainCfg, chain.bestChain.Genesis(), 18)
+	branch1Nodes := chainedNodes(chainCfg, branch0Nodes[14], 2)
 	for _, node := range branch0Nodes {
 		chain.index.AddNode(node)
 	}
@@ -487,7 +489,7 @@ func TestLocateInventory(t *testing.T) {
 
 	// Create a chain view for a completely unrelated block chain to
 	// simulate a remote node on a totally different chain.
-	unrelatedBranchNodes := chainedNodes(nil, 5)
+	unrelatedBranchNodes := chainedNodes(chainCfg, nil, 5)
 	unrelatedView := newChainView(tip(unrelatedBranchNodes))
 
 	tests := []struct {
@@ -810,8 +812,8 @@ func TestHeightToHashRange(t *testing.T) {
 	// 	                              \-> 16a -> 17a -> 18a (unvalidated)
 	tip := tstTip
 	chain := newFakeChain(&chaincfg.MainNetParams)
-	branch0Nodes := chainedNodes(chain.bestChain.Genesis(), 18)
-	branch1Nodes := chainedNodes(branch0Nodes[14], 3)
+	branch0Nodes := chainedNodes(chain.chainParams, chain.bestChain.Genesis(), 18)
+	branch1Nodes := chainedNodes(chain.chainParams, branch0Nodes[14], 3)
 	for _, node := range branch0Nodes {
 		chain.index.SetStatusFlags(node, statusValid)
 		chain.index.AddNode(node)
@@ -902,8 +904,8 @@ func TestIntervalBlockHashes(t *testing.T) {
 	// 	                              \-> 16a -> 17a -> 18a (unvalidated)
 	tip := tstTip
 	chain := newFakeChain(&chaincfg.MainNetParams)
-	branch0Nodes := chainedNodes(chain.bestChain.Genesis(), 18)
-	branch1Nodes := chainedNodes(branch0Nodes[14], 3)
+	branch0Nodes := chainedNodes(chain.chainParams, chain.bestChain.Genesis(), 18)
+	branch1Nodes := chainedNodes(chain.chainParams, branch0Nodes[14], 3)
 	for _, node := range branch0Nodes {
 		chain.index.SetStatusFlags(node, statusValid)
 		chain.index.AddNode(node)
