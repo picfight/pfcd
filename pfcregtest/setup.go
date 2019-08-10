@@ -64,7 +64,8 @@ type SimpleTestSetup struct {
 	WalletFactory coinharness.TestWalletFactory
 
 	// WorkingDir defines test setup working dir
-	WorkingDir *pin.TempDirHandler
+	WorkingDir    *pin.TempDirHandler
+	nodeGoBuilder *gobuilder.GoBuider
 }
 
 // TearDown all harnesses in test Pool.
@@ -72,23 +73,31 @@ type SimpleTestSetup struct {
 // and shutting down any created processes.
 func (setup *SimpleTestSetup) TearDown() {
 	setup.harnessPool.DisposeAll()
-	//setup.nodeGoBuilder.Dispose()
+	setup.nodeGoBuilder.Dispose()
 	setup.WorkingDir.Dispose()
 }
 
 // Setup deploys this test setup
 func Setup() *SimpleTestSetup {
+
+	workingDir :=
+		pin.NewTempDir(setupWorkingDir(), "simpleregtest").MakeDir()
+
 	setup := &SimpleTestSetup{
 		WalletFactory: &memwallet.WalletFactory{},
-		//Network:       &chaincfg.RegressionNetParams,
-		WorkingDir: pin.NewTempDir(setupWorkingDir(), "simpleregtest").MakeDir(),
+		WorkingDir:    workingDir,
 	}
 
-	btcdEXE := &commandline.ExplicitExecutablePathString{
-		PathString: "pfcd",
+	projectName := "pfcd"
+	setup.nodeGoBuilder = &gobuilder.GoBuider{
+		GoProjectPath:    gobuilder.DetermineProjectPackagePath(projectName),
+		OutputFolderPath: workingDir.Path(),
+		BuildFileName:    projectName,
 	}
+	setup.nodeGoBuilder.Build()
+
 	setup.NodeFactory = &nodecls.ConsoleNodeFactory{
-		NodeExecutablePathProvider: btcdEXE,
+		NodeExecutablePathProvider: setup.nodeGoBuilder,
 	}
 
 	portManager := &LazyPortManager{

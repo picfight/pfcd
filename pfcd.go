@@ -160,6 +160,8 @@ func btcdMain(serverChan chan<- *server) error {
 		srvrLog.Infof("Server shutdown complete")
 	}()
 	server.Start()
+	btcdLog.Infof("Node build version: <%v>", server.chainParams.NodeBuildVersion)
+
 	if serverChan != nil {
 		serverChan <- server
 	}

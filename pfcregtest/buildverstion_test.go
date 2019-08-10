@@ -16,7 +16,7 @@ func TestBuildVerstion(t *testing.T) {
 		t.Fatalf("Unable to get build vesion: %v", err)
 	}
 	EXPECTED := "build-00001"
-	if *versionString != EXPECTED {
+	if versionString != EXPECTED {
 		t.Fatalf("Wrong build vesion: <%v>, expected <%v>", versionString, EXPECTED)
 	}
 
