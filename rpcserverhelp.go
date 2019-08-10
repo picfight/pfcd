@@ -688,6 +688,7 @@ var rpcResultTypes = map[string][]interface{}{
 	"getblockcount":         {(*int64)(nil)},
 	"getblockhash":          {(*string)(nil)},
 	"getblockheader":        {(*string)(nil), (*pfcjson.GetBlockHeaderVerboseResult)(nil)},
+	"getbuildversion":       {(*string)(nil), (*pfcjson.GetBuildVersionResult)(nil)},
 	"getblocktemplate":      {(*pfcjson.GetBlockTemplateResult)(nil), (*string)(nil), nil},
 	"getblockchaininfo":     {(*pfcjson.GetBlockChainInfoResult)(nil)},
 	"getcfilter":            {(*string)(nil)},

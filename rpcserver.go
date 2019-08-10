@@ -1325,7 +1325,7 @@ func handleGetBuildVersion(s *rpcServer, cmd interface{}, closeChan <-chan struc
 			Message: "NodeBuildVersion is not set",
 		}
 	}
-	return nodeBuildVersion, nil
+	return pfcjson.GetBuildVersionResult{VersionString: nodeBuildVersion}, nil
 }
 
 // handleGetBlockHeader implements the getblockheader command.

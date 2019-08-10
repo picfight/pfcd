@@ -312,19 +312,19 @@ func (r FutureGetBlockHashResult) Receive() (*chainhash.Hash, error) {
 
 // Receive waits for the response promised by the future and returns the hash of
 // the block in the best block chain at the given height.
-func (r FutureGetBuildVersionResult) Receive() (string, error) {
+func (r FutureGetBuildVersionResult) Receive() (*pfcjson.GetBuildVersionResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Unmarshal the result as a string.
-	var versionString string
-	err = json.Unmarshal(res, versionString)
+	var version pfcjson.GetBuildVersionResult
+	err = json.Unmarshal(res, &version)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return versionString, nil
+	return &version, nil
 }
 
 // GetBlockHashAsync returns an instance of a type that can be used to get the
@@ -349,7 +349,7 @@ func (c *Client) GetBuildVersionAsync() FutureGetBuildVersionResult {
 }
 
 // GetBuildVersion code build version
-func (c *Client) GetBuildVersion() (string, error) {
+func (c *Client) GetBuildVersion() (*pfcjson.GetBuildVersionResult, error) {
 	return c.GetBuildVersionAsync().Receive()
 }
 

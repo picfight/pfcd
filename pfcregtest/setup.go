@@ -21,7 +21,7 @@ import (
 )
 
 // Default harness name
-const mainHarnessName = "main"
+const mainHarnessName = "mainHarness"
 
 // SimpleTestSetup harbours:
 // - rpctest setup
@@ -32,6 +32,9 @@ type SimpleTestSetup struct {
 	// multiple harness instances may be run concurrently, to allow for testing
 	// complex scenarios involving multiple nodes.
 	harnessPool *pin.Pool
+
+	// Mainnet creates a mainnet test harness
+	Mainnet0 *ChainWithMatureOutputsSpawner
 
 	// Regnet25 creates a regnet test harness
 	// with 25 mature outputs.
@@ -116,6 +119,17 @@ func Setup() *SimpleTestSetup {
 		WalletFactory:     setup.WalletFactory,
 		NodeFactory:       setup.NodeFactory,
 		ActiveNet:         &chaincfg.RegressionNetParams,
+	}
+
+	setup.Mainnet0 = &ChainWithMatureOutputsSpawner{
+		WorkingDir:        setup.WorkingDir.Path(),
+		DebugNodeOutput:   true,
+		DebugWalletOutput: true,
+		NumMatureOutputs:  0,
+		NetPortManager:    portManager,
+		WalletFactory:     setup.WalletFactory,
+		NodeFactory:       setup.NodeFactory,
+		ActiveNet:         &chaincfg.MainNetParams,
 	}
 
 	// Deploy harness spawner with generated
