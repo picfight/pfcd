@@ -1332,5 +1332,3 @@ func (c *Client) Connect(tries int) error {
 	// All connection attempts failed, so return the last error.
 	return err
 }
-
-

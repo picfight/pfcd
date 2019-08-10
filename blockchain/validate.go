@@ -412,7 +412,7 @@ func checkBlockHeaderSanity(chainParams *chaincfg.Params, header *wire.BlockHead
 	}
 
 	// Ensure the block time is not too far in the future.
-	timeVal := time.Duration(chainParams.MaxTimeOffsetSeconds) * time.Second;
+	timeVal := time.Duration(chainParams.MaxTimeOffsetSeconds) * time.Second
 	maxTimestamp := timeSource.AdjustedTime().Add(timeVal)
 	if header.Timestamp.After(maxTimestamp) {
 		str := fmt.Sprintf("block timestamp of %v is too far in the "+
@@ -550,7 +550,7 @@ func ExtractCoinbaseHeight(chainParams *chaincfg.Params, coinbaseTx *pfcutil.Tx)
 			"length of the serialized block height"
 		var H int32 = -1
 		if chainParams != nil {
-			H = chainParams.SerializedHeightVersion;
+			H = chainParams.SerializedHeightVersion
 		}
 		str = fmt.Sprintf(str, H)
 		return 0, ruleError(ErrMissingCoinbaseHeight, str)

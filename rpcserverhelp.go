@@ -248,8 +248,8 @@ var helpDescsEnUS = map[string]string{
 	"getblockcount--result0":  "The current block count",
 
 	// GetBuildVersionCmd help.
-	"getbuildversion--synopsis": "Returns code version of the node executable",
-	"getbuildversionresult-version_string":  "result string",
+	"getbuildversion--synopsis":            "Returns code version of the node executable",
+	"getbuildversionresult-version_string": "result string",
 
 	// GetBlockHashCmd help.
 	"getblockhash--synopsis": "Returns hash of the block in best block chain at the given height.",

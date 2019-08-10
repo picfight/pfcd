@@ -183,8 +183,7 @@ type GetBuildVersionCmd struct {
 }
 
 func NewGetBuildVersionCmd() *GetBuildVersionCmd {
-	return &GetBuildVersionCmd{
-	}
+	return &GetBuildVersionCmd{}
 }
 
 // GetBlockHeaderCmd defines the getblockheader JSON-RPC command.
