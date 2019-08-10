@@ -328,21 +328,23 @@ func rpcNoTxInfoError(txHash *chainhash.Hash) *pfcjson.RPCError {
 // getblocktemplate.
 type gbtWorkState struct {
 	sync.Mutex
+	chainParams   *chaincfg.Params
 	lastTxUpdate  time.Time
 	lastGenerated time.Time
 	prevHash      *chainhash.Hash
 	minTimestamp  time.Time
 	template      *mining.BlockTemplate
 	notifyMap     map[chainhash.Hash]map[int64]chan struct{}
-	timeSource    blockchain.MedianTimeSource
+	timeSource blockchain.MedianTimeSource
 }
 
 // newGbtWorkState returns a new instance of a gbtWorkState with all internal
 // fields initialized and ready to use.
-func newGbtWorkState(timeSource blockchain.MedianTimeSource) *gbtWorkState {
+func newGbtWorkState(chainParams *chaincfg.Params, timeSource blockchain.MedianTimeSource) *gbtWorkState {
 	return &gbtWorkState{
-		notifyMap:  make(map[chainhash.Hash]map[int64]chan struct{}),
-		timeSource: timeSource,
+		notifyMap: make(map[chainhash.Hash]map[int64]chan struct{}),
+		timeSource:  timeSource,
+		chainParams: chainParams,
 	}
 }
 
@@ -1549,7 +1551,7 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 	if template == nil || state.prevHash == nil ||
 		!state.prevHash.IsEqual(latestHash) ||
 		(state.lastTxUpdate != lastTxUpdate &&
-			time.Now().After(state.lastGenerated.Add(time.Second*
+			time.Now().After(state.lastGenerated.Add(time.Second *
 				gbtRegenerateSeconds))) {
 
 		// Reset the previous best hash the block template was generated
@@ -1668,7 +1670,8 @@ func (state *gbtWorkState) blockTemplateResult(useCoinbaseValue bool, submitOld 
 	msgBlock := template.Block
 	header := &msgBlock.Header
 	adjustedTime := state.timeSource.AdjustedTime()
-	maxTime := adjustedTime.Add(time.Second * blockchain.MaxTimeOffsetSeconds)
+	timeVal := time.Second * time.Duration(state.chainParams.MaxTimeOffsetSeconds)
+	maxTime := adjustedTime.Add(timeVal)
 	if header.Timestamp.After(maxTime) {
 		return nil, &pfcjson.RPCError{
 			Code: pfcjson.ErrRPCOutOfRange,
@@ -3518,7 +3521,7 @@ func verifyChain(s *rpcServer, level, depth int32) error {
 
 		// Level 1 does basic chain sanity checks.
 		if level > 0 {
-			err := blockchain.CheckBlockSanity(block,
+			err := blockchain.CheckBlockSanity(s.cfg.ChainParams, block,
 				s.cfg.ChainParams.PowLimit, s.cfg.TimeSource)
 			if err != nil {
 				rpcsLog.Errorf("Verify is unable to validate "+
@@ -4303,7 +4306,7 @@ func newRPCServer(config *rpcserverConfig) (*rpcServer, error) {
 	rpc := rpcServer{
 		cfg:                    *config,
 		statusLines:            make(map[int]string),
-		gbtWorkState:           newGbtWorkState(config.TimeSource),
+		gbtWorkState:           newGbtWorkState(config.ChainParams, config.TimeSource),
 		helpCacher:             newHelpCacher(),
 		requestProcessShutdown: make(chan struct{}),
 		quit:                   make(chan int),

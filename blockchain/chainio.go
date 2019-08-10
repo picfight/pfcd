@@ -1007,7 +1007,7 @@ func (b *BlockChain) createChainState() error {
 	genesisBlock := pfcutil.NewBlock(b.chainParams.GenesisBlock)
 	genesisBlock.SetHeight(0)
 	header := &genesisBlock.MsgBlock().Header
-	node := newBlockNode(header, nil)
+	node := newBlockNode(b.chainParams, header, nil)
 	node.status = statusDataStored | statusValid
 	b.bestChain.SetTip(node)
 
@@ -1194,7 +1194,7 @@ func (b *BlockChain) initChainState() error {
 			// Initialize the block node for the block, connect it,
 			// and add it to the block index.
 			node := &blockNodes[i]
-			initBlockNode(node, header, parent)
+			initBlockNode(node, header, parent, b.chainParams)
 			node.status = status
 			b.index.addNode(node)
 

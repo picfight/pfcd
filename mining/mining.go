@@ -929,11 +929,11 @@ func (g *BlkTmplGenerator) UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight
 	if err != nil {
 		return err
 	}
-	if len(coinbaseScript) > blockchain.MaxCoinbaseScriptLen {
+	if len(coinbaseScript) > g.chainParams.MaxCoinbaseScriptLen {
 		return fmt.Errorf("coinbase transaction script length "+
 			"of %d is out of range (min: %d, max: %d)",
-			len(coinbaseScript), blockchain.MinCoinbaseScriptLen,
-			blockchain.MaxCoinbaseScriptLen)
+			len(coinbaseScript), g.chainParams.MinCoinbaseScriptLen,
+			g.chainParams.MaxCoinbaseScriptLen)
 	}
 	msgBlock.Transactions[0].TxIn[0].SignatureScript = coinbaseScript
 

@@ -64,7 +64,7 @@ func (b *BlockChain) maybeAcceptBlock(block *pfcutil.Block, flags BehaviorFlags)
 	// if the block ultimately gets connected to the main chain, it starts out
 	// on a side chain.
 	blockHeader := &block.MsgBlock().Header
-	newNode := newBlockNode(blockHeader, prevNode)
+	newNode := newBlockNode(b.chainParams, blockHeader, prevNode)
 	newNode.status = statusDataStored
 
 	b.index.AddNode(newNode)

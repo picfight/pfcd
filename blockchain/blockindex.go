@@ -71,6 +71,8 @@ type blockNode struct {
 	// hundreds of thousands of these in memory, so a few extra bytes of
 	// padding adds up.
 
+	chainParams *chaincfg.Params
+
 	// parent is the parent block for this node.
 	parent *blockNode
 
@@ -105,15 +107,16 @@ type blockNode struct {
 // calculating the height and workSum from the respective fields on the parent.
 // This function is NOT safe for concurrent access.  It must only be called when
 // initially creating a node.
-func initBlockNode(node *blockNode, blockHeader *wire.BlockHeader, parent *blockNode) {
+func initBlockNode(node *blockNode, blockHeader *wire.BlockHeader, parent *blockNode, chainParams *chaincfg.Params) {
 	*node = blockNode{
-		hash:       blockHeader.BlockHash(),
-		workSum:    CalcWork(blockHeader.Bits),
-		version:    blockHeader.Version,
-		bits:       blockHeader.Bits,
-		nonce:      blockHeader.Nonce,
-		timestamp:  blockHeader.Timestamp.Unix(),
-		merkleRoot: blockHeader.MerkleRoot,
+		hash:        blockHeader.BlockHash(),
+		workSum:     CalcWork(blockHeader.Bits),
+		version:     blockHeader.Version,
+		bits:        blockHeader.Bits,
+		nonce:       blockHeader.Nonce,
+		timestamp:   blockHeader.Timestamp.Unix(),
+		merkleRoot:  blockHeader.MerkleRoot,
+		chainParams: chainParams,
 	}
 	if parent != nil {
 		node.parent = parent
@@ -125,9 +128,9 @@ func initBlockNode(node *blockNode, blockHeader *wire.BlockHeader, parent *block
 // newBlockNode returns a new block node for the given block header and parent
 // node, calculating the height and workSum from the respective fields on the
 // parent. This function is NOT safe for concurrent access.
-func newBlockNode(blockHeader *wire.BlockHeader, parent *blockNode) *blockNode {
+func newBlockNode(chainParams *chaincfg.Params, blockHeader *wire.BlockHeader, parent *blockNode) *blockNode {
 	var node blockNode
-	initBlockNode(&node, blockHeader, parent)
+	initBlockNode(&node, blockHeader, parent, chainParams)
 	return &node
 }
 
@@ -185,10 +188,10 @@ func (node *blockNode) RelativeAncestor(distance int32) *blockNode {
 func (node *blockNode) CalcPastMedianTime() time.Time {
 	// Create a slice of the previous few block timestamps used to calculate
 	// the median per the number defined by the constant medianTimeBlocks.
-	timestamps := make([]int64, medianTimeBlocks)
+	timestamps := make([]int64, node.chainParams.MedianTimeBlocks)
 	numNodes := 0
 	iterNode := node
-	for i := 0; i < medianTimeBlocks && iterNode != nil; i++ {
+	for i := 0; i < node.chainParams.MedianTimeBlocks && iterNode != nil; i++ {
 		timestamps[i] = iterNode.timestamp
 		numNodes++
 

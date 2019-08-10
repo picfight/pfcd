@@ -693,7 +693,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *wire.BlockHeader, prevNode 
 // for how the flags modify its behavior.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkBlockContext(chainParams *chaincfg.Params, block *pfcutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
 	// Perform all block header related validation checks.
 	header := &block.MsgBlock().Header
 	err := b.checkBlockHeaderContext(header, prevNode, flags)
@@ -738,7 +738,7 @@ func (b *BlockChain) checkBlockContext(chainParams *chaincfg.Params, block *pfcu
 		// blocks whose version is the serializedHeightVersion or newer
 		// once a majority of the network has upgraded.  This is part of
 		// BIP0034.
-		if ShouldHaveSerializedBlockHeight(chainParams, header) &&
+		if ShouldHaveSerializedBlockHeight(b.chainParams, header) &&
 			blockHeight >= b.chainParams.BIP0034Height {
 
 			coinbaseTx := block.Transactions()[0]
@@ -1235,7 +1235,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 		return err
 	}
 
-	err = b.checkBlockContext(b.chainParams, block, tip, flags)
+	err = b.checkBlockContext(block, tip, flags)
 	if err != nil {
 		return err
 	}
@@ -1244,6 +1244,6 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
 	// is not needed and thus extra work can be avoided.
 	view := NewUtxoViewpoint()
 	view.SetBestHash(&tip.hash)
-	newNode := newBlockNode(&header, tip)
+	newNode := newBlockNode(b.chainParams, &header, tip)
 	return b.checkConnectBlock(newNode, block, view, nil)
 }
