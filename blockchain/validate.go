@@ -160,12 +160,6 @@ func isBIP0030Node(node *blockNode) bool {
 // should have. This is mainly used for determining how much the coinbase for
 // newly generated blocks awards as well as validating the coinbase for blocks
 // has the expected value.
-//
-// The subsidy is halved every SubsidyReductionInterval blocks.  Mathematically
-// this is: baseSubsidy / 2^(height/SubsidyReductionInterval)
-//
-// At the target block generation rate for the main network, this is
-// approximately every 4 years.
 func CalcBlockSubsidy(height int32, chainParams *chaincfg.Params) int64 {
 	return chainParams.BaseSubsidy
 }
