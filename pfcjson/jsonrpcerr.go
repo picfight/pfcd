@@ -66,6 +66,7 @@ const (
 // more general errors above.
 const (
 	ErrRPCBlockNotFound     RPCErrorCode = -5
+	ErrBuildVersionNotSet   RPCErrorCode = -1
 	ErrRPCBlockCount        RPCErrorCode = -5
 	ErrRPCBestBlockHash     RPCErrorCode = -5
 	ErrRPCDifficulty        RPCErrorCode = -5

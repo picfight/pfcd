@@ -141,6 +141,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"getblockchaininfo":     handleGetBlockChainInfo,
 	"getblockcount":         handleGetBlockCount,
 	"getblockhash":          handleGetBlockHash,
+	"getbuildversion":       handleGetBuildVersion,
 	"getblockheader":        handleGetBlockHeader,
 	"getblocktemplate":      handleGetBlockTemplate,
 	"getcfilter":            handleGetCFilter,
@@ -1311,6 +1312,20 @@ func handleGetBlockHash(s *rpcServer, cmd interface{}, closeChan <-chan struct{}
 	}
 
 	return hash.String(), nil
+}
+
+// handleGetBuildVersion implements the getbuildversion command.
+func handleGetBuildVersion(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+	//_ := cmd.(*pfcjson.GetBuildVersionCmd)
+	nodeBuildVersion := s.cfg.ChainParams.NodeBuildVersion
+
+	if nodeBuildVersion == "" {
+		return nil, &pfcjson.RPCError{
+			Code:    pfcjson.ErrBuildVersionNotSet,
+			Message: "NodeBuildVersion is not set",
+		}
+	}
+	return nodeBuildVersion, nil
 }
 
 // handleGetBlockHeader implements the getblockheader command.

@@ -291,6 +291,8 @@ func (c *Client) GetBlockChainInfo() (*pfcjson.GetBlockChainInfoResult, error) {
 // GetBlockHashAsync RPC invocation (or an applicable error).
 type FutureGetBlockHashResult chan *response
 
+type FutureGetBuildVersionResult chan *response
+
 // Receive waits for the response promised by the future and returns the hash of
 // the block in the best block chain at the given height.
 func (r FutureGetBlockHashResult) Receive() (*chainhash.Hash, error) {
@@ -308,6 +310,23 @@ func (r FutureGetBlockHashResult) Receive() (*chainhash.Hash, error) {
 	return chainhash.NewHashFromStr(txHashStr)
 }
 
+// Receive waits for the response promised by the future and returns the hash of
+// the block in the best block chain at the given height.
+func (r FutureGetBuildVersionResult) Receive() (string, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return "", err
+	}
+
+	// Unmarshal the result as a string.
+	var versionString string
+	err = json.Unmarshal(res, versionString)
+	if err != nil {
+		return "", err
+	}
+	return versionString, nil
+}
+
 // GetBlockHashAsync returns an instance of a type that can be used to get the
 // result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
@@ -322,6 +341,16 @@ func (c *Client) GetBlockHashAsync(blockHeight int64) FutureGetBlockHashResult {
 // given height.
 func (c *Client) GetBlockHash(blockHeight int64) (*chainhash.Hash, error) {
 	return c.GetBlockHashAsync(blockHeight).Receive()
+}
+
+func (c *Client) GetBuildVersionAsync() FutureGetBuildVersionResult {
+	cmd := pfcjson.NewGetBuildVersionCmd()
+	return c.sendCmd(cmd)
+}
+
+// GetBuildVersion code build version
+func (c *Client) GetBuildVersion() (string, error) {
+	return c.GetBuildVersionAsync().Receive()
 }
 
 // FutureGetBlockHeaderResult is a future promise to deliver the result of a

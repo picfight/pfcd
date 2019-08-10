@@ -178,6 +178,14 @@ func NewGetBlockHashCmd(index int64) *GetBlockHashCmd {
 	}
 }
 
+type GetBuildVersionCmd struct {
+}
+
+func NewGetBuildVersionCmd() *GetBuildVersionCmd {
+	return &GetBuildVersionCmd{
+	}
+}
+
 // GetBlockHeaderCmd defines the getblockheader JSON-RPC command.
 type GetBlockHeaderCmd struct {
 	Hash    string
@@ -787,6 +795,7 @@ func init() {
 	MustRegisterCmd("getblockchaininfo", (*GetBlockChainInfoCmd)(nil), flags)
 	MustRegisterCmd("getblockcount", (*GetBlockCountCmd)(nil), flags)
 	MustRegisterCmd("getblockhash", (*GetBlockHashCmd)(nil), flags)
+	MustRegisterCmd("getbuildversion", (*GetBuildVersionCmd)(nil), flags)
 	MustRegisterCmd("getblockheader", (*GetBlockHeaderCmd)(nil), flags)
 	MustRegisterCmd("getblocktemplate", (*GetBlockTemplateCmd)(nil), flags)
 	MustRegisterCmd("getcfilter", (*GetCFilterCmd)(nil), flags)

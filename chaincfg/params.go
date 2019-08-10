@@ -243,13 +243,16 @@ type Params struct {
 	// value is halved every SubsidyHalvingInterval blocks.
 	BaseSubsidy            int64
 
+
+	NodeBuildVersion string
 }
 
 // MainNetParams defines the network parameters for the main Picfightcoin network.
 var MainNetParams = Params{
-	Name:        "mainnet",
-	Net:         wire.MainNet,
-	DefaultPort: "8333",
+	Name:             "mainnet",
+	NodeBuildVersion: "build-00001",
+	Net:              wire.MainNet,
+	DefaultPort:      "8333",
 	DNSSeeds: []DNSSeed{
 		{"seed.bitcoin.sipa.be", true},
 		{"dnsseed.bluematt.me", true},
