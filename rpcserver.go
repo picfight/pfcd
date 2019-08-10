@@ -141,6 +141,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"getblockchaininfo":     handleGetBlockChainInfo,
 	"getblockcount":         handleGetBlockCount,
 	"getblockhash":          handleGetBlockHash,
+	"getbuildversion":       handleGetBuildVersion,
 	"getblockheader":        handleGetBlockHeader,
 	"getblocktemplate":      handleGetBlockTemplate,
 	"getcfilter":            handleGetCFilter,
@@ -335,14 +336,14 @@ type gbtWorkState struct {
 	minTimestamp  time.Time
 	template      *mining.BlockTemplate
 	notifyMap     map[chainhash.Hash]map[int64]chan struct{}
-	timeSource blockchain.MedianTimeSource
+	timeSource    blockchain.MedianTimeSource
 }
 
 // newGbtWorkState returns a new instance of a gbtWorkState with all internal
 // fields initialized and ready to use.
 func newGbtWorkState(chainParams *chaincfg.Params, timeSource blockchain.MedianTimeSource) *gbtWorkState {
 	return &gbtWorkState{
-		notifyMap: make(map[chainhash.Hash]map[int64]chan struct{}),
+		notifyMap:   make(map[chainhash.Hash]map[int64]chan struct{}),
 		timeSource:  timeSource,
 		chainParams: chainParams,
 	}
@@ -1313,6 +1314,20 @@ func handleGetBlockHash(s *rpcServer, cmd interface{}, closeChan <-chan struct{}
 	return hash.String(), nil
 }
 
+// handleGetBuildVersion implements the getbuildversion command.
+func handleGetBuildVersion(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+	//_ := cmd.(*pfcjson.GetBuildVersionCmd)
+	nodeBuildVersion := s.cfg.ChainParams.NodeBuildVersion
+
+	if nodeBuildVersion == "" {
+		return nil, &pfcjson.RPCError{
+			Code:    pfcjson.ErrBuildVersionNotSet,
+			Message: "NodeBuildVersion is not set",
+		}
+	}
+	return pfcjson.GetBuildVersionResult{VersionString: nodeBuildVersion}, nil
+}
+
 // handleGetBlockHeader implements the getblockheader command.
 func handleGetBlockHeader(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
 	c := cmd.(*pfcjson.GetBlockHeaderCmd)
@@ -1551,7 +1566,7 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 	if template == nil || state.prevHash == nil ||
 		!state.prevHash.IsEqual(latestHash) ||
 		(state.lastTxUpdate != lastTxUpdate &&
-			time.Now().After(state.lastGenerated.Add(time.Second *
+			time.Now().After(state.lastGenerated.Add(time.Second*
 				gbtRegenerateSeconds))) {
 
 		// Reset the previous best hash the block template was generated

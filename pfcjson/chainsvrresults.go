@@ -6,6 +6,11 @@ package pfcjson
 
 import "encoding/json"
 
+// GetBuildVersionResult
+type GetBuildVersionResult struct {
+	VersionString string `json:"version_string"`
+}
+
 // GetBlockHeaderVerboseResult models the data from the getblockheader command when
 // the verbose flag is set.  When the verbose flag is not set, getblockheader
 // returns a hex-encoded string.
