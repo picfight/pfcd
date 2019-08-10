@@ -39,7 +39,7 @@ var (
 	// can have for the simulation test network.  It is the value 2^255 - 1.
 	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
-	SatoshiPerPicfightcoin int64 = 1e8
+	SatoshiPerPicfightcoin = 1e8
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
@@ -267,7 +267,7 @@ var MainNetParams = Params{
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
 	SerializedHeightVersion: 2,
-	BaseSubsidy:             1 * SatoshiPerPicfightcoin,
+	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:     &genesisBlock,
@@ -378,7 +378,7 @@ var RegressionNetParams = Params{
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
 	SerializedHeightVersion: 2,
-	BaseSubsidy:             50 * SatoshiPerPicfightcoin,
+	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:     &regTestGenesisBlock,
@@ -466,7 +466,7 @@ var TestNet3Params = Params{
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
 	SerializedHeightVersion: 2,
-	BaseSubsidy:             50 * SatoshiPerPicfightcoin,
+	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:     &testNet3GenesisBlock,
@@ -570,7 +570,7 @@ var SimNetParams = Params{
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
 	SerializedHeightVersion: 2,
-	BaseSubsidy:             50 * SatoshiPerPicfightcoin,
+	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:     &simNetGenesisBlock,
