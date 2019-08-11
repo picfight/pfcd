@@ -148,8 +148,7 @@ type Params struct {
 
 	// SubsidyReductionInterval is the interval of blocks before the subsidy
 	// is reduced.
-	// DEPRECATED
-	// SubsidyReductionInterval int32
+	SubsidyReductionInterval int32
 
 	// TargetTimespan is the desired amount of time that should elapse
 	// before the block difficulty requirement is examined to determine how
@@ -270,15 +269,15 @@ var MainNetParams = Params{
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
-	GenesisBlock:     &genesisBlock,
-	GenesisHash:      &genesisHash,
-	PowLimit:         mainPowLimit,
-	PowLimitBits:     0x1d00ffff,
-	BIP0034Height:    227931, // 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8
-	BIP0065Height:    388381, // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
-	BIP0066Height:    363725, // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-	CoinbaseMaturity: 100,
-	//SubsidyReductionInterval: 210000,
+	GenesisBlock:             &genesisBlock,
+	GenesisHash:              &genesisHash,
+	PowLimit:                 mainPowLimit,
+	PowLimitBits:             0x1d00ffff,
+	BIP0034Height:            227931, // 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8
+	BIP0065Height:            388381, // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
+	BIP0066Height:            363725, // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
+	CoinbaseMaturity:         100,
+	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
@@ -381,15 +380,15 @@ var RegressionNetParams = Params{
 	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
-	GenesisBlock:     &regTestGenesisBlock,
-	GenesisHash:      &regTestGenesisHash,
-	PowLimit:         regressionPowLimit,
-	PowLimitBits:     0x207fffff,
-	CoinbaseMaturity: 100,
-	BIP0034Height:    100000000, // Not active - Permit ver 1 blocks
-	BIP0065Height:    1351,      // Used by regression tests
-	BIP0066Height:    1251,      // Used by regression tests
-	//SubsidyReductionInterval: 150,
+	GenesisBlock:             &regTestGenesisBlock,
+	GenesisHash:              &regTestGenesisHash,
+	PowLimit:                 regressionPowLimit,
+	PowLimitBits:             0x207fffff,
+	CoinbaseMaturity:         100,
+	BIP0034Height:            100000000, // Not active - Permit ver 1 blocks
+	BIP0065Height:            1351,      // Used by regression tests
+	BIP0066Height:            1251,      // Used by regression tests
+	SubsidyReductionInterval: 150,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
@@ -469,15 +468,15 @@ var TestNet3Params = Params{
 	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
-	GenesisBlock:     &testNet3GenesisBlock,
-	GenesisHash:      &testNet3GenesisHash,
-	PowLimit:         testNet3PowLimit,
-	PowLimitBits:     0x1d00ffff,
-	BIP0034Height:    21111,  // 0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8
-	BIP0065Height:    581885, // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
-	BIP0066Height:    330776, // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
-	CoinbaseMaturity: 100,
-	//SubsidyReductionInterval: 210000,
+	GenesisBlock:             &testNet3GenesisBlock,
+	GenesisHash:              &testNet3GenesisHash,
+	PowLimit:                 testNet3PowLimit,
+	PowLimitBits:             0x1d00ffff,
+	BIP0034Height:            21111,  // 0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8
+	BIP0065Height:            581885, // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
+	BIP0066Height:            330776, // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
+	CoinbaseMaturity:         100,
+	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
@@ -573,15 +572,15 @@ var SimNetParams = Params{
 	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
-	GenesisBlock:     &simNetGenesisBlock,
-	GenesisHash:      &simNetGenesisHash,
-	PowLimit:         simNetPowLimit,
-	PowLimitBits:     0x207fffff,
-	BIP0034Height:    0, // Always active on simnet
-	BIP0065Height:    0, // Always active on simnet
-	BIP0066Height:    0, // Always active on simnet
-	CoinbaseMaturity: 100,
-	//SubsidyReductionInterval: 210000,
+	GenesisBlock:             &simNetGenesisBlock,
+	GenesisHash:              &simNetGenesisHash,
+	PowLimit:                 simNetPowLimit,
+	PowLimitBits:             0x207fffff,
+	BIP0034Height:            0, // Always active on simnet
+	BIP0065Height:            0, // Always active on simnet
+	BIP0066Height:            0, // Always active on simnet
+	CoinbaseMaturity:         100,
+	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
