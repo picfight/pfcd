@@ -27,12 +27,12 @@ var (
 	// block91842Hash is one of the two nodes which violate the rules
 	// set forth in BIP0030.  It is defined as a package level variable to
 	// avoid the need to create a new instance every time a check is needed.
-	block91842Hash = newHashFromStr("00000000000a4d0a398161ffc163c503763b1f4360639393e0e4c8e300e0caec")
+	//block91842Hash = newHashFromStr("00000000000a4d0a398161ffc163c503763b1f4360639393e0e4c8e300e0caec")
 
 	// block91880Hash is one of the two nodes which violate the rules
 	// set forth in BIP0030.  It is defined as a package level variable to
 	// avoid the need to create a new instance every time a check is needed.
-	block91880Hash = newHashFromStr("00000000000743f190a18c5577a3c2d2a1f610ae9601ac046a38084ccb7cd721")
+	//block91880Hash = newHashFromStr("00000000000743f190a18c5577a3c2d2a1f610ae9601ac046a38084ccb7cd721")
 )
 
 // isNullOutpoint determines whether or not a previous transaction output point
@@ -145,13 +145,13 @@ func IsFinalizedTransaction(tx *pfcutil.Tx, blockHeight int32, blockTime time.Ti
 // two blocks that violate the BIP0030 rule which prevents transactions from
 // overwriting old ones.
 func isBIP0030Node(node *blockNode) bool {
-	if node.height == 91842 && node.hash.IsEqual(block91842Hash) {
-		return true
-	}
-
-	if node.height == 91880 && node.hash.IsEqual(block91880Hash) {
-		return true
-	}
+	//if node.height == 91842 && node.hash.IsEqual(block91842Hash) {
+	//	return true
+	//}
+	//
+	//if node.height == 91880 && node.hash.IsEqual(block91880Hash) {
+	//	return true
+	//}
 
 	return false
 }
@@ -678,10 +678,9 @@ func (b *BlockChain) checkBlockHeaderContext(header *wire.BlockHeader, prevNode 
 	// Reject outdated block versions once a majority of the network
 	// has upgraded.  These were originally voted on by BIP0034,
 	// BIP0065, and BIP0066.
-	params := b.chainParams
-	if header.Version < 2 && blockHeight >= params.BIP0034Height ||
-		header.Version < 3 && blockHeight >= params.BIP0066Height ||
-		header.Version < 4 && blockHeight >= params.BIP0065Height {
+	if header.Version < 2 && blockHeight >= 0 ||
+		header.Version < 3 && blockHeight >= 0 ||
+		header.Version < 4 && blockHeight >= 0 {
 
 		str := "new blocks with version %d are no longer valid"
 		str = fmt.Sprintf(str, header.Version)
@@ -748,7 +747,7 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 		// once a majority of the network has upgraded.  This is part of
 		// BIP0034.
 		if ShouldHaveSerializedBlockHeight(b.chainParams, header) &&
-			blockHeight >= b.chainParams.BIP0034Height {
+			blockHeight >= 0 {
 
 			coinbaseTx := block.Transactions()[0]
 			err := checkSerializedHeight(b.chainParams, coinbaseTx, blockHeight)
@@ -1003,7 +1002,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *pfcutil.Block, vi
 	// BIP0034 is not yet active.  This is a useful optimization because the
 	// BIP0030 check is expensive since it involves a ton of cache misses in
 	// the utxoset.
-	if !isBIP0030Node(node) && (node.height < b.chainParams.BIP0034Height) {
+	if !isBIP0030Node(node) && (node.height < 0) {
 		err := b.checkBIP0030(node, block, view)
 		if err != nil {
 			return err
@@ -1142,13 +1141,13 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *pfcutil.Block, vi
 	// Enforce DER signatures for block versions 3+ once the historical
 	// activation threshold has been reached.  This is part of BIP0066.
 	blockHeader := &block.MsgBlock().Header
-	if blockHeader.Version >= 3 && node.height >= b.chainParams.BIP0066Height {
+	if blockHeader.Version >= 3 && node.height >= 0 {
 		scriptFlags |= txscript.ScriptVerifyDERSignatures
 	}
 
 	// Enforce CHECKLOCKTIMEVERIFY for block versions 4+ once the historical
 	// activation threshold has been reached.  This is part of BIP0065.
-	if blockHeader.Version >= 4 && node.height >= b.chainParams.BIP0065Height {
+	if blockHeader.Version >= 4 && node.height >= 0 {
 		scriptFlags |= txscript.ScriptVerifyCheckLockTimeVerify
 	}
 

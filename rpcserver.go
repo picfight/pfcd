@@ -1214,7 +1214,7 @@ func handleGetBlockChainInfo(s *rpcServer, cmd interface{}, closeChan <-chan str
 			Reject: struct {
 				Status bool `json:"status"`
 			}{
-				Status: height >= params.BIP0034Height,
+				Status: height >= 0,
 			},
 		},
 		{
@@ -1223,7 +1223,7 @@ func handleGetBlockChainInfo(s *rpcServer, cmd interface{}, closeChan <-chan str
 			Reject: struct {
 				Status bool `json:"status"`
 			}{
-				Status: height >= params.BIP0066Height,
+				Status: height >= 0,
 			},
 		},
 		{
@@ -1232,7 +1232,7 @@ func handleGetBlockChainInfo(s *rpcServer, cmd interface{}, closeChan <-chan str
 			Reject: struct {
 				Status bool `json:"status"`
 			}{
-				Status: height >= params.BIP0065Height,
+				Status: height >= 0,
 			},
 		},
 	}
