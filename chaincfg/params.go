@@ -267,7 +267,7 @@ var MainNetParams = Params{
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
 	SerializedHeightVersion: 2,
-	BaseSubsidy:             int64(1 * SatoshiPerPicfightcoin),
+	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:     &genesisBlock,
