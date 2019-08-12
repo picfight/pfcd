@@ -735,11 +735,8 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 
 		// Ensure coinbase starts with serialized block heights for
 		// blocks whose version is the serializedHeightVersion or newer
-		// once a majority of the network has upgraded.  This is part of
-		// BIP0034.
-		if ShouldHaveSerializedBlockHeight(b.chainParams, header) &&
-			blockHeight >= 0 {
-
+		// once a majority of the network has upgraded.
+		{
 			coinbaseTx := block.Transactions()[0]
 			err := checkSerializedHeight(b.chainParams, coinbaseTx, blockHeight)
 			if err != nil {
@@ -1132,14 +1129,13 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *pfcutil.Block, vi
 
 	// Enforce DER signatures for block versions 3+ once the historical
 	// activation threshold has been reached.  This is part of BIP0066.
-	blockHeader := &block.MsgBlock().Header
-	if blockHeader.Version >= 3 && node.height >= 0 {
+	{
 		scriptFlags |= txscript.ScriptVerifyDERSignatures
 	}
 
 	// Enforce CHECKLOCKTIMEVERIFY for block versions 4+ once the historical
 	// activation threshold has been reached.  This is part of BIP0065.
-	if blockHeader.Version >= 4 && node.height >= 0 {
+	{
 		scriptFlags |= txscript.ScriptVerifyCheckLockTimeVerify
 	}
 
