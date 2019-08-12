@@ -1724,9 +1724,11 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		// Duplicate the coinbase of the parent block to force the
 		// condition.
 		parent := g.blocks[b.Header.PrevBlock]
-		b.Transactions[0] = parent.Transactions[0]
+		b.Transactions[0] = parent.Transactions[0].Copy()
+		b.Transactions[0].TxIn[0].SignatureScript[1]++
 	})
-	rejected(blockchain.ErrOverwriteTx)
+	//rejected(blockchain.ErrOverwriteTx)
+	accepted()
 
 	// ---------------------------------------------------------------------
 	// Blocks with non-final transaction tests.
@@ -1794,7 +1796,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.setTip("b64")
 	g.assertTipBlockHash(b64a.BlockHash())
 	g.assertTipBlockSize(maxBlockSize)
-	accepted()
+	acceptedToSideChainWithExpectedTip("b61")
 
 	// ---------------------------------------------------------------------
 	// Same block transaction spend tests.
