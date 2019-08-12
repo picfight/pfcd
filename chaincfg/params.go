@@ -240,7 +240,7 @@ type Params struct {
 	MedianTimeBlocks int
 	// SerializedHeightVersion is the block version which changed block
 	// coinbases to start with the serialized block height.
-	SerializedHeightVersion int32
+	//SerializedHeightVersion int32
 	// BaseSubsidy is the starting subsidy amount for mined blocks.  This
 	// value is halved every SubsidyHalvingInterval blocks.
 	BaseSubsidy int64
@@ -268,7 +268,6 @@ var MainNetParams = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
@@ -379,7 +378,6 @@ var RegressionNetParams = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
@@ -467,7 +465,6 @@ var TestNet3Params = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
@@ -571,7 +568,6 @@ var SimNetParams = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters

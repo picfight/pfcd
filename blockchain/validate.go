@@ -44,15 +44,6 @@ func isNullOutpoint(outpoint *wire.OutPoint) bool {
 	return false
 }
 
-// ShouldHaveSerializedBlockHeight determines if a block should have a
-// serialized block height embedded within the scriptSig of its
-// coinbase transaction. Judgement is based on the block version in the block
-// header. Blocks with version 2 and above satisfy this criteria. See BIP0034
-// for further information.
-func ShouldHaveSerializedBlockHeight(chainParams *chaincfg.Params, header *wire.BlockHeader) bool {
-	return header.Version >= chainParams.SerializedHeightVersion
-}
-
 // IsCoinBaseTx determines whether or not a transaction is a coinbase.  A coinbase
 // is a special transaction created by miners that has no inputs.  This is
 // represented in the block chain by a transaction with a single input that has
@@ -561,7 +552,7 @@ func ExtractCoinbaseHeight(chainParams *chaincfg.Params, coinbaseTx *pfcutil.Tx)
 			"length of the serialized block height"
 		var H int32 = -1
 		if chainParams != nil {
-			H = chainParams.SerializedHeightVersion
+			H = 0
 		}
 		str = fmt.Sprintf(str, H)
 		return 0, ruleError(ErrMissingCoinbaseHeight, str)
