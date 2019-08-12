@@ -510,7 +510,7 @@ func (g *testGenerator) nextBlock(blockName string, spend *spendableOut, mungers
 
 	block := wire.MsgBlock{
 		Header: wire.BlockHeader{
-			Version:    1,
+			Version:    5,
 			PrevBlock:  g.tip.BlockHash(),
 			MerkleRoot: calcMerkleRoot(txns),
 			Bits:       g.params.PowLimitBits,
