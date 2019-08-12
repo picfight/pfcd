@@ -666,18 +666,6 @@ func (b *BlockChain) checkBlockHeaderContext(header *wire.BlockHeader, prevNode 
 		return ruleError(ErrForkTooOld, str)
 	}
 
-	// Reject outdated block versions once a majority of the network
-	// has upgraded.  These were originally voted on by BIP0034,
-	// BIP0065, and BIP0066.
-	if header.Version < 2 && blockHeight >= 0 ||
-		header.Version < 3 && blockHeight >= 0 ||
-		header.Version < 4 && blockHeight >= 0 {
-
-		str := "new blocks with version %d are no longer valid"
-		str = fmt.Sprintf(str, header.Version)
-		return ruleError(ErrBlockVersionTooOld, str)
-	}
-
 	return nil
 }
 
