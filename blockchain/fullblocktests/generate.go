@@ -1190,9 +1190,18 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//
 	//   ... -> b23(6) -> b30(7)
 	g.setTip("b23")
-	maxSizeCbScript := repeatOpcode(0x00, maxCoinbaseScriptLen)
-	g.nextBlock("b30", outs[7], replaceCoinbaseSigScript(maxSizeCbScript))
-	accepted()
+	{
+		nextHeight := g.tipHeight + 1
+		standardScript, _ := standardCoinbaseScript(int32(nextHeight), uint64(0))
+		maxSizeCbScript := standardScript
+		for ; len(maxSizeCbScript) < maxCoinbaseScriptLen; {
+			maxSizeCbScript = append(maxSizeCbScript, uint8(0x00))
+		}
+		g.nextBlock("b30", outs[7],
+			replaceCoinbaseSigScript(maxSizeCbScript),
+		)
+		accepted()
+	}
 
 	// ---------------------------------------------------------------------
 	// Multisig[Verify]/ChecksigVerifiy signature operation count tests.
