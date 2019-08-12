@@ -112,6 +112,10 @@ type Policy struct {
 	// accept.  All transactions above this version are rejected as
 	// non-standard.
 	MaxTxVersion int32
+	// MinTxVersion is the transaction version that the mempool should
+	// accept.  All transactions below this version are rejected as
+	// non-standard.
+	MinTxVersion int32
 
 	// DisableRelayPriority defines whether to relay free or low-fee
 	// transactions that do not have enough priority to be relayed.
@@ -935,7 +939,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, rejec
 		//if err != nil {
 		//	return nil, nil, err
 		//}
-		segwitActive:=true
+		segwitActive := true
 		if !segwitActive {
 			str := fmt.Sprintf("transaction %v has witness data, "+
 				"but segwit isn't active yet", txHash)
@@ -985,7 +989,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, rejec
 	if !mp.cfg.Policy.AcceptNonStd {
 		err = checkTransactionStandard(tx, nextBlockHeight,
 			medianTimePast, mp.cfg.Policy.MinRelayTxFee,
-			mp.cfg.Policy.MaxTxVersion)
+			mp.cfg.Policy.MaxTxVersion, mp.cfg.Policy.MinTxVersion)
 		if err != nil {
 			// Attempt to extract a reject code from the error so
 			// it can be retained.  When not possible, fall back to

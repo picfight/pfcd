@@ -277,13 +277,13 @@ func isDust(txOut *wire.TxOut, minRelayTxFee pfcutil.Amount) bool {
 // so small it costs more to process them than they are worth).
 func checkTransactionStandard(tx *pfcutil.Tx, height int32,
 	medianTimePast time.Time, minRelayTxFee pfcutil.Amount,
-	maxTxVersion int32) error {
+	maxTxVersion int32, minTxVersion int32) error {
 
 	// The transaction must be a currently supported version.
 	msgTx := tx.MsgTx()
-	if msgTx.Version > maxTxVersion || msgTx.Version < 1 {
+	if msgTx.Version > maxTxVersion || msgTx.Version < minTxVersion {
 		str := fmt.Sprintf("transaction version %d is not in the "+
-			"valid range of %d-%d", msgTx.Version, 1,
+			"valid range of %d-%d", msgTx.Version, minTxVersion,
 			maxTxVersion)
 		return txRuleError(wire.RejectNonstandard, str)
 	}
