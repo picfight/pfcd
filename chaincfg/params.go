@@ -40,7 +40,7 @@ var (
 
 	SatoshiPerPicfightcoin = int64(1e8)
 
-	build_id = "b107"
+	build_id = "b111"
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
