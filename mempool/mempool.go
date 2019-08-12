@@ -931,11 +931,11 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, rejec
 	// segwit isn't active yet, then we won't accept it into the mempool as
 	// it can't be mined yet.
 	if tx.MsgTx().HasWitness() {
-		segwitActive, err := mp.cfg.IsDeploymentActive(chaincfg.DeploymentSegwit)
-		if err != nil {
-			return nil, nil, err
-		}
-
+		//segwitActive, err := mp.cfg.IsDeploymentActive(chaincfg.DeploymentSegwit)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
+		segwitActive:=true
 		if !segwitActive {
 			str := fmt.Sprintf("transaction %v has witness data, "+
 				"but segwit isn't active yet", txHash)

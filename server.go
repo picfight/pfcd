@@ -447,13 +447,14 @@ func (sp *serverPeer) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) *wire.MsgRej
 		// After soft-fork activation, only make outbound
 		// connection to peers if they flag that they're segwit
 		// enabled.
-		chain := sp.server.chain
-		segwitActive, err := chain.IsDeploymentActive(chaincfg.DeploymentSegwit)
-		if err != nil {
-			peerLog.Errorf("Unable to query for segwit soft-fork state: %v",
-				err)
-			return nil
-		}
+		//chain := sp.server.chain
+		//segwitActive, err := chain.IsDeploymentActive(chaincfg.DeploymentSegwit)
+		//if err != nil {
+		//	peerLog.Errorf("Unable to query for segwit soft-fork state: %v",
+		//		err)
+		//	return nil
+		//}
+		segwitActive := true
 
 		if segwitActive && !sp.IsWitnessEnabled() {
 			peerLog.Infof("Disconnecting non-segwit peer %v, isn't segwit "+

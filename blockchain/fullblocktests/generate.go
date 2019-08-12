@@ -510,7 +510,7 @@ func (g *testGenerator) nextBlock(blockName string, spend *spendableOut, mungers
 
 	block := wire.MsgBlock{
 		Header: wire.BlockHeader{
-			Version:    1,
+			Version:    5,
 			PrevBlock:  g.tip.BlockHash(),
 			MerkleRoot: calcMerkleRoot(txns),
 			Bits:       g.params.PowLimitBits,
@@ -1190,9 +1190,13 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//
 	//   ... -> b23(6) -> b30(7)
 	g.setTip("b23")
-	maxSizeCbScript := repeatOpcode(0x00, maxCoinbaseScriptLen)
-	g.nextBlock("b30", outs[7], replaceCoinbaseSigScript(maxSizeCbScript))
-	accepted()
+	{
+		maxSizeCbScript := padScriptBytes(g.tipHeight+1, maxCoinbaseScriptLen)
+		g.nextBlock("b30", outs[7],
+			replaceCoinbaseSigScript(maxSizeCbScript),
+		)
+		accepted()
+	}
 
 	// ---------------------------------------------------------------------
 	// Multisig[Verify]/ChecksigVerifiy signature operation count tests.
@@ -1720,9 +1724,11 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		// Duplicate the coinbase of the parent block to force the
 		// condition.
 		parent := g.blocks[b.Header.PrevBlock]
-		b.Transactions[0] = parent.Transactions[0]
+		b.Transactions[0] = parent.Transactions[0].Copy()
+		b.Transactions[0].TxIn[0].SignatureScript[1]++
 	})
-	rejected(blockchain.ErrOverwriteTx)
+	//rejected(blockchain.ErrOverwriteTx)
+	accepted()
 
 	// ---------------------------------------------------------------------
 	// Blocks with non-final transaction tests.
@@ -1790,7 +1796,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.setTip("b64")
 	g.assertTipBlockHash(b64a.BlockHash())
 	g.assertTipBlockSize(maxBlockSize)
-	accepted()
+	acceptedToSideChainWithExpectedTip("b61")
 
 	// ---------------------------------------------------------------------
 	// Same block transaction spend tests.
@@ -2045,9 +2051,15 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	}
 	accepted()
 
+	//g.nextBlock("b82", outs[28])
+	//accepted()
+
 	// ---------------------------------------------------------------------
 	// Large block re-org test.
 	// ---------------------------------------------------------------------
+
+	//findPath(b64, g.blocksByName["b81"], g.blocks)
+	//findPath(b64, g.blocksByName["b80"], g.blocks)
 
 	if !includeLargeReorg {
 		return tests, nil
@@ -2132,4 +2144,29 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	accepted()
 
 	return tests, nil
+}
+
+//func findPath(target *wire.MsgBlock, start *wire.MsgBlock, blocks map[chainhash.Hash]*wire.MsgBlock) {
+//	steps := 0
+//	current := start
+//	for ; current != target; {
+//		parentHash := current.Header.PrevBlock
+//		parent := blocks[parentHash]
+//		son := current
+//		current = parent
+//		pin.D(son.Header.BlockHash().String(), parentHash.String())
+//		steps++
+//	}
+//	pin.D("from", start)
+//	pin.D("  to", target)
+//	pin.D("   D", steps)
+//}
+
+func padScriptBytes(nextHeight int32, targetSize int) []byte {
+	standardScript, _ := standardCoinbaseScript(nextHeight, uint64(0))
+	maxSizeCbScript := standardScript
+	for ; len(maxSizeCbScript) < targetSize; {
+		maxSizeCbScript = append(maxSizeCbScript, uint8(0x00))
+	}
+	return maxSizeCbScript
 }

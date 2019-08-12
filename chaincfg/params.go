@@ -6,7 +6,6 @@ package chaincfg
 
 import (
 	"errors"
-	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -41,7 +40,7 @@ var (
 
 	SatoshiPerPicfightcoin = int64(1e8)
 
-	build_id = "b104"
+	build_id = "b107"
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
@@ -86,25 +85,27 @@ type ConsensusDeployment struct {
 // parameters for each deployment.  This is useful to be able to get the details
 // of a specific deployment by name.
 const (
+
+
 	// DeploymentTestDummy defines the rule change deployment ID for testing
 	// purposes.
-	DeploymentTestDummy = iota
+	//DeploymentTestDummy = iota
 
 	// DeploymentCSV defines the rule change deployment ID for the CSV
 	// soft-fork package. The CSV package includes the deployment of BIPS
 	// 68, 112, and 113.
-	DeploymentCSV
+	//DeploymentCSV
 
 	// DeploymentSegwit defines the rule change deployment ID for the
 	// Segregated Witness (segwit) soft-fork package. The segwit package
 	// includes the deployment of BIPS 141, 142, 144, 145, 147 and 173.
-	DeploymentSegwit
+	//DeploymentSegwit
 
 	// NOTE: DefinedDeployments must always come last since it is used to
 	// determine how many defined deployments there currently are.
 
 	// DefinedDeployments is the number of currently defined deployments.
-	DefinedDeployments
+	DefinedDeployments = 0
 )
 
 // Params defines a Picfightcoin network by its parameters.  These parameters may be
@@ -140,9 +141,9 @@ type Params struct {
 
 	// These fields define the block heights at which the specified softfork
 	// BIP became active.
-	BIP0034Height int32
-	BIP0065Height int32
-	BIP0066Height int32
+	//BIP0034Height int32
+	//BIP0065Height int32
+	//BIP0066Height int32
 
 	// CoinbaseMaturity is the number of blocks required before newly mined
 	// coins (coinbase transactions) can be spent.
@@ -239,7 +240,7 @@ type Params struct {
 	MedianTimeBlocks int
 	// SerializedHeightVersion is the block version which changed block
 	// coinbases to start with the serialized block height.
-	SerializedHeightVersion int32
+	//SerializedHeightVersion int32
 	// BaseSubsidy is the starting subsidy amount for mined blocks.  This
 	// value is halved every SubsidyHalvingInterval blocks.
 	BaseSubsidy int64
@@ -267,7 +268,6 @@ var MainNetParams = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
@@ -275,9 +275,9 @@ var MainNetParams = Params{
 	GenesisHash:              &genesisHash,
 	PowLimit:                 mainPowLimit,
 	PowLimitBits:             0x1d00ffff,
-	BIP0034Height:            227931, // 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8
-	BIP0065Height:            388381, // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
-	BIP0066Height:            363725, // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
+	//BIP0034Height:            227931, // 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8
+	//BIP0065Height:            388381, // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
+	//BIP0066Height:            363725, // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
 	CoinbaseMaturity:         100,
 	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
@@ -322,23 +322,23 @@ var MainNetParams = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 1916, // 95% of MinerConfirmationWindow
 	MinerConfirmationWindow:       2016, //
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  1199145601, // January 1, 2008 UTC
-			ExpireTime: 1230767999, // December 31, 2008 UTC
-		},
-		DeploymentCSV: {
-			BitNumber:  0,
-			StartTime:  1462060800, // May 1st, 2016
-			ExpireTime: 1493596800, // May 1st, 2017
-		},
-		DeploymentSegwit: {
-			BitNumber:  1,
-			StartTime:  1479168000, // November 15, 2016 UTC
-			ExpireTime: 1510704000, // November 15, 2017 UTC.
-		},
-	},
+	//Deployments: [DefinedDeployments]ConsensusDeployment{
+	//	DeploymentTestDummy: {
+	//		BitNumber:  28,
+	//		StartTime:  1199145601, // January 1, 2008 UTC
+	//		ExpireTime: 1230767999, // December 31, 2008 UTC
+	//	},
+	//	DeploymentCSV: {
+	//		BitNumber:  0,
+	//		StartTime:  1462060800, // May 1st, 2016
+	//		ExpireTime: 1493596800, // May 1st, 2017
+	//	},
+	//	DeploymentSegwit: {
+	//		BitNumber:  1,
+	//		StartTime:  1479168000, // November 15, 2016 UTC
+	//		ExpireTime: 1510704000, // November 15, 2017 UTC.
+	//	},
+	//},
 
 	// Mempool parameters
 	RelayNonStdTxs: false,
@@ -378,7 +378,6 @@ var RegressionNetParams = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
@@ -387,9 +386,9 @@ var RegressionNetParams = Params{
 	PowLimit:                 regressionPowLimit,
 	PowLimitBits:             0x207fffff,
 	CoinbaseMaturity:         100,
-	BIP0034Height:            100000000, // Not active - Permit ver 1 blocks
-	BIP0065Height:            1351,      // Used by regression tests
-	BIP0066Height:            1251,      // Used by regression tests
+	//BIP0034Height:            100000000, // Not active - Permit ver 1 blocks
+	//BIP0065Height:            1351,      // Used by regression tests
+	//BIP0066Height:            1251,      // Used by regression tests
 	SubsidyReductionInterval: 150,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
 	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
@@ -407,23 +406,23 @@ var RegressionNetParams = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 108, // 75%  of MinerConfirmationWindow
 	MinerConfirmationWindow:       144,
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires
-		},
-		DeploymentCSV: {
-			BitNumber:  0,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires
-		},
-		DeploymentSegwit: {
-			BitNumber:  1,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires.
-		},
-	},
+	//Deployments: [DefinedDeployments]ConsensusDeployment{
+	//	DeploymentTestDummy: {
+	//		BitNumber:  28,
+	//		StartTime:  0,             // Always available for vote
+	//		ExpireTime: math.MaxInt64, // Never expires
+	//	},
+	//	DeploymentCSV: {
+	//		BitNumber:  0,
+	//		StartTime:  0,             // Always available for vote
+	//		ExpireTime: math.MaxInt64, // Never expires
+	//	},
+	//	DeploymentSegwit: {
+	//		BitNumber:  1,
+	//		StartTime:  0,             // Always available for vote
+	//		ExpireTime: math.MaxInt64, // Never expires.
+	//	},
+	//},
 
 	// Mempool parameters
 	RelayNonStdTxs: true,
@@ -466,7 +465,6 @@ var TestNet3Params = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
@@ -474,9 +472,9 @@ var TestNet3Params = Params{
 	GenesisHash:              &testNet3GenesisHash,
 	PowLimit:                 testNet3PowLimit,
 	PowLimitBits:             0x1d00ffff,
-	BIP0034Height:            21111,  // 0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8
-	BIP0065Height:            581885, // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
-	BIP0066Height:            330776, // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
+	//BIP0034Height:            21111,  // 0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8
+	//BIP0065Height:            581885, // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
+	//BIP0066Height:            330776, // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
 	CoinbaseMaturity:         100,
 	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
@@ -510,23 +508,23 @@ var TestNet3Params = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 1512, // 75% of MinerConfirmationWindow
 	MinerConfirmationWindow:       2016,
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  1199145601, // January 1, 2008 UTC
-			ExpireTime: 1230767999, // December 31, 2008 UTC
-		},
-		DeploymentCSV: {
-			BitNumber:  0,
-			StartTime:  1456790400, // March 1st, 2016
-			ExpireTime: 1493596800, // May 1st, 2017
-		},
-		DeploymentSegwit: {
-			BitNumber:  1,
-			StartTime:  1462060800, // May 1, 2016 UTC
-			ExpireTime: 1493596800, // May 1, 2017 UTC.
-		},
-	},
+	//Deployments: [DefinedDeployments]ConsensusDeployment{
+	//	DeploymentTestDummy: {
+	//		BitNumber:  28,
+	//		StartTime:  1199145601, // January 1, 2008 UTC
+	//		ExpireTime: 1230767999, // December 31, 2008 UTC
+	//	},
+	//	DeploymentCSV: {
+	//		BitNumber:  0,
+	//		StartTime:  1456790400, // March 1st, 2016
+	//		ExpireTime: 1493596800, // May 1st, 2017
+	//	},
+	//	DeploymentSegwit: {
+	//		BitNumber:  1,
+	//		StartTime:  1462060800, // May 1, 2016 UTC
+	//		ExpireTime: 1493596800, // May 1, 2017 UTC.
+	//	},
+	//},
 
 	// Mempool parameters
 	RelayNonStdTxs: true,
@@ -570,7 +568,6 @@ var SimNetParams = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	SerializedHeightVersion: 2,
 	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
@@ -578,9 +575,9 @@ var SimNetParams = Params{
 	GenesisHash:              &simNetGenesisHash,
 	PowLimit:                 simNetPowLimit,
 	PowLimitBits:             0x207fffff,
-	BIP0034Height:            0, // Always active on simnet
-	BIP0065Height:            0, // Always active on simnet
-	BIP0066Height:            0, // Always active on simnet
+	//BIP0034Height:            0, // Always active on simnet
+	//BIP0065Height:            0, // Always active on simnet
+	//BIP0066Height:            0, // Always active on simnet
 	CoinbaseMaturity:         100,
 	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
@@ -599,23 +596,23 @@ var SimNetParams = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 75, // 75% of MinerConfirmationWindow
 	MinerConfirmationWindow:       100,
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires
-		},
-		DeploymentCSV: {
-			BitNumber:  0,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires
-		},
-		DeploymentSegwit: {
-			BitNumber:  1,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires.
-		},
-	},
+	//Deployments: [DefinedDeployments]ConsensusDeployment{
+	//	DeploymentTestDummy: {
+	//		BitNumber:  28,
+	//		StartTime:  0,             // Always available for vote
+	//		ExpireTime: math.MaxInt64, // Never expires
+	//	},
+	//	DeploymentCSV: {
+	//		BitNumber:  0,
+	//		StartTime:  0,             // Always available for vote
+	//		ExpireTime: math.MaxInt64, // Never expires
+	//	},
+	//	DeploymentSegwit: {
+	//		BitNumber:  1,
+	//		StartTime:  0,             // Always available for vote
+	//		ExpireTime: math.MaxInt64, // Never expires.
+	//	},
+	//},
 
 	// Mempool parameters
 	RelayNonStdTxs: true,
