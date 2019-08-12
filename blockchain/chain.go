@@ -377,10 +377,11 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *pfcutil.Tx, utxoView 
 		// Obtain the latest BIP9 version bits state for the
 		// CSV-package soft-fork deployment. The adherence of sequence
 		// locks depends on the current soft-fork state.
-		csvState, err := b.deploymentState(node.parent, chaincfg.DeploymentCSV)
-		if err != nil {
-			return nil, err
-		}
+		//csvState, err := b.deploymentState(node.parent, chaincfg.DeploymentCSV)
+		//if err != nil {
+		//	return nil, err
+		//}
+		csvState := ThresholdActive
 		csvSoftforkActive = csvState == ThresholdActive
 	}
 

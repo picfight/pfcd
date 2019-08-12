@@ -714,11 +714,11 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 		// Obtain the latest state of the deployed CSV soft-fork in
 		// order to properly guard the new validation behavior based on
 		// the current BIP 9 version bits state.
-		csvState, err := b.deploymentState(prevNode, chaincfg.DeploymentCSV)
-		if err != nil {
-			return err
-		}
-
+		//csvState, err := b.deploymentState(prevNode, chaincfg.DeploymentCSV)
+		//if err != nil {
+		//	return err
+		//}
+		csvState := ThresholdActive
 		// Once the CSV soft-fork is fully active, we'll switch to
 		// using the current median time past of the past block's
 		// timestamps for all lock-time based checks.
@@ -759,12 +759,12 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 		// Query for the Version Bits state for the segwit soft-fork
 		// deployment. If segwit is active, we'll switch over to
 		// enforcing all the new rules.
-		segwitState, err := b.deploymentState(prevNode,
-			chaincfg.DeploymentSegwit)
-		if err != nil {
-			return err
-		}
-
+		//segwitState, err := b.deploymentState(prevNode,
+		//	chaincfg.DeploymentSegwit)
+		//if err != nil {
+		//	return err
+		//}
+		segwitState := ThresholdActive
 		// If segwit is active, then we'll need to fully validate the
 		// new witness commitment for adherence to the rules.
 		if segwitState == ThresholdActive {
@@ -1028,10 +1028,11 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *pfcutil.Block, vi
 	// Query for the Version Bits state for the segwit soft-fork
 	// deployment. If segwit is active, we'll switch over to enforcing all
 	// the new rules.
-	segwitState, err := b.deploymentState(node.parent, chaincfg.DeploymentSegwit)
-	if err != nil {
-		return err
-	}
+	//segwitState, err := b.deploymentState(node.parent, chaincfg.DeploymentSegwit)
+	//if err != nil {
+	//	return err
+	//}
+	segwitState := ThresholdActive
 	enforceSegWit := segwitState == ThresholdActive
 
 	// The number of signature operations must be less than the maximum
@@ -1153,10 +1154,11 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *pfcutil.Block, vi
 
 	// Enforce CHECKSEQUENCEVERIFY during all block validation checks once
 	// the soft-fork deployment is fully active.
-	csvState, err := b.deploymentState(node.parent, chaincfg.DeploymentCSV)
-	if err != nil {
-		return err
-	}
+	//csvState, err := b.deploymentState(node.parent, chaincfg.DeploymentCSV)
+	//if err != nil {
+	//	return err
+	//}
+	csvState := ThresholdActive
 	if csvState == ThresholdActive {
 		// If the CSV soft-fork is now active, then modify the
 		// scriptFlags to ensure that the CSV op code is properly

@@ -239,11 +239,12 @@ func (sm *SyncManager) startSync() {
 	// Once the segwit soft-fork package has activated, we only
 	// want to sync from peers which are witness enabled to ensure
 	// that we fully validate all blockchain data.
-	segwitActive, err := sm.chain.IsDeploymentActive(chaincfg.DeploymentSegwit)
-	if err != nil {
-		log.Errorf("Unable to query for segwit soft-fork state: %v", err)
-		return
-	}
+	//segwitActive, err := sm.chain.IsDeploymentActive(chaincfg.DeploymentSegwit)
+	//if err != nil {
+	//	log.Errorf("Unable to query for segwit soft-fork state: %v", err)
+	//	return
+	//}
+	segwitActive := true
 
 	best := sm.chain.BestSnapshot()
 	var higherPeers, equalPeers []*peerpkg.Peer
@@ -375,11 +376,12 @@ func (sm *SyncManager) isSyncCandidate(peer *peerpkg.Peer) bool {
 		// The peer is not a candidate for sync if it's not a full
 		// node. Additionally, if the segwit soft-fork package has
 		// activated, then the peer must also be upgraded.
-		segwitActive, err := sm.chain.IsDeploymentActive(chaincfg.DeploymentSegwit)
-		if err != nil {
-			log.Errorf("Unable to query for segwit "+
-				"soft-fork state: %v", err)
-		}
+		//segwitActive, err := sm.chain.IsDeploymentActive(chaincfg.DeploymentSegwit)
+		//if err != nil {
+		//	log.Errorf("Unable to query for segwit "+
+		//		"soft-fork state: %v", err)
+		//}
+		segwitActive := true
 		nodeServices := peer.Services()
 		if nodeServices&wire.SFNodeNetwork != wire.SFNodeNetwork ||
 			(segwitActive && !peer.IsWitnessEnabled()) {
