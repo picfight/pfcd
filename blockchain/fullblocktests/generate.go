@@ -2049,9 +2049,15 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	}
 	accepted()
 
+	//g.nextBlock("b82", outs[28])
+	//accepted()
+
 	// ---------------------------------------------------------------------
 	// Large block re-org test.
 	// ---------------------------------------------------------------------
+
+	//findPath(b64, g.blocksByName["b81"], g.blocks)
+	//findPath(b64, g.blocksByName["b80"], g.blocks)
 
 	if !includeLargeReorg {
 		return tests, nil
@@ -2137,6 +2143,22 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 
 	return tests, nil
 }
+
+//func findPath(target *wire.MsgBlock, start *wire.MsgBlock, blocks map[chainhash.Hash]*wire.MsgBlock) {
+//	steps := 0
+//	current := start
+//	for ; current != target; {
+//		parentHash := current.Header.PrevBlock
+//		parent := blocks[parentHash]
+//		son := current
+//		current = parent
+//		pin.D(son.Header.BlockHash().String(), parentHash.String())
+//		steps++
+//	}
+//	pin.D("from", start)
+//	pin.D("  to", target)
+//	pin.D("   D", steps)
+//}
 
 func padScriptBytes(nextHeight int32, targetSize int) []byte {
 	standardScript, _ := standardCoinbaseScript(nextHeight, uint64(0))
