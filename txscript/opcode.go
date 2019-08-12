@@ -1246,7 +1246,7 @@ func opcodeCheckSequenceVerify(op *parsedOpcode, vm *Engine) error {
 
 	// Transaction version numbers not high enough to trigger CSV rules must
 	// fail.
-	if vm.tx.Version < 2 {
+	if vm.tx.Version < wire.DefaultBlockVersion {
 		str := fmt.Sprintf("invalid transaction version: %d",
 			vm.tx.Version)
 		return scriptError(ErrUnsatisfiedLockTime, str)
