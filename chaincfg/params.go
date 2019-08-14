@@ -23,17 +23,17 @@ var (
 	bigOne = big.NewInt(1)
 
 	// mainPowLimit is the highest proof of work value a Picfightcoin block can
-	// have for the main network.  It is the value 2^224 - 1.
-	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
+	// have for the main network.  It is the value 2^(256-8*3) - 1.
+	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*3), bigOne)
+
+	// testNet3PowLimit is the highest proof of work value a Picfightcoin block
+	// can have for the test network (version 3).  It is the value
+	// 2^(256-8*3) - 1.
+	testNet3PowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-8*3), bigOne)
 
 	// regressionPowLimit is the highest proof of work value a Picfightcoin block
 	// can have for the regression test network.  It is the value 2^255 - 1.
 	regressionPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
-
-	// testNet3PowLimit is the highest proof of work value a Picfightcoin block
-	// can have for the test network (version 3).  It is the value
-	// 2^224 - 1.
-	testNet3PowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
 
 	// simNetPowLimit is the highest proof of work value a Picfightcoin block
 	// can have for the simulation test network.  It is the value 2^255 - 1.
@@ -86,8 +86,6 @@ type ConsensusDeployment struct {
 // parameters for each deployment.  This is useful to be able to get the details
 // of a specific deployment by name.
 const (
-
-
 	// DeploymentTestDummy defines the rule change deployment ID for testing
 	// purposes.
 	DeploymentTestDummy = iota
@@ -259,17 +257,17 @@ var MainNetParams = Params{
 	},
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds:    2 * 60 * 60,
-	MinCoinbaseScriptLen:    2,
-	MaxCoinbaseScriptLen:    100,
-	MedianTimeBlocks:        11,
-	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks:     11,
+	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:             &genesisBlock,
 	GenesisHash:              &genesisHash,
 	PowLimit:                 mainPowLimit,
-	PowLimitBits:             0x1d00ffff,
+	PowLimitBits:             0x1e00ffff,
 	CoinbaseMaturity:         100,
 	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
@@ -330,11 +328,11 @@ var RegressionNetParams = Params{
 	DNSSeeds:         []DNSSeed{},
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds:    2 * 60 * 60,
-	MinCoinbaseScriptLen:    2,
-	MaxCoinbaseScriptLen:    100,
-	MedianTimeBlocks:        11,
-	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks:     11,
+	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:             &regTestGenesisBlock,
@@ -404,17 +402,17 @@ var TestNet3Params = Params{
 	},
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds:    2 * 60 * 60,
-	MinCoinbaseScriptLen:    2,
-	MaxCoinbaseScriptLen:    100,
-	MedianTimeBlocks:        11,
-	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks:     11,
+	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:             &testNet3GenesisBlock,
 	GenesisHash:              &testNet3GenesisHash,
 	PowLimit:                 testNet3PowLimit,
-	PowLimitBits:             0x1d00ffff,
+	PowLimitBits:             0x1e00ffff,
 	CoinbaseMaturity:         100,
 	SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
@@ -479,11 +477,11 @@ var SimNetParams = Params{
 	DNSSeeds:         []DNSSeed{}, // NOTE: There must NOT be any seeds.
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds:    2 * 60 * 60,
-	MinCoinbaseScriptLen:    2,
-	MaxCoinbaseScriptLen:    100,
-	MedianTimeBlocks:        11,
-	BaseSubsidy:             int64(50 * SatoshiPerPicfightcoin),
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks:     11,
+	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:             &simNetGenesisBlock,

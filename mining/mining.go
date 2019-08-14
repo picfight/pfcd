@@ -610,7 +610,7 @@ mempoolLoop:
 	//if err != nil {
 	//	return nil, err
 	//}
-	segwitState:= blockchain.ThresholdActive
+	segwitState := blockchain.ThresholdActive
 	segwitActive := segwitState == blockchain.ThresholdActive
 
 	witnessIncluded := false

@@ -2165,7 +2165,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 func padScriptBytes(nextHeight int32, targetSize int) []byte {
 	standardScript, _ := standardCoinbaseScript(nextHeight, uint64(0))
 	maxSizeCbScript := standardScript
-	for ; len(maxSizeCbScript) < targetSize; {
+	for len(maxSizeCbScript) < targetSize {
 		maxSizeCbScript = append(maxSizeCbScript, uint8(0x00))
 	}
 	return maxSizeCbScript

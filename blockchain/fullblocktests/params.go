@@ -98,11 +98,11 @@ var regressionNetParams = &chaincfg.Params{
 	DefaultPort: "18444",
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds:    2 * 60 * 60,
-	MinCoinbaseScriptLen:    2,
-	MaxCoinbaseScriptLen:    100,
-	MedianTimeBlocks:        11,
-	BaseSubsidy:             int64(50 * chaincfg.SatoshiPerPicfightcoin),
+	MaxTimeOffsetSeconds: 2 * 60 * 60,
+	MinCoinbaseScriptLen: 2,
+	MaxCoinbaseScriptLen: 100,
+	MedianTimeBlocks:     11,
+	BaseSubsidy:          int64(50 * chaincfg.SatoshiPerPicfightcoin),
 
 	// Chain parameters
 	GenesisBlock:     &regTestGenesisBlock,
