@@ -6,6 +6,7 @@ package chaincfg
 
 import (
 	"errors"
+	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -89,7 +90,7 @@ const (
 
 	// DeploymentTestDummy defines the rule change deployment ID for testing
 	// purposes.
-	//DeploymentTestDummy = iota
+	DeploymentTestDummy = iota
 
 	// DeploymentCSV defines the rule change deployment ID for the CSV
 	// soft-fork package. The CSV package includes the deployment of BIPS
@@ -105,7 +106,7 @@ const (
 	// determine how many defined deployments there currently are.
 
 	// DefinedDeployments is the number of currently defined deployments.
-	DefinedDeployments = 0
+	DefinedDeployments
 )
 
 // Params defines a Picfightcoin network by its parameters.  These parameters may be
@@ -322,23 +323,13 @@ var MainNetParams = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 1916, // 95% of MinerConfirmationWindow
 	MinerConfirmationWindow:       2016, //
-	//Deployments: [DefinedDeployments]ConsensusDeployment{
-	//	DeploymentTestDummy: {
-	//		BitNumber:  28,
-	//		StartTime:  1199145601, // January 1, 2008 UTC
-	//		ExpireTime: 1230767999, // December 31, 2008 UTC
-	//	},
-	//	DeploymentCSV: {
-	//		BitNumber:  0,
-	//		StartTime:  1462060800, // May 1st, 2016
-	//		ExpireTime: 1493596800, // May 1st, 2017
-	//	},
-	//	DeploymentSegwit: {
-	//		BitNumber:  1,
-	//		StartTime:  1479168000, // November 15, 2016 UTC
-	//		ExpireTime: 1510704000, // November 15, 2017 UTC.
-	//	},
-	//},
+	Deployments: [DefinedDeployments]ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber:  28,
+			StartTime:  1546300801, // January 1, 2019 UTC
+			ExpireTime: 1577836799, // December 31, 2019 UTC
+		},
+	},
 
 	// Mempool parameters
 	RelayNonStdTxs: false,
@@ -406,23 +397,13 @@ var RegressionNetParams = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 108, // 75%  of MinerConfirmationWindow
 	MinerConfirmationWindow:       144,
-	//Deployments: [DefinedDeployments]ConsensusDeployment{
-	//	DeploymentTestDummy: {
-	//		BitNumber:  28,
-	//		StartTime:  0,             // Always available for vote
-	//		ExpireTime: math.MaxInt64, // Never expires
-	//	},
-	//	DeploymentCSV: {
-	//		BitNumber:  0,
-	//		StartTime:  0,             // Always available for vote
-	//		ExpireTime: math.MaxInt64, // Never expires
-	//	},
-	//	DeploymentSegwit: {
-	//		BitNumber:  1,
-	//		StartTime:  0,             // Always available for vote
-	//		ExpireTime: math.MaxInt64, // Never expires.
-	//	},
-	//},
+	Deployments: [DefinedDeployments]ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber:  28,
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		},
+	},
 
 	// Mempool parameters
 	RelayNonStdTxs: true,
@@ -508,23 +489,13 @@ var TestNet3Params = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 1512, // 75% of MinerConfirmationWindow
 	MinerConfirmationWindow:       2016,
-	//Deployments: [DefinedDeployments]ConsensusDeployment{
-	//	DeploymentTestDummy: {
-	//		BitNumber:  28,
-	//		StartTime:  1199145601, // January 1, 2008 UTC
-	//		ExpireTime: 1230767999, // December 31, 2008 UTC
-	//	},
-	//	DeploymentCSV: {
-	//		BitNumber:  0,
-	//		StartTime:  1456790400, // March 1st, 2016
-	//		ExpireTime: 1493596800, // May 1st, 2017
-	//	},
-	//	DeploymentSegwit: {
-	//		BitNumber:  1,
-	//		StartTime:  1462060800, // May 1, 2016 UTC
-	//		ExpireTime: 1493596800, // May 1, 2017 UTC.
-	//	},
-	//},
+	Deployments: [DefinedDeployments]ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber:  28,
+			StartTime:  1546300801, // January 1, 2019 UTC
+			ExpireTime: 1577836799, // December 31, 2019 UTC
+		},
+	},
 
 	// Mempool parameters
 	RelayNonStdTxs: true,
@@ -596,23 +567,13 @@ var SimNetParams = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 75, // 75% of MinerConfirmationWindow
 	MinerConfirmationWindow:       100,
-	//Deployments: [DefinedDeployments]ConsensusDeployment{
-	//	DeploymentTestDummy: {
-	//		BitNumber:  28,
-	//		StartTime:  0,             // Always available for vote
-	//		ExpireTime: math.MaxInt64, // Never expires
-	//	},
-	//	DeploymentCSV: {
-	//		BitNumber:  0,
-	//		StartTime:  0,             // Always available for vote
-	//		ExpireTime: math.MaxInt64, // Never expires
-	//	},
-	//	DeploymentSegwit: {
-	//		BitNumber:  1,
-	//		StartTime:  0,             // Always available for vote
-	//		ExpireTime: math.MaxInt64, // Never expires.
-	//	},
-	//},
+	Deployments: [DefinedDeployments]ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber:  28,
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		},
+	},
 
 	// Mempool parameters
 	RelayNonStdTxs: true,
