@@ -1244,14 +1244,8 @@ func handleGetBlockChainInfo(s *rpcServer, cmd interface{}, closeChan <-chan str
 		// fork-name.
 		var forkName string
 		switch deployment {
-		//case chaincfg.DeploymentTestDummy:
-		//	forkName = "dummy"
-		//
-		//case chaincfg.DeploymentCSV:
-		//	forkName = "csv"
-		//
-		//case chaincfg.DeploymentSegwit:
-		//	forkName = "segwit"
+		case chaincfg.DeploymentTestDummy:
+			forkName = "dummy"
 
 		default:
 			return nil, &pfcjson.RPCError{
