@@ -98,11 +98,12 @@ var regressionNetParams = &chaincfg.Params{
 	DefaultPort: "18444",
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds: 2 * 60 * 60,
-	MinCoinbaseScriptLen: 2,
-	MaxCoinbaseScriptLen: 100,
-	MedianTimeBlocks:     11,
-	BaseSubsidy:          int64(50 * chaincfg.SatoshiPerPicfightcoin),
+	MaxTimeOffsetSeconds:    2 * 60 * 60,
+	MinCoinbaseScriptLen:    2,
+	MaxCoinbaseScriptLen:    100,
+	MedianTimeBlocks:        11,
+	TargetTotalSubsidy:      7777777,
+	SubsidyProductionPeriod: time.Hour * time.Duration(24*365*chaincfg.SubsidyProductionYears),
 
 	// Chain parameters
 	GenesisBlock:     &regTestGenesisBlock,
@@ -115,7 +116,7 @@ var regressionNetParams = &chaincfg.Params{
 	//BIP0066Height:    1251,      // Used by regression tests
 	//SubsidyReductionInterval: 150,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
+	TargetTimePerBlock:       time.Minute * 1,     // 1 minute
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
 	ReduceMinDifficulty:      true,
 	MinDiffReductionTime:     time.Minute * 20, // TargetTimePerBlock * 2

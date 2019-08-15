@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/jfixby/bignum"
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/txscript"
@@ -132,23 +133,65 @@ func IsFinalizedTransaction(tx *pfcutil.Tx, blockHeight int32, blockTime time.Ti
 	return true
 }
 
+// bignumEngine determines what float type to use for the CalcBlockSubsidy()
+var bignumEngine bignum.BigNumEngine = nil
+
 // CalcBlockSubsidy returns the subsidy amount a block at the provided height
 // should have. This is mainly used for determining how much the coinbase for
 // newly generated blocks awards as well as validating the coinbase for blocks
 // has the expected value.
-//
-// The subsidy is halved every SubsidyReductionInterval blocks.  Mathematically
-// this is: baseSubsidy / 2^(height/SubsidyReductionInterval)
-//
-// At the target block generation rate for the main network, this is
-// approximately every 4 years.
-func CalcBlockSubsidy(height int32, chainParams *chaincfg.Params) int64 {
-	if chainParams.SubsidyReductionInterval == 0 {
-		return chainParams.BaseSubsidy
+func CalcBlockSubsidy(height int32, netParams *chaincfg.Params) int64 {
+	if bignumEngine == nil {
+		// use the default float64
+		bignumEngine = bignum.Float64Engine{}
 	}
+	satoshiBigNum := calcBlockSubsidy(bignumEngine, height, netParams)
+	return int64(satoshiBigNum.ToFloat64())
+}
 
-	// Equivalent to: baseSubsidy / 2^(height/subsidyHalvingInterval)
-	return chainParams.BaseSubsidy >> uint(height/chainParams.SubsidyReductionInterval)
+func calcBlockSubsidy(bignum bignum.BigNumEngine, height int32, netParams *chaincfg.Params) bignum.BigNum {
+	period := netParams.SubsidyProductionPeriod
+	blockTime := netParams.TargetTimePerBlock
+	totalSubsidy := netParams.TargetTotalSubsidy
+
+	subsidyBlocksNumber := int64(period / blockTime)
+	subsidyCoins := calcSubsidy(bignum, subsidyBlocksNumber, int64(height), float64(totalSubsidy))
+	satoshi := bignum.NewBigNum(chaincfg.SatoshiPerPicfightcoin)
+	satoshi = satoshi.Mul(satoshi, subsidyCoins)
+	return satoshi
+}
+
+func calcSubsidy(bignum bignum.BigNumEngine, subsidyBlocksNumber int64, height int64, totalSubsidy float64) bignum.BigNum {
+	if height == 0 { //genesis block
+		return bignum.NewBigNum(0)
+	}
+	H := bignum.NewBigNum(height - 1)
+	N := bignum.NewBigNum(subsidyBlocksNumber)
+
+	//lastBlockIndex := new(big.Int).SetInt64(subsidyBlocksNumber - 1)
+	lastBlockIndex := bignum.NewBigNum(subsidyBlocksNumber - 1)
+	if H.Cmp(lastBlockIndex) > 0 {
+		return bignum.NewBigNum(0)
+	}
+	//endSubsidy := float64(0)               // 0 coins
+
+	//return totalSubsidy * 2.0 * (lastBlockIndex - H) / (N * lastBlockIndex)
+	H = H.Neg(H)                      // -H
+	H = H.Add(lastBlockIndex, H)      // (lastBlockIndex - H)
+	H = H.Mul(bignum.NewBigNum(2), H) // 2.0 * (lastBlockIndex - H)
+	N = N.Mul(N, lastBlockIndex)      // (N * lastBlockIndex)
+
+	//subsidy := big.NewRat(1, 1)
+	subsidy := bignum.NewBigNum(1)
+	subsidy = subsidy.SetFrac(H, N) //  2.0 * (lastBlockIndex - H) / (N * lastBlockIndex)
+
+	T := bignum.NewBigNum(totalSubsidy)
+	//T = T.SetFloat64(totalSubsidy)
+	T = T.Mul(T, subsidy) // totalSubsidy * 2.0 * (lastBlockIndex - H) / (N * lastBlockIndex)
+
+	//float64Result, _ := T.Float64()
+	return T
+	//return totalSubsidy * 2.0 * (lastBlockIndex - H) / (N * lastBlockIndex)
 }
 
 // CheckTransactionSanity performs some preliminary checks on a transaction to

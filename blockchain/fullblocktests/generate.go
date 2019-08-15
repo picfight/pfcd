@@ -1712,7 +1712,12 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//
 	//   ... -> b57(16) -> b60(17)
 	g.setTip("b57")
-	g.nextBlock("b60", outs[17])
+
+	g.nextBlock("b60", outs[17], func(b *wire.MsgBlock) {
+		// Duplicate the coinbase value(!) of the child block
+		value := blockchain.CalcBlockSubsidy(g.tipHeight+1+1, g.params)
+		b.Transactions[0].TxOut[0].Value = value
+	})
 	accepted()
 
 	// Create block that has a tx with the same hash as an existing tx that

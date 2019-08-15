@@ -6,7 +6,6 @@ package chaincfg
 
 import (
 	"errors"
-	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -41,7 +40,9 @@ var (
 
 	SatoshiPerPicfightcoin = int64(1e8)
 
-	build_id = "b200"
+	build_id = "b.224"
+
+	SubsidyProductionYears = 44
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
@@ -144,7 +145,7 @@ type Params struct {
 
 	// SubsidyReductionInterval is the interval of blocks before the subsidy
 	// is reduced.
-	SubsidyReductionInterval int32
+	//SubsidyReductionInterval int32
 
 	// TargetTimespan is the desired amount of time that should elapse
 	// before the block difficulty requirement is examined to determine how
@@ -234,307 +235,16 @@ type Params struct {
 	// SerializedHeightVersion is the block version which changed block
 	// coinbases to start with the serialized block height.
 	//SerializedHeightVersion int32
-	// BaseSubsidy is the starting subsidy amount for mined blocks.  This
-	// value is halved every SubsidyHalvingInterval blocks.
-	BaseSubsidy int64
+
+	// TargetTotalSubsidy is the the expected total subsidy (in coins)
+	// produced by the network.
+	TargetTotalSubsidy int64
+
+	// SubsidyProductionPeriod is the the estimated time-period during which
+	// all the subsidy should be produced.
+	SubsidyProductionPeriod time.Duration
 
 	NodeBuildVersion string
-}
-
-// MainNetParams defines the network parameters for the main Picfightcoin network.
-var MainNetParams = Params{
-	Name:             "mainnet",
-	NodeBuildVersion: build_id + ".mainnet",
-	Net:              wire.MainNet,
-	DefaultPort:      "8333",
-	DNSSeeds: []DNSSeed{
-		{"seed.bitcoin.sipa.be", true},
-		{"dnsseed.bluematt.me", true},
-		{"dnsseed.bitcoin.dashjr.org", false},
-		{"seed.bitcoinstats.com", true},
-		{"seed.bitnodes.io", false},
-		{"seed.bitcoin.jonasschnelli.ch", true},
-	},
-
-	// Blockchain parameters
-	MaxTimeOffsetSeconds: 2 * 60 * 60,
-	MinCoinbaseScriptLen: 2,
-	MaxCoinbaseScriptLen: 100,
-	MedianTimeBlocks:     11,
-	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
-
-	// Chain parameters
-	GenesisBlock:             &genesisBlock,
-	GenesisHash:              &genesisHash,
-	PowLimit:                 mainPowLimit,
-	PowLimitBits:             0x1e00ffff,
-	CoinbaseMaturity:         100,
-	SubsidyReductionInterval: 210000,
-	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
-	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
-	ReduceMinDifficulty:      false,
-	MinDiffReductionTime:     0,
-	GenerateSupported:        false,
-
-	// Checkpoints ordered from oldest to newest.
-	Checkpoints: nil,
-
-	// Consensus rule change deployments.
-	//
-	// The miner confirmation window is defined as:
-	//   target proof of work timespan / target proof of work spacing
-	RuleChangeActivationThreshold: 1916, // 95% of MinerConfirmationWindow
-	MinerConfirmationWindow:       2016, //
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  1546300801, // January 1, 2019 UTC
-			ExpireTime: 1577836799, // December 31, 2019 UTC
-		},
-	},
-
-	// Mempool parameters
-	RelayNonStdTxs: false,
-
-	// Human-readable part for Bech32 encoded segwit addresses, as defined in
-	// BIP 173.
-	Bech32HRPSegwit: "bc", // always bc for main net
-
-	// Address encoding magics
-	PubKeyHashAddrID:        0x00, // starts with 1
-	ScriptHashAddrID:        0x05, // starts with 3
-	PrivateKeyID:            0x80, // starts with 5 (uncompressed) or K (compressed)
-	WitnessPubKeyHashAddrID: 0x06, // starts with p2
-	WitnessScriptHashAddrID: 0x0A, // starts with 7Xh
-
-	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x88, 0xad, 0xe4}, // starts with xprv
-	HDPublicKeyID:  [4]byte{0x04, 0x88, 0xb2, 0x1e}, // starts with xpub
-
-	// BIP44 coin type used in the hierarchical deterministic path for
-	// address generation.
-	HDCoinType: 0,
-}
-
-// RegressionNetParams defines the network parameters for the regression test
-// Picfightcoin network.  Not to be confused with the test Picfightcoin network (version
-// 3), this network is sometimes simply called "testnet".
-var RegressionNetParams = Params{
-	Name:             "regtest",
-	NodeBuildVersion: build_id + ".regtest",
-	Net:              wire.TestNet,
-	DefaultPort:      "18444",
-	DNSSeeds:         []DNSSeed{},
-
-	// Blockchain parameters
-	MaxTimeOffsetSeconds: 2 * 60 * 60,
-	MinCoinbaseScriptLen: 2,
-	MaxCoinbaseScriptLen: 100,
-	MedianTimeBlocks:     11,
-	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
-
-	// Chain parameters
-	GenesisBlock:             &regTestGenesisBlock,
-	GenesisHash:              &regTestGenesisHash,
-	PowLimit:                 regressionPowLimit,
-	PowLimitBits:             0x207fffff,
-	CoinbaseMaturity:         100,
-	SubsidyReductionInterval: 150,
-	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
-	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
-	ReduceMinDifficulty:      true,
-	MinDiffReductionTime:     time.Minute * 20, // TargetTimePerBlock * 2
-	GenerateSupported:        true,
-
-	// Checkpoints ordered from oldest to newest.
-	Checkpoints: nil,
-
-	// Consensus rule change deployments.
-	//
-	// The miner confirmation window is defined as:
-	//   target proof of work timespan / target proof of work spacing
-	RuleChangeActivationThreshold: 108, // 75%  of MinerConfirmationWindow
-	MinerConfirmationWindow:       144,
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires
-		},
-	},
-
-	// Mempool parameters
-	RelayNonStdTxs: true,
-
-	// Human-readable part for Bech32 encoded segwit addresses, as defined in
-	// BIP 173.
-	Bech32HRPSegwit: "bcrt", // always bcrt for reg test net
-
-	// Address encoding magics
-	PubKeyHashAddrID: 0x6f, // starts with m or n
-	ScriptHashAddrID: 0xc4, // starts with 2
-	PrivateKeyID:     0xef, // starts with 9 (uncompressed) or c (compressed)
-
-	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x35, 0x83, 0x94}, // starts with tprv
-	HDPublicKeyID:  [4]byte{0x04, 0x35, 0x87, 0xcf}, // starts with tpub
-
-	// BIP44 coin type used in the hierarchical deterministic path for
-	// address generation.
-	HDCoinType: 1,
-}
-
-// TestNet3Params defines the network parameters for the test Picfightcoin network
-// (version 3).  Not to be confused with the regression test network, this
-// network is sometimes simply called "testnet".
-var TestNet3Params = Params{
-	Name:             "testnet3",
-	NodeBuildVersion: build_id + ".testnet3",
-	Net:              wire.TestNet3,
-	DefaultPort:      "18333",
-	DNSSeeds: []DNSSeed{
-		{"testnet-seed.bitcoin.jonasschnelli.ch", true},
-		{"testnet-seed.bitcoin.schildbach.de", false},
-		{"seed.tbtc.petertodd.org", true},
-		{"testnet-seed.bluematt.me", false},
-	},
-
-	// Blockchain parameters
-	MaxTimeOffsetSeconds: 2 * 60 * 60,
-	MinCoinbaseScriptLen: 2,
-	MaxCoinbaseScriptLen: 100,
-	MedianTimeBlocks:     11,
-	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
-
-	// Chain parameters
-	GenesisBlock:             &testNet3GenesisBlock,
-	GenesisHash:              &testNet3GenesisHash,
-	PowLimit:                 testNet3PowLimit,
-	PowLimitBits:             0x1e00ffff,
-	CoinbaseMaturity:         100,
-	SubsidyReductionInterval: 210000,
-	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
-	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
-	ReduceMinDifficulty:      true,
-	MinDiffReductionTime:     time.Minute * 20, // TargetTimePerBlock * 2
-	GenerateSupported:        false,
-
-	// Checkpoints ordered from oldest to newest.
-	Checkpoints: nil,
-
-	// Consensus rule change deployments.
-	//
-	// The miner confirmation window is defined as:
-	//   target proof of work timespan / target proof of work spacing
-	RuleChangeActivationThreshold: 1512, // 75% of MinerConfirmationWindow
-	MinerConfirmationWindow:       2016,
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  1546300801, // January 1, 2019 UTC
-			ExpireTime: 1577836799, // December 31, 2019 UTC
-		},
-	},
-
-	// Mempool parameters
-	RelayNonStdTxs: true,
-
-	// Human-readable part for Bech32 encoded segwit addresses, as defined in
-	// BIP 173.
-	Bech32HRPSegwit: "tb", // always tb for test net
-
-	// Address encoding magics
-	PubKeyHashAddrID:        0x6f, // starts with m or n
-	ScriptHashAddrID:        0xc4, // starts with 2
-	WitnessPubKeyHashAddrID: 0x03, // starts with QW
-	WitnessScriptHashAddrID: 0x28, // starts with T7n
-	PrivateKeyID:            0xef, // starts with 9 (uncompressed) or c (compressed)
-
-	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x35, 0x83, 0x94}, // starts with tprv
-	HDPublicKeyID:  [4]byte{0x04, 0x35, 0x87, 0xcf}, // starts with tpub
-
-	// BIP44 coin type used in the hierarchical deterministic path for
-	// address generation.
-	HDCoinType: 1,
-}
-
-// SimNetParams defines the network parameters for the simulation test Picfightcoin
-// network.  This network is similar to the normal test network except it is
-// intended for private use within a group of individuals doing simulation
-// testing.  The functionality is intended to differ in that the only nodes
-// which are specifically specified are used to create the network rather than
-// following normal discovery rules.  This is important as otherwise it would
-// just turn into another public testnet.
-var SimNetParams = Params{
-	Name:             "simnet",
-	NodeBuildVersion: build_id + ".simnet",
-	Net:              wire.SimNet,
-	DefaultPort:      "18555",
-	DNSSeeds:         []DNSSeed{}, // NOTE: There must NOT be any seeds.
-
-	// Blockchain parameters
-	MaxTimeOffsetSeconds: 2 * 60 * 60,
-	MinCoinbaseScriptLen: 2,
-	MaxCoinbaseScriptLen: 100,
-	MedianTimeBlocks:     11,
-	BaseSubsidy:          int64(50 * SatoshiPerPicfightcoin),
-
-	// Chain parameters
-	GenesisBlock:             &simNetGenesisBlock,
-	GenesisHash:              &simNetGenesisHash,
-	PowLimit:                 simNetPowLimit,
-	PowLimitBits:             0x207fffff,
-	CoinbaseMaturity:         100,
-	SubsidyReductionInterval: 210000,
-	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
-	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
-	ReduceMinDifficulty:      true,
-	MinDiffReductionTime:     time.Minute * 20, // TargetTimePerBlock * 2
-	GenerateSupported:        true,
-
-	// Checkpoints ordered from oldest to newest.
-	Checkpoints: nil,
-
-	// Consensus rule change deployments.
-	//
-	// The miner confirmation window is defined as:
-	//   target proof of work timespan / target proof of work spacing
-	RuleChangeActivationThreshold: 75, // 75% of MinerConfirmationWindow
-	MinerConfirmationWindow:       100,
-	Deployments: [DefinedDeployments]ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires
-		},
-	},
-
-	// Mempool parameters
-	RelayNonStdTxs: true,
-
-	// Human-readable part for Bech32 encoded segwit addresses, as defined in
-	// BIP 173.
-	Bech32HRPSegwit: "sb", // always sb for sim net
-
-	// Address encoding magics
-	PubKeyHashAddrID:        0x3f, // starts with S
-	ScriptHashAddrID:        0x7b, // starts with s
-	PrivateKeyID:            0x64, // starts with 4 (uncompressed) or F (compressed)
-	WitnessPubKeyHashAddrID: 0x19, // starts with Gg
-	WitnessScriptHashAddrID: 0x28, // starts with ?
-
-	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x00}, // starts with sprv
-	HDPublicKeyID:  [4]byte{0x04, 0x20, 0xbd, 0x3a}, // starts with spub
-
-	// BIP44 coin type used in the hierarchical deterministic path for
-	// address generation.
-	HDCoinType: 115, // ASCII for s
 }
 
 var (
