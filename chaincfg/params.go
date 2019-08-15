@@ -42,7 +42,7 @@ var (
 
 	build_id = "b200"
 
-	SubsidyProductionYears = 77
+	SubsidyProductionYears = 44
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
