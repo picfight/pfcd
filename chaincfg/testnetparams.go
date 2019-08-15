@@ -21,22 +21,22 @@ var TestNet3Params = Params{
 	},
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds: 2 * 60 * 60,
-	MinCoinbaseScriptLen: 2,
-	MaxCoinbaseScriptLen: 100,
-	MedianTimeBlocks:     11,
-	TargetTotalSubsidy:   7777777 ,
+	MaxTimeOffsetSeconds:    2 * 60 * 60,
+	MinCoinbaseScriptLen:    2,
+	MaxCoinbaseScriptLen:    100,
+	MedianTimeBlocks:        11,
+	TargetTotalSubsidy:      7777777,
 	SubsidyProductionPeriod: time.Hour * time.Duration(24*365*SubsidyProductionYears),
 
 	// Chain parameters
-	GenesisBlock:             &testNet3GenesisBlock,
-	GenesisHash:              &testNet3GenesisHash,
-	PowLimit:                 testNet3PowLimit,
-	PowLimitBits:             0x1e00ffff,
-	CoinbaseMaturity:         100,
+	GenesisBlock:     &testNet3GenesisBlock,
+	GenesisHash:      &testNet3GenesisHash,
+	PowLimit:         testNet3PowLimit,
+	PowLimitBits:     0x1e00ffff,
+	CoinbaseMaturity: 100,
 	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 1,    // 1 minute
+	TargetTimePerBlock:       time.Minute * 1,     // 1 minute
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
 	ReduceMinDifficulty:      true,
 	MinDiffReductionTime:     time.Minute * 20, // TargetTimePerBlock * 2

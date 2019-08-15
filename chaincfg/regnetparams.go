@@ -17,22 +17,22 @@ var RegressionNetParams = Params{
 	DNSSeeds:         []DNSSeed{},
 
 	// Blockchain parameters
-	MaxTimeOffsetSeconds: 2 * 60 * 60,
-	MinCoinbaseScriptLen: 2,
-	MaxCoinbaseScriptLen: 100,
-	MedianTimeBlocks:     11,
-	TargetTotalSubsidy:   7777777 ,
+	MaxTimeOffsetSeconds:    2 * 60 * 60,
+	MinCoinbaseScriptLen:    2,
+	MaxCoinbaseScriptLen:    100,
+	MedianTimeBlocks:        11,
+	TargetTotalSubsidy:      7777777,
 	SubsidyProductionPeriod: time.Hour * time.Duration(24*365*SubsidyProductionYears),
 
 	// Chain parameters
-	GenesisBlock:             &regTestGenesisBlock,
-	GenesisHash:              &regTestGenesisHash,
-	PowLimit:                 regressionPowLimit,
-	PowLimitBits:             0x207fffff,
-	CoinbaseMaturity:         100,
+	GenesisBlock:     &regTestGenesisBlock,
+	GenesisHash:      &regTestGenesisHash,
+	PowLimit:         regressionPowLimit,
+	PowLimitBits:     0x207fffff,
+	CoinbaseMaturity: 100,
 	//SubsidyReductionInterval: 150,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
-	TargetTimePerBlock:       time.Minute * 1,    // 1 minute
+	TargetTimePerBlock:       time.Minute * 1,     // 1 minute
 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
 	ReduceMinDifficulty:      true,
 	MinDiffReductionTime:     time.Minute * 20, // TargetTimePerBlock * 2
