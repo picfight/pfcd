@@ -1714,8 +1714,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.setTip("b57")
 
 	g.nextBlock("b60", outs[17], func(b *wire.MsgBlock) {
-		// Duplicate the coinbase of the parent block to force the
-		// condition.
+		// Duplicate the coinbase value(!) of the child block
 		value := blockchain.CalcBlockSubsidy(g.tipHeight+1+1, g.params)
 		b.Transactions[0].TxOut[0].Value = value
 	})
