@@ -102,7 +102,7 @@ var regressionNetParams = &chaincfg.Params{
 	MinCoinbaseScriptLen: 2,
 	MaxCoinbaseScriptLen: 100,
 	MedianTimeBlocks:     11,
-	BaseSubsidy:          int64(50 * chaincfg.SatoshiPerPicfightcoin),
+	TargetTotalSubsidy:      7777777,
 
 	// Chain parameters
 	GenesisBlock:     &regTestGenesisBlock,

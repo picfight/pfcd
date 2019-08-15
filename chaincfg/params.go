@@ -236,8 +236,10 @@ type Params struct {
 	// coinbases to start with the serialized block height.
 	//SerializedHeightVersion int32
 
-	// TargetTotalSubsidy is the the expected total subsidy produced by the network.
+	// TargetTotalSubsidy is the the expected total subsidy (in coins)
+	// produced by the network.
 	TargetTotalSubsidy int64
+
 	// SubsidyProductionPeriod is the the estimated time-period during which
 	// all the subsidy should be produced.
 	SubsidyProductionPeriod time.Duration

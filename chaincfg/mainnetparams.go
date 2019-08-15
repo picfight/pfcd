@@ -25,7 +25,7 @@ var MainNetParams = Params{
 	MinCoinbaseScriptLen:    2,
 	MaxCoinbaseScriptLen:    100,
 	MedianTimeBlocks:        11,
-	TargetTotalSubsidy:      int64(7777777 * SatoshiPerPicfightcoin),
+	TargetTotalSubsidy:      7777777,
 	SubsidyProductionPeriod: time.Hour * time.Duration(24*365*SubsidyProductionYears),
 
 	// Chain parameters
