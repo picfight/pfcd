@@ -142,13 +142,33 @@ func IsFinalizedTransaction(tx *pfcutil.Tx, blockHeight int32, blockTime time.Ti
 //
 // At the target block generation rate for the main network, this is
 // approximately every 4 years.
-func CalcBlockSubsidy(height int32, chainParams *chaincfg.Params) int64 {
-	if chainParams.SubsidyReductionInterval == 0 {
-		return chainParams.BaseSubsidy
-	}
+func CalcBlockSubsidy(height int32, netParams *chaincfg.Params) int64 {
 
-	// Equivalent to: baseSubsidy / 2^(height/subsidyHalvingInterval)
-	return chainParams.BaseSubsidy >> uint(height/chainParams.SubsidyReductionInterval)
+	period := netParams.SubsidyProductionPeriod
+	blockTime := netParams.TargetTimePerBlock
+	totalSubsidy := netParams.TargetTotalSubsidy
+
+	subsidyBlocksNumber := int32(period / blockTime)
+
+	subsidyFloat := calcSubsidy(subsidyBlocksNumber, height, totalSubsidy)
+	satoshi := int64(subsidyFloat * float64(chaincfg.SatoshiPerPicfightcoin))
+
+	return satoshi
+}
+
+func calcSubsidy(subsidyBlocksNumber int32, height int32, totalSubsidy float64) float64 {
+	H := float64(height)
+	if H == 0 { //genesis block
+		//subsidy is 0
+		//return 0
+	}
+	N := float64(subsidyBlocksNumber)
+	lastBlockIndex := N - 1
+	if H > lastBlockIndex {
+		return 0
+	}
+	//endSubsidy := float64(0)               // 0 coins
+	return totalSubsidy / (N * lastBlockIndex) * 2.0 * (lastBlockIndex - H)
 }
 
 // CheckTransactionSanity performs some preliminary checks on a transaction to
