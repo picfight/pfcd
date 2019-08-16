@@ -14,10 +14,7 @@ var TestNet3Params = Params{
 	Net:              wire.TestNet3,
 	DefaultPort:      "18333",
 	DNSSeeds: []DNSSeed{
-		{"testnet-seed.bitcoin.jonasschnelli.ch", true},
-		{"testnet-seed.bitcoin.schildbach.de", false},
-		{"seed.tbtc.petertodd.org", true},
-		{"testnet-seed.bluematt.me", false},
+		{"eu-01.testnet.picfight.org", true},
 	},
 
 	// Blockchain parameters
