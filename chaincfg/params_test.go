@@ -5,44 +5,8 @@
 package chaincfg
 
 import (
-	"github.com/picfight/pfcd/blockchainutil"
-	"math/big"
 	"testing"
 )
-
-func TestCheckDifficulty(t *testing.T) {
-	bigOne := big.NewInt(1)
-
-	{ //Check proof-of-work limit parameter for the main network
-		testBigIntValue := new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-4*8), bigOne)
-		testCompactBitsValue := uint32(0x1d00ffff)
-		checkPowerLimit(t, mainPowLimit, testCompactBitsValue, testBigIntValue)
-	}
-	{ //Check proof-of-work limit parameter for the test network
-		testBigIntValue := new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-3*8), bigOne)
-		testCompactBitsValue := uint32(0x1e00ffff)
-		checkPowerLimit(t, testNet3PowLimit, testCompactBitsValue, testBigIntValue)
-	}
-	{ //Check proof-of-work limit parameter for the sim network
-		testBigIntValue := new(big.Int).Sub(new(big.Int).Lsh(bigOne, 256-1), bigOne)
-		testCompactBitsValue := uint32(0x207fffff)
-		checkPowerLimit(t, simNetPowLimit, testCompactBitsValue, testBigIntValue)
-	}
-
-}
-
-func checkPowerLimit(t *testing.T, dif *blockchainutil.Difficulty, testCompactBitsValue uint32, testBigIntValue *big.Int) {
-	dif.Print() //for code coverage and tests debug
-
-	if dif.ToBigInt().Cmp(testBigIntValue) != 0 {
-		t.Fatalf("mainPowLimit values mismatch: testBigIntValue=%v is not equal to dif.ToBigInt()=%v", testBigIntValue, mainPowLimit.ToBigInt())
-	}
-
-	if dif.ToCompact() != testCompactBitsValue {
-		t.Fatalf("mainPowLimit values mismatch: testCompactBitsValue=%v is not equal to dif.ToCompact()=%v", testBigIntValue, mainPowLimit.ToBigInt())
-	}
-
-}
 
 // TestInvalidHashStr ensures the newShaHashFromStr function panics when used to
 // with an invalid hash string.
