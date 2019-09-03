@@ -7,6 +7,7 @@ package cpuminer
 import (
 	"errors"
 	"fmt"
+	"github.com/picfight/pfcd/blockchainutil"
 	"math/rand"
 	"runtime"
 	"sync"
