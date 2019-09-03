@@ -15,6 +15,7 @@ var TestNet3Params = Params{
 	DefaultPort:      "18333",
 	DNSSeeds: []DNSSeed{
 		{"eu-01.testnet.picfight.org", true},
+		{"eu-02.testnet.picfight.org", true},
 	},
 
 	// Blockchain parameters

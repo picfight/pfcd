@@ -13,6 +13,7 @@ var MainNetParams = Params{
 	DefaultPort:      "8333",
 	DNSSeeds: []DNSSeed{
 		{"eu-01.mainnet.picfight.org", true},
+		{"eu-02.mainnet.picfight.org", true},
 	},
 
 	// Blockchain parameters
