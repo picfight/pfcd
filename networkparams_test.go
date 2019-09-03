@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/picfight/pfcd/blockchain"
+	"github.com/picfight/pfcd/blockchainutil"
 	"github.com/picfight/pfcd/chaincfg"
 	"testing"
 )
@@ -19,8 +19,8 @@ func checkPowLimitsAreConsistent(t *testing.T, params *chaincfg.Params) {
 	powLimitBigInt := params.PowLimit
 	powLimitCompact := params.PowLimitBits
 
-	toBig := blockchain.CompactToBig(powLimitCompact)
-	toCompact := blockchain.BigToCompact(powLimitBigInt)
+	toBig := blockchainutil.CompactToBig(powLimitCompact)
+	toCompact := blockchainutil.BigToCompact(powLimitBigInt)
 
 	// Check params.PowLimitBits matches params.PowLimit converted
 	// into the compact form
@@ -52,7 +52,7 @@ func checkGenesisBlockRespectsNetworkPowLimit(t *testing.T, params *chaincfg.Par
 	bits := genesis.Header.Bits
 
 	// Header bits as big.Int
-	bitsAsBigInt := blockchain.CompactToBig(bits)
+	bitsAsBigInt := blockchainutil.CompactToBig(bits)
 
 	// network PoW limit
 	powLimitBigInt := params.PowLimit
