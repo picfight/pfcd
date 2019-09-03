@@ -128,7 +128,7 @@ func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode) uint32 {
 // while this function accepts any block node.
 func (b *BlockChain) calcNextRequiredDifficulty(lastNode *blockNode, newBlockTime time.Time) (uint32, error) {
 	// Genesis block.
-	if lastNode == nil {
+	if lastNode.height == 0 {
 		return b.chainParams.PowLimitBits, nil
 	}
 
