@@ -27,8 +27,8 @@ var RegressionNetParams = Params{
 	// Chain parameters
 	GenesisBlock:     &regTestGenesisBlock,
 	GenesisHash:      &regTestGenesisHash,
-	PowLimit:         regressionPowLimit,
-	PowLimitBits:     0x207fffff,
+	PowLimit:         regressionPowLimit.ToBigInt(),
+	PowLimitBits:     regressionPowLimit.ToCompact(),
 	CoinbaseMaturity: 100,
 	//SubsidyReductionInterval: 150,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days

@@ -26,8 +26,8 @@ var MainNetParams = Params{
 	// Chain parameters
 	GenesisBlock:     &genesisBlock,
 	GenesisHash:      &genesisHash,
-	PowLimit:         mainPowLimit,
-	PowLimitBits:     0x1e00ffff,
+	PowLimit:         mainPowLimit.ToBigInt(),
+	PowLimitBits:     mainPowLimit.ToCompact(),
 	CoinbaseMaturity: 100,
 	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days

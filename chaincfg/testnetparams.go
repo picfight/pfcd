@@ -28,8 +28,8 @@ var TestNet3Params = Params{
 	// Chain parameters
 	GenesisBlock:     &testNet3GenesisBlock,
 	GenesisHash:      &testNet3GenesisHash,
-	PowLimit:         testNet3PowLimit,
-	PowLimitBits:     0x1e00ffff,
+	PowLimit:         testNet3PowLimit.ToBigInt(),
+	PowLimitBits:     testNet3PowLimit.ToCompact(),
 	CoinbaseMaturity: 100,
 	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days

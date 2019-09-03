@@ -31,8 +31,8 @@ var SimNetParams = Params{
 	// Chain parameters
 	GenesisBlock:     &simNetGenesisBlock,
 	GenesisHash:      &simNetGenesisHash,
-	PowLimit:         simNetPowLimit,
-	PowLimitBits:     0x207fffff,
+	PowLimit:         simNetPowLimit.ToBigInt(),
+	PowLimitBits:     simNetPowLimit.ToCompact(),
 	CoinbaseMaturity: 100,
 	//SubsidyReductionInterval: 210000,
 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
