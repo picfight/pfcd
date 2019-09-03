@@ -33,18 +33,24 @@ func testChainSubsidy(t *testing.T, engine bignum.BigNumEngine, netParams *chain
 	resultSatoshi := result.Mul(result, satoshiPerCoin).ToInt64()
 	expectedSatoshi := netParams.TargetTotalSubsidy * chaincfg.SatoshiPerPicfightcoin
 	if resultSatoshi != expectedSatoshi {
-		floatComputedExpectedSatoshi := int64(expectedSatoshi - 1)
+		floatComputedExpectedSatoshi := int64(expectedSatoshi)
 		if resultSatoshi != floatComputedExpectedSatoshi {
-			t.Fatalf("mismatched total satoshi subsidy -- \n got %v, \nwant %v", expectedSatoshi,
-				resultSatoshi)
+			t.Fatalf("mismatched total satoshi subsidy -- \n got %v, \nwant %v",
+				resultSatoshi,
+				expectedSatoshi,
+			)
 		}
 	}
 }
 
 func testCalcSubsidy(t *testing.T, engine bignum.BigNumEngine, subsidyBlocksNumber int64, targetTotalSubsidy float64, printIterations int64) bignum.BigNum {
-	testHeight := subsidyBlocksNumber
+	testHeight := subsidyBlocksNumber + 5
 	totalSubsidy := engine.NewBigNum(0)
-	for blockNum := int64(0); blockNum <= testHeight; blockNum++ {
+	//for blockNum := int64(0); blockNum <= testHeight; blockNum++ {
+	for i := int64(0); i <= testHeight; i++ { // loop
+		//blockNum :=  i
+		blockNum := testHeight - i //reverse the loop to handle the main float-numbers issue
+
 		sub := calcSubsidy(engine, subsidyBlocksNumber, blockNum, targetTotalSubsidy)
 		//totalSubsidy += sub
 		totalSubsidy = totalSubsidy.Add(totalSubsidy, sub)
