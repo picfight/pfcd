@@ -20,30 +20,18 @@ import (
 // block can have. params_test.go should cover this section to ensure validity
 var (
 	//  mainPowLimit value for the main network.
-	//  First 4 bytes (32 bits) are zeroes and the big.Int value
-	//  is equal to 2^(256-4*8) - 1 = 2^(256-32) - 1 = 2^224 - 1
-	//  compact form (Bits) is 0x1d00ffff
 	mainPowLimit = blockchainutil.NewDifficultyFromHashString( //
 		"00 00 00 00 ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 	// testNet3PowLimit value for the test network.
-	// First 3 bytes (24 bits) are zeroes and the big.Int value
-	// is equal to 2^(256-3*8) - 1 = 2^(256-24) - 1 = 2^232 - 1
-	// compact form (Bits) is 0x1e00ffff
 	testNet3PowLimit = blockchainutil.NewDifficultyFromHashString(
 		"00 00 00 ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 	// simNetPowLimit value for the simulation test network.
-	// First bit is zero, 7f = 01111111 in binary form, so the big.Int value
-	// is equal to 2^(256-1) - 1 = 2^255 - 1
-	// compact form (Bits) is 0x207fffff
 	simNetPowLimit = blockchainutil.NewDifficultyFromHashString(
 		"7f ff ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 	// regressionPowLimit value for the regression test network.
-	// First bit is zero, 7f = 01111111 in binary form, so the big.Int value
-	// is equal to 2^(256-1) - 1 = 2^255 - 1
-	// compact form (Bits) is 0x207fffff
 	regressionPowLimit = blockchainutil.NewDifficultyFromHashString(
 		"7f ff ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
