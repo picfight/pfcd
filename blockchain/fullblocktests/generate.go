@@ -14,6 +14,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/picfight/pfcd/blockchainutil"
 	"math"
 	"runtime"
 	"time"
@@ -330,7 +331,7 @@ func solveBlock(header *wire.BlockHeader) bool {
 
 	// solver accepts a block header and a nonce range to test. It is
 	// intended to be run as a goroutine.
-	targetDifficulty := blockchain.CompactToBig(header.Bits)
+	targetDifficulty := blockchainutil.CompactToBig(header.Bits)
 	quit := make(chan bool)
 	results := make(chan sbResult)
 	solver := func(hdr wire.BlockHeader, startNonce, stopNonce uint32) {

@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/picfight/pfcd/blockchainutil"
 	"time"
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
@@ -198,9 +199,9 @@ func (b *BlockChain) ProcessBlock(block *pfcutil.Block, flags BehaviorFlags) (bo
 			// expected based on elapsed time since the last checkpoint and
 			// maximum adjustment allowed by the retarget rules.
 			duration := blockHeader.Timestamp.Sub(checkpointTime)
-			requiredTarget := CompactToBig(b.calcEasiestDifficulty(
+			requiredTarget := blockchainutil.CompactToBig(b.calcEasiestDifficulty(
 				checkpointNode.bits, duration))
-			currentTarget := CompactToBig(blockHeader.Bits)
+			currentTarget := blockchainutil.CompactToBig(blockHeader.Bits)
 			if currentTarget.Cmp(requiredTarget) > 0 {
 				str := fmt.Sprintf("block target difficulty of %064x "+
 					"is too low when compared to the previous "+

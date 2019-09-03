@@ -6,6 +6,7 @@ package blockchain_test
 
 import (
 	"fmt"
+	"github.com/picfight/pfcd/blockchainutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -78,7 +79,7 @@ func ExampleBlockChain_ProcessBlock() {
 func ExampleCompactToBig() {
 	// Convert the bits from block 300000 in the main block chain.
 	bits := uint32(419465580)
-	targetDifficulty := blockchain.CompactToBig(bits)
+	targetDifficulty := blockchainutil.CompactToBig(bits)
 
 	// Display it in hex.
 	fmt.Printf("%064x\n", targetDifficulty.Bytes())
@@ -98,7 +99,7 @@ func ExampleBigToCompact() {
 		fmt.Println("invalid target difficulty")
 		return
 	}
-	bits := blockchain.BigToCompact(targetDifficulty)
+	bits := blockchainutil.BigToCompact(targetDifficulty)
 
 	fmt.Println(bits)
 

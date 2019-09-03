@@ -7,6 +7,7 @@ package blockchain
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/picfight/pfcd/blockchainutil"
 	"math"
 	"math/big"
 	"time"
@@ -300,7 +301,7 @@ func CheckTransactionSanity(chainParams *chaincfg.Params, tx *pfcutil.Tx) error 
 //    difficulty is not performed.
 func checkProofOfWork(header *wire.BlockHeader, powLimit *big.Int, flags BehaviorFlags) error {
 	// The target difficulty must be larger than zero.
-	target := CompactToBig(header.Bits)
+	target := blockchainutil.CompactToBig(header.Bits)
 	if target.Sign() <= 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is too low",
 			target)

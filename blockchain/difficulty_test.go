@@ -5,6 +5,7 @@
 package blockchain
 
 import (
+	"github.com/picfight/pfcd/blockchainutil"
 	"math/big"
 	"testing"
 )
@@ -22,7 +23,7 @@ func TestBigToCompact(t *testing.T) {
 
 	for x, test := range tests {
 		n := big.NewInt(test.in)
-		r := BigToCompact(n)
+		r := blockchainutil.BigToCompact(n)
 		if r != test.out {
 			t.Errorf("TestBigToCompact test #%d failed: got %d want %d\n",
 				x, r, test.out)
@@ -42,7 +43,7 @@ func TestCompactToBig(t *testing.T) {
 	}
 
 	for x, test := range tests {
-		n := CompactToBig(test.in)
+		n := blockchainutil.CompactToBig(test.in)
 		want := big.NewInt(test.out)
 		if n.Cmp(want) != 0 {
 			t.Errorf("TestCompactToBig test #%d failed: got %d want %d\n",
