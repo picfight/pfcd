@@ -49,7 +49,7 @@ var (
 
 	SatoshiPerPicfightcoin = int64(1e8)
 
-	build_id = "b.224"
+	build_id = "b.300"
 
 	SubsidyProductionYears = 44
 )
