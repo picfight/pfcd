@@ -21,11 +21,11 @@ import (
 var (
 	//  mainPowLimit value for the main network.
 	mainPowLimit = blockchainutil.NewDifficultyFromHashString( //
-		"00 00 00 00 ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 	// testNet3PowLimit value for the test network.
 	testNet3PowLimit = blockchainutil.NewDifficultyFromHashString(
-		"00 00 00 ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 	// simNetPowLimit value for the simulation test network.
 	simNetPowLimit = blockchainutil.NewDifficultyFromHashString(
