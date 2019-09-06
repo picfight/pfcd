@@ -26,9 +26,10 @@ func testChainSubsidy(t *testing.T, engine bignum.BigNumEngine, netParams *chain
 	N := int32(netParams.SubsidyProductionPeriod / netParams.TargetTimePerBlock)
 	subsidyBlocksNumber := int64(N)
 	targetTotalSubsidy := float64(netParams.TargetTotalSubsidy)
+	premine := chaincfg.Sum(netParams.Premine)
 	satoshiPerCoin := engine.NewBigNum(chaincfg.SatoshiPerPicfightcoin)
 
-	result := testCalcSubsidy(t, engine, subsidyBlocksNumber, targetTotalSubsidy, 60*24*365)
+	result := testCalcSubsidy(t, engine, subsidyBlocksNumber, targetTotalSubsidy, premine, 60*24*365)
 
 	resultSatoshi := result.Mul(result, satoshiPerCoin).ToInt64()
 	expectedSatoshi := netParams.TargetTotalSubsidy * chaincfg.SatoshiPerPicfightcoin
@@ -43,34 +44,34 @@ func testChainSubsidy(t *testing.T, engine bignum.BigNumEngine, netParams *chain
 	}
 }
 
-func testCalcSubsidy(t *testing.T, engine bignum.BigNumEngine, subsidyBlocksNumber int64, targetTotalSubsidy float64, printIterations int64) bignum.BigNum {
+func testCalcSubsidy(t *testing.T, engine bignum.BigNumEngine, subsidyBlocksNumber int64, targetTotalSubsidy float64, premine float64, printIterations int64) bignum.BigNum {
 	testHeight := subsidyBlocksNumber + 5
-	totalSubsidy := engine.NewBigNum(0)
+	summedSubsidy := engine.NewBigNum(premine)
 	//for blockNum := int64(0); blockNum <= testHeight; blockNum++ {
 	for i := int64(0); i <= testHeight; i++ { // loop
 		//blockNum :=  i
 		blockNum := testHeight - i //reverse the loop to handle the main float-numbers issue
 
-		sub := calcSubsidy(engine, subsidyBlocksNumber, blockNum, targetTotalSubsidy)
-		//totalSubsidy += sub
-		totalSubsidy = totalSubsidy.Add(totalSubsidy, sub)
+		sub := calcSubsidy(engine, subsidyBlocksNumber, blockNum, targetTotalSubsidy-premine)
+		//summedSubsidy += sub
+		summedSubsidy = summedSubsidy.Add(summedSubsidy, sub)
 		if blockNum%printIterations == 0 {
 			blockNumPad := fmt.Sprintf("%15v", blockNum)
 			subPad := fmt.Sprintf("%-30v", sub.ToFloat64())
-			totalSubsidyPad := fmt.Sprintf("%-30v", totalSubsidy.ToFloat64())
+			totalSubsidyPad := fmt.Sprintf("%-30v", targetTotalSubsidy+premine-summedSubsidy.ToFloat64())
 			t.Log(fmt.Sprintf("[%v] %v coins %v total", blockNumPad, subPad, totalSubsidyPad))
 		}
 	}
-	t.Log(fmt.Sprintf("totalSubsidy: %16v", totalSubsidy.ToFloat64()))
-	return totalSubsidy
+	t.Log(fmt.Sprintf("summedSubsidy: %16v", summedSubsidy.ToFloat64()))
+	return summedSubsidy
 }
 
 func TestFloatEngine(t *testing.T) {
 	t.Parallel()
 	subsidyBlocksNumber := int64(3)
 	targetTotalSubsidy := float64(1)
-	resultFloat64 := testCalcSubsidy(t, bignum.Float64Engine{}, subsidyBlocksNumber, targetTotalSubsidy, 1).ToFloat64()
-	resultBigFloat := testCalcSubsidy(t, bignum.BigIntEngine{}, subsidyBlocksNumber, targetTotalSubsidy, 1).ToFloat64()
+	resultFloat64 := testCalcSubsidy(t, bignum.Float64Engine{}, subsidyBlocksNumber, targetTotalSubsidy, 0, 1).ToFloat64()
+	resultBigFloat := testCalcSubsidy(t, bignum.BigIntEngine{}, subsidyBlocksNumber, targetTotalSubsidy, 0, 1).ToFloat64()
 
 	if resultFloat64 != (resultBigFloat) {
 		t.Fatalf("mismatched total subsidy -- \n got %v, \nwant %v", resultFloat64, resultBigFloat)
