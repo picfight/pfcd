@@ -26,6 +26,10 @@ var TestNet3Params = Params{
 	TargetTotalSubsidy:      7777777,
 	SubsidyProductionPeriod: time.Hour * time.Duration(24*365*SubsidyProductionYears),
 
+	Premine: []Premine{
+		{"n15Nd66DVoKSbNKGj8DMtXMUQW4BC5Kidx", 1777777},
+	},
+
 	// Chain parameters
 	GenesisBlock:     &testNet3GenesisBlock,
 	GenesisHash:      &testNet3GenesisHash,

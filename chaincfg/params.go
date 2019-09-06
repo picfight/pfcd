@@ -242,6 +242,9 @@ type Params struct {
 	SubsidyProductionPeriod time.Duration
 
 	NodeBuildVersion string
+
+	// Premine
+	Premine []Premine
 }
 
 var (

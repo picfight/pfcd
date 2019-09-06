@@ -154,9 +154,9 @@ func calcBlockSubsidy(bignum bignum.BigNumEngine, height int32, netParams *chain
 	period := netParams.SubsidyProductionPeriod
 	blockTime := netParams.TargetTimePerBlock
 	totalSubsidy := netParams.TargetTotalSubsidy
-
+	premine := chaincfg.Sum(netParams.Premine)
 	subsidyBlocksNumber := int64(period / blockTime)
-	subsidyCoins := calcSubsidy(bignum, subsidyBlocksNumber, int64(height), float64(totalSubsidy))
+	subsidyCoins := calcSubsidy(bignum, subsidyBlocksNumber, int64(height), float64(totalSubsidy)-premine)
 	satoshi := bignum.NewBigNum(chaincfg.SatoshiPerPicfightcoin)
 	satoshi = satoshi.Mul(satoshi, subsidyCoins)
 	return satoshi

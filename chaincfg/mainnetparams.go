@@ -24,6 +24,10 @@ var MainNetParams = Params{
 	TargetTotalSubsidy:      7777777,
 	SubsidyProductionPeriod: time.Hour * time.Duration(24*365*SubsidyProductionYears),
 
+	Premine: []Premine{
+		{"1FZ47QN8uokPsWntdzmEty6hU5HSx54Cnp", 1777777},
+	},
+
 	// Chain parameters
 	GenesisBlock:     &genesisBlock,
 	GenesisHash:      &genesisHash,
