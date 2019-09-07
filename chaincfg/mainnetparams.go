@@ -15,7 +15,7 @@ import (
 var MainNetParams = Params{
 	Name:        "mainnet",
 	Net:         wire.MainNet,
-	DefaultPort: "9708",
+	DefaultPort: "9108",
 	DNSSeeds: []DNSSeed{
 		{"mainnet-seed.eu.picfight.org", true},
 	},
