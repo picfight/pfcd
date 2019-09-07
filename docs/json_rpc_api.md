@@ -43,7 +43,7 @@ differences between pfcd and bitcoind as far as how RPCs are serviced:
 Websockets are the preferred transport for pfcd RPC and are used by applications
 such as [pfcwallet](https://github.com/picfight/pfcwallet) for inter-process
 communication with pfcd.  The websocket connection endpoint for pfcd is
-`wss://your_ip_or_domain:9709/ws`.
+`wss://your_ip_or_domain:9109/ws`.
 
 In addition to the [standard API](#Methods), an [extension API](#WSExtMethods)
 has been developed that is exclusive to clients using Websockets. In its current
@@ -68,7 +68,7 @@ indicates, the [Websocket-specific extension](#WSExtMethods) methods can only be
 accessed when connected via Websockets.
 
 As mentioned in the [overview](#Overview), the websocket connection endpoint for
-pfcd is `wss://your_ip_or_domain:9709/ws`.
+pfcd is `wss://your_ip_or_domain:9109/ws`.
 
 The most important differences between the two transports as it pertains to the
 JSON-RPC API are:
@@ -255,8 +255,8 @@ the method name for further details such as parameter and return information.
 |Description|Returns information about manually added (persistent) peers.|
 |Returns (dns=false)|`["ip:port", ...]`|
 |Returns (dns=true)|`(json array of objects)`<br />`addednode`: `(string)` the ip address or domain of the added peer.<br />`connected`: `(boolean)` whether or not the peer is currently connected.<br />`addresses`: `(json array or objects)` DNS lookup and connection information about the peer.<br />`address`: `(string)` the ip address for this DNS entry.<br />`connected`: `(string)` the connection 'direction' (if connected).<br /><br />`[{"addednode": "ip_or_domain","connected": true or false,"addresses": [{address: "ip"}, ...], "connected": "inbound/outbound/false"}, ...]`|
-|Example Return (dns=false)|`["192.168.0.10:9708", "mydomain.org:9708"]`|
-|Example Return (dns=true)|`[{"addednode": "mydomain.org:9708", "connected": true, "addresses": [{"address": "1.2.3.4", "connected": "outbound"}, {"address": "5.6.7.8", "connected": "false"}]}]`|
+|Example Return (dns=false)|`["192.168.0.10:9108", "mydomain.org:9108"]`|
+|Example Return (dns=true)|`[{"addednode": "mydomain.org:9108", "connected": true, "addresses": [{"address": "1.2.3.4", "connected": "outbound"}, {"address": "5.6.7.8", "connected": "false"}]}]`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -463,7 +463,7 @@ the method name for further details such as parameter and return information.
 |Parameters|None|
 |Description|Returns data about each connected network peer as an array of json objects.|
 |Returns|`(json array)`<br />`addr`: `(string)` the ip address and port of the peer.<br />`services`: `(string)` the services supported by the peer.<br />`lastrecv`: `(numeric)` time the last message was received in seconds since 1 Jan 1970 GMT.<br />`lastsend`: `(numeric)` time the last message was sent in seconds since 1 Jan 1970 GMT.<br />`bytessent`: `(numeric)` total bytes sent.<br />`bytesrecv`: `(numeric)` total bytes received.<br />`conntime`:   `(numeric)` time the connection was made in seconds since 1 Jan 1970 GMT.<br />`pingtime`: `(numeric)` number of microseconds the last ping took.<br />`pingwait`: `(numeric)` number of microseconds a queued ping has been waiting for a response.<br />`version`: `(numeric)` the protocol version of the peer.<br />`subver`: `(string)` the user agent of the peer.<br />`inbound`: `(boolean)` whether or not the peer is an inbound connection.<br />`startingheight`: `(numeric)` the latest block height the peer knew about when the connection was established.<br />`currentheight`: `(numeric)` the latest block height the peer is known to have relayed since connected.<br />`syncnode`: `(boolean)` whether or not the peer is the sync peer.<br /><br />`[{"addr": "host:port", "services": "00000001", "lastrecv": n, "lastsend": n,  "bytessent": n, "bytesrecv": n, "conntime": n, "pingtime": n, "pingwait": n,  "version": n, "subver": "useragent", "inbound": true_or_false, "startingheight": n, "currentheight": n, "syncnode": true_or_false }, ...]`|
-|Example Return|`[{"addr": "178.172.xxx.xxx:9708", "services": "00000001", "lastrecv": 1388183523, "lastsend": 1388185470, "bytessent": 287592965, "bytesrecv": 780340, "conntime": 1388182973, "pingtime": 405551, "pingwait": 183023, "version": 70001, "subver": "/pfcd:0.4.0/", "inbound": false, "startingheight": 276921, "currentheight": 276955, "syncnode": true }, ...]`|
+|Example Return|`[{"addr": "178.172.xxx.xxx:9108", "services": "00000001", "lastrecv": 1388183523, "lastsend": 1388185470, "bytessent": 287592965, "bytesrecv": 780340, "conntime": 1388182973, "pingtime": 405551, "pingwait": 183023, "version": 70001, "subver": "/pfcd:0.4.0/", "inbound": false, "startingheight": 276921, "currentheight": 276955, "syncnode": true }, ...]`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -475,7 +475,7 @@ the method name for further details such as parameter and return information.
 |Parameters|1. `transaction hash`: `(string, required)` the hash of the transaction.<br />2. `verbose`: `(int, optional, default=0)` specifies the transaction is returned as a JSON object instead of hex-encoded string.|
 |Description|Returns information about a transaction given its hash.|
 |Returns (verbose=0)|`"data" (string) hex-encoded bytes of the serialized transaction`|
-|Returns (verbose=1)|`(json object)`<br />`hex`: `(string)` hex-encoded transaction / hex-encoded bytes of the script.<br />`txid`: `(string)` the hash of the transaction.<br />`version`: `(numeric)` the transaction version.<br />`locktime`: `(numeric)` the transaction lock time.<br />`expiry`: `(numeric)` the transaction expiry.<br />`vin`: `(array of json objects)` the transaction inputs as json objects.<br />`coinbase`: `(string)` the hex-encoded bytes of the signature script.<br />`stakebase`: `(string)` the hash of the stake transaction.<br />`sequence`: `(numeric)` the script sequence number.<br />`txid`: `(string)` the hash of the origin transaction.<br />`vout`: `(numeric)` the index of the output being redeemed from the origin transaction.<br />`scriptSig`: `(json object)` the signature script used to redeem the origin transaction.<br />`asm`: `(string)` disassembly of the script.<br />`sequence`: `(numeric)` the script sequence number.<br />`vout`: `(array of json objects)` the transaction outputs as json objects.<br />`value`: `(numeric)` the value in PFC.<br />`n`: `(numeric)` the index of this transaction output.<br />`scriptPubKey`: `(json object)` the public key script used to pay coins.<br />`reqSigs`: `(numeric)` the number of required signatures.<br />`type`: `(string)` the type of the script (e.g. 'pubkeyhash').<br />`addresses`: `(json array of string)` the PicFight addresses associated with this output.<br />`picfightaddress`:  `(string)` the PicFight address<br />`blockhash`:  `(string)` the hash of the block that contains the transaction.<br />`blockheight`:  `(numeric)` the height of the block that contains the transaction.<br />`blockindex`:  `(numeric)` the index within the array of transactions contained by the block.<br />`confirmations`:  `(numeric)` number of confirmations.<br />`time`: `(numeric)` transaction time in seconds since the epoch.<br />`blocktime`:  `(numeric)` block time in seconds since the epoch.<br /><br />**For coinbase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, vin": [{ "coinbase": "data", "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "picfightaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n, "confirmations": n, "blocktime": n}`<br /><br />**For stakebase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, "vin": [{ "stakebase": "hash", "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "picfightaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n,  "blockindex": n, "confirmations": n, "time": n, blocktime": n}`<br /><br />**For non-coinbase / non-stakebase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, "vin": [{"txid": "hash","vout": n, "scriptSig": {"asm": "asm", "hex": "data"}, "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "picfightaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n,  "blockindex": n, "confirmations": n, "time": n, "blocktime": n}`|
+|Returns (verbose=1)|`(json object)`<br />`hex`: `(string)` hex-encoded transaction / hex-encoded bytes of the script.<br />`txid`: `(string)` the hash of the transaction.<br />`version`: `(numeric)` the transaction version.<br />`locktime`: `(numeric)` the transaction lock time.<br />`expiry`: `(numeric)` the transaction expiry.<br />`vin`: `(array of json objects)` the transaction inputs as json objects.<br />`coinbase`: `(string)` the hex-encoded bytes of the signature script.<br />`stakebase`: `(string)` the hash of the stake transaction.<br />`sequence`: `(numeric)` the script sequence number.<br />`txid`: `(string)` the hash of the origin transaction.<br />`vout`: `(numeric)` the index of the output being redeemed from the origin transaction.<br />`scriptSig`: `(json object)` the signature script used to redeem the origin transaction.<br />`asm`: `(string)` disassembly of the script.<br />`sequence`: `(numeric)` the script sequence number.<br />`vout`: `(array of json objects)` the transaction outputs as json objects.<br />`value`: `(numeric)` the value in PFC.<br />`n`: `(numeric)` the index of this transaction output.<br />`scriptPubKey`: `(json object)` the public key script used to pay coins.<br />`reqSigs`: `(numeric)` the number of required signatures.<br />`type`: `(string)` the type of the script (e.g. 'pubkeyhash').<br />`addresses`: `(json array of string)` the PicFight addresses associated with this output.<br />`decredaddress`:  `(string)` the PicFight address<br />`blockhash`:  `(string)` the hash of the block that contains the transaction.<br />`blockheight`:  `(numeric)` the height of the block that contains the transaction.<br />`blockindex`:  `(numeric)` the index within the array of transactions contained by the block.<br />`confirmations`:  `(numeric)` number of confirmations.<br />`time`: `(numeric)` transaction time in seconds since the epoch.<br />`blocktime`:  `(numeric)` block time in seconds since the epoch.<br /><br />**For coinbase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, vin": [{ "coinbase": "data", "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "decredaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n, "confirmations": n, "blocktime": n}`<br /><br />**For stakebase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, "vin": [{ "stakebase": "hash", "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "decredaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n,  "blockindex": n, "confirmations": n, "time": n, blocktime": n}`<br /><br />**For non-coinbase / non-stakebase transactions**<br />`{"hex": "data", "txid": "hash", "version": n, "locktime": n, "expiry": n, "vin": [{"txid": "hash","vout": n, "scriptSig": {"asm": "asm", "hex": "data"}, "sequence": n}, ...], "vout": [{"value": n, "n": n,"scriptPubKey": { "asm": "asm","hex": "data", "reqSigs": n,"type": "scripttype", "addresses": [ "decredaddress", ...]}}, ...], "blockhash": "hash", "blockheight": n,  "blockindex": n, "confirmations": n, "time": n, "blocktime": n}`|
 |Example Return (verbose=0)|Newlines added for display purposes.  The actual return does not contain newlines.<br />`"010000000104be666c7053ef26c6110597dad1c1e81b5e6be53d17a8b9d0b34772054bac60000000`<br />`008c493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f`<br />`022100fbce8d84fcf2839127605818ac6c3e7a1531ebc69277c504599289fb1e9058df0141045a33`<br />`76eeb85e494330b03c1791619d53327441002832f4bd618fd9efa9e644d242d5e1145cb9c2f71965`<br />`656e276633d4ff1a6db5e7153a0a9042745178ebe0f5ffffffff0280841e00000000001976a91406`<br />`f1b6703d3f56427bfcfd372f952d50d04b64bd88ac4dd52700000000001976a9146b63f291c295ee`<br />`abd9aee6be193ab2d019e7ea7088ac00000000`|
 |Example Return (verbose=1)|**For coinbase transactions**<br />`{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...","txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","version": 1,"locktime": 0,"vin": [{"coinbase": "03708203062f503253482f04066d605108f800080100000ea2122f6f7a636f696e4065757374726174756d2f","sequence": 0},...], "vout": [{"value": 25.1394,"n": 0, "scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1, "type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}}, ...]}`<br /><br />**For stakebase transactions**<br />`{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...","txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","version": 1,"locktime": 0,"vin": [{"stakebase": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","sequence": 0},...], "vout": [{"value": 25.1394,"n": 0, "scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1, "type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}}, ...]}`<br /><br />**For non-coinbase / non-stakebase transactions**<br />`{"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000f...","txid": "90743aad855880e517270550d2a881627d84db5265142fd1e7fb7add38b08be9","version": 1,"locktime": 0,"vin": [{"txid": "60ac4b057247b3d0b9a8173de56b5e1be8c1d1da970511c626ef53706c66be04","scriptSig": {"asm": "3046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8f0...","hex": "493046022100cb42f8df44eca83dd0a727988dcde9384953e830b1f8004d57485e2ede1b9c8..."}, "sequence": 4294967295}, ...], "vout": [{"value": 25.1394,"n": 0, "scriptPubKey": {"asm": "OP_DUP OP_HASH160 ea132286328cfc819457b9dec386c4b5c84faa5c OP_EQUALVERIFY OP_CHECKSIG", "hex": "76a914ea132286328cfc819457b9dec386c4b5c84faa5c88ac", "reqSigs": 1, "type": "pubkeyhash", "addresses": ["1NLg3QJMsMQGM5KEUaEu5ADDmKQSLHwmyh", ...]}}, ...]}`|
 [Return to Overview](#MethodOverview)<br />
@@ -588,7 +588,7 @@ the method name for further details such as parameter and return information.
 |Method|validateaddress|
 |Parameters|1. `address`: `(string, required)` PicFight address.|
 |Description|Verify an address is valid.|
-|Returns|`(json object)`<br />`isvalid`: `(bool)` whether or not the address is valid.<br />`address`: `(string)` the PicFight address validated.<br /><br />`{"isvalid": true or false,"address": "picfightaddress"}`|
+|Returns|`(json object)`<br />`isvalid`: `(bool)` whether or not the address is valid.<br />`address`: `(string)` the PicFight address validated.<br /><br />`{"isvalid": true or false,"address": "decredaddress"}`|
 [Return to Overview](#MethodOverview)<br />
 
 ***
@@ -763,7 +763,7 @@ user.  Click the method name for further details such as parameter and return in
 |---|---|
 |Method|notifyreceived|
 |Notifications|[recvtx](#recvtx) and [redeemingtx](#redeemingtx)|
-|Parameters|1. `Addresses`: `(JSON array, required)`<br />`picfightaddress`: `(string)` the PicFight address.<br /><br />`["picfightaddress", ...]`|
+|Parameters|1. `Addresses`: `(JSON array, required)`<br />`decredaddress`: `(string)` the PicFight address.<br /><br />`["decredaddress", ...]`|
 |Description|Send a recvtx notification when a transaction added to mempool or appears in a newly-attached block contains a txout pkScript sending to any of the passed addresses.  Matching outpoints are automatically registered for redeemingtx notifications.|
 |Returns|Nothing|
 [Return to Overview](#WSMethodOverview)<br />
@@ -776,7 +776,7 @@ user.  Click the method name for further details such as parameter and return in
 |---|---|
 |Method|stopnotifyreceived|
 |Notifications|None|
-|Parameters|1. `Addresses`: `(JSON array, required)`<br />`picfightaddress`: `(string)` the PicFight address.<br /><br />`["picfightaddress", ...]`|
+|Parameters|1. `Addresses`: `(JSON array, required)`<br />`decredaddress`: `(string)` the PicFight address.<br /><br />`["decredaddress", ...]`|
 |Description|Cancel registered receive notifications for each passed address.|
 |Returns|Nothing|
 [Return to Overview](#WSMethodOverview)<br />
@@ -1062,7 +1062,7 @@ func main() {
 	// not long-lived, the connection will be closed as soon as the program
 	// exits.
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:9709",
+		Host:         "localhost:9109",
 		Endpoint:     "ws",
 		User:         "yourrpcuser",
 		Pass:         "yourrpcpass",
@@ -1126,7 +1126,7 @@ func main() {
 	// not long-lived, the connection will be closed as soon as the program
 	// exits.
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:9709",
+		Host:         "localhost:9109",
 		Endpoint:     "ws",
 		User:         "yourrpcuser",
 		Pass:         "yourrpcpass",
@@ -1227,7 +1227,7 @@ func main() {
 
 	// Create a new RPC client using websockets.
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:9709",
+		Host:         "localhost:9109",
 		Endpoint:     "ws",
 		User:         "yourrpcuser",
 		Pass:         "yourrpcpass",
@@ -1301,7 +1301,7 @@ var password = "yourpassword";
 // Initiate the websocket connection.  The pfcd generated certificate acts as
 // its own certificate authority, so it needs to be specified in the 'ca' array
 // for the certificate to properly validate.
-var ws = new WebSocket('wss://127.0.0.1:9709/ws', {
+var ws = new WebSocket('wss://127.0.0.1:9109/ws', {
   headers: {
     'Authorization': 'Basic '+Buffer.from(user+':'+password).toString('base64')
   },
