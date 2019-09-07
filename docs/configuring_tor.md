@@ -97,7 +97,7 @@ address.
 
 ```text
 HiddenServiceDir /var/tor/pfcd
-HiddenServicePort 9708 127.0.0.1:9708
+HiddenServicePort 9108 127.0.0.1:9108
 ```
 
 Once Tor is configured to provide the hidden service and you have obtained your

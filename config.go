@@ -100,7 +100,7 @@ type config struct {
 	AddPeers             []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	ConnectPeers         []string      `long:"connect" description:"Connect only to the specified peers at startup"`
 	DisableListen        bool          `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
-	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 9708, testnet: 19708)"`
+	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 9108, testnet: 19108)"`
 	MaxSameIP            int           `long:"maxsameip" description:"Max number of connections with the same IP -- 0 to disable"`
 	MaxPeers             int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
 	DisableBanning       bool          `long:"nobanning" description:"Disable banning of misbehaving peers"`
@@ -111,7 +111,7 @@ type config struct {
 	RPCPass              string        `short:"P" long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
 	RPCLimitUser         string        `long:"rpclimituser" description:"Username for limited RPC connections"`
 	RPCLimitPass         string        `long:"rpclimitpass" default-mask:"-" description:"Password for limited RPC connections"`
-	RPCListeners         []string      `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 9709, testnet: 19709)"`
+	RPCListeners         []string      `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 9109, testnet: 19109)"`
 	RPCCert              string        `long:"rpccert" description:"File containing the certificate file"`
 	RPCKey               string        `long:"rpckey" description:"File containing the certificate key"`
 	RPCMaxClients        int           `long:"rpcmaxclients" description:"Max number of RPC clients for standard connections"`

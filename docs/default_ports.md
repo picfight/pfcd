@@ -11,5 +11,5 @@ configurations.
 
 |Name|Port|
 |----|----|
-|Default PicFight peer-to-peer port|TCP 9708|
-|Default RPC port|TCP 9709|
+|Default PicFight peer-to-peer port|TCP 9108|
+|Default RPC port|TCP 9109|

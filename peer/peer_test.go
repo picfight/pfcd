@@ -708,8 +708,8 @@ func TestDuplicateVersionMsg(t *testing.T) {
 		Services:         0,
 	}
 	inConn, outConn := pipe(
-		&conn{laddr: "10.0.0.1:9708", raddr: "10.0.0.2:9708"},
-		&conn{laddr: "10.0.0.2:9708", raddr: "10.0.0.1:9708"},
+		&conn{laddr: "10.0.0.1:9108", raddr: "10.0.0.2:9108"},
+		&conn{laddr: "10.0.0.2:9108", raddr: "10.0.0.1:9108"},
 	)
 	outPeer, err := peer.NewOutboundPeer(peerCfg, inConn.laddr)
 	if err != nil {

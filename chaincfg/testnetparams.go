@@ -17,7 +17,7 @@ import (
 var TestNet3Params = Params{
 	Name:        "testnet3",
 	Net:         wire.TestNet3,
-	DefaultPort: "19708",
+	DefaultPort: "19108",
 	DNSSeeds: []DNSSeed{
 		{"testnet-seed.decred.mindcry.org", true},
 		{"testnet-seed.decred.netpurgatory.com", true},
