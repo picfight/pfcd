@@ -19,11 +19,11 @@ var TestNet3Params = Params{
 	Net:         wire.TestNet3,
 	DefaultPort: "19108",
 	DNSSeeds: []DNSSeed{
-		{"testnet-seed.decred.mindcry.org", true},
-		{"testnet-seed.decred.netpurgatory.com", true},
-		{"testnet-seed.picfight.org", true},
+		{"eu-1.testnet.picfight.org", true},
+		{"eu-2.testnet.picfight.org", true},
+		{"us-1.testnet.picfight.org", true},
+		{"us-2.testnet.picfight.org", true},
 	},
-
 	// Chain parameters
 	GenesisBlock:             &testNet3GenesisBlock,
 	GenesisHash:              &testNet3GenesisHash,
