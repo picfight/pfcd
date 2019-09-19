@@ -161,10 +161,6 @@ func (v *Vote) VoteIndex(vote uint16) int {
 }
 
 const (
-	// VoteIDMaxBlockSize is the vote ID for the the maximum block size
-	// increase agenda used for the hard fork demo.
-	VoteIDMaxBlockSize = "maxblocksize"
-
 	// VoteIDSDiffAlgorithm is the vote ID for the new stake difficulty
 	// algorithm (aka ticket price) agenda defined by DCP0001.
 	VoteIDSDiffAlgorithm = "sdiffalgorithm"

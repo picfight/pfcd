@@ -65,34 +65,6 @@ var RegNetParams = Params{
 	RuleChangeActivationDivisor:    4,
 	RuleChangeActivationInterval:   320, // Full ticket pool -- 320 seconds
 	Deployments: map[uint32][]ConsensusDeployment{
-		4: {{
-			Vote: Vote{
-				Id:          VoteIDMaxBlockSize,
-				Description: "Change maximum allowed block size from 1MiB to 1.25MB",
-				Mask:        0x0006, // Bits 1 and 2
-				Choices: []Choice{{
-					Id:          "abstain",
-					Description: "abstain voting for change",
-					Bits:        0x0000,
-					IsAbstain:   true,
-					IsNo:        false,
-				}, {
-					Id:          "no",
-					Description: "reject changing max allowed block size",
-					Bits:        0x0002, // Bit 1
-					IsAbstain:   false,
-					IsNo:        true,
-				}, {
-					Id:          "yes",
-					Description: "accept changing max allowed block size",
-					Bits:        0x0004, // Bit 2
-					IsAbstain:   false,
-					IsNo:        false,
-				}},
-			},
-			StartTime:  0,             // Always available for vote
-			ExpireTime: math.MaxInt64, // Never expires
-		}},
 		5: {{
 			Vote: Vote{
 				Id:          VoteIDSDiffAlgorithm,
