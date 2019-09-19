@@ -27,8 +27,8 @@ var TestNet3Params = Params{
 	// Chain parameters
 	GenesisBlock:             &testNet3GenesisBlock,
 	GenesisHash:              &testNet3GenesisHash,
-	PowLimit:                 testNetPowLimit,
-	PowLimitBits:             0x1e00ffff,
+	PowLimit:                 testNet3PowLimit.ToBigInt(),
+	PowLimitBits:             testNet3PowLimit.ToCompact(),
 	ReduceMinDifficulty:      true,
 	MinDiffReductionTime:     time.Minute * 10, // ~99.3% chance to be mined before reduction
 	GenerateSupported:        true,

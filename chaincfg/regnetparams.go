@@ -29,8 +29,8 @@ var RegNetParams = Params{
 	// Chain parameters
 	GenesisBlock:             &regNetGenesisBlock,
 	GenesisHash:              &regNetGenesisHash,
-	PowLimit:                 regNetPowLimit,
-	PowLimitBits:             0x207fffff,
+	PowLimit:                 regressionPowLimit.ToBigInt(),
+	PowLimitBits:             regressionPowLimit.ToCompact(),
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
