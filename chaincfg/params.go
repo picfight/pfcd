@@ -160,25 +160,7 @@ func (v *Vote) VoteIndex(vote uint16) int {
 	return -1
 }
 
-const (
-	// VoteIDSDiffAlgorithm is the vote ID for the new stake difficulty
-	// algorithm (aka ticket price) agenda defined by DCP0001.
-	VoteIDSDiffAlgorithm = "sdiffalgorithm"
-
-	// VoteIDLNSupport is the vote ID for determining if the developers
-	// should work on integrating Lightning Network support.
-	VoteIDLNSupport = "lnsupport"
-
-	// VoteIDLNFeatures is the vote ID for the agenda that introduces
-	// features useful for the Lightning Network (among other uses) defined
-	// by DCP0002 and DCP0003.
-	VoteIDLNFeatures = "lnfeatures"
-
-	// VoteIDFixLNSeqLocks is the vote ID for the agenda that corrects the
-	// sequence lock functionality needed for Lightning Network (among other
-	// uses) defined by DCP0004.
-	VoteIDFixLNSeqLocks = "fixlnseqlocks"
-)
+const ()
 
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.  This is part of BIP0009.

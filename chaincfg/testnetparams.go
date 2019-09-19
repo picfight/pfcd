@@ -63,36 +63,7 @@ var TestNet3Params = Params{
 	RuleChangeActivationMultiplier: 3,    // 75%
 	RuleChangeActivationDivisor:    4,
 	RuleChangeActivationInterval:   5040, // 1 week
-	Deployments: map[uint32][]ConsensusDeployment{
-		7: {{
-			Vote: Vote{
-				Id:          VoteIDFixLNSeqLocks,
-				Description: "Modify sequence lock handling as defined in DCP0004",
-				Mask:        0x0006, // Bits 1 and 2
-				Choices: []Choice{{
-					Id:          "abstain",
-					Description: "abstain voting for change",
-					Bits:        0x0000,
-					IsAbstain:   true,
-					IsNo:        false,
-				}, {
-					Id:          "no",
-					Description: "keep the existing consensus rules",
-					Bits:        0x0002, // Bit 1
-					IsAbstain:   false,
-					IsNo:        true,
-				}, {
-					Id:          "yes",
-					Description: "change to the new consensus rules",
-					Bits:        0x0004, // Bit 2
-					IsAbstain:   false,
-					IsNo:        false,
-				}},
-			},
-			StartTime:  1548633600, // Jan 28th, 2019
-			ExpireTime: 1580169600, // Jan 28th, 2020
-		}},
-	},
+	Deployments:                    map[uint32][]ConsensusDeployment{},
 
 	// Enforce current block version once majority of the network has
 	// upgraded.
