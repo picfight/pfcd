@@ -8,6 +8,7 @@ package chaincfg
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/picfight/pfcd/blockchainutil"
 	"math/big"
 	"time"
 
@@ -16,27 +17,30 @@ import (
 )
 
 // These variables are the chain proof-of-work limit parameters for each default
-// network.
+// network. Network power limit is the highest proof of work value a Decred
+// block can have. params_test.go should cover this section to ensure validity
 var (
-	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
-	// the overhead of creating it multiple times.
-	bigOne = big.NewInt(1)
+	//  mainPowLimit value for the main network.
+	mainPowLimit = blockchainutil.NewDifficultyFromHashString( //
+		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
-	// mainPowLimit is the highest proof of work value a PicFight block can
-	// have for the main network.  It is the value 2^224 - 1.
-	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
+	// testNet3PowLimit value for the test network.
+	testNet3PowLimit = blockchainutil.NewDifficultyFromHashString(
+		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
-	// testNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the test network.  It is the value 2^232 - 1.
-	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 232), bigOne)
+	// simNetPowLimit value for the simulation test network.
+	simNetPowLimit = blockchainutil.NewDifficultyFromHashString(
+		"7f ff ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
-	// simNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the simulation test network.  It is the value 2^255 - 1.
-	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+	// regressionPowLimit value for the regression test network.
+	regressionPowLimit = blockchainutil.NewDifficultyFromHashString(
+		"7f ff ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
-	// regNetPowLimit is the highest proof of work value a PicFight block
-	// can have for the regression test network.  It is the value 2^255 - 1.
-	regNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+	SatoshiPerPicfightcoin = int64(1e8)
+
+	build_id = "b.300"
+
+	SubsidyProductionYears = 44
 )
 
 // SigHashOptimization is an optimization for verification of transactions that
