@@ -2304,11 +2304,7 @@ func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFla
 
 	// Enable validation of OP_SHA256 if the stake vote for the agenda is
 	// active.
-	isActive, err := chain.IsLNFeaturesAgendaActive()
-	if err != nil {
-		return 0, err
-	}
-	if isActive {
+	{
 		scriptFlags |= txscript.ScriptVerifySHA256
 	}
 	return scriptFlags, nil
@@ -2554,7 +2550,9 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 				return standardScriptVerifyFlags(bm.chain)
 			},
-			AcceptSequenceLocks: bm.chain.IsFixSeqLocksAgendaActive,
+			AcceptSequenceLocks: func() (bool, error) {
+				return true, nil
+			},
 		},
 		ChainParams: chainParams,
 		NextStakeDifficulty: func() (int64, error) {
