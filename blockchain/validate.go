@@ -1356,11 +1356,7 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 		// the block being checked for all checks related to lock times
 		// once the stake vote for the agenda is active.
 		blockTime := header.Timestamp
-		lnFeaturesActive, err := b.isLNFeaturesAgendaActive(prevNode)
-		if err != nil {
-			return err
-		}
-		if lnFeaturesActive {
+		{
 			blockTime = prevNode.CalcPastMedianTime()
 		}
 
@@ -2824,18 +2820,11 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.ScriptFlags, error) {
 	scriptFlags := txscript.ScriptVerifyCleanStack |
 		txscript.ScriptVerifyCheckLockTimeVerify
-
-	// Enable enforcement of OP_CSV and OP_SHA256 if the stake vote
-	// for the agenda is active.
-	lnFeaturesActive, err := b.isLNFeaturesAgendaActive(node.parent)
-	if err != nil {
-		return 0, err
-	}
-	if lnFeaturesActive {
+	{
 		scriptFlags |= txscript.ScriptVerifyCheckSequenceVerify
 		scriptFlags |= txscript.ScriptVerifySHA256
 	}
-	return scriptFlags, err
+	return scriptFlags, nil
 }
 
 // checkConnectBlock performs several checks to confirm connecting the passed
@@ -2902,22 +2891,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 	// relative lock times via sequence numbers once the stake vote for the
 	// agenda is active.
 	legacySeqLockView := view
-	lnFeaturesActive, err := b.isLNFeaturesAgendaActive(node.parent)
-	if err != nil {
-		return err
-	}
-	fixSeqLocksActive, err := b.isFixSeqLocksAgendaActive(node.parent)
-	if err != nil {
-		return err
-	}
-	if lnFeaturesActive && !fixSeqLocksActive {
-		var err error
-		legacySeqLockView, err = b.createLegacySeqLockView(block, parent,
-			view)
-		if err != nil {
-			return err
-		}
-	}
 
 	// Disconnect all of the transactions in the regular transaction tree of
 	// the parent if the block being checked votes against it.
@@ -2964,7 +2937,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 	// Enforce all relative lock times via sequence numbers for the stake
 	// transaction tree once the stake vote for the agenda is active.
 	var prevMedianTime time.Time
-	if lnFeaturesActive {
+	{
 		// Use the past median time of the *previous* block in order
 		// to determine if the transactions in the current block are
 		// final.
@@ -3015,7 +2988,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 
 	// Enforce all relative lock times via sequence numbers for the regular
 	// transaction tree once the stake vote for the agenda is active.
-	if lnFeaturesActive {
+	{
 		// Skip the coinbase since it does not have any inputs and thus
 		// lock times do not apply.
 		for _, tx := range block.Transactions()[1:] {
