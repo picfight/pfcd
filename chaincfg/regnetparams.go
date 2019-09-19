@@ -5,7 +5,6 @@
 package chaincfg
 
 import (
-	"math"
 	"time"
 
 	"github.com/picfight/pfcd/wire"
