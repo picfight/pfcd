@@ -9,6 +9,9 @@ services:
 env:
   - GOVERSION=1.11
 
+before_install:
+  - chmod +x ./run_tests.sh
+
 install: true
 
 cache:
