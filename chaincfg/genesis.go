@@ -77,7 +77,7 @@ var genesisBlock = wire.MsgBlock{
 		MerkleRoot:   genesisMerkleRoot,
 		StakeRoot:    chainhash.Hash{},
 		Timestamp:    time.Unix(1454954400, 0), // Mon, 08 Feb 2016 18:00:00 GMT
-		Bits:         0x1b01ffff,               // Difficulty 32767
+		Bits:         picfightPowLimit.ToCompact(),
 		SBits:        2 * 1e8,                  // 2 Coin
 		Nonce:        0x00000000,
 		StakeVersion: 0,

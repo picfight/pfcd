@@ -18,10 +18,9 @@ import (
 // These variables are the chain proof-of-work limit parameters for each default
 // network.
 var (
-	//  mainPowLimit value for the main network.
-	mainPowLimit = blockchainutil.NewDifficultyFromHashString( //
+	//  picfightPowLimit value for the PicFight coin network.
+	picfightPowLimit = NewDifficultyFromHashString( //
 		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-
 )
 
 // SigHashOptimization is an optimization for verification of transactions that

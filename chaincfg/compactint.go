@@ -1,4 +1,4 @@
-package blockchainutil
+package chaincfg
 
 import "math/big"
 
