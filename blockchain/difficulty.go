@@ -878,31 +878,7 @@ func sdiffAlgoDeploymentVersion(network wire.CurrencyNet) uint32 {
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) calcNextRequiredStakeDifficulty(curNode *blockNode) (int64, error) {
-	// Consensus voting on the new stake difficulty algorithm is only
-	// enabled on mainnet, testnet v2 (removed from code), and regnet.
-	net := b.chainParams.Net
-	if net != wire.MainNet && net != wire.RegNet {
-		return b.calcNextRequiredStakeDifficultyV2(curNode)
-	}
-
-	// Use the new stake difficulty algorithm if the stake vote for the new
-	// algorithm agenda is active.
-	//
-	// NOTE: The choice field of the return threshold state is not examined
-	// here because there is only one possible choice that can be active
-	// for the agenda, which is yes, so there is no need to check it.
-	deploymentVersion := sdiffAlgoDeploymentVersion(net)
-	state, err := b.deploymentState(curNode, deploymentVersion,
-		chaincfg.VoteIDSDiffAlgorithm)
-	if err != nil {
-		return 0, err
-	}
-	if state.State == ThresholdActive {
-		return b.calcNextRequiredStakeDifficultyV2(curNode)
-	}
-
-	// Use the old stake difficulty algorithm in any other case.
-	return b.calcNextRequiredStakeDifficultyV1(curNode)
+	return b.calcNextRequiredStakeDifficultyV2(curNode)
 }
 
 // CalcNextRequiredStakeDifficulty calculates the required stake difficulty for
@@ -1368,32 +1344,7 @@ func (b *BlockChain) estimateNextStakeDifficultyV2(curNode *blockNode, newTicket
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) estimateNextStakeDifficulty(curNode *blockNode, newTickets int64, useMaxTickets bool) (int64, error) {
-	// Consensus voting on the new stake difficulty algorithm is only
-	// enabled on mainnet, testnet v2 (removed from code), and regnet.
-	net := b.chainParams.Net
-	if net != wire.MainNet && net != wire.RegNet {
-		return b.calcNextRequiredStakeDifficultyV2(curNode)
-	}
-
-	// Use the new stake difficulty algorithm if the stake vote for the new
-	// algorithm agenda is active.
-	//
-	// NOTE: The choice field of the return threshold state is not examined
-	// here because there is only one possible choice that can be active
-	// for the agenda, which is yes, so there is no need to check it.
-	deploymentVersion := sdiffAlgoDeploymentVersion(net)
-	state, err := b.deploymentState(curNode, deploymentVersion,
-		chaincfg.VoteIDSDiffAlgorithm)
-	if err != nil {
-		return 0, err
-	}
-	if state.State == ThresholdActive {
-		return b.estimateNextStakeDifficultyV2(curNode, newTickets,
-			useMaxTickets)
-	}
-
-	// Use the old stake difficulty algorithm in any other case.
-	return b.estimateNextStakeDifficultyV1(curNode, newTickets,
+	return b.estimateNextStakeDifficultyV2(curNode, newTickets,
 		useMaxTickets)
 }
 

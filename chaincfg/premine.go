@@ -5,5 +5,4 @@
 
 package chaincfg
 
-var BlockOneLedgerPicFight = []*TokenPayout{
-}
+var BlockOneLedgerPicFight = []*TokenPayout{}

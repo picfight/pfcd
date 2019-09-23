@@ -28,7 +28,7 @@ var (
 	dcrdHomeDir     = dcrutil.AppDataDir("dcrd", false)
 	defaultDataDir  = filepath.Join(dcrdHomeDir, "data")
 	knownDbTypes    = database.SupportedDrivers()
-	activeNetParams = &chaincfg.MainNetParams
+	activeNetParams = &chaincfg.PicFightCoinParams
 )
 
 // config defines the configuration options for findcheckpoint.
@@ -78,14 +78,6 @@ func loadConfig() (*config, []string, error) {
 	numNets := 0
 	// Count number of network flags passed; assign active network params
 	// while we're at it
-	if cfg.TestNet {
-		numNets++
-		activeNetParams = &chaincfg.TestNet3Params
-	}
-	if cfg.SimNet {
-		numNets++
-		activeNetParams = &chaincfg.SimNetParams
-	}
 	if numNets > 1 {
 		str := "%s: the testnet, regtest, and simnet params can't be " +
 			"used together -- choose one of the three"

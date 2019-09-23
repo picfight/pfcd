@@ -1612,23 +1612,7 @@ func (b *BlockChain) maxBlockSize(prevNode *blockNode) (int64, error) {
 		return int64(b.chainParams.MaximumBlockSizes[0]), nil
 	}
 
-	// Return the larger block size if the version 4 stake vote for the max
-	// block size increase agenda is active.
-	//
-	// NOTE: The choice field of the return threshold state is not examined
-	// here because there is only one possible choice that can be active
-	// for the agenda, which is yes, so there is no need to check it.
-	maxSize := int64(b.chainParams.MaximumBlockSizes[0])
-	state, err := b.deploymentState(prevNode, 4, chaincfg.VoteIDMaxBlockSize)
-	if err != nil {
-		return maxSize, err
-	}
-	if state.State == ThresholdActive {
-		return int64(b.chainParams.MaximumBlockSizes[1]), nil
-	}
-
-	// The max block size is not changed in any other cases.
-	return maxSize, nil
+	return int64(b.chainParams.MaximumBlockSizes[0]), nil
 }
 
 // MaxBlockSize returns the maximum permitted block size for the block AFTER

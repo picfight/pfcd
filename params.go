@@ -27,27 +27,6 @@ type params struct {
 // it does not handle on to dcrd.  This approach allows the wallet process
 // to emulate the full reference implementation RPC API.
 var mainNetParams = params{
-	Params:  &chaincfg.MainNetParams,
+	Params:  &chaincfg.PicFightCoinParams,
 	rpcPort: "9109",
-}
-
-// testNet3Params contains parameters specific to the test network (version 3)
-// (wire.TestNet3).
-var testNet3Params = params{
-	Params:  &chaincfg.TestNet3Params,
-	rpcPort: "19109",
-}
-
-// simNetParams contains parameters specific to the simulation test network
-// (wire.SimNet).
-var simNetParams = params{
-	Params:  &chaincfg.SimNetParams,
-	rpcPort: "19556",
-}
-
-// regNetParams contains parameters specific to the regression test
-// network (wire.RegNet).
-var regNetParams = params{
-	Params:  &chaincfg.RegNetParams,
-	rpcPort: "18656",
 }

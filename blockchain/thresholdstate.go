@@ -10,7 +10,6 @@ import (
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/wire"
 )
 
 // ThresholdState define the various threshold states used when voting on
@@ -603,30 +602,7 @@ func (b *BlockChain) NextThresholdState(hash *chainhash.Hash, version uint32, de
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) isLNFeaturesAgendaActive(prevNode *blockNode) (bool, error) {
-	// Consensus voting on LN features is only enabled on mainnet, testnet
-	// v2 (removed from code), and regnet.
-	net := b.chainParams.Net
-	if net != wire.MainNet && net != wire.RegNet {
-		return true, nil
-	}
-
-	// Determine the version for the LN features agenda as defined in
-	// DCP0002 and DCP0003 for the provided network.
-	deploymentVer := uint32(5)
-	if b.chainParams.Net != wire.MainNet {
-		deploymentVer = 6
-	}
-
-	state, err := b.deploymentState(prevNode, deploymentVer,
-		chaincfg.VoteIDLNFeatures)
-	if err != nil {
-		return false, err
-	}
-
-	// NOTE: The choice field of the return threshold state is not examined
-	// here because there is only one possible choice that can be active for
-	// the agenda, which is yes, so there is no need to check it.
-	return state.State == ThresholdActive, nil
+	return true, nil
 
 }
 
@@ -653,30 +629,7 @@ func (b *BlockChain) IsLNFeaturesAgendaActive() (bool, error) {
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) isFixSeqLocksAgendaActive(prevNode *blockNode) (bool, error) {
-	// Consensus voting on the fix sequence locks agenda is only enabled on
-	// mainnet, testnet v3, and regnet.
-	net := b.chainParams.Net
-	if net != wire.MainNet && net != wire.TestNet3 && net != wire.RegNet {
-		return true, nil
-	}
-
-	// Determine the version for the fix sequence locks agenda as defined in
-	// DCP0004 for the provided network.
-	deploymentVer := uint32(6)
-	if b.chainParams.Net != wire.MainNet {
-		deploymentVer = 7
-	}
-
-	state, err := b.deploymentState(prevNode, deploymentVer,
-		chaincfg.VoteIDFixLNSeqLocks)
-	if err != nil {
-		return false, err
-	}
-
-	// NOTE: The choice field of the return threshold state is not examined
-	// here because there is only one possible choice that can be active for
-	// the agenda, which is yes, so there is no need to check it.
-	return state.State == ThresholdActive, nil
+	return true, nil
 }
 
 // IsFixSeqLocksAgendaActive returns whether or not whether or not the fix

@@ -607,20 +607,6 @@ func loadConfig() (*config, []string, error) {
 	// Multiple networks can't be selected simultaneously.  Count number of
 	// network flags passed and assign active network params.
 	numNets := 0
-	if cfg.TestNet {
-		numNets++
-		activeNetParams = &testNet3Params
-	}
-	if cfg.SimNet {
-		numNets++
-		// Also disable dns seeding on the simulation test network.
-		activeNetParams = &simNetParams
-		cfg.DisableDNSSeed = true
-	}
-	if cfg.RegNet {
-		numNets++
-		activeNetParams = &regNetParams
-	}
 	if numNets > 1 {
 		str := "%s: the testnet, regnet, and simnet params can't be " +
 			"used together -- choose one of the three"
