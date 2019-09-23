@@ -4,7 +4,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package pfcjson provides primitives for working with the PicFight JSON-RPC API.
+Package pfcjson provides primitives for working with the Picfight JSON-RPC API.
 
 Overview
 

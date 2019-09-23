@@ -4,22 +4,22 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package peer provides a common base for creating and managing PicFight network
+Package peer provides a common base for creating and managing Picfight network
 peers.
 
 Overview
 
 This package builds upon the wire package, which provides the fundamental
-primitives necessary to speak the PicFight wire protocol, in order to simplify
+primitives necessary to speak the Picfight wire protocol, in order to simplify
 the process of creating fully functional peers.  In essence, it provides a
 common base for creating concurrent safe fully validating nodes, Simplified
 Payment Verification (SPV) nodes, proxies, etc.
 
 A quick overview of the major features peer provides are as follows:
 
- - Provides a basic concurrent safe PicFight peer for handling picfight
+ - Provides a basic concurrent safe Picfight peer for handling picfight
    communications via the peer-to-peer protocol
- - Full duplex reading and writing of PicFight protocol messages
+ - Full duplex reading and writing of Picfight protocol messages
  - Automatic handling of the initial handshake process including protocol
    version negotiation
  - Asynchronous message queuing of outbound messages with optional channel for
@@ -29,10 +29,10 @@ A quick overview of the major features peer provides are as follows:
      incoming connections so they have flexibility to establish connections as
      they see fit (proxies, etc)
    - User agent name and version
-   - PicFight network
+   - Picfight network
    - Service support signalling (full nodes, etc)
    - Maximum supported protocol version
-   - Ability to register callbacks for handling PicFight protocol messages
+   - Ability to register callbacks for handling Picfight protocol messages
  - Inventory message batching and send trickling with known inventory detection
    and avoidance
  - Automatic periodic keep-alive pinging and pong responses

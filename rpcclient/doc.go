@@ -4,13 +4,13 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package rpcclient implements a websocket-enabled PicFight JSON-RPC client.
+Package rpcclient implements a websocket-enabled Picfight JSON-RPC client.
 
 Overview
 
 This client provides a robust and easy to use client for interfacing
-with a PicFight RPC server that uses a mostly btcd/bitcoin core
-style PicFight JSON-RPC API.  This client has been tested with pfcd
+with a Picfight RPC server that uses a mostly btcd/bitcoin core
+style Picfight JSON-RPC API.  This client has been tested with pfcd
 (https://github.com/picfight/pfcd) and pfcwallet
 (https://github.com/picfight/pfcwallet).
 

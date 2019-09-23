@@ -17,7 +17,7 @@ two main goals:
 This package was started in order to resolve issue picfight/pfcd#1412 and related.
 See that issue for discussion of the selected approach.
 
-This package was developed for pfcd, a full-node implementation of PicFight which
+This package was developed for pfcd, a full-node implementation of Picfight which
 is under active development.  Although it was primarily written for
 pfcd, this package has intentionally been designed so it can be used as a
 standalone package for any projects needing the functionality provided.

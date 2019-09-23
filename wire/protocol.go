@@ -41,7 +41,7 @@ const (
 	NodeCFVersion uint32 = 6
 )
 
-// ServiceFlag identifies services supported by a PicFight peer.
+// ServiceFlag identifies services supported by a Picfight peer.
 type ServiceFlag uint64
 
 const (
@@ -97,15 +97,15 @@ func (f ServiceFlag) String() string {
 	return s
 }
 
-// CurrencyNet represents which PicFight network a message belongs to.
+// CurrencyNet represents which Picfight network a message belongs to.
 type CurrencyNet uint32
 
-// Constants used to indicate the message PicFight network.  They can also be
+// Constants used to indicate the message Picfight network.  They can also be
 // used to seek to the next message when a stream's state is unknown, but
 // this package does not provide that functionality since it's generally a
 // better idea to simply disconnect clients that are misbehaving over TCP.
 const (
-	// MainNet represents the main PicFight network.
+	// MainNet represents the main Picfight network.
 	MainNet CurrencyNet = 0xd9b400f9
 
 	// RegNet represents the regression test network.
@@ -124,7 +124,7 @@ const (
 	SimNet CurrencyNet = 0x12141c16
 )
 
-// bnStrings is a map of PicFight networks back to their constant names for
+// bnStrings is a map of Picfight networks back to their constant names for
 // pretty printing.
 var bnStrings = map[CurrencyNet]string{
 	MainNet:  "MainNet",

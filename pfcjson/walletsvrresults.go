@@ -292,7 +292,7 @@ type ListSinceBlockResult struct {
 }
 
 // ListUnspentResult models a successful response from the listunspent request.
-// Contains PicFight additions.
+// Contains Picfight additions.
 type ListUnspentResult struct {
 	TxID          string  `json:"txid"`
 	Vout          uint32  `json:"vout"`

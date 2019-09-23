@@ -20,7 +20,7 @@
 
 ### 1. About
 
-pfcd is a full node PicFight implementation written in [Go](http://golang.org),
+pfcd is a full node Picfight implementation written in [Go](http://golang.org),
 and is licensed under the [copyfree](http://www.copyfree.org) ISC License.
 
 This software is currently under active development.  It is extremely stable and
@@ -170,35 +170,35 @@ https://picfight.org/community
 The following versioned modules are provided by pfcd repository:
 
 * [rpcclient](https://github.com/picfight/pfcd/tree/master/rpcclient) - Implements
-  a robust and easy to use Websocket-enabled PicFight JSON-RPC client
+  a robust and easy to use Websocket-enabled Picfight JSON-RPC client
 * [pfcjson](https://github.com/picfight/pfcd/tree/master/pfcjson) - Provides an
   extensive API for the underlying JSON-RPC command and return values
 * [wire](https://github.com/picfight/pfcd/tree/master/wire) - Implements the
-  PicFight wire protocol
+  Picfight wire protocol
 * [peer](https://github.com/picfight/pfcd/tree/master/peer) - Provides a common
-  base for creating and managing PicFight network peers
+  base for creating and managing Picfight network peers
 * [blockchain](https://github.com/picfight/pfcd/tree/master/blockchain) -
-  Implements PicFight block handling and chain selection rules
+  Implements Picfight block handling and chain selection rules
   * [stake](https://github.com/picfight/pfcd/tree/master/blockchain/stake) -
     Provides an API for working with stake transactions and other portions
     related to the Proof-of-Stake (PoS) system
 * [txscript](https://github.com/picfight/pfcd/tree/master/txscript) -
-  Implements the PicFight transaction scripting language
+  Implements the Picfight transaction scripting language
 * [pfcec](https://github.com/picfight/pfcd/tree/master/pfcec) - Provides constants
-  for the supported cryptographic signatures supported by PicFight scripts
+  for the supported cryptographic signatures supported by Picfight scripts
   * [secp256k1](https://github.com/picfight/pfcd/tree/master/pfcec/secp256k1) -
     Implements the secp256k1 elliptic curve
   * [edwards](https://github.com/picfight/pfcd/tree/master/pfcec/edwards) -
     Implements the edwards25519 twisted Edwards curve
 * [database](https://github.com/picfight/pfcd/tree/master/database) -
-  Provides a database interface for the PicFight block chain
+  Provides a database interface for the Picfight block chain
 * [mempool](https://github.com/picfight/pfcd/tree/master/mempool) - Provides a
-  policy-enforced pool of unmined PicFight transactions
+  policy-enforced pool of unmined Picfight transactions
 * [pfcutil](https://github.com/picfight/pfcd/tree/master/pfcutil) - Provides
-  PicFight-specific convenience functions and types
+  Picfight-specific convenience functions and types
 * [chaincfg](https://github.com/picfight/pfcd/tree/master/chaincfg) - Defines
-  chain configuration parameters for the standard PicFight networks and allows
-  callers to define their own custom PicFight networks for testing puproses
+  chain configuration parameters for the standard Picfight networks and allows
+  callers to define their own custom Picfight networks for testing puproses
   * [chainhash](https://github.com/picfight/pfcd/tree/master/chaincfg/chainhash) -
     Provides a generic hash type and associated functions that allows the
     specific hash algorithm to be abstracted
@@ -206,11 +206,11 @@ The following versioned modules are provided by pfcd repository:
   function for creating a new TLS certificate key pair, typically used for
   encrypting RPC and websocket communications
 * [addrmgr](https://github.com/picfight/pfcd/tree/master/addrmgr) - Provides a
-  concurrency safe PicFight network address manager
+  concurrency safe Picfight network address manager
 * [connmgr](https://github.com/picfight/pfcd/tree/master/connmgr) - Implements a
-  generic PicFight network connection manager
+  generic Picfight network connection manager
 * [hdkeychain](https://github.com/picfight/pfcd/tree/master/hdkeychain) - Provides
-  an API for working with  PicFight hierarchical deterministic extended keys
+  an API for working with  Picfight hierarchical deterministic extended keys
 * [gcs](https://github.com/picfight/pfcd/tree/master/gcs) - Provides an API for
   building and using Golomb-coded set filters useful for light clients such as
   SPV wallets

@@ -5,7 +5,7 @@ blockchain
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/blockchain)
 
-Package blockchain implements PicFight block handling and chain selection rules.
+Package blockchain implements Picfight block handling and chain selection rules.
 The test coverage is currently only around 60%, but will be increasing over
 time. See `test_coverage.txt` for the gocov coverage report.  Alternatively, if
 you are running a POSIX OS, you can run the `cov_report.sh` script for a
@@ -24,7 +24,7 @@ block chain.
 $ go get -u github.com/picfight/pfcd/blockchain
 ```
 
-## PicFight Chain Processing Overview
+## Picfight Chain Processing Overview
 
 Before a block is allowed into the block chain, it must go through an intensive
 series of validation rules.  The following list serves as a general outline of

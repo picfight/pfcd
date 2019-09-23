@@ -10,7 +10,7 @@ import (
 )
 
 // activeNetParams is a pointer to the parameters specific to the
-// currently active PicFight network.
+// currently active Picfight network.
 var activeNetParams = &mainNetParams
 
 // params is used to group parameters for various networks such as the main

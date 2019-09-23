@@ -1002,7 +1002,7 @@ func NewSignMessageCmd(address, message string) *SignMessageCmd {
 }
 
 // RawTxInput models the data needed for raw transaction input that is used in
-// the SignRawTransactionCmd struct.  Contains PicFight additions.
+// the SignRawTransactionCmd struct.  Contains Picfight additions.
 type RawTxInput struct {
 	Txid         string `json:"txid"`
 	Vout         uint32 `json:"vout"`

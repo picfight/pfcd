@@ -21,7 +21,7 @@ const MaxUserAgentLen = 256
 // DefaultUserAgent for wire in the stack
 const DefaultUserAgent = "/pfcwire:0.3.0/"
 
-// MsgVersion implements the Message interface and represents a PicFight version
+// MsgVersion implements the Message interface and represents a Picfight version
 // message.  It is used for a peer to advertise itself as soon as an outbound
 // connection is made.  The remote peer then uses this information along with
 // its own to negotiate.  The remote peer must then respond with a version
@@ -71,7 +71,7 @@ func (msg *MsgVersion) AddService(service ServiceFlag) {
 	msg.Services |= service
 }
 
-// BtcDecode decodes r using the PicFight protocol encoding into the receiver.
+// BtcDecode decodes r using the Picfight protocol encoding into the receiver.
 // The version message is special in that the protocol version hasn't been
 // negotiated yet.  As a result, the pver field is ignored and any fields which
 // are added in new versions are optional.  This also mean that r must be a
@@ -149,7 +149,7 @@ func (msg *MsgVersion) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the PicFight protocol encoding.
+// BtcEncode encodes the receiver to w using the Picfight protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgVersion) BtcEncode(w io.Writer, pver uint32) error {
 	err := validateUserAgent(msg.UserAgent)
@@ -210,7 +210,7 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 		MaxUserAgentLen
 }
 
-// NewMsgVersion returns a new PicFight version message that conforms to the
+// NewMsgVersion returns a new Picfight version message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgVersion(me *NetAddress, you *NetAddress, nonce uint64,
@@ -232,7 +232,7 @@ func NewMsgVersion(me *NetAddress, you *NetAddress, nonce uint64,
 }
 
 // NewMsgVersionFromConn is a convenience function that extracts the remote
-// and local address from conn and returns a new PicFight version message that
+// and local address from conn and returns a new Picfight version message that
 // conforms to the Message interface.  See NewMsgVersion.
 func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
 	lastBlock int32) (*MsgVersion, error) {

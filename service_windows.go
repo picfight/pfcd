@@ -27,7 +27,7 @@ const (
 	svcDisplayName = "Pfcd Service"
 
 	// svcDesc is the description of the service.
-	svcDesc = "Downloads and stays synchronized with the PicFight block " +
+	svcDesc = "Downloads and stays synchronized with the Picfight block " +
 		"chain and provides chain services to applications."
 )
 

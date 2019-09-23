@@ -14,12 +14,12 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 )
 
-// MessageHeaderSize is the number of bytes in a PicFight message header.
-// PicFight network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
+// MessageHeaderSize is the number of bytes in a Picfight message header.
+// Picfight network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
 // checksum 4 bytes.
 const MessageHeaderSize = 24
 
-// CommandSize is the fixed size of all commands in the common PicFight message
+// CommandSize is the fixed size of all commands in the common Picfight message
 // header.  Shorter commands must be zero padded.
 const CommandSize = 12
 
@@ -57,7 +57,7 @@ const (
 	CmdCFTypes        = "cftypes"
 )
 
-// Message is an interface that describes a PicFight message.  A type that
+// Message is an interface that describes a Picfight message.  A type that
 // implements Message has complete control over the representation of its data
 // and may therefore contain additional or fewer fields than those which
 // are used directly in the protocol encoded message.
@@ -157,7 +157,7 @@ func makeEmptyMessage(command string) (Message, error) {
 	return msg, nil
 }
 
-// messageHeader defines the header structure for all PicFight protocol messages.
+// messageHeader defines the header structure for all Picfight protocol messages.
 type messageHeader struct {
 	magic    CurrencyNet // 4 bytes
 	command  string      // 12 bytes
@@ -165,7 +165,7 @@ type messageHeader struct {
 	checksum [4]byte     // 4 bytes
 }
 
-// readMessageHeader reads a PicFight message header from r.
+// readMessageHeader reads a Picfight message header from r.
 func readMessageHeader(r io.Reader) (int, *messageHeader, error) {
 	// Since readElements doesn't return the amount of bytes read, attempt
 	// to read the entire header into a buffer first in case there is a
@@ -209,7 +209,7 @@ func discardInput(r io.Reader, n uint32) {
 	}
 }
 
-// WriteMessageN writes a PicFight Message to w including the necessary header
+// WriteMessageN writes a Picfight Message to w including the necessary header
 // information and returns the number of bytes written.    This function is the
 // same as WriteMessage except it also returns the number of bytes written.
 func WriteMessageN(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) (int, error) {
@@ -277,7 +277,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) (i
 	return totalBytes, err
 }
 
-// WriteMessage writes a PicFight Message to w including the necessary header
+// WriteMessage writes a Picfight Message to w including the necessary header
 // information.  This function is the same as WriteMessageN except it doesn't
 // doesn't return the number of bytes written.  This function is mainly provided
 // for backwards compatibility with the original API, but it's also useful for
@@ -287,8 +287,8 @@ func WriteMessage(w io.Writer, msg Message, pver uint32, pfcnet CurrencyNet) err
 	return err
 }
 
-// ReadMessageN reads, validates, and parses the next PicFight Message from r for
-// the provided protocol version and PicFight network.  It returns the number of
+// ReadMessageN reads, validates, and parses the next Picfight Message from r for
+// the provided protocol version and Picfight network.  It returns the number of
 // bytes read in addition to the parsed Message and raw bytes which comprise the
 // message.  This function is the same as ReadMessage except it also returns the
 // number of bytes read.
@@ -309,7 +309,7 @@ func ReadMessageN(r io.Reader, pver uint32, pfcnet CurrencyNet) (int, Message, [
 
 	}
 
-	// Check for messages from the wrong PicFight network.
+	// Check for messages from the wrong Picfight network.
 	if hdr.magic != pfcnet {
 		discardInput(r, hdr.length)
 		str := fmt.Sprintf("message from other network [%v]", hdr.magic)
@@ -372,8 +372,8 @@ func ReadMessageN(r io.Reader, pver uint32, pfcnet CurrencyNet) (int, Message, [
 	return totalBytes, msg, payload, nil
 }
 
-// ReadMessage reads, validates, and parses the next PicFight Message from r for
-// the provided protocol version and PicFight network.  It returns the parsed
+// ReadMessage reads, validates, and parses the next Picfight Message from r for
+// the provided protocol version and Picfight network.  It returns the parsed
 // Message and raw bytes which comprise the message.  This function only differs
 // from ReadMessageN in that it doesn't return the number of bytes read.  This
 // function is mainly provided for backwards compatibility with the original

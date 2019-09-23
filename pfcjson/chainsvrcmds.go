@@ -62,7 +62,7 @@ func NewAddNodeCmd(addr string, subCmd AddNodeSubCmd) *AddNodeCmd {
 }
 
 // TransactionInput represents the inputs to a transaction.  Specifically a
-// transaction hash and output number pair. Contains PicFight additions.
+// transaction hash and output number pair. Contains Picfight additions.
 type TransactionInput struct {
 	Amount float64 `json:"amount,omitempty"`
 	Txid   string  `json:"txid"`

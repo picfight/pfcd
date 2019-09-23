@@ -17,7 +17,7 @@ import (
 // a TCP address as required.
 var ErrInvalidNetAddr = errors.New("provided net.Addr is not a net.TCPAddr")
 
-// maxNetAddressPayload returns the max payload size for a PicFight NetAddress
+// maxNetAddressPayload returns the max payload size for a Picfight NetAddress
 // based on the protocol version.
 func maxNetAddressPayload(pver uint32) uint32 {
 	// Services 8 bytes + ip 16 bytes + port 2 bytes.
@@ -34,7 +34,7 @@ func maxNetAddressPayload(pver uint32) uint32 {
 type NetAddress struct {
 	// Last time the address was seen.  This is, unfortunately, encoded as a
 	// uint32 on the wire and therefore is limited to 2106.  This field is
-	// not present in the PicFight version message (MsgVersion) nor was it
+	// not present in the Picfight version message (MsgVersion) nor was it
 	// added until protocol version >= NetAddressTimeVersion.
 	Timestamp time.Time
 
@@ -103,7 +103,7 @@ func NewNetAddress(addr net.Addr, services ServiceFlag) (*NetAddress, error) {
 func readNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 	var ip [16]byte
 
-	// NOTE: The PicFight protocol uses a uint32 for the timestamp so it will
+	// NOTE: The Picfight protocol uses a uint32 for the timestamp so it will
 	// stop working somewhere around 2106.  Also timestamp wasn't added until
 	// protocol version >= NetAddressTimeVersion
 	if ts {
@@ -117,7 +117,7 @@ func readNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 	if err != nil {
 		return err
 	}
-	// Sigh.  PicFight protocol mixes little and big endian.
+	// Sigh.  Picfight protocol mixes little and big endian.
 	port, err := binarySerializer.Uint16(r, bigEndian)
 	if err != nil {
 		return err
@@ -136,7 +136,7 @@ func readNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 // version and whether or not the timestamp is included per ts.  Some messages
 // like version do not include the timestamp.
 func writeNetAddress(w io.Writer, pver uint32, na *NetAddress, ts bool) error {
-	// NOTE: The PicFight protocol uses a uint32 for the timestamp so it will
+	// NOTE: The Picfight protocol uses a uint32 for the timestamp so it will
 	// stop working somewhere around 2106.  Also timestamp wasn't added until
 	// until protocol version >= NetAddressTimeVersion.
 	if ts {
@@ -156,6 +156,6 @@ func writeNetAddress(w io.Writer, pver uint32, na *NetAddress, ts bool) error {
 		return err
 	}
 
-	// Sigh.  PicFight protocol mixes little and big endian.
+	// Sigh.  Picfight protocol mixes little and big endian.
 	return binary.Write(w, bigEndian, na.Port)
 }

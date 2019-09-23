@@ -61,7 +61,7 @@ const (
 	MaxScriptSize = 16384
 
 	// DefaultScriptVersion is the default scripting language version
-	// representing extended PicFight script.
+	// representing extended Picfight script.
 	DefaultScriptVersion = uint16(0)
 )
 

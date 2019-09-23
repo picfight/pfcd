@@ -35,7 +35,7 @@ be clear in the examples and simulations which of these is being discussed.
 Note: a very high contention scenario (> 90% of blocks being full and
 transactions remaining in the mempool indefinitely) is one in which stakeholders
 should be discussing alternative solutions (increase block size, provide other
-second layer alternatives, etc). Also, the current fill rate of blocks in picfight coins
+second layer alternatives, etc). Also, the current fill rate of blocks in picfight
 is low, so while we try to account for this regime, I personally expect that the
 implementation will need more tweaks as it approaches this.
 
@@ -102,10 +102,10 @@ https://github.com/bitcoin/bitcoin/blob/v0.14.2/src/policy/fees.cpp
 [4] Source for fee estimation in version 0.16.2:
 https://github.com/bitcoin/bitcoin/blob/v0.16.2/src/policy/fees.cpp
 
-[5] Source for the original dcrfeesim and estimator work:
+[5] Source for the original pfcfeesim and estimator work:
 https://github.com/matheusd/dcrfeesim_dev
 
-[6] Source for the current dcrfeesim, using this module:
+[6] Source for the current pfcfeesim, using this module:
 https://github.com/matheusd/dcrfeesim
 */
 package fees

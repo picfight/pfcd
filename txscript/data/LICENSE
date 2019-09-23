@@ -5,7 +5,7 @@ directory originally came from the bitcoin project
 The script_tests.json file has significantly diverged from its original
 form to the point it has little resemblance to the original, but several tests
 are still intact and thus the license is maintained for those tests.  All
-modifications made by the PicFight project are released under the ISC Licsense as
+modifications made by the Picfight project are released under the ISC Licsense as
 detailed below.
 
 The imported tests in script_test.json, tx_invalid.json, and tx_valid.json are
@@ -31,7 +31,7 @@ released under the following license:
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
    THE SOFTWARE.
 
-All other files are produced by the PicFight project and are released under the
+All other files are produced by the Picfight project and are released under the
 following license:
 
    ISC License

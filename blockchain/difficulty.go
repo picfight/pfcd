@@ -63,7 +63,7 @@ func HashToBig(hash *chainhash.Hash) *big.Int {
 // The formula to calculate N is:
 // 	N = (-1^sign) * mantissa * 256^(exponent-3)
 //
-// This compact form is only used in PicFight to encode unsigned 256-bit numbers
+// This compact form is only used in Picfight to encode unsigned 256-bit numbers
 // which represent difficulty targets, thus there really is not a need for a
 // sign bit, but it is implemented here to stay consistent with bitcoind.
 func CompactToBig(compact uint32) *big.Int {
@@ -136,7 +136,7 @@ func BigToCompact(n *big.Int) uint32 {
 	return compact
 }
 
-// CalcWork calculates a work value from difficulty bits.  PicFight increases
+// CalcWork calculates a work value from difficulty bits.  Picfight increases
 // the difficulty for generating a block by decreasing the value which the
 // generated hash must be less than.  This difficulty target is stored in each
 // block header using a compact representation as described in the documentation
@@ -430,7 +430,7 @@ func mergeDifficulty(oldDiff int64, newDiff1 int64, newDiff2 int64) int64 {
 // for the block after the passed previous block node based on exponentially
 // weighted averages.
 //
-// NOTE: This is the original stake difficulty algorithm that was used at PicFight
+// NOTE: This is the original stake difficulty algorithm that was used at Picfight
 // launch.
 //
 // This function MUST be called with the chain state lock held (for writes).
@@ -451,7 +451,7 @@ func (b *BlockChain) calcNextRequiredStakeDifficultyV1(curNode *blockNode) (int6
 	// This is sort of sloppy and coded with the hopes that generally by
 	// stakeDiffStartHeight people will be submitting lots of SStx over the
 	// past nodesToTraverse many nodes. It should be okay with the default
-	// PicFight parameters, but might do weird things if you use custom
+	// Picfight parameters, but might do weird things if you use custom
 	// parameters.
 	if curNode == nil ||
 		curNode.height < stakeDiffStartHeight {
@@ -900,7 +900,7 @@ func (b *BlockChain) CalcNextRequiredStakeDifficulty() (int64, error) {
 // remainder of the interval.
 //
 // NOTE: This uses the original stake difficulty algorithm that was used at
-// PicFight launch.
+// Picfight launch.
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) estimateNextStakeDifficultyV1(curNode *blockNode, ticketsInWindow int64, useMaxTickets bool) (int64, error) {

@@ -76,7 +76,7 @@ func ParseSignature(curve *TwistedEdwardsCurve, sigStr []byte) (*Signature, erro
 	return parseSig(curve, sigStr, false)
 }
 
-// ParseDERSignature offers a legacy function for plugging into PicFight, which
+// ParseDERSignature offers a legacy function for plugging into Picfight, which
 // is based off btcec.
 func ParseDERSignature(curve *TwistedEdwardsCurve, sigStr []byte) (*Signature, error) {
 	return parseSig(curve, sigStr, false)

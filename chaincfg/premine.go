@@ -3163,7 +3163,7 @@ var BlockOneLedgerTestNet3 = []*TokenPayout{
 }
 
 // BlockOneLedgerSimNet is the block one output ledger for the simulation
-// network.  See "PicFight organization related parameters" in simnetparams.go for
+// network.  See "Picfight organization related parameters" in simnetparams.go for
 // information on how to spend these outputs.
 var BlockOneLedgerSimNet = []*TokenPayout{
 	{"Sshw6S86G2bV6W32cbc7EhtFy8f93rU6pae", 100000 * 1e8},
@@ -3172,7 +3172,7 @@ var BlockOneLedgerSimNet = []*TokenPayout{
 }
 
 // BlockOneLedgerRegNet is the block one output ledger for the regression test
-// network.  See "PicFight organization related parameters" in regnetparams.go for
+// network.  See "Picfight organization related parameters" in regnetparams.go for
 // information on how to spend these outputs.
 var BlockOneLedgerRegNet = []*TokenPayout{
 	{"RsKrWb7Vny1jnzL1sDLgKTAteh9RZcRr5g6", 100000 * 1e8},

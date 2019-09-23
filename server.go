@@ -64,7 +64,7 @@ const (
 
 var (
 	// userAgentName is the user agent name and is used to help identify
-	// ourselves to other PicFight peers.
+	// ourselves to other Picfight peers.
 	userAgentName = "pfcd"
 
 	// userAgentVersion is the user agent version and is used to help
@@ -73,7 +73,7 @@ var (
 		version.Patch)
 )
 
-// broadcastMsg provides the ability to house a PicFight message to be broadcast
+// broadcastMsg provides the ability to house a Picfight message to be broadcast
 // to all connected peers except specified excluded peers.
 type broadcastMsg struct {
 	message      wire.Message
@@ -171,8 +171,8 @@ func (ps *peerState) forAllPeers(closure func(sp *serverPeer)) {
 	ps.forAllOutboundPeers(closure)
 }
 
-// server provides a PicFight server for handling communications to and from
-// PicFight peers.
+// server provides a Picfight server for handling communications to and from
+// Picfight peers.
 type server struct {
 	// The following variables must only be used atomically.
 	// Putting the uint64s first makes them 64-bit aligned for 32-bit systems.

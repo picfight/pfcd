@@ -392,7 +392,7 @@ func (r FutureListLockUnspentResult) Receive() ([]*wire.OutPoint, error) {
 		if err != nil {
 			return nil, err
 		}
-		ops[i] = wire.NewOutPoint(sha, input.Vout, input.Tree) // PicFight TODO
+		ops[i] = wire.NewOutPoint(sha, input.Vout, input.Tree) // Picfight TODO
 	}
 
 	return ops, nil
@@ -1052,7 +1052,7 @@ func (c *Client) GetRawChangeAddress(account string) (pfcutil.Address, error) {
 type FutureGetAccountAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns the current
-// PicFight address for receiving payments to the specified account.
+// Picfight address for receiving payments to the specified account.
 func (r FutureGetAccountAddressResult) Receive() (pfcutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
@@ -1079,7 +1079,7 @@ func (c *Client) GetAccountAddressAsync(account string) FutureGetAccountAddressR
 	return c.sendCmd(cmd)
 }
 
-// GetAccountAddress returns the current PicFight address for receiving payments
+// GetAccountAddress returns the current Picfight address for receiving payments
 // to the specified account.
 func (c *Client) GetAccountAddress(account string) (pfcutil.Address, error) {
 	return c.GetAccountAddressAsync(account).Receive()
@@ -1224,7 +1224,7 @@ func (c *Client) RenameAccount(oldAccount, newAccount string) error {
 type FutureValidateAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns information
-// about the given PicFight address.
+// about the given Picfight address.
 func (r FutureValidateAddressResult) Receive() (*pfcjson.ValidateAddressWalletResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
@@ -1252,7 +1252,7 @@ func (c *Client) ValidateAddressAsync(address pfcutil.Address) FutureValidateAdd
 	return c.sendCmd(cmd)
 }
 
-// ValidateAddress returns information about the given PicFight address.
+// ValidateAddress returns information about the given Picfight address.
 func (c *Client) ValidateAddress(address pfcutil.Address) (*pfcjson.ValidateAddressWalletResult, error) {
 	return c.ValidateAddressAsync(address).Receive()
 }

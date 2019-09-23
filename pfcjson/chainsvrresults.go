@@ -59,7 +59,7 @@ type GetAddedNodeInfoResult struct {
 
 // GetBlockVerboseResult models the data from the getblock command when the
 // verbose flag is set.  When the verbose flag is not set, getblock returns a
-// hex-encoded string.  Contains PicFight additions.
+// hex-encoded string.  Contains Picfight additions.
 type GetBlockVerboseResult struct {
 	Hash          string        `json:"hash"`
 	Confirmations int64         `json:"confirmations"`
@@ -243,7 +243,7 @@ type GetMempoolInfoResult struct {
 }
 
 // GetMiningInfoResult models the data from the getmininginfo command.
-// Contains PicFight additions.
+// Contains Picfight additions.
 type GetMiningInfoResult struct {
 	Blocks           int64   `json:"blocks"`
 	CurrentBlockSize uint64  `json:"currentblocksize"`

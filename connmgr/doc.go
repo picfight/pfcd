@@ -4,7 +4,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package connmgr implements a generic PicFight network connection manager.
+Package connmgr implements a generic Picfight network connection manager.
 
 Connection Manager Overview
 

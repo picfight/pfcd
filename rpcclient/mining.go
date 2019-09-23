@@ -449,7 +449,7 @@ func (c *Client) SubmitBlockAsync(block *pfcutil.Block, options *pfcjson.SubmitB
 	return c.sendCmd(cmd)
 }
 
-// SubmitBlock attempts to submit a new block into the PicFight network.
+// SubmitBlock attempts to submit a new block into the Picfight network.
 func (c *Client) SubmitBlock(block *pfcutil.Block, options *pfcjson.SubmitBlockOptions) error {
 	return c.SubmitBlockAsync(block, options).Receive()
 }

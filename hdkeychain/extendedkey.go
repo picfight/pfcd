@@ -355,7 +355,7 @@ func (k *ExtendedKey) ECPrivKey() (*secp256k1.PrivateKey, error) {
 	return privKey, nil
 }
 
-// Address converts the extended key to a standard PicFight pay-to-pubkey-hash
+// Address converts the extended key to a standard Picfight pay-to-pubkey-hash
 // address for the passed network.
 func (k *ExtendedKey) Address(net *chaincfg.Params) (*pfcutil.AddressPubKeyHash, error) {
 	pkHash := pfcutil.Hash160(k.pubKeyBytes())
@@ -404,7 +404,7 @@ func (k *ExtendedKey) String() string {
 }
 
 // IsForNet returns whether or not the extended key is associated with the
-// passed PicFight network.
+// passed Picfight network.
 func (k *ExtendedKey) IsForNet(net *chaincfg.Params) bool {
 	return bytes.Equal(k.version, net.HDPrivateKeyID[:]) ||
 		bytes.Equal(k.version, net.HDPublicKeyID[:])

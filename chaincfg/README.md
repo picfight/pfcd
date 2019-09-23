@@ -6,12 +6,12 @@ chaincfg
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/chaincfg)
 
 Package chaincfg defines chain configuration parameters for the three standard
-PicFight networks and provides the ability for callers to define their own custom
-PicFight networks.
+Picfight networks and provides the ability for callers to define their own custom
+Picfight networks.
 
 Although this package was primarily written for pfcd, it has intentionally been
 designed so it can be used as a standalone package for any projects needing to
-use parameters for the standard PicFight networks or for projects needing to
+use parameters for the standard Picfight networks or for projects needing to
 define their own network.
 
 ## Sample Use
@@ -28,7 +28,7 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 )
 
-var testnet = flag.Bool("testnet", false, "operate on the testnet PicFight network")
+var testnet = flag.Bool("testnet", false, "operate on the testnet Picfight network")
 
 // By default (without -testnet), use mainnet.
 var chainParams = &chaincfg.MainNetParams

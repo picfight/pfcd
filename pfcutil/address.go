@@ -487,7 +487,7 @@ func (a *AddressSecpPubKey) serialize() []byte {
 // pay-to-pubkey-hash.  Note that the public key format (uncompressed,
 // compressed, etc) will change the resulting address.  This is expected since
 // pay-to-pubkey-hash is a hash of the serialized public key which obviously
-// differs with the format.  At the time of this writing, most PicFight addresses
+// differs with the format.  At the time of this writing, most Picfight addresses
 // are pay-to-pubkey-hash constructed from the uncompressed public key.
 //
 // Part of the Address interface.
@@ -536,7 +536,7 @@ func (a *AddressSecpPubKey) Format() PubKeyFormat {
 // pay-to-pubkey-hash address.  Note that the public key format (uncompressed,
 // compressed, etc) will change the resulting address.  This is expected since
 // pay-to-pubkey-hash is a hash of the serialized public key which obviously
-// differs with the format.  At the time of this writing, most PicFight addresses
+// differs with the format.  At the time of this writing, most Picfight addresses
 // are pay-to-pubkey-hash constructed from the uncompressed public key.
 func (a *AddressSecpPubKey) AddressPubKeyHash() *AddressPubKeyHash {
 	addr := &AddressPubKeyHash{net: a.net, netID: a.pubKeyHashID}
@@ -698,7 +698,7 @@ func (a *AddressSecSchnorrPubKey) serialize() []byte {
 // pay-to-pubkey-hash.  Note that the public key format (uncompressed,
 // compressed, etc) will change the resulting address.  This is expected since
 // pay-to-pubkey-hash is a hash of the serialized public key which obviously
-// differs with the format.  At the time of this writing, most PicFight addresses
+// differs with the format.  At the time of this writing, most Picfight addresses
 // are pay-to-pubkey-hash constructed from the uncompressed public key.
 //
 // Part of the Address interface.

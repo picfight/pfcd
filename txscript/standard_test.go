@@ -583,8 +583,8 @@ func TestPayToAddrScript(t *testing.T) {
 				"f9137f23c2c409273eb16e65 CHECKSIG",
 			nil,
 		},
-		// pay-to-pubkey address on mainnet. for PicFight this would
-		// be uncompressed, but standard for PicFight is 33 byte
+		// pay-to-pubkey address on mainnet. for Picfight this would
+		// be uncompressed, but standard for Picfight is 33 byte
 		// compressed public keys.
 		{
 			p2pkUncompressedMain,
@@ -688,7 +688,7 @@ func TestMultiSigScript(t *testing.T) {
 			scriptError(ErrTooManyRequiredSigs, ""),
 		},
 		{
-			// By default compressed pubkeys are used in PicFight.
+			// By default compressed pubkeys are used in Picfight.
 			[]*pfcutil.AddressSecpPubKey{
 				p2pkUncompressedMain.(*pfcutil.AddressSecpPubKey),
 			},

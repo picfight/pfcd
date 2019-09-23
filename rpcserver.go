@@ -1689,7 +1689,7 @@ func handleGenerate(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (i
 func handleGetAddedNodeInfo(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
 	c := cmd.(*pfcjson.GetAddedNodeInfoCmd)
 
-	// Retrieve a list of persistent (added) peers from the PicFight server
+	// Retrieve a list of persistent (added) peers from the Picfight server
 	// and filter the list of peers per the specified address (if any).
 	peers := s.server.AddedNodeInfo()
 	if c.Node != nil {
@@ -2792,7 +2792,7 @@ func handleGetBlockTemplateRequest(s *rpcServer, request *pfcjson.TemplateReques
 	if !cfg.SimNet && s.server.ConnectedCount() == 0 {
 		return nil, &pfcjson.RPCError{
 			Code:    pfcjson.ErrRPCClientNotConnected,
-			Message: "PicFight is not connected",
+			Message: "Picfight is not connected",
 		}
 	}
 
@@ -2801,7 +2801,7 @@ func handleGetBlockTemplateRequest(s *rpcServer, request *pfcjson.TemplateReques
 	if bestHeight != 0 && !s.server.blockManager.IsCurrent() {
 		return nil, &pfcjson.RPCError{
 			Code:    pfcjson.ErrRPCClientInInitialDownload,
-			Message: "PicFight is downloading blocks...",
+			Message: "Picfight is downloading blocks...",
 		}
 	}
 
@@ -2833,7 +2833,7 @@ func handleGetBlockTemplateRequest(s *rpcServer, request *pfcjson.TemplateReques
 // chainErrToGBTErrString converts an error returned from chain to a string
 // which matches the reasons and format described in BIP0022 for rejection
 // reasons.
-// TODO PicFight pop in the new errors from blockchain cj
+// TODO Picfight pop in the new errors from blockchain cj
 func chainErrToGBTErrString(err error) string {
 	// When the passed error is not a RuleError, just return a generic
 	// rejected string with the error text.
@@ -4313,7 +4313,7 @@ func handleGetWork(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (in
 	if !cfg.SimNet && s.server.ConnectedCount() == 0 {
 		return nil, &pfcjson.RPCError{
 			Code:    pfcjson.ErrRPCClientNotConnected,
-			Message: "PicFight is not connected",
+			Message: "Picfight is not connected",
 		}
 	}
 
@@ -4322,7 +4322,7 @@ func handleGetWork(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (in
 	if bestHeight != 0 && !s.server.blockManager.IsCurrent() {
 		return nil, &pfcjson.RPCError{
 			Code:    pfcjson.ErrRPCClientInInitialDownload,
-			Message: "PicFight is downloading blocks...",
+			Message: "Picfight is downloading blocks...",
 		}
 	}
 
@@ -5703,7 +5703,7 @@ func handleVerifyMessage(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 	// Validate the signature - this just shows that it was valid at all.
 	// we will compare it with the key next.
 	var buf bytes.Buffer
-	wire.WriteVarString(&buf, 0, "PicFight Signed Message:\n")
+	wire.WriteVarString(&buf, 0, "Picfight Signed Message:\n")
 	wire.WriteVarString(&buf, 0, c.Message)
 	expectedMessageHash := chainhash.HashB(buf.Bytes())
 	pk, wasCompressed, err := secp256k1.RecoverCompact(sig,

@@ -8,22 +8,22 @@ Package pfcutil provides picfight-specific convenience functions and types.
 
 Block Overview
 
-A Block defines a PicFight block that provides easier and more efficient
+A Block defines a Picfight block that provides easier and more efficient
 manipulation of raw wire protocol blocks.  It also memoizes hashes for the
 block and its transactions on their first access so subsequent accesses don't
 have to repeat the relatively expensive hashing operations.
 
 Tx Overview
 
-A Tx defines a PicFight transaction that provides more efficient manipulation of
+A Tx defines a Picfight transaction that provides more efficient manipulation of
 raw wire protocol transactions.  It memoizes the hash for the transaction on its
 first access so subsequent accesses don't have to repeat the relatively
 expensive hashing operations.
 
 Address Overview
 
-The Address interface provides an abstraction for a PicFight address.  While the
-most common type is a pay-to-pubkey-hash, PicFight already supports others and
+The Address interface provides an abstraction for a Picfight address.  While the
+most common type is a pay-to-pubkey-hash, Picfight already supports others and
 may well support more in the future.  This package currently provides
 implementations for the pay-to-pubkey, pay-to-pubkey-hash, and
 pay-to-script-hash address types.

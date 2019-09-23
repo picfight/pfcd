@@ -13,6 +13,6 @@ const (
 	AtomsPerCoin = 1e8
 
 	// MaxAmount is the maximum transaction amount allowed in atoms.
-	// PicFight - Changeme for release
+	// Picfight - Changeme for release
 	MaxAmount = 21e6 * AtomsPerCoin
 )

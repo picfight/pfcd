@@ -123,8 +123,8 @@ func checkAddressPrefixesAreConsistent(t *testing.T, privateKeyPrefix string, pa
 	checkInterval(t, pk, 33, params.Name, params.PrivateKeyID)
 }
 
-// TestPicFightNetworkSettings checks Network-specific settings
-func TestPicFightNetworkSettings(t *testing.T) {
+// TestPicfightNetworkSettings checks Network-specific settings
+func TestPicfightNetworkSettings(t *testing.T) {
 	checkPowLimitsAreConsistent(t, &chaincfg.MainNetParams)
 	checkPowLimitsAreConsistent(t, &chaincfg.TestNet3Params)
 	checkPowLimitsAreConsistent(t, &chaincfg.SimNetParams)

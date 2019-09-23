@@ -6,7 +6,7 @@
 /*
 Package secp256k1 implements support for the elliptic curves needed for picfight.
 
-PicFight uses elliptic curve cryptography using koblitz curves
+Picfight uses elliptic curve cryptography using koblitz curves
 (specifically secp256k1) for cryptographic functions.  See
 http://www.secg.org/collateral/sec2_final.pdf for details on the
 standard.

@@ -17,7 +17,7 @@ likely want to use the [pfcrpcclient](https://github.com/picfight/pfcrpcclient)
 package which makes use of the [JSON-RPC API](https://github.com/picfight/pfcd/tree/master/docs/json_rpc_api.md).
 
 However, this package could be extremely useful for any applications requiring
-PicFight block storage capabilities.
+Picfight block storage capabilities.
 
 The default backend, ffldb, has a strong focus on speed, efficiency, and
 robustness.  It makes use of leveldb for the metadata, flat files for block
@@ -26,7 +26,7 @@ storage, and strict checksums in key areas to ensure data integrity.
 ## Feature Overview
 
 - Key/value metadata store
-- PicFight block storage
+- Picfight block storage
 - Efficient retrieval of block headers and regions (transactions, scripts, etc)
 - Read-only and read-write transactions with both manual and managed modes
 - Nested buckets

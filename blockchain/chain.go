@@ -130,7 +130,7 @@ func newBestState(node *blockNode, blockSize, numTxns, totalTxns uint64,
 	}
 }
 
-// BlockChain provides functions for working with the PicFight block chain.
+// BlockChain provides functions for working with the Picfight block chain.
 // It includes functionality such as rejecting duplicate blocks, ensuring blocks
 // follow all rules, orphan handling, checkpoint handling, and best chain
 // selection with reorganization.

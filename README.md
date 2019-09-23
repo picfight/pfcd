@@ -6,13 +6,13 @@ pfcd
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd)
 [![Go Report Card](https://goreportcard.com/badge/github.com/picfight/pfcd)](https://goreportcard.com/report/github.com/picfight/pfcd)
 
-## PicFight Overview
+## Picfight Overview
 
-PicFight is a blockchain-based cryptocurrency with a strong focus on community
+Picfight is a blockchain-based cryptocurrency with a strong focus on community
 input, open governance, and sustainable funding for development. It utilizes a
 hybrid proof-of-work and proof-of-stake mining system to ensure that a small
-group cannot dominate the flow of transactions or make changes to PicFight without
-the input of the community.  A unit of the currency is called a `decred` (PFC).
+group cannot dominate the flow of transactions or make changes to Picfight without
+the input of the community.  A unit of the currency is called a `picfight` (PFC).
 
 https://picfight.org
 
@@ -22,11 +22,11 @@ https://picfight.org/downloads
 
 ## What is pfcd?
 
-pfcd is a full node implementation of PicFight written in Go (golang).
+pfcd is a full node implementation of Picfight written in Go (golang).
 
-It acts as a fully-validating chain daemon for the PicFight cryptocurrency.  pfcd
-maintains the entire past transactional ledger of PicFight and allows relaying of
-transactions to other PicFight nodes around the world.
+It acts as a fully-validating chain daemon for the Picfight cryptocurrency.  pfcd
+maintains the entire past transactional ledger of Picfight and allows relaying of
+transactions to other Picfight nodes around the world.
 
 This software is currently under active development.  It is extremely stable and
 has been in production use since February 2016.
@@ -45,17 +45,17 @@ that fully validates all transactions and blocks, as opposed to trusting a 3rd
 party.  In addition to validating transactions and blocks, nearly all full nodes
 also participate in relaying transactions and blocks to other full nodes around
 the world, thus forming the peer-to-peer network that is the backbone of the
-PicFight cryptocurrency.
+Picfight cryptocurrency.
 
 The full node distinction is important, since full nodes are not the only type
-of software participating in the PicFight peer network. For instance, there are
+of software participating in the Picfight peer network. For instance, there are
 'lightweight nodes' which rely on full nodes to serve the transactions, blocks,
 and cryptographic proofs they require to function, as well as relay their
 transactions to the rest of the global network.
 
 ## Why run pfcd?
 
-As described in the previous section, the PicFight cryptocurrency relies on having
+As described in the previous section, the Picfight cryptocurrency relies on having
 a peer-to-peer network of nodes that fully validate all transactions and blocks
 and then relay them to other full nodes.
 
@@ -212,7 +212,7 @@ script `run_tests.sh` by specifying either `docker` or `podman` as the first
 parameter.  This script defaults to using the current latest supported version
 of Go, but it also respects the `GOVERSION` environment variable set to the
 major version of Go to allow testing on a previous version of Go.  Generally,
-PicFight only supports the current and previous major versions of Go.
+Picfight only supports the current and previous major versions of Go.
 
 ```
 ./run_tests.sh docker

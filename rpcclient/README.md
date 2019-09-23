@@ -5,9 +5,9 @@ rpcclient
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/rpcclient)
 
-rpcclient implements a Websocket-enabled PicFight JSON-RPC client package written
+rpcclient implements a Websocket-enabled Picfight JSON-RPC client package written
 in [Go](http://golang.org/).  It provides a robust and easy to use client for
-interfacing with a PicFight RPC server that uses a pfcd compatible PicFight
+interfacing with a Picfight RPC server that uses a pfcd compatible Picfight
 JSON-RPC API.
 
 ## Status

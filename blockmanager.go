@@ -77,21 +77,21 @@ type newPeerMsg struct {
 	peer *serverPeer
 }
 
-// blockMsg packages a PicFight block message and the peer it came from together
+// blockMsg packages a Picfight block message and the peer it came from together
 // so the block handler has access to that information.
 type blockMsg struct {
 	block *pfcutil.Block
 	peer  *serverPeer
 }
 
-// invMsg packages a PicFight inv message and the peer it came from together
+// invMsg packages a Picfight inv message and the peer it came from together
 // so the block handler has access to that information.
 type invMsg struct {
 	inv  *wire.MsgInv
 	peer *serverPeer
 }
 
-// headersMsg packages a PicFight headers message and the peer it came from
+// headersMsg packages a Picfight headers message and the peer it came from
 // together so the block handler has access to that information.
 type headersMsg struct {
 	headers *wire.MsgHeaders
@@ -103,7 +103,7 @@ type donePeerMsg struct {
 	peer *serverPeer
 }
 
-// txMsg packages a PicFight tx message and the peer it came from together
+// txMsg packages a Picfight tx message and the peer it came from together
 // so the block handler has access to that information.
 type txMsg struct {
 	tx   *pfcutil.Tx
@@ -2347,7 +2347,7 @@ func (b *blockManager) SetParentTemplate(bt *BlockTemplate) {
 	<-reply
 }
 
-// newBlockManager returns a new PicFight block manager.
+// newBlockManager returns a new Picfight block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *server, indexManager blockchain.IndexManager, interrupt <-chan struct{}) (*blockManager, error) {
 	bm := blockManager{

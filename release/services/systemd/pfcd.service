@@ -1,5 +1,5 @@
 [Unit]
-Description=PicFight Full Node
+Description=Picfight Full Node
 
 [Service]
 Type=simple
