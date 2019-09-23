@@ -8,8 +8,8 @@ import (
 func main() {
 
 	set := &coin_knife.Settings{
-		PathToInputRepo:      `D:\PICFIGHT\src\github.com\btcsuite\btcd`,
-		PathToOutputRepo:     `D:\PICFIGHT\src\github.com\btcziggurat\btcd`,
+		PathToInputRepo:      `D:\PICFIGHT\src\github.com\decred\dcrd`,
+		PathToOutputRepo:     `D:\PICFIGHT\src\github.com\picfight\pfcd`,
 		DoNotProcessAnyFiles: false,
 		FileNameProcessor:    PicfightCoinFileNameGenerator,
 		IsFileProcessable:    ProcessableFiles,
