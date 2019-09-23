@@ -10,15 +10,15 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -535,46 +535,46 @@ func dbRemoveAddrIndexEntries(bucket internalBucket, addrKey [addrKeySize]byte, 
 
 // addrToKey converts known address types to an addrindex key.  An error is
 // returned for unsupported types.
-func addrToKey(addr pfcutil.Address, params *chaincfg.Params) ([addrKeySize]byte, error) {
+func addrToKey(addr dcrutil.Address, params *chaincfg.Params) ([addrKeySize]byte, error) {
 	switch addr := addr.(type) {
-	case *pfcutil.AddressPubKeyHash:
+	case *dcrutil.AddressPubKeyHash:
 		switch addr.DSA(params) {
-		case pfcec.STEcdsaSecp256k1:
+		case dcrec.STEcdsaSecp256k1:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHash
 			copy(result[1:], addr.Hash160()[:])
 			return result, nil
-		case pfcec.STEd25519:
+		case dcrec.STEd25519:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHashEdwards
 			copy(result[1:], addr.Hash160()[:])
 			return result, nil
-		case pfcec.STSchnorrSecp256k1:
+		case dcrec.STSchnorrSecp256k1:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHashSchnorr
 			copy(result[1:], addr.Hash160()[:])
 			return result, nil
 		}
 
-	case *pfcutil.AddressScriptHash:
+	case *dcrutil.AddressScriptHash:
 		var result [addrKeySize]byte
 		result[0] = addrKeyTypeScriptHash
 		copy(result[1:], addr.Hash160()[:])
 		return result, nil
 
-	case *pfcutil.AddressSecpPubKey:
+	case *dcrutil.AddressSecpPubKey:
 		var result [addrKeySize]byte
 		result[0] = addrKeyTypePubKeyHash
 		copy(result[1:], addr.AddressPubKeyHash().Hash160()[:])
 		return result, nil
 
-	case *pfcutil.AddressEdwardsPubKey:
+	case *dcrutil.AddressEdwardsPubKey:
 		var result [addrKeySize]byte
 		result[0] = addrKeyTypePubKeyHashEdwards
 		copy(result[1:], addr.AddressPubKeyHash().Hash160()[:])
 		return result, nil
 
-	case *pfcutil.AddressSecSchnorrPubKey:
+	case *dcrutil.AddressSecSchnorrPubKey:
 		var result [addrKeySize]byte
 		result[0] = addrKeyTypePubKeyHashSchnorr
 		copy(result[1:], addr.AddressPubKeyHash().Hash160()[:])
@@ -614,7 +614,7 @@ type AddrIndex struct {
 	// This allows fairly efficient updates when transactions are removed
 	// once they are included into a block.
 	unconfirmedLock sync.RWMutex
-	txnsByAddr      map[[addrKeySize]byte]map[chainhash.Hash]*pfcutil.Tx
+	txnsByAddr      map[[addrKeySize]byte]map[chainhash.Hash]*dcrutil.Tx
 	addrsByTx       map[chainhash.Hash]map[[addrKeySize]byte]struct{}
 }
 
@@ -727,7 +727,7 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, p
 // indexBlock extracts all of the standard addresses from all of the
 // regular and stake transactions in the passed block and maps each of them to
 // the associated transaction using the passed map.
-func (idx *AddrIndex) indexBlock(data writeIndexData, block *pfcutil.Block, view *blockchain.UtxoViewpoint) {
+func (idx *AddrIndex) indexBlock(data writeIndexData, block *dcrutil.Block, view *blockchain.UtxoViewpoint) {
 	regularTxns := block.Transactions()
 	for txIdx, tx := range regularTxns {
 		// Coinbases do not reference any inputs.  Since the block is
@@ -805,7 +805,7 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *pfcutil.Block, view
 // the transactions in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// NOTE: The fact that the block can disapprove the regular tree of the
 	// previous block is ignored for this index because even though the
 	// disapproved transactions no longer apply spend semantics, they still
@@ -858,7 +858,7 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Bloc
 // each transaction in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// NOTE: The fact that the block can disapprove the regular tree of the
 	// previous block is ignored for this index because even though the
 	// disapproved transactions no longer apply spend semantics, they still
@@ -892,7 +892,7 @@ func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.B
 // that involve a given address.
 //
 // This function is safe for concurrent access.
-func (idx *AddrIndex) EntriesForAddress(dbTx database.Tx, addr pfcutil.Address, numToSkip, numRequested uint32, reverse bool) ([]TxIndexEntry, uint32, error) {
+func (idx *AddrIndex) EntriesForAddress(dbTx database.Tx, addr dcrutil.Address, numToSkip, numRequested uint32, reverse bool) ([]TxIndexEntry, uint32, error) {
 	addrKey, err := addrToKey(addr, idx.chainParams)
 	if err != nil {
 		return nil, 0, err
@@ -924,7 +924,7 @@ func (idx *AddrIndex) EntriesForAddress(dbTx database.Tx, addr pfcutil.Address, 
 // script to the transaction.
 //
 // This function is safe for concurrent access.
-func (idx *AddrIndex) indexUnconfirmedAddresses(scriptVersion uint16, pkScript []byte, tx *pfcutil.Tx, isSStx bool) {
+func (idx *AddrIndex) indexUnconfirmedAddresses(scriptVersion uint16, pkScript []byte, tx *dcrutil.Tx, isSStx bool) {
 	// The error is ignored here since the only reason it can fail is if the
 	// script fails to parse and it was already validated before being
 	// admitted to the mempool.
@@ -952,7 +952,7 @@ func (idx *AddrIndex) indexUnconfirmedAddresses(scriptVersion uint16, pkScript [
 		idx.unconfirmedLock.Lock()
 		addrIndexEntry := idx.txnsByAddr[addrKey]
 		if addrIndexEntry == nil {
-			addrIndexEntry = make(map[chainhash.Hash]*pfcutil.Tx)
+			addrIndexEntry = make(map[chainhash.Hash]*dcrutil.Tx)
 			idx.txnsByAddr[addrKey] = addrIndexEntry
 		}
 		addrIndexEntry[*tx.Hash()] = tx
@@ -977,7 +977,7 @@ func (idx *AddrIndex) indexUnconfirmedAddresses(scriptVersion uint16, pkScript [
 // addresses not being indexed.
 //
 // This function is safe for concurrent access.
-func (idx *AddrIndex) AddUnconfirmedTx(tx *pfcutil.Tx, utxoView *blockchain.UtxoViewpoint) {
+func (idx *AddrIndex) AddUnconfirmedTx(tx *dcrutil.Tx, utxoView *blockchain.UtxoViewpoint) {
 	// Index addresses of all referenced previous transaction outputs.
 	//
 	// The existence checks are elided since this is only called after the
@@ -1040,7 +1040,7 @@ func (idx *AddrIndex) RemoveUnconfirmedTx(hash *chainhash.Hash) {
 // Unsupported address types are ignored and will result in no results.
 //
 // This function is safe for concurrent access.
-func (idx *AddrIndex) UnconfirmedTxnsForAddress(addr pfcutil.Address) []*pfcutil.Tx {
+func (idx *AddrIndex) UnconfirmedTxnsForAddress(addr dcrutil.Address) []*dcrutil.Tx {
 	// Ignore unsupported address types.
 	addrKey, err := addrToKey(addr, idx.chainParams)
 	if err != nil {
@@ -1054,7 +1054,7 @@ func (idx *AddrIndex) UnconfirmedTxnsForAddress(addr pfcutil.Address) []*pfcutil
 	// Return a new slice with the results if there are any.  This ensures
 	// safe concurrency.
 	if txns, exists := idx.txnsByAddr[addrKey]; exists {
-		addressTxns := make([]*pfcutil.Tx, 0, len(txns))
+		addressTxns := make([]*dcrutil.Tx, 0, len(txns))
 		for _, tx := range txns {
 			addressTxns = append(addressTxns, tx)
 		}
@@ -1075,7 +1075,7 @@ func NewAddrIndex(db database.DB, chainParams *chaincfg.Params) *AddrIndex {
 	return &AddrIndex{
 		db:          db,
 		chainParams: chainParams,
-		txnsByAddr:  make(map[[addrKeySize]byte]map[chainhash.Hash]*pfcutil.Tx),
+		txnsByAddr:  make(map[[addrKeySize]byte]map[chainhash.Hash]*dcrutil.Tx),
 		addrsByTx:   make(map[chainhash.Hash]map[[addrKeySize]byte]struct{}),
 	}
 }

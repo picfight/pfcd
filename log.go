@@ -10,18 +10,18 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/decred/dcrd/addrmgr"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/indexers"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/connmgr"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/fees"
+	"github.com/decred/dcrd/mempool"
+	"github.com/decred/dcrd/peer"
+	"github.com/decred/dcrd/txscript"
 	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
-	"github.com/picfight/pfcd/addrmgr"
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/connmgr"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/fees"
-	"github.com/picfight/pfcd/mempool"
-	"github.com/picfight/pfcd/peer"
-	"github.com/picfight/pfcd/txscript"
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and
@@ -60,7 +60,7 @@ var (
 	bmgrLog = backendLog.Logger("BMGR")
 	chanLog = backendLog.Logger("CHAN")
 	cmgrLog = backendLog.Logger("CMGR")
-	pfcdLog = backendLog.Logger("PFCD")
+	dcrdLog = backendLog.Logger("DCRD")
 	discLog = backendLog.Logger("DISC")
 	feesLog = backendLog.Logger("FEES")
 	indxLog = backendLog.Logger("INDX")
@@ -95,7 +95,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"BMGR": bmgrLog,
 	"CHAN": chanLog,
 	"CMGR": cmgrLog,
-	"PFCD": pfcdLog,
+	"DCRD": dcrdLog,
 	"DISC": discLog,
 	"FEES": feesLog,
 	"INDX": indxLog,
@@ -164,7 +164,7 @@ func directionString(inbound bool) string {
 
 // fatalf logs a string, then cleanly exits.
 func fatalf(str string) {
-	pfcdLog.Errorf("Unable to create profiler: %v", str)
+	dcrdLog.Errorf("Unable to create profiler: %v", str)
 	os.Stdout.Sync()
 	if logRotator != nil {
 		logRotator.Close()

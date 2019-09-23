@@ -8,7 +8,7 @@ package chaincfg
 import (
 	"time"
 
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/wire"
 )
 
 // TestNet3Params defines the network parameters for the test currency network.
@@ -19,16 +19,16 @@ var TestNet3Params = Params{
 	Net:         wire.TestNet3,
 	DefaultPort: "19108",
 	DNSSeeds: []DNSSeed{
-		{"eu-1.testnet.picfight.org", true},
-		{"eu-2.testnet.picfight.org", true},
-		{"us-1.testnet.picfight.org", true},
-		{"us-2.testnet.picfight.org", true},
+		{"testnet-seed.decred.mindcry.org", true},
+		{"testnet-seed.decred.netpurgatory.com", true},
+		{"testnet-seed.decred.org", true},
 	},
+
 	// Chain parameters
 	GenesisBlock:             &testNet3GenesisBlock,
 	GenesisHash:              &testNet3GenesisHash,
-	PowLimit:                 testNet3PowLimit.ToBigInt(),
-	PowLimitBits:             testNet3PowLimit.ToCompact(),
+	PowLimit:                 testNetPowLimit,
+	PowLimitBits:             0x1e00ffff,
 	ReduceMinDifficulty:      true,
 	MinDiffReductionTime:     time.Minute * 10, // ~99.3% chance to be mined before reduction
 	GenerateSupported:        true,
@@ -63,7 +63,36 @@ var TestNet3Params = Params{
 	RuleChangeActivationMultiplier: 3,    // 75%
 	RuleChangeActivationDivisor:    4,
 	RuleChangeActivationInterval:   5040, // 1 week
-	Deployments:                    map[uint32][]ConsensusDeployment{},
+	Deployments: map[uint32][]ConsensusDeployment{
+		7: {{
+			Vote: Vote{
+				Id:          VoteIDFixLNSeqLocks,
+				Description: "Modify sequence lock handling as defined in DCP0004",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "keep the existing consensus rules",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "change to the new consensus rules",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  1548633600, // Jan 28th, 2019
+			ExpireTime: 1580169600, // Jan 28th, 2020
+		}},
+	},
 
 	// Enforce current block version once majority of the network has
 	// upgraded.
@@ -97,7 +126,7 @@ var TestNet3Params = Params{
 	SLIP0044CoinType: 1,  // SLIP0044, Testnet (all coins)
 	LegacyCoinType:   11, // for backwards compatibility
 
-	// PicFight PoS parameters
+	// Decred PoS parameters
 	MinimumStakeDiff:        20000000, // 0.2 Coin
 	TicketPoolSize:          1024,
 	TicketsPerBlock:         5,
@@ -117,7 +146,7 @@ var TestNet3Params = Params{
 	StakeMajorityMultiplier: 3,
 	StakeMajorityDivisor:    4,
 
-	// PicFight organization related parameters.
+	// Decred organization related parameters.
 	// Organization address is TcrypGAcGCRVXrES7hWqVZb5oLJKCZEtoL1.
 	OrganizationPkScript:        hexDecode("a914d585cd7426d25b4ea5faf1e6987aacfeda3db94287"),
 	OrganizationPkScriptVersion: 0,

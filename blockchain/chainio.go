@@ -13,12 +13,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/internal/dbnamespace"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain/internal/dbnamespace"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -69,7 +69,7 @@ func isDeserializeErr(err error) bool {
 
 // serializeSizeForMinimalOutputs calculates the number of bytes needed to
 // serialize a transaction to its minimal outputs.
-func serializeSizeForMinimalOutputs(tx *pfcutil.Tx) int {
+func serializeSizeForMinimalOutputs(tx *dcrutil.Tx) int {
 	sz := serializeSizeVLQ(uint64(len(tx.MsgTx().TxOut)))
 	for _, out := range tx.MsgTx().TxOut {
 		sz += serializeSizeVLQ(compressTxOutAmount(uint64(out.Value)))
@@ -84,7 +84,7 @@ func serializeSizeForMinimalOutputs(tx *pfcutil.Tx) int {
 // putTxToMinimalOutputs serializes a transaction to its minimal outputs.
 // It returns the amount of data written. The function will panic if it writes
 // beyond the bounds of the passed memory.
-func putTxToMinimalOutputs(target []byte, tx *pfcutil.Tx) int {
+func putTxToMinimalOutputs(target []byte, tx *dcrutil.Tx) int {
 	offset := putVLQ(target, uint64(len(tx.MsgTx().TxOut)))
 	for _, out := range tx.MsgTx().TxOut {
 		offset += putVLQ(target[offset:], compressTxOutAmount(uint64(out.Value)))
@@ -407,7 +407,7 @@ func dbPutBlockNode(dbTx database.Tx, node *blockNode) error {
 
 // dbMaybeStoreBlock stores the provided block in the database if it's not
 // already there.
-func dbMaybeStoreBlock(dbTx database.Tx, block *pfcutil.Block) error {
+func dbMaybeStoreBlock(dbTx database.Tx, block *dcrutil.Block) error {
 	// Store the block in ffldb if not already done.
 	hasBlock, err := dbTx.HasBlock(block.Hash())
 	if err != nil {
@@ -503,7 +503,7 @@ type spentTxOut struct {
 
 // spentTxOutSerializeSize returns the number of bytes it would take to
 // serialize the passed stxo according to the format described above.
-// The amount is never encoded into spent transaction outputs in Picfight
+// The amount is never encoded into spent transaction outputs in Decred
 // because they're already encoded into the transactions, so skip them when
 // determining the serialization size.
 func spentTxOutSerializeSize(stxo *spentTxOut) int {
@@ -589,7 +589,7 @@ func decodeSpentTxOut(serialized []byte, stxo *spentTxOut, amount int64, height 
 	}
 
 	// Decode the compressed txout. We pass false for the amount flag,
-	// since in Picfight we only need pkScript at most due to fraud proofs
+	// since in Decred we only need pkScript at most due to fraud proofs
 	// already storing the decompressed amount.
 	_, scriptVersion, compScript, bytesRead, err :=
 		decodeCompressedTxOut(serialized[offset:], currentCompressionVersion,
@@ -758,7 +758,7 @@ func serializeSpendJournalEntry(stxos []spentTxOut) ([]byte, error) {
 // view MUST have the utxos referenced by all of the transactions available for
 // the passed block since that information is required to reconstruct the spent
 // txouts.
-func dbFetchSpendJournalEntry(dbTx database.Tx, block *pfcutil.Block) ([]spentTxOut, error) {
+func dbFetchSpendJournalEntry(dbTx database.Tx, block *dcrutil.Block) ([]spentTxOut, error) {
 	// Exclude the coinbase transaction since it can't spend anything.
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	serialized := spendBucket.Get(block.Hash()[:])
@@ -1441,7 +1441,7 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 // the genesis block, so it must only be called on an uninitialized database.
 func (b *BlockChain) createChainState() error {
 	// Create a new node from the genesis block and set it as the best node.
-	genesisBlock := pfcutil.NewBlock(b.chainParams.GenesisBlock)
+	genesisBlock := dcrutil.NewBlock(b.chainParams.GenesisBlock)
 	header := &genesisBlock.MsgBlock().Header
 	node := newBlockNode(header, nil)
 	node.status = statusDataStored | statusValid
@@ -1762,8 +1762,8 @@ func (b *BlockChain) initChainState() error {
 }
 
 // dbFetchBlockByNode uses an existing database transaction to retrieve the raw
-// block for the provided node, deserialize it, and return a pfcutil.Block.
-func dbFetchBlockByNode(dbTx database.Tx, node *blockNode) (*pfcutil.Block, error) {
+// block for the provided node, deserialize it, and return a dcrutil.Block.
+func dbFetchBlockByNode(dbTx database.Tx, node *blockNode) (*dcrutil.Block, error) {
 	// Load the raw block bytes from the database.
 	blockBytes, err := dbTx.FetchBlock(&node.hash)
 	if err != nil {
@@ -1771,7 +1771,7 @@ func dbFetchBlockByNode(dbTx database.Tx, node *blockNode) (*pfcutil.Block, erro
 	}
 
 	// Create the encapsulated block and set the height appropriately.
-	block, err := pfcutil.NewBlockFromBytes(blockBytes)
+	block, err := dcrutil.NewBlockFromBytes(blockBytes)
 	if err != nil {
 		return nil, err
 	}

@@ -10,9 +10,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -63,7 +63,7 @@ func HashToBig(hash *chainhash.Hash) *big.Int {
 // The formula to calculate N is:
 // 	N = (-1^sign) * mantissa * 256^(exponent-3)
 //
-// This compact form is only used in Picfight to encode unsigned 256-bit numbers
+// This compact form is only used in Decred to encode unsigned 256-bit numbers
 // which represent difficulty targets, thus there really is not a need for a
 // sign bit, but it is implemented here to stay consistent with bitcoind.
 func CompactToBig(compact uint32) *big.Int {
@@ -136,7 +136,7 @@ func BigToCompact(n *big.Int) uint32 {
 	return compact
 }
 
-// CalcWork calculates a work value from difficulty bits.  Picfight increases
+// CalcWork calculates a work value from difficulty bits.  Decred increases
 // the difficulty for generating a block by decreasing the value which the
 // generated hash must be less than.  This difficulty target is stored in each
 // block header using a compact representation as described in the documentation
@@ -430,7 +430,7 @@ func mergeDifficulty(oldDiff int64, newDiff1 int64, newDiff2 int64) int64 {
 // for the block after the passed previous block node based on exponentially
 // weighted averages.
 //
-// NOTE: This is the original stake difficulty algorithm that was used at Picfight
+// NOTE: This is the original stake difficulty algorithm that was used at Decred
 // launch.
 //
 // This function MUST be called with the chain state lock held (for writes).
@@ -451,7 +451,7 @@ func (b *BlockChain) calcNextRequiredStakeDifficultyV1(curNode *blockNode) (int6
 	// This is sort of sloppy and coded with the hopes that generally by
 	// stakeDiffStartHeight people will be submitting lots of SStx over the
 	// past nodesToTraverse many nodes. It should be okay with the default
-	// Picfight parameters, but might do weird things if you use custom
+	// Decred parameters, but might do weird things if you use custom
 	// parameters.
 	if curNode == nil ||
 		curNode.height < stakeDiffStartHeight {
@@ -878,7 +878,31 @@ func sdiffAlgoDeploymentVersion(network wire.CurrencyNet) uint32 {
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) calcNextRequiredStakeDifficulty(curNode *blockNode) (int64, error) {
-	return b.calcNextRequiredStakeDifficultyV2(curNode)
+	// Consensus voting on the new stake difficulty algorithm is only
+	// enabled on mainnet, testnet v2 (removed from code), and regnet.
+	net := b.chainParams.Net
+	if net != wire.MainNet && net != wire.RegNet {
+		return b.calcNextRequiredStakeDifficultyV2(curNode)
+	}
+
+	// Use the new stake difficulty algorithm if the stake vote for the new
+	// algorithm agenda is active.
+	//
+	// NOTE: The choice field of the return threshold state is not examined
+	// here because there is only one possible choice that can be active
+	// for the agenda, which is yes, so there is no need to check it.
+	deploymentVersion := sdiffAlgoDeploymentVersion(net)
+	state, err := b.deploymentState(curNode, deploymentVersion,
+		chaincfg.VoteIDSDiffAlgorithm)
+	if err != nil {
+		return 0, err
+	}
+	if state.State == ThresholdActive {
+		return b.calcNextRequiredStakeDifficultyV2(curNode)
+	}
+
+	// Use the old stake difficulty algorithm in any other case.
+	return b.calcNextRequiredStakeDifficultyV1(curNode)
 }
 
 // CalcNextRequiredStakeDifficulty calculates the required stake difficulty for
@@ -900,7 +924,7 @@ func (b *BlockChain) CalcNextRequiredStakeDifficulty() (int64, error) {
 // remainder of the interval.
 //
 // NOTE: This uses the original stake difficulty algorithm that was used at
-// Picfight launch.
+// Decred launch.
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) estimateNextStakeDifficultyV1(curNode *blockNode, ticketsInWindow int64, useMaxTickets bool) (int64, error) {
@@ -1344,7 +1368,33 @@ func (b *BlockChain) estimateNextStakeDifficultyV2(curNode *blockNode, newTicket
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) estimateNextStakeDifficulty(curNode *blockNode, newTickets int64, useMaxTickets bool) (int64, error) {
-	return b.estimateNextStakeDifficultyV2(curNode, newTickets, useMaxTickets)
+	// Consensus voting on the new stake difficulty algorithm is only
+	// enabled on mainnet, testnet v2 (removed from code), and regnet.
+	net := b.chainParams.Net
+	if net != wire.MainNet && net != wire.RegNet {
+		return b.calcNextRequiredStakeDifficultyV2(curNode)
+	}
+
+	// Use the new stake difficulty algorithm if the stake vote for the new
+	// algorithm agenda is active.
+	//
+	// NOTE: The choice field of the return threshold state is not examined
+	// here because there is only one possible choice that can be active
+	// for the agenda, which is yes, so there is no need to check it.
+	deploymentVersion := sdiffAlgoDeploymentVersion(net)
+	state, err := b.deploymentState(curNode, deploymentVersion,
+		chaincfg.VoteIDSDiffAlgorithm)
+	if err != nil {
+		return 0, err
+	}
+	if state.State == ThresholdActive {
+		return b.estimateNextStakeDifficultyV2(curNode, newTickets,
+			useMaxTickets)
+	}
+
+	// Use the old stake difficulty algorithm in any other case.
+	return b.estimateNextStakeDifficultyV1(curNode, newTickets,
+		useMaxTickets)
 }
 
 // EstimateNextStakeDifficulty estimates the next stake difficulty by pretending

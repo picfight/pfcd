@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Copyright (c) 2013 Conformal Systems LLC <info@conformal.com>
-# Copyright (c) 2016 The Decred developers
+# Copyright (c) 2016 The Decred Authors
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -23,11 +23,11 @@
 #   - Updates project changes file with release notes
 #
 
-PROJECT=pfcd
+PROJECT=dcrd
 PROJECT_UC=$(echo $PROJECT | tr '[:lower:]' '[:upper:]')
 SCRIPT=$(basename $0)
 VERFILE=../version.go
-VERFILES="$VERFILE ../cmd/pfcctl/version.go"
+VERFILES="$VERFILE ../cmd/dcrctl/version.go"
 PROJ_CHANGES=../CHANGES
 
 # verify params

@@ -6,12 +6,13 @@ package fullblocktests
 
 import (
 	"encoding/hex"
+	"math"
 	"math/big"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
 )
 
 // newHashFromStr converts the passed big-endian hex string into a
@@ -43,7 +44,7 @@ var (
 	// the overhead of creating it multiple times.
 	bigOne = big.NewInt(1)
 
-	// regNetPowLimit is the highest proof of work value a PicFight block
+	// regNetPowLimit is the highest proof of work value a Decred block
 	// can have for the regression test network.  It is the value 2^255 - 1.
 	regNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
@@ -141,7 +142,120 @@ var regNetParams = &chaincfg.Params{
 	RuleChangeActivationMultiplier: 3,   // 75%
 	RuleChangeActivationDivisor:    4,
 	RuleChangeActivationInterval:   320, // 320 seconds
-	Deployments:                    map[uint32][]chaincfg.ConsensusDeployment{},
+	Deployments: map[uint32][]chaincfg.ConsensusDeployment{
+		4: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDMaxBlockSize,
+				Description: "Change maximum allowed block size from 1MiB to 1.25MB",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "reject changing max allowed block size",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "accept changing max allowed block size",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+		5: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDSDiffAlgorithm,
+				Description: "Change stake difficulty algorithm as defined in DCP0001",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "keep the existing algorithm",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "change to the new algorithm",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+		6: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDLNFeatures,
+				Description: "Enable features defined in DCP0002 and DCP0003 necessary to support Lightning Network (LN)",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "keep the existing consensus rules",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "change to the new consensus rules",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+		7: {{
+			Vote: chaincfg.Vote{
+				Id:          chaincfg.VoteIDFixLNSeqLocks,
+				Description: "Modify sequence lock handling as defined in DCP0004",
+				Mask:        0x0006, // Bits 1 and 2
+				Choices: []chaincfg.Choice{{
+					Id:          "abstain",
+					Description: "abstain voting for change",
+					Bits:        0x0000,
+					IsAbstain:   true,
+					IsNo:        false,
+				}, {
+					Id:          "no",
+					Description: "keep the existing consensus rules",
+					Bits:        0x0002, // Bit 1
+					IsAbstain:   false,
+					IsNo:        true,
+				}, {
+					Id:          "yes",
+					Description: "change to the new consensus rules",
+					Bits:        0x0004, // Bit 2
+					IsAbstain:   false,
+					IsNo:        false,
+				}},
+			},
+			StartTime:  0,             // Always available for vote
+			ExpireTime: math.MaxInt64, // Never expires
+		}},
+	},
 
 	// Enforce current block version once majority of the network has
 	// upgraded.
@@ -175,7 +289,7 @@ var regNetParams = &chaincfg.Params{
 	SLIP0044CoinType: 1, // SLIP0044, Testnet (all coins)
 	LegacyCoinType:   1,
 
-	// PicFight PoS parameters
+	// Decred PoS parameters
 	MinimumStakeDiff:        20000,
 	TicketPoolSize:          64,
 	TicketsPerBlock:         5,
@@ -195,7 +309,7 @@ var regNetParams = &chaincfg.Params{
 	StakeMajorityMultiplier: 3,
 	StakeMajorityDivisor:    4,
 
-	// PicFight organization related parameters
+	// Decred organization related parameters
 	OrganizationPkScript:        fromHex("a9146913bcc838bd0087fb3f6b3c868423d5e300078d87"),
 	OrganizationPkScriptVersion: 0,
 	BlockOneLedger: []*chaincfg.TokenPayout{

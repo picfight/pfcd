@@ -8,8 +8,8 @@ package hdkeychain_test
 import (
 	"fmt"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/hdkeychain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/hdkeychain"
 )
 
 // This example demonstrates how to generate a cryptographically random seed
@@ -118,7 +118,7 @@ func Example_defaultWalletLayout() {
 	}
 
 	// Get and show the address associated with the extended keys for the
-	// main Picfight network.
+	// main Decred network.
 	acct0ExtAddr, err := acct0Ext10.Address(&chaincfg.MainNetParams)
 	if err != nil {
 		fmt.Println(err)

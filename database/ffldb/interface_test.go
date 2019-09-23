@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -45,7 +45,7 @@ var (
 
 // loadBlocks loads the blocks contained in the testdata directory and returns
 // a slice of them.
-func loadBlocks(t *testing.T, dataFile string, network wire.CurrencyNet) ([]*pfcutil.Block, error) {
+func loadBlocks(t *testing.T, dataFile string, network wire.CurrencyNet) ([]*dcrutil.Block, error) {
 	// Open the file that contains the blocks for reading.
 	fi, err := os.Open(dataFile)
 	if err != nil {
@@ -75,9 +75,9 @@ func loadBlocks(t *testing.T, dataFile string, network wire.CurrencyNet) ([]*pfc
 	}
 
 	// Fetch blocks 1 to 168 and perform various tests.
-	blocks := make([]*pfcutil.Block, 169)
+	blocks := make([]*dcrutil.Block, 169)
 	for i := 0; i <= 168; i++ {
-		bl, err := pfcutil.NewBlockFromBytes(blockChain[int64(i)])
+		bl, err := dcrutil.NewBlockFromBytes(blockChain[int64(i)])
 		if err != nil {
 			t.Errorf("NewBlockFromBytes error: %v", err.Error())
 		}
@@ -114,7 +114,7 @@ type testContext struct {
 	db          database.DB
 	bucketDepth int
 	isWritable  bool
-	blocks      []*pfcutil.Block
+	blocks      []*dcrutil.Block
 }
 
 // keyPair houses a key/value pair.  It is used over maps so ordering can be

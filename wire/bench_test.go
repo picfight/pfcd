@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
 )
 
 // ScriptFlags is a bitmask defining additional operations or tests that will be
@@ -61,7 +61,7 @@ const (
 	MaxScriptSize = 16384
 
 	// DefaultScriptVersion is the default scripting language version
-	// representing extended Picfight script.
+	// representing extended Decred script.
 	DefaultScriptVersion = uint16(0)
 )
 

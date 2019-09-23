@@ -1,9 +1,9 @@
 indexers
 ========
 
-[![Build Status](https://travis-ci.org/picfight/pfcd.png?branch=master)](https://travis-ci.org/picfight/pfcd)
+[![Build Status](https://travis-ci.org/decred/dcrd.png?branch=master)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://godoc.org/github.com/picfight/pfcd/blockchain/indexers?status.png)](http://godoc.org/github.com/picfight/pfcd/blockchain/indexers)
+[![GoDoc](https://godoc.org/github.com/decred/dcrd/blockchain/indexers?status.png)](http://godoc.org/github.com/decred/dcrd/blockchain/indexers)
 
 Package indexers implements optional block chain indexes.
 
@@ -30,7 +30,7 @@ via an RPC interface.
 ## Installation
 
 ```bash
-$ go get -u github.com/picfight/pfcd/blockchain/indexers
+$ go get -u github.com/decred/dcrd/blockchain/indexers
 ```
 
 ## License

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/certgen"
+	"github.com/decred/dcrd/certgen"
 )
 
 // TestNewTLSCertPair ensures the NewTLSCertPair function works as expected.

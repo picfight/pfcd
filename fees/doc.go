@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package fees provides picfight-specific methods for tracking and estimating fee
+Package fees provides decred-specific methods for tracking and estimating fee
 rates for new transactions to be mined into the network. Fee rate estimation has
 two main goals:
 
@@ -11,7 +11,7 @@ two main goals:
   (expressed in blocks);
 - Attempting to minimize fees while maintaining be above restriction.
 
-Although it was primarily written for pfcd, this package has intentionally been
+Although it was primarily written for dcrd, this package has intentionally been
 designed so it can be used as a standalone package for any projects needing the
 functionality provided.
 
@@ -35,7 +35,7 @@ be clear in the examples and simulations which of these is being discussed.
 Note: a very high contention scenario (> 90% of blocks being full and
 transactions remaining in the mempool indefinitely) is one in which stakeholders
 should be discussing alternative solutions (increase block size, provide other
-second layer alternatives, etc). Also, the current fill rate of blocks in picfight
+second layer alternatives, etc). Also, the current fill rate of blocks in decred
 is low, so while we try to account for this regime, I personally expect that the
 implementation will need more tweaks as it approaches this.
 
@@ -52,7 +52,7 @@ overview is available in reference [1].
 This particular version was chosen because it's simpler to implement and should
 be sufficient for low contention regimes. It probably overestimates fees in
 higher contention regimes and longer target confirmation windows, but as pointed
-out earlier should be sufficient for current fill rate of picfight's network.
+out earlier should be sufficient for current fill rate of decred's network.
 
 The basic algorithm is as follows (as executed by a single full node):
 
@@ -102,10 +102,10 @@ https://github.com/bitcoin/bitcoin/blob/v0.14.2/src/policy/fees.cpp
 [4] Source for fee estimation in version 0.16.2:
 https://github.com/bitcoin/bitcoin/blob/v0.16.2/src/policy/fees.cpp
 
-[5] Source for the original pfcfeesim and estimator work:
+[5] Source for the original dcrfeesim and estimator work:
 https://github.com/matheusd/dcrfeesim_dev
 
-[6] Source for the current pfcfeesim, using this module:
+[6] Source for the current dcrfeesim, using this module:
 https://github.com/matheusd/dcrfeesim
 */
 package fees

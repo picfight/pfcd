@@ -7,9 +7,9 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 // SequenceLock represents the minimum timestamp and minimum block height after
@@ -39,7 +39,7 @@ func isStakeBaseTx(tx *wire.MsgTx) bool {
 // from the point of view of the block node passed in as the first argument.
 //
 // See the CalcSequenceLock comments for more details.
-func (b *BlockChain) calcSequenceLock(node *blockNode, tx *pfcutil.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
+func (b *BlockChain) calcSequenceLock(node *blockNode, tx *dcrutil.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included
 	// in a block at any given height or time.
 	sequenceLock := &SequenceLock{MinHeight: -1, MinTime: -1}
@@ -147,7 +147,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *pfcutil.Tx, view *Utx
 // consensus checking must check the status of the agenda first.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) CalcSequenceLock(tx *pfcutil.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
+func (b *BlockChain) CalcSequenceLock(tx *dcrutil.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
 	b.chainLock.Lock()
 	seqLock, err := b.calcSequenceLock(b.bestChain.Tip(), tx, view, true)
 	b.chainLock.Unlock()

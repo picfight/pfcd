@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/wire"
 )
 
 func newKnownAddress(na *wire.NetAddress, attempts int, lastattempt, lastsuccess time.Time, tried bool, refs int) *KnownAddress {

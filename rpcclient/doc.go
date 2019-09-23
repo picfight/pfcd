@@ -4,24 +4,24 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package rpcclient implements a websocket-enabled Picfight JSON-RPC client.
+Package rpcclient implements a websocket-enabled Decred JSON-RPC client.
 
 Overview
 
 This client provides a robust and easy to use client for interfacing
-with a Picfight RPC server that uses a mostly btcd/bitcoin core
-style Picfight JSON-RPC API.  This client has been tested with pfcd
-(https://github.com/picfight/pfcd) and pfcwallet
-(https://github.com/picfight/pfcwallet).
+with a Decred RPC server that uses a mostly btcd/bitcoin core
+style Decred JSON-RPC API.  This client has been tested with dcrd
+(https://github.com/decred/dcrd) and dcrwallet
+(https://github.com/decred/dcrwallet).
 
-In addition to the compatible standard HTTP POST JSON-RPC API, pfcd and
-pfcwallet provide a websocket interface that is more efficient than the standard
+In addition to the compatible standard HTTP POST JSON-RPC API, dcrd and
+dcrwallet provide a websocket interface that is more efficient than the standard
 HTTP POST method of accessing RPC.  The section below discusses the differences
 between HTTP POST and websockets.
 
 By default, this client assumes the RPC server supports websockets and has
 TLS enabled.  In practice, this currently means it assumes you are talking to
-pfcd or pfcwallet by default.  However, configuration options are provided to
+dcrd or dcrwallet by default.  However, configuration options are provided to
 fall back to HTTP POST and disable TLS to support talking with inferior bitcoin
 core style RPC servers.
 
@@ -32,8 +32,8 @@ issues the call, waits for the response, and closes the connection.  This adds
 quite a bit of overhead to every call and lacks flexibility for features such as
 notifications.
 
-In contrast, the websocket-based JSON-RPC interface provided by pfcd and
-pfcwallet only uses a single connection that remains open and allows
+In contrast, the websocket-based JSON-RPC interface provided by dcrd and
+dcrwallet only uses a single connection that remains open and allows
 asynchronous bi-directional communication.
 
 The websocket interface supports all of the same commands as HTTP POST, but they
@@ -64,7 +64,7 @@ The first important part of notifications is to realize that they will only
 work when connected via websockets.  This should intuitively make sense
 because HTTP POST mode does not keep a connection open!
 
-All notifications provided by pfcd require registration to opt-in.  For example,
+All notifications provided by dcrd require registration to opt-in.  For example,
 if you want to be notified when funds are received by a set of addresses, you
 register the addresses via the NotifyReceived (or NotifyReceivedAsync) function.
 
@@ -104,17 +104,17 @@ flag to true in the connection config when creating the client.
 Minor RPC Server Differences and Chain/Wallet Separation
 
 Some of the commands are extensions specific to a particular RPC server.  For
-example, the DebugLevel call is an extension only provided by pfcd (and
-pfcwallet passthrough).  Therefore if you call one of these commands against
+example, the DebugLevel call is an extension only provided by dcrd (and
+dcrwallet passthrough).  Therefore if you call one of these commands against
 an RPC server that doesn't provide them, you will get an unimplemented error
 from the server.  An effort has been made to call out which commmands are
 extensions in their documentation.
 
-Also, it is important to realize that pfcd intentionally separates the wallet
-functionality into a separate process named pfcwallet.  This means if you are
-connected to the pfcd RPC server directly, only the RPCs which are related to
+Also, it is important to realize that dcrd intentionally separates the wallet
+functionality into a separate process named dcrwallet.  This means if you are
+connected to the dcrd RPC server directly, only the RPCs which are related to
 chain services will be available.  Depending on your application, you might only
-need chain-related RPCs.  In contrast, pfcwallet provides pass through treatment
+need chain-related RPCs.  In contrast, dcrwallet provides pass through treatment
 for chain-related RPCs, so it supports them in addition to wallet-related RPCs.
 
 Errors
@@ -142,14 +142,14 @@ the type can vary, but usually will be best handled by simply showing/logging
 it.
 
 The third category of errors, that is errors returned by the server, can be
-detected by type asserting the error in a *pfcjson.RPCError.  For example, to
+detected by type asserting the error in a *dcrjson.RPCError.  For example, to
 detect if a command is unimplemented by the remote RPC server:
 
   amount, err := client.GetBalance("")
   if err != nil {
-  	if jerr, ok := err.(*pfcjson.RPCError); ok {
+  	if jerr, ok := err.(*dcrjson.RPCError); ok {
   		switch jerr.Code {
-  		case pfcjson.ErrRPCUnimplemented:
+  		case dcrjson.ErrRPCUnimplemented:
   			// Handle not implemented error
 
   		// Handle other specific errors you care about
@@ -164,12 +164,12 @@ Example Usage
 
 The following full-blown client examples are in the examples directory:
 
- - pfcdwebsockets
-   Connects to a pfcd RPC server using TLS-secured websockets, registers for
+ - dcrdwebsockets
+   Connects to a dcrd RPC server using TLS-secured websockets, registers for
    block connected and block disconnected notifications, and gets the current
    block count
- - pfcwalletwebsockets
-   Connects to a pfcwallet RPC server using TLS-secured websockets, registers
+ - dcrwalletwebsockets
+   Connects to a dcrwallet RPC server using TLS-secured websockets, registers
    for notifications about changes to account balances, and gets a list of
    unspent transaction outputs (utxos) the wallet can sign
 */

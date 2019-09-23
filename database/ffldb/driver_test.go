@@ -13,10 +13,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/database/ffldb"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // dbType is the database type name for this driver.
@@ -172,7 +172,7 @@ func TestPersistence(t *testing.T) {
 		"b1key2": "foo2",
 		"b1key3": "foo3",
 	}
-	genesisBlock := pfcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+	genesisBlock := dcrutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 	genesisHash := chaincfg.MainNetParams.GenesisHash
 	err = db.Update(func(tx database.Tx) error {
 		metadataBucket := tx.Metadata()

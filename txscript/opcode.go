@@ -15,13 +15,13 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcec/edwards"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcec/secp256k1/schnorr"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/edwards"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1/schnorr"
+	"github.com/decred/dcrd/wire"
 )
 
 var optimizeSigVerification = chaincfg.SigHashOptimization
@@ -39,7 +39,7 @@ type opcode struct {
 
 // These constants are the values of the official opcodes used on the btc wiki,
 // in bitcoin core and in most if not all other references and software related
-// to handling PFC scripts.
+// to handling DCR scripts.
 const (
 	OP_0                   = 0x00 // 0
 	OP_FALSE               = 0x00 // 0 - AKA OP_0
@@ -2907,9 +2907,9 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 		// Zero case; pre-softfork clients will return 0 in this case as well.
 		vm.dstack.PushBool(false)
 		return nil
-	case pfcec.STEd25519:
+	case dcrec.STEd25519:
 		break
-	case pfcec.STSchnorrSecp256k1:
+	case dcrec.STSchnorrSecp256k1:
 		break
 	default:
 		// Caveat: All unknown signature types return true, allowing for future
@@ -2927,12 +2927,12 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 	// are allowed for secp256k1 Schnorr signatures, which 32 byte keys
 	// are used for Curve25519.
 	switch sigType {
-	case pfcec.STEd25519:
+	case dcrec.STEd25519:
 		if len(pkBytes) != 32 {
 			vm.dstack.PushBool(false)
 			return nil
 		}
-	case pfcec.STSchnorrSecp256k1:
+	case dcrec.STSchnorrSecp256k1:
 		if len(pkBytes) != 33 {
 			vm.dstack.PushBool(false)
 			return nil
@@ -2947,12 +2947,12 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 	// Schnorr signatures are 65 bytes in length (64 bytes for [r,s] and
 	// 1 byte appened to the end for hashType).
 	switch sigType {
-	case pfcec.STEd25519:
+	case dcrec.STEd25519:
 		if len(fullSigBytes) != 65 {
 			vm.dstack.PushBool(false)
 			return nil
 		}
-	case pfcec.STSchnorrSecp256k1:
+	case dcrec.STSchnorrSecp256k1:
 		if len(fullSigBytes) != 65 {
 			vm.dstack.PushBool(false)
 			return nil
@@ -3001,7 +3001,7 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 
 	// Get the public key from bytes.
 	switch sigType {
-	case pfcec.STEd25519:
+	case dcrec.STEd25519:
 		pubKeyEd, err := edwards.ParsePubKey(edwards.Edwards(), pkBytes)
 		if err != nil {
 			vm.dstack.PushBool(false)
@@ -3015,7 +3015,7 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 		ok := edwards.Verify(pubKeyEd, hash, sigEd.GetR(), sigEd.GetS())
 		vm.dstack.PushBool(ok)
 		return nil
-	case pfcec.STSchnorrSecp256k1:
+	case dcrec.STSchnorrSecp256k1:
 		pubKeySec, err := schnorr.ParsePubKey(secp256k1.S256(), pkBytes)
 		if err != nil {
 			vm.dstack.PushBool(false)

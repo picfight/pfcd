@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/chaingen"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain/chaingen"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 // cloneParams returns a deep copy of the provided parameters so the caller is
@@ -41,7 +41,6 @@ func cloneParams(params *chaincfg.Params) *chaincfg.Params {
 // TestBlockchainFunction tests the various blockchain API to ensure proper
 // functionality.
 func TestBlockchainFunctions(t *testing.T) {
-	t.SkipNow()
 	// Update parameters to reflect what is expected by the legacy data.
 	params := cloneParams(&chaincfg.RegNetParams)
 	params.GenesisBlock.Header.MerkleRoot = *mustParseHash("a216ea043f0d481a072424af646787794c32bcefd3ed181a090319bbf8a37105")
@@ -90,7 +89,7 @@ func TestBlockchainFunctions(t *testing.T) {
 
 	// Insert blocks 1 to 168 and perform various tests.
 	for i := 1; i <= 168; i++ {
-		bl, err := pfcutil.NewBlockFromBytes(blockChain[int64(i)])
+		bl, err := dcrutil.NewBlockFromBytes(blockChain[int64(i)])
 		if err != nil {
 			t.Errorf("NewBlockFromBytes error: %v", err.Error())
 		}
@@ -105,13 +104,13 @@ func TestBlockchainFunctions(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to get ticket pool value: %v", err)
 	}
-	expectedVal := pfcutil.Amount(3495091704)
+	expectedVal := dcrutil.Amount(3495091704)
 	if val != expectedVal {
 		t.Errorf("Failed to get correct result for ticket pool value; "+
 			"want %v, got %v", expectedVal, val)
 	}
 
-	a, _ := pfcutil.DecodeAddress("SsbKpMkPnadDcZFFZqRPY8nvdFagrktKuzB")
+	a, _ := dcrutil.DecodeAddress("SsbKpMkPnadDcZFFZqRPY8nvdFagrktKuzB")
 	hs, err := chain.TicketsWithAddress(a)
 	if err != nil {
 		t.Errorf("Failed to do TicketsWithAddress: %v", err)
@@ -175,7 +174,7 @@ func TestForceHeadReorg(t *testing.T) {
 	accepted := func() {
 		msgBlock := g.Tip()
 		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
+		block := dcrutil.NewBlock(msgBlock)
 		t.Logf("Testing block %s (hash %s, height %d)",
 			g.TipName(), block.Hash(), blockHeight)
 
@@ -203,7 +202,7 @@ func TestForceHeadReorg(t *testing.T) {
 	rejected := func(code ErrorCode) {
 		msgBlock := g.Tip()
 		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
+		block := dcrutil.NewBlock(msgBlock)
 		t.Logf("Testing block %s (hash %s, height %d)", g.TipName(),
 			block.Hash(), blockHeight)
 
@@ -245,7 +244,7 @@ func TestForceHeadReorg(t *testing.T) {
 	acceptedToSideChainWithExpectedTip := func(tipName string) {
 		msgBlock := g.Tip()
 		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
+		block := dcrutil.NewBlock(msgBlock)
 		t.Logf("Testing block %s (hash %s, height %d)",
 			g.TipName(), block.Hash(), blockHeight)
 

@@ -13,13 +13,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -95,7 +95,7 @@ var (
 // voteBitsApproveParent returns whether or not the passed vote bits indicate
 // the regular transaction tree of the parent block should be considered valid.
 func voteBitsApproveParent(voteBits uint16) bool {
-	return pfcutil.IsFlagSet16(voteBits, pfcutil.BlockValid)
+	return dcrutil.IsFlagSet16(voteBits, dcrutil.BlockValid)
 }
 
 // headerApprovesParent returns whether or not the vote bits in the passed
@@ -161,7 +161,7 @@ func IsCoinBaseTx(msgTx *wire.MsgTx) bool {
 //
 // This function only differs from IsCoinBaseTx in that it works with a higher
 // level util transaction as opposed to a raw wire transaction.
-func IsCoinBase(tx *pfcutil.Tx) bool {
+func IsCoinBase(tx *dcrutil.Tx) bool {
 	return IsCoinBaseTx(tx.MsgTx())
 }
 
@@ -180,7 +180,7 @@ func IsExpiredTx(tx *wire.MsgTx, blockHeight int64) bool {
 //
 // This function only differs from IsExpiredTx in that it works with a higher
 // level util transaction as opposed to a raw wire transaction.
-func IsExpired(tx *pfcutil.Tx, blockHeight int64) bool {
+func IsExpired(tx *dcrutil.Tx, blockHeight int64) bool {
 	return IsExpiredTx(tx.MsgTx(), blockHeight)
 }
 
@@ -202,7 +202,7 @@ func SequenceLockActive(lock *SequenceLock, blockHeight int64, medianTime time.T
 }
 
 // IsFinalizedTransaction determines whether or not a transaction is finalized.
-func IsFinalizedTransaction(tx *pfcutil.Tx, blockHeight int64, blockTime time.Time) bool {
+func IsFinalizedTransaction(tx *dcrutil.Tx, blockHeight int64, blockTime time.Time) bool {
 	// Lock time of zero means the transaction is finalized.
 	msgTx := tx.MsgTx()
 	lockTime := msgTx.LockTime
@@ -328,7 +328,7 @@ func CheckTransactionSanity(tx *wire.MsgTx, params *chaincfg.Params) error {
 	// must not be negative or more than the max allowed per transaction.  Also,
 	// the total of all outputs must abide by the same restrictions.  All
 	// amounts in a transaction are in a unit value known as an atom.  One
-	// Picfight is a quantity of atoms as defined by the AtomsPerCoin constant.
+	// Decred is a quantity of atoms as defined by the AtomsPerCoin constant.
 	//
 	// Also ensure that non-stake transaction output scripts do not contain any
 	// stake opcodes.
@@ -343,25 +343,25 @@ func CheckTransactionSanity(tx *wire.MsgTx, params *chaincfg.Params) error {
 				atom)
 			return ruleError(ErrBadTxOutValue, str)
 		}
-		if atom > pfcutil.MaxAmount {
+		if atom > dcrutil.MaxAmount {
 			str := fmt.Sprintf("transaction output value of %v is higher than "+
-				"max allowed value of %v", atom, pfcutil.MaxAmount)
+				"max allowed value of %v", atom, dcrutil.MaxAmount)
 			return ruleError(ErrBadTxOutValue, str)
 		}
 
 		// Two's complement int64 overflow guarantees that any overflow is
-		// detected and reported.  This is impossible for Picfight, but perhaps
+		// detected and reported.  This is impossible for Decred, but perhaps
 		// possible if an alt increases the total money supply.
 		totalAtom += atom
 		if totalAtom < 0 {
 			str := fmt.Sprintf("total value of all transaction outputs "+
-				"exceeds max allowed value of %v", pfcutil.MaxAmount)
+				"exceeds max allowed value of %v", dcrutil.MaxAmount)
 			return ruleError(ErrBadTxOutValue, str)
 		}
-		if totalAtom > pfcutil.MaxAmount {
+		if totalAtom > dcrutil.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction outputs is %v "+
 				"which is higher than max allowed value of %v", totalAtom,
-				pfcutil.MaxAmount)
+				dcrutil.MaxAmount)
 			return ruleError(ErrBadTxOutValue, str)
 		}
 
@@ -396,7 +396,7 @@ func CheckTransactionSanity(tx *wire.MsgTx, params *chaincfg.Params) error {
 // checkProofOfStake ensures that all ticket purchases in the block pay at least
 // the amount required by the block header stake bits which indicate the target
 // stake difficulty (aka ticket price) as claimed.
-func checkProofOfStake(block *pfcutil.Block, posLimit int64) error {
+func checkProofOfStake(block *dcrutil.Block, posLimit int64) error {
 	msgBlock := block.MsgBlock()
 	for _, staketx := range block.STransactions() {
 		msgTx := staketx.MsgTx()
@@ -431,7 +431,7 @@ func checkProofOfStake(block *pfcutil.Block, posLimit int64) error {
 // CheckProofOfStake ensures that all ticket purchases in the block pay at least
 // the amount required by the block header stake bits which indicate the target
 // stake difficulty (aka ticket price) as claimed.
-func CheckProofOfStake(block *pfcutil.Block, posLimit int64) error {
+func CheckProofOfStake(block *dcrutil.Block, posLimit int64) error {
 	return checkProofOfStake(block, posLimit)
 }
 
@@ -603,7 +603,7 @@ func checkBlockHeaderSanity(header *wire.BlockHeader, timeSource MedianTimeSourc
 //
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkBlockHeaderSanity.
-func checkBlockSanity(block *pfcutil.Block, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *chaincfg.Params) error {
+func checkBlockSanity(block *dcrutil.Block, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *chaincfg.Params) error {
 	msgBlock := block.MsgBlock()
 	header := &msgBlock.Header
 	err := checkBlockHeaderSanity(header, timeSource, flags, chainParams)
@@ -898,7 +898,7 @@ func checkBlockSanity(block *pfcutil.Block, timeSource MedianTimeSource, flags B
 // CheckBlockSanity performs some preliminary checks on a block to ensure it is
 // sane before continuing with block processing.  These checks are context
 // free.
-func CheckBlockSanity(block *pfcutil.Block, timeSource MedianTimeSource, chainParams *chaincfg.Params) error {
+func CheckBlockSanity(block *dcrutil.Block, timeSource MedianTimeSource, chainParams *chaincfg.Params) error {
 	return checkBlockSanity(block, timeSource, BFNone, chainParams)
 }
 
@@ -1058,7 +1058,7 @@ func (b *BlockChain) checkBlockHeaderPositional(header *wire.BlockHeader, prevNo
 //
 // The flags are also passed to checkBlockHeaderPositional.  See its
 // documentation for how the flags modify its behavior.
-func (b *BlockChain) checkBlockPositional(block *pfcutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockPositional(block *dcrutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
@@ -1196,7 +1196,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *wire.BlockHeader, prevNode 
 // checkCoinbaseUniqueHeight checks to ensure that for all blocks height > 1 the
 // coinbase contains the height encoding to make coinbase hash collisions
 // impossible.
-func checkCoinbaseUniqueHeight(blockHeight int64, block *pfcutil.Block) error {
+func checkCoinbaseUniqueHeight(blockHeight int64, block *dcrutil.Block) error {
 	// Coinbase TxOut[0] is always tax, TxOut[1] is always
 	// height + extranonce, so at least two outputs must
 	// exist.
@@ -1321,7 +1321,7 @@ func (b *BlockChain) checkAllowedRevocations(parentStakeNode *stake.Node, block 
 //
 // The flags are also passed to checkBlockHeaderContext.  See its documentation
 // for how the flags modify its behavior.
-func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockContext(block *dcrutil.Block, prevNode *blockNode, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
@@ -1356,7 +1356,11 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 		// the block being checked for all checks related to lock times
 		// once the stake vote for the agenda is active.
 		blockTime := header.Timestamp
-		{
+		lnFeaturesActive, err := b.isLNFeaturesAgendaActive(prevNode)
+		if err != nil {
+			return err
+		}
+		if lnFeaturesActive {
 			blockTime = prevNode.CalcPastMedianTime()
 		}
 
@@ -1413,9 +1417,9 @@ func (b *BlockChain) checkBlockContext(block *pfcutil.Block, prevNode *blockNode
 // For more details, see https://en.bitcoin.it/wiki/BIP_0030 and
 // http://r6.ca/blog/20120206T005236Z.html.
 //
-// Picfight: Check the stake transactions to make sure they don't have this txid
+// Decred: Check the stake transactions to make sure they don't have this txid
 // too.
-func (b *BlockChain) checkDupTxs(txSet []*pfcutil.Tx, view *UtxoViewpoint) error {
+func (b *BlockChain) checkDupTxs(txSet []*dcrutil.Tx, view *UtxoViewpoint) error {
 	if !chaincfg.CheckForDuplicateHashes {
 		return nil
 	}
@@ -1866,7 +1870,7 @@ func checkTicketRedeemerCommitments(ticketHash *chainhash.Hash, ticketOuts []*st
 //
 // NOTE: The caller MUST have already determined that the provided transaction
 // is a vote.
-func checkVoteInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight int64, view *UtxoViewpoint, params *chaincfg.Params) error {
+func checkVoteInputs(subsidyCache *SubsidyCache, tx *dcrutil.Tx, txHeight int64, view *UtxoViewpoint, params *chaincfg.Params) error {
 	ticketMaturity := int64(params.TicketMaturity)
 	voteHash := tx.Hash()
 	msgTx := tx.MsgTx()
@@ -1976,7 +1980,7 @@ func checkVoteInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight int64,
 //
 // NOTE: The caller MUST have already determined that the provided transaction
 // is a revocation.
-func checkRevocationInputs(tx *pfcutil.Tx, txHeight int64, view *UtxoViewpoint, params *chaincfg.Params) error {
+func checkRevocationInputs(tx *dcrutil.Tx, txHeight int64, view *UtxoViewpoint, params *chaincfg.Params) error {
 	ticketMaturity := int64(params.TicketMaturity)
 	revokeHash := tx.Hash()
 	msgTx := tx.MsgTx()
@@ -2067,20 +2071,20 @@ func checkRevocationInputs(tx *pfcutil.Tx, txHeight int64, view *UtxoViewpoint, 
 // requirements are met, detecting double spends, validating all values and
 // fees are in the legal range and the total output amount doesn't exceed the
 // input amount, and verifying the signatures to prove the spender was the
-// owner of the Picfight and therefore allowed to spend them.  As it checks the
+// owner of the Decred and therefore allowed to spend them.  As it checks the
 // inputs, it also calculates the total fees for the transaction and returns
 // that value.
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight int64, view *UtxoViewpoint, checkFraudProof bool, chainParams *chaincfg.Params) (int64, error) {
+func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *dcrutil.Tx, txHeight int64, view *UtxoViewpoint, checkFraudProof bool, chainParams *chaincfg.Params) (int64, error) {
 	// Coinbase transactions have no inputs.
 	if IsCoinBase(tx) {
 		return 0, nil
 	}
 
 	// -------------------------------------------------------------------
-	// Picfight stake transaction testing.
+	// Decred stake transaction testing.
 	// -------------------------------------------------------------------
 
 	// Perform additional checks on ticket purchase transactions such as
@@ -2124,7 +2128,7 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight
 	}
 
 	// -------------------------------------------------------------------
-	// Picfight general transaction testing (and a few stake exceptions).
+	// Decred general transaction testing (and a few stake exceptions).
 	// -------------------------------------------------------------------
 
 	txHash := tx.Hash()
@@ -2301,7 +2305,7 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight
 		// output values of the input transactions must not be negative
 		// or more than the max allowed per transaction.  All amounts
 		// in a transaction are in a unit value known as an atom.  One
-		// Picfight is a quantity of atoms as defined by the AtomPerCoin
+		// Decred is a quantity of atoms as defined by the AtomPerCoin
 		// constant.
 		originTxAtom := utxoEntry.AmountByIndex(originTxIndex)
 		if originTxAtom < 0 {
@@ -2309,10 +2313,10 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight
 				"value of %v", originTxAtom)
 			return 0, ruleError(ErrBadTxOutValue, str)
 		}
-		if originTxAtom > pfcutil.MaxAmount {
+		if originTxAtom > dcrutil.MaxAmount {
 			str := fmt.Sprintf("transaction output value of %v is "+
 				"higher than max allowed value of %v",
-				originTxAtom, pfcutil.MaxAmount)
+				originTxAtom, dcrutil.MaxAmount)
 			return 0, ruleError(ErrBadTxOutValue, str)
 		}
 
@@ -2322,11 +2326,11 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight
 		lastAtomIn := totalAtomIn
 		totalAtomIn += originTxAtom
 		if totalAtomIn < lastAtomIn ||
-			totalAtomIn > pfcutil.MaxAmount {
+			totalAtomIn > dcrutil.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+
 				"inputs is %v which is higher than max "+
 				"allowed value of %v", totalAtomIn,
-				pfcutil.MaxAmount)
+				dcrutil.MaxAmount)
 			return 0, ruleError(ErrBadTxOutValue, str)
 		}
 	}
@@ -2355,7 +2359,7 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *pfcutil.Tx, txHeight
 // input and output scripts in the provided transaction.  This uses the
 // quicker, but imprecise, signature operation counting mechanism from
 // txscript.
-func CountSigOps(tx *pfcutil.Tx, isCoinBaseTx bool, isSSGen bool) int {
+func CountSigOps(tx *dcrutil.Tx, isCoinBaseTx bool, isSSGen bool) int {
 	msgTx := tx.MsgTx()
 
 	// Accumulate the number of signature operations in all transaction
@@ -2389,7 +2393,7 @@ func CountSigOps(tx *pfcutil.Tx, isCoinBaseTx bool, isSSGen bool) int {
 // transactions which are of the pay-to-script-hash type.  This uses the
 // precise, signature operation counting mechanism from the script engine which
 // requires access to the input transaction scripts.
-func CountP2SHSigOps(tx *pfcutil.Tx, isCoinBaseTx bool, isStakeBaseTx bool, view *UtxoViewpoint) (int, error) {
+func CountP2SHSigOps(tx *dcrutil.Tx, isCoinBaseTx bool, isStakeBaseTx bool, view *UtxoViewpoint) (int, error) {
 	// Coinbase transactions have no interesting inputs.
 	if isCoinBaseTx {
 		return 0, nil
@@ -2449,7 +2453,7 @@ func CountP2SHSigOps(tx *pfcutil.Tx, isCoinBaseTx bool, isStakeBaseTx bool, view
 // createLegacySeqLockView returns a view to use when calculating sequence locks
 // for the transactions in the regular tree that preserves the same incorrect
 // semantics that were present in previous versions of the software.
-func (b *BlockChain) createLegacySeqLockView(block, parent *pfcutil.Block, view *UtxoViewpoint) (*UtxoViewpoint, error) {
+func (b *BlockChain) createLegacySeqLockView(block, parent *dcrutil.Block, view *UtxoViewpoint) (*UtxoViewpoint, error) {
 	// Clone the real view to avoid mutating it.
 	seqLockView := view.clone()
 
@@ -2505,7 +2509,7 @@ func (b *BlockChain) createLegacySeqLockView(block, parent *pfcutil.Block, view 
 // sure they don't overflow the limits.  It takes a cumulative number of sig
 // ops as an argument and increments will each call.
 // TxTree true == Regular, false == Stake
-func checkNumSigOps(tx *pfcutil.Tx, view *UtxoViewpoint, index int, txTree bool, cumulativeSigOps int) (int, error) {
+func checkNumSigOps(tx *dcrutil.Tx, view *UtxoViewpoint, index int, txTree bool, cumulativeSigOps int) (int, error) {
 	msgTx := tx.MsgTx()
 	isSSGen := stake.IsSSGen(msgTx)
 	numsigOps := CountSigOps(tx, (index == 0) && txTree, isSSGen)
@@ -2542,7 +2546,7 @@ func checkNumSigOps(tx *pfcutil.Tx, view *UtxoViewpoint, index int, txTree bool,
 // checkStakeBaseAmounts calculates the total amount given as subsidy from
 // single stakebase transactions (votes) within a block.  This function skips a
 // ton of checks already performed by CheckTransactionInputs.
-func checkStakeBaseAmounts(subsidyCache *SubsidyCache, height int64, params *chaincfg.Params, txs []*pfcutil.Tx, view *UtxoViewpoint) error {
+func checkStakeBaseAmounts(subsidyCache *SubsidyCache, height int64, params *chaincfg.Params, txs []*dcrutil.Tx, view *UtxoViewpoint) error {
 	for _, tx := range txs {
 		msgTx := tx.MsgTx()
 		if stake.IsSSGen(msgTx) {
@@ -2586,7 +2590,7 @@ func checkStakeBaseAmounts(subsidyCache *SubsidyCache, height int64, params *cha
 // getStakeBaseAmounts calculates the total amount given as subsidy from the
 // collective stakebase transactions (votes) within a block.  This function
 // skips a ton of checks already performed by CheckTransactionInputs.
-func getStakeBaseAmounts(txs []*pfcutil.Tx, view *UtxoViewpoint) (int64, error) {
+func getStakeBaseAmounts(txs []*dcrutil.Tx, view *UtxoViewpoint) (int64, error) {
 	totalInputs := int64(0)
 	totalOutputs := int64(0)
 	for _, tx := range txs {
@@ -2618,7 +2622,7 @@ func getStakeBaseAmounts(txs []*pfcutil.Tx, view *UtxoViewpoint) (int64, error) 
 
 // getStakeTreeFees determines the amount of fees for in the stake tx tree of
 // some node given a transaction store.
-func getStakeTreeFees(subsidyCache *SubsidyCache, height int64, params *chaincfg.Params, txs []*pfcutil.Tx, view *UtxoViewpoint) (pfcutil.Amount, error) {
+func getStakeTreeFees(subsidyCache *SubsidyCache, height int64, params *chaincfg.Params, txs []*dcrutil.Tx, view *UtxoViewpoint) (dcrutil.Amount, error) {
 	totalInputs := int64(0)
 	totalOutputs := int64(0)
 	for _, tx := range txs {
@@ -2665,14 +2669,14 @@ func getStakeTreeFees(subsidyCache *SubsidyCache, height int64, params *chaincfg
 		return 0, ruleError(ErrStakeFees, str)
 	}
 
-	return pfcutil.Amount(totalInputs - totalOutputs), nil
+	return dcrutil.Amount(totalInputs - totalOutputs), nil
 }
 
 // checkTransactionsAndConnect is the local function used to check the
 // transaction inputs for a transaction list given a predetermined TxStore.
 // After ensuring the transaction is valid, the transaction is connected to the
 // UTXO viewpoint.  TxTree true == Regular, false == Stake
-func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inputFees pfcutil.Amount, node *blockNode, txs []*pfcutil.Tx, view *UtxoViewpoint, stxos *[]spentTxOut, txTree bool) error {
+func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inputFees dcrutil.Amount, node *blockNode, txs []*dcrutil.Tx, view *UtxoViewpoint, stxos *[]spentTxOut, txTree bool) error {
 	// Perform several checks on the inputs for each transaction.  Also
 	// accumulate the total fees.  This could technically be combined with
 	// the loop above instead of running another loop over the
@@ -2820,11 +2824,18 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.ScriptFlags, error) {
 	scriptFlags := txscript.ScriptVerifyCleanStack |
 		txscript.ScriptVerifyCheckLockTimeVerify
-	{
+
+	// Enable enforcement of OP_CSV and OP_SHA256 if the stake vote
+	// for the agenda is active.
+	lnFeaturesActive, err := b.isLNFeaturesAgendaActive(node.parent)
+	if err != nil {
+		return 0, err
+	}
+	if lnFeaturesActive {
 		scriptFlags |= txscript.ScriptVerifyCheckSequenceVerify
 		scriptFlags |= txscript.ScriptVerifySHA256
 	}
-	return scriptFlags, nil
+	return scriptFlags, err
 }
 
 // checkConnectBlock performs several checks to confirm connecting the passed
@@ -2845,7 +2856,7 @@ func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.Scrip
 // the bulk of its work.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.Block, view *UtxoViewpoint, stxos *[]spentTxOut) error {
+func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *dcrutil.Block, view *UtxoViewpoint, stxos *[]spentTxOut) error {
 	// If the side chain blocks end up in the database, a call to
 	// CheckBlockSanity should be done here in case a previous version
 	// allowed a block that is no longer valid.  However, since the
@@ -2891,6 +2902,22 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 	// relative lock times via sequence numbers once the stake vote for the
 	// agenda is active.
 	legacySeqLockView := view
+	lnFeaturesActive, err := b.isLNFeaturesAgendaActive(node.parent)
+	if err != nil {
+		return err
+	}
+	fixSeqLocksActive, err := b.isFixSeqLocksAgendaActive(node.parent)
+	if err != nil {
+		return err
+	}
+	if lnFeaturesActive && !fixSeqLocksActive {
+		var err error
+		legacySeqLockView, err = b.createLegacySeqLockView(block, parent,
+			view)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Disconnect all of the transactions in the regular transaction tree of
 	// the parent if the block being checked votes against it.
@@ -2937,7 +2964,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 	// Enforce all relative lock times via sequence numbers for the stake
 	// transaction tree once the stake vote for the agenda is active.
 	var prevMedianTime time.Time
-	{
+	if lnFeaturesActive {
 		// Use the past median time of the *previous* block in order
 		// to determine if the transactions in the current block are
 		// final.
@@ -2988,7 +3015,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 
 	// Enforce all relative lock times via sequence numbers for the regular
 	// transaction tree once the stake vote for the agenda is active.
-	{
+	if lnFeaturesActive {
 		// Skip the coinbase since it does not have any inputs and thus
 		// lock times do not apply.
 		for _, tx := range block.Transactions()[1:] {
@@ -3040,7 +3067,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *pfcutil.B
 // the current tip of the main chain or its parent.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) CheckConnectBlockTemplate(block *pfcutil.Block) error {
+func (b *BlockChain) CheckConnectBlockTemplate(block *dcrutil.Block) error {
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
 

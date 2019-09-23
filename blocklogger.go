@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/slog"
-	"github.com/picfight/pfcd/pfcutil"
 )
 
 // blockProgressLogger provides periodic logging for other services in order
@@ -43,7 +43,7 @@ func newBlockProgressLogger(progressMessage string, logger slog.Logger) *blockPr
 // logBlockHeight logs a new block height as an information message to show
 // progress to the user. In order to prevent spam, it limits logging to one
 // message every 10 seconds with duration and totals included.
-func (b *blockProgressLogger) logBlockHeight(block *pfcutil.Block) {
+func (b *blockProgressLogger) logBlockHeight(block *dcrutil.Block) {
 	b.Lock()
 	defer b.Unlock()
 	b.receivedLogBlocks++

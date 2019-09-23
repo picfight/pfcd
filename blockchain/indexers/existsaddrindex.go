@@ -7,13 +7,13 @@ package indexers
 import (
 	"sync"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -144,7 +144,7 @@ func (idx *ExistsAddrIndex) existsAddress(bucket internalBucket, k [addrKeySize]
 
 // ExistsAddress is the concurrency safe, exported function that returns
 // whether or not an address has been seen before.
-func (idx *ExistsAddrIndex) ExistsAddress(addr pfcutil.Address) (bool, error) {
+func (idx *ExistsAddrIndex) ExistsAddress(addr dcrutil.Address) (bool, error) {
 	k, err := addrToKey(addr, idx.chainParams)
 	if err != nil {
 		return false, err
@@ -174,7 +174,7 @@ func (idx *ExistsAddrIndex) ExistsAddress(addr pfcutil.Address) (bool, error) {
 
 // ExistsAddresses is the concurrency safe, exported function that returns
 // whether or not each address in a slice of addresses has been seen before.
-func (idx *ExistsAddrIndex) ExistsAddresses(addrs []pfcutil.Address) ([]bool, error) {
+func (idx *ExistsAddrIndex) ExistsAddresses(addrs []dcrutil.Address) ([]bool, error) {
 	exists := make([]bool, len(addrs))
 	addrKeys := make([][addrKeySize]byte, len(addrs))
 	for i := range addrKeys {
@@ -215,7 +215,7 @@ func (idx *ExistsAddrIndex) ExistsAddresses(addrs []pfcutil.Address) ([]bool, er
 // the transactions in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// NOTE: The fact that the block can disapprove the regular tree of the
 	// previous block is ignored for this index because even though technically
 	// the address might become unused again if its only use was in a
@@ -228,7 +228,7 @@ func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcuti
 	// becoming unused, they were still seen.
 
 	usedAddrs := make(map[[addrKeySize]byte]struct{})
-	blockTxns := make([]*pfcutil.Tx, 0, len(block.Transactions())+
+	blockTxns := make([]*dcrutil.Tx, 0, len(block.Transactions())+
 		len(block.STransactions()))
 	blockTxns = append(blockTxns, block.Transactions()...)
 	blockTxns = append(blockTxns, block.STransactions()...)
@@ -333,7 +333,7 @@ func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcuti
 // never removes addresses.
 //
 // This is part of the Indexer interface.
-func (idx *ExistsAddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *ExistsAddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// The primary purpose of this index is to track whether or not addresses
 	// have ever been seen, so even if they ultimately end up technically
 	// becoming unused due to being in a block that was disconnected and the

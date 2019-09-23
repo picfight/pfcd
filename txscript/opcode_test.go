@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/wire"
 )
 
 // testScriptFlags are the script flags which are used in the tests when

@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 // importCmd defines the configuration options for the insecureimport command.
@@ -109,7 +109,7 @@ func (bi *blockImporter) readBlock() ([]byte, error) {
 // NOTE: This is not a safe import as it does not verify chain rules.
 func (bi *blockImporter) processBlock(serializedBlock []byte) (bool, error) {
 	// Deserialize the block which includes checks for malformed blocks.
-	block, err := pfcutil.NewBlockFromBytes(serializedBlock)
+	block, err := dcrutil.NewBlockFromBytes(serializedBlock)
 	if err != nil {
 		return false, err
 	}

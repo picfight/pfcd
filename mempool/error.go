@@ -6,8 +6,8 @@
 package mempool
 
 import (
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/wire"
 )
 
 // RuleError identifies a rule violation.  It is used to indicate that

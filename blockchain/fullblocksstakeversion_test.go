@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/picfight/pfcd/blockchain/chaingen"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/decred/dcrd/blockchain/chaingen"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // TestStakeVersion ensures that the stake version field in the block header is
@@ -42,7 +42,7 @@ func TestStakeVersion(t *testing.T) {
 	accepted := func() {
 		msgBlock := g.Tip()
 		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
+		block := dcrutil.NewBlock(msgBlock)
 		t.Logf("Testing block %s (hash %s, height %d)",
 			g.TipName(), block.Hash(), blockHeight)
 
@@ -70,7 +70,7 @@ func TestStakeVersion(t *testing.T) {
 	rejected := func(code ErrorCode) {
 		msgBlock := g.Tip()
 		blockHeight := msgBlock.Header.Height
-		block := pfcutil.NewBlock(msgBlock)
+		block := dcrutil.NewBlock(msgBlock)
 		t.Logf("Testing block %s (hash %s, height %d)", g.TipName(),
 			block.Hash(), blockHeight)
 

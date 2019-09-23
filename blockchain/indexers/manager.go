@@ -9,14 +9,14 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/internal/progresslog"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/internal/progresslog"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -121,7 +121,7 @@ func dbFetchIndexerVersion(dbTx database.Tx, idxKey []byte) (uint32, error) {
 // given block using the provided indexer and updates the tip of the indexer
 // accordingly.  An error will be returned if the current tip for the indexer is
 // not the previous block for the passed block.
-func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// Assert that the block being connected properly connects to the
 	// current tip of the index.
 	idxKey := indexer.Key()
@@ -149,7 +149,7 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block, parent *pfcut
 // given block using the provided indexer and updates the tip of the indexer
 // accordingly.  An error will be returned if the current tip for the indexer is
 // not the passed block.
-func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// Assert that the block being disconnected is the current tip of the
 	// index.
 	idxKey := indexer.Key()
@@ -361,13 +361,13 @@ func (m *Manager) upgradeIndexes(interrupt <-chan struct{}) error {
 }
 
 // dbFetchBlockByHash uses an existing database transaction to retrieve the raw
-// block for the provided hash, deserialize it, and return a pfcutil.Block.
-func dbFetchBlockByHash(dbTx database.Tx, hash *chainhash.Hash) (*pfcutil.Block, error) {
+// block for the provided hash, deserialize it, and return a dcrutil.Block.
+func dbFetchBlockByHash(dbTx database.Tx, hash *chainhash.Hash) (*dcrutil.Block, error) {
 	blockBytes, err := dbTx.FetchBlock(hash)
 	if err != nil {
 		return nil, err
 	}
-	return pfcutil.NewBlockFromBytes(blockBytes)
+	return dcrutil.NewBlockFromBytes(blockBytes)
 }
 
 // Init initializes the enabled indexes.  This is called during chain
@@ -415,7 +415,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// reorganized while the index is disabled.  This has to be done in
 	// reverse order because later indexes can depend on earlier ones.
 	var err error
-	var cachedBlock *pfcutil.Block
+	var cachedBlock *dcrutil.Block
 	for i := len(m.enabledIndexes); i > 0; i-- {
 		indexer := m.enabledIndexes[i-1]
 
@@ -442,7 +442,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		err = m.db.Update(func(dbTx database.Tx) error {
 			for !chain.MainChainHasBlock(hash) {
 				// Get the block, unless it's already cached.
-				var block *pfcutil.Block
+				var block *dcrutil.Block
 				if cachedBlock == nil && height > 0 {
 					block, err = dbFetchBlockByHash(dbTx, hash)
 					if err != nil {
@@ -554,13 +554,13 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	log.Infof("Catching up indexes from height %d to %d", lowestHeight,
 		bestHeight)
 
-	var cachedParent *pfcutil.Block
+	var cachedParent *dcrutil.Block
 	for height := lowestHeight + 1; height <= bestHeight; height++ {
 		if interruptRequested(interrupt) {
 			return errInterruptRequested
 		}
 
-		var block, parent *pfcutil.Block
+		var block, parent *dcrutil.Block
 		err = m.db.Update(func(dbTx database.Tx) error {
 			// Get the parent of the block, unless it's already cached.
 			if cachedParent == nil && height > 0 {
@@ -676,9 +676,9 @@ func dbFetchTx(dbTx database.Tx, hash *chainhash.Hash) (*wire.MsgTx, error) {
 // transactions in the block.  This is sometimes needed when catching indexes up
 // because many of the txouts could actually already be spent however the
 // associated scripts are still required to index them.
-func makeUtxoView(dbTx database.Tx, block *pfcutil.Block, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
+func makeUtxoView(dbTx database.Tx, block *dcrutil.Block, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
 	view := blockchain.NewUtxoViewpoint()
-	processTxns := func(txns []*pfcutil.Tx, regularTree bool) error {
+	processTxns := func(txns []*dcrutil.Tx, regularTree bool) error {
 		for txIdx, tx := range txns {
 			// Coinbases do not reference any inputs.  Since the block is
 			// required to have already gone through full validation, it has
@@ -709,7 +709,7 @@ func makeUtxoView(dbTx database.Tx, block *pfcutil.Block, interrupt <-chan struc
 					return err
 				}
 
-				view.AddTxOuts(pfcutil.NewTx(originTx), int64(txIn.BlockHeight),
+				view.AddTxOuts(dcrutil.NewTx(originTx), int64(txIn.BlockHeight),
 					txIn.BlockIndex)
 			}
 
@@ -736,7 +736,7 @@ func makeUtxoView(dbTx database.Tx, block *pfcutil.Block, interrupt <-chan struc
 // checks, and invokes each indexer.
 //
 // This is part of the blockchain.IndexManager interface.
-func (m *Manager) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (m *Manager) ConnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// Call each of the currently active optional indexes with the block
 	// being connected so they can update accordingly.
 	for _, index := range m.enabledIndexes {
@@ -754,7 +754,7 @@ func (m *Manager) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, v
 // the index entries associated with the block.
 //
 // This is part of the blockchain.IndexManager interface.
-func (m *Manager) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (m *Manager) DisconnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// Call each of the currently active optional indexes with the block
 	// being disconnected so they can update accordingly.
 	for _, index := range m.enabledIndexes {

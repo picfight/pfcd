@@ -1,17 +1,17 @@
 chaincfg
 ========
 
-[![Build Status](http://img.shields.io/travis/picfight/pfcd.svg)](https://travis-ci.org/picfight/pfcd)
+[![Build Status](http://img.shields.io/travis/decred/dcrd.svg)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/chaincfg)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/decred/dcrd/chaincfg)
 
 Package chaincfg defines chain configuration parameters for the three standard
-Picfight networks and provides the ability for callers to define their own custom
-Picfight networks.
+Decred networks and provides the ability for callers to define their own custom
+Decred networks.
 
-Although this package was primarily written for pfcd, it has intentionally been
+Although this package was primarily written for dcrd, it has intentionally been
 designed so it can be used as a standalone package for any projects needing to
-use parameters for the standard Picfight networks or for projects needing to
+use parameters for the standard Decred networks or for projects needing to
 define their own network.
 
 ## Sample Use
@@ -24,11 +24,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/chaincfg"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/chaincfg"
 )
 
-var testnet = flag.Bool("testnet", false, "operate on the testnet Picfight network")
+var testnet = flag.Bool("testnet", false, "operate on the testnet Decred network")
 
 // By default (without -testnet), use mainnet.
 var chainParams = &chaincfg.MainNetParams
@@ -56,7 +56,7 @@ func main() {
 ## Installation and Updating
 
 ```bash
-$ go get -u github.com/picfight/pfcd/chaincfg
+$ go get -u github.com/decred/dcrd/chaincfg
 ```
 
 ## License

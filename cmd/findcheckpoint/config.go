@@ -10,11 +10,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/database"
+	_ "github.com/decred/dcrd/database/ffldb"
+	"github.com/decred/dcrd/dcrutil"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/database"
-	_ "github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
 )
 
 const (
@@ -25,8 +25,8 @@ const (
 )
 
 var (
-	pfcdHomeDir     = pfcutil.AppDataDir("pfcd", false)
-	defaultDataDir  = filepath.Join(pfcdHomeDir, "data")
+	dcrdHomeDir     = dcrutil.AppDataDir("dcrd", false)
+	defaultDataDir  = filepath.Join(dcrdHomeDir, "data")
 	knownDbTypes    = database.SupportedDrivers()
 	activeNetParams = &chaincfg.MainNetParams
 )
@@ -35,12 +35,12 @@ var (
 //
 // See loadConfig for details on the configuration load process.
 type config struct {
-	DataDir       string `short:"b" long:"datadir" description:"Location of the pfcd data directory"`
+	DataDir       string `short:"b" long:"datadir" description:"Location of the dcrd data directory"`
 	DbType        string `long:"dbtype" description:"Database backend to use for the Block Chain"`
 	TestNet       bool   `long:"testnet" description:"Use the test network"`
 	SimNet        bool   `long:"simnet" description:"Use the simulation test network"`
 	NumCandidates int    `short:"n" long:"numcandidates" description:"Max num of checkpoint candidates to show {1-20}"`
-	UseGoOutput   bool   `short:"g" long:"gooutput" description:"Display the candidates using Go syntax that is ready to insert into the pfcchain checkpoint list"`
+	UseGoOutput   bool   `short:"g" long:"gooutput" description:"Display the candidates using Go syntax that is ready to insert into the dcrchain checkpoint list"`
 }
 
 // validDbType returns whether or not dbType is a supported database type.

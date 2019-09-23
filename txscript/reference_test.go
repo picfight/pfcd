@@ -17,9 +17,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -557,7 +557,7 @@ testloop:
 			continue
 		}
 
-		tx, err := pfcutil.NewTxFromBytes(serializedTx)
+		tx, err := dcrutil.NewTxFromBytes(serializedTx)
 		if err != nil {
 			t.Errorf("bad test (arg 2 not msgtx %v) %d: %v", err,
 				i, test)
@@ -700,7 +700,7 @@ testloop:
 			continue
 		}
 
-		tx, err := pfcutil.NewTxFromBytes(serializedTx)
+		tx, err := dcrutil.NewTxFromBytes(serializedTx)
 		if err != nil {
 			t.Errorf("bad test (arg 2 not msgtx %v) %d: %v", err,
 				i, test)

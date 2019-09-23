@@ -9,14 +9,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/gcs"
-	"github.com/picfight/pfcd/gcs/blockcf"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/gcs"
+	"github.com/decred/dcrd/gcs/blockcf"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -174,7 +174,7 @@ func (idx *CFIndex) Create(dbTx database.Tx) error {
 
 // storeFilter stores a given filter, and performs the steps needed to
 // generate the filter's header.
-func storeFilter(dbTx database.Tx, block *pfcutil.Block, f *gcs.Filter, filterType wire.FilterType) error {
+func storeFilter(dbTx database.Tx, block *dcrutil.Block, f *gcs.Filter, filterType wire.FilterType) error {
 	if uint8(filterType) > maxFilterType {
 		return errors.New("unsupported filter type")
 	}
@@ -213,7 +213,7 @@ func storeFilter(dbTx database.Tx, block *pfcutil.Block, f *gcs.Filter, filterTy
 // ConnectBlock is invoked by the index manager when a new block has been
 // connected to the main chain. This indexer adds a hash-to-cf mapping for
 // every passed block. This is part of the Indexer interface.
-func (idx *CFIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *CFIndex) ConnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	f, err := blockcf.Regular(block.MsgBlock())
 	if err != nil && err != gcs.ErrNoData {
 		return err
@@ -235,7 +235,7 @@ func (idx *CFIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block,
 // DisconnectBlock is invoked by the index manager when a block has been
 // disconnected from the main chain.  This indexer removes the hash-to-cf
 // mapping for every passed block. This is part of the Indexer interface.
-func (idx *CFIndex) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *CFIndex) DisconnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	for _, key := range cfIndexKeys {
 		err := dbDeleteFilter(dbTx, key, block.Hash())
 		if err != nil {

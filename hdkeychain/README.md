@@ -1,11 +1,11 @@
 hdkeychain
 ==========
 
-[![Build Status](http://img.shields.io/travis/picfight/pfcd.svg)](https://travis-ci.org/picfight/pfcd)
+[![Build Status](http://img.shields.io/travis/decred/dcrd.svg)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/hdkeychain)
+[![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/decred/dcrd/hdkeychain)
 
-Package hdkeychain provides an API for Picfight hierarchical deterministic
+Package hdkeychain provides an API for Decred hierarchical deterministic
 extended keys (based on BIP0032).
 
 A comprehensive suite of tests is provided to ensure proper functionality.  See
@@ -23,8 +23,8 @@ report.
 - Easy serialization and deserialization for both private and public extended
   keys
 - Support for custom networks by registering them with chaincfg
-- Obtaining the underlying EC pubkeys, EC privkeys, and associated picfight
-  addresses ties in seamlessly with existing btcec and pfcutil types which
+- Obtaining the underlying EC pubkeys, EC privkeys, and associated decred
+  addresses ties in seamlessly with existing btcec and dcrutil types which
   provide powerful tools for working with them to do things like sign
   transactions and generate payment scripts
 - Uses the btcec package which is highly optimized for secp256k1
@@ -39,18 +39,18 @@ report.
 ## Installation and Updating
 
 ```bash
-$ go get -u github.com/picfight/pfcd/hdkeychain
+$ go get -u github.com/decred/dcrd/hdkeychain
 ```
 
 ## Examples
 
-* [NewMaster Example](http://godoc.org/github.com/picfight/pfcd/hdkeychain#example-NewMaster)
+* [NewMaster Example](http://godoc.org/github.com/decred/dcrd/hdkeychain#example-NewMaster)
   Demonstrates how to generate a cryptographically random seed then use it to
   create a new master node (extended key).
-* [Default Wallet Layout Example](http://godoc.org/github.com/picfight/pfcd/hdkeychain#example-package--DefaultWalletLayout)
+* [Default Wallet Layout Example](http://godoc.org/github.com/decred/dcrd/hdkeychain#example-package--DefaultWalletLayout)
   Demonstrates the default hierarchical deterministic wallet layout as described
   in BIP0032.
-* [Audits Use Case Example](http://godoc.org/github.com/picfight/pfcd/hdkeychain#example-package--Audits)
+* [Audits Use Case Example](http://godoc.org/github.com/decred/dcrd/hdkeychain#example-package--Audits)
   Demonstrates the audits use case in BIP0032.
 
 ## License

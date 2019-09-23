@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/indexers"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 var zeroHash = chainhash.Hash{}
@@ -97,7 +97,7 @@ func (bi *blockImporter) readBlock() ([]byte, error) {
 // with any potential errors.
 func (bi *blockImporter) processBlock(serializedBlock []byte) (bool, error) {
 	// Deserialize the block which includes checks for malformed blocks.
-	block, err := pfcutil.NewBlockFromBytes(serializedBlock)
+	block, err := dcrutil.NewBlockFromBytes(serializedBlock)
 	if err != nil {
 		return false, err
 	}

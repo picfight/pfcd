@@ -8,8 +8,8 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // NotificationType represents the type of a notification message.
@@ -115,7 +115,7 @@ type BlockAcceptedNtfnsData struct {
 	ForkLen int64
 
 	// Block is the block that was accepted into the chain.
-	Block *pfcutil.Block
+	Block *dcrutil.Block
 }
 
 // ReorganizationNtfnsData is the structure for data indicating information
@@ -141,10 +141,10 @@ type TicketNotificationsData struct {
 // Notification defines notification that is sent to the caller via the callback
 // function provided during the call to New and consists of a notification type
 // as well as associated data that depends on the type as follows:
-// 	- NTNewTipBlockChecked:    *pfcutil.Block
+// 	- NTNewTipBlockChecked:    *dcrutil.Block
 // 	- NTBlockAccepted:         *BlockAcceptedNtfnsData
-// 	- NTBlockConnected:        []*pfcutil.Block of len 2
-// 	- NTBlockDisconnected:     []*pfcutil.Block of len 2
+// 	- NTBlockConnected:        []*dcrutil.Block of len 2
+// 	- NTBlockDisconnected:     []*dcrutil.Block of len 2
 // 	- NTChainReorgStarted:     nil
 // 	- NTChainReorgDone:        nil
 //  - NTReorganization:        *ReorganizationNtfnsData

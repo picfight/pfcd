@@ -10,15 +10,15 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/indexers"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/internal/limits"
 	"github.com/decred/slog"
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/internal/limits"
 )
 
 const (
-	// blockDbNamePrefix is the prefix for the pfcd block database.
+	// blockDbNamePrefix is the prefix for the dcrd block database.
 	blockDbNamePrefix = "blocks"
 )
 

@@ -1,13 +1,13 @@
 rpcclient
 =========
 
-[![Build Status](http://img.shields.io/travis/picfight/pfcd.svg)](https://travis-ci.org/picfight/pfcd)
+[![Build Status](http://img.shields.io/travis/decred/dcrd.svg)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/rpcclient)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/decred/dcrd/rpcclient)
 
-rpcclient implements a Websocket-enabled Picfight JSON-RPC client package written
+rpcclient implements a Websocket-enabled Decred JSON-RPC client package written
 in [Go](http://golang.org/).  It provides a robust and easy to use client for
-interfacing with a Picfight RPC server that uses a pfcd compatible Picfight
+interfacing with a Decred RPC server that uses a dcrd compatible Decred
 JSON-RPC API.
 
 ## Status
@@ -18,21 +18,21 @@ implement and the API is not stable yet.
 
 ## Documentation
 
-* [API Reference](http://godoc.org/github.com/picfight/pfcd/rpcclient)
-* [pfcd Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/pfcdwebsockets)
-  Connects to a pfcd RPC server using TLS-secured websockets, registers for
+* [API Reference](http://godoc.org/github.com/decred/dcrd/rpcclient)
+* [dcrd Websockets Example](https://github.com/decred/dcrd/tree/master/rpcclient/examples/dcrdwebsockets)
+  Connects to a dcrd RPC server using TLS-secured websockets, registers for
   block connected and block disconnected notifications, and gets the current
   block count
-* [pfcwallet Websockets Example](https://github.com/picfight/pfcd/tree/master/rpcclient/examples/pfcwalletwebsockets)  
-  Connects to a pfcwallet RPC server using TLS-secured websockets, registers for
+* [dcrwallet Websockets Example](https://github.com/decred/dcrd/tree/master/rpcclient/examples/dcrwalletwebsockets)  
+  Connects to a dcrwallet RPC server using TLS-secured websockets, registers for
   notifications about changes to account balances, and gets a list of unspent
   transaction outputs (utxos) the wallet can sign
 
 ## Major Features
 
-* Supports Websockets (pfcd/pfcwallet) and HTTP POST mode (bitcoin core-like)
-* Provides callback and registration functions for pfcd/pfcwallet notifications
-* Supports pfcd extensions
+* Supports Websockets (dcrd/dcrwallet) and HTTP POST mode (bitcoin core-like)
+* Provides callback and registration functions for dcrd/dcrwallet notifications
+* Supports dcrd extensions
 * Translates to and from higher-level and easier to use Go types
 * Offers a synchronous (blocking) and asynchronous API
 * When running in Websockets mode (the default):
@@ -44,7 +44,7 @@ implement and the API is not stable yet.
 ## Installation
 
 ```bash
-$ go get -u github.com/picfight/pfcd/rpcclient
+$ go get -u github.com/decred/dcrd/rpcclient
 ```
 
 ## License

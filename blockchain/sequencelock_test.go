@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 // mustLockTimeToSeq converts the passed relative lock time to a sequence number
@@ -48,7 +48,7 @@ func TestCalcSequenceLock(t *testing.T) {
 	// Create a utxo view with a fake utxo for the inputs used in the
 	// transactions created below.  This utxo is added such that it has an
 	// age of 4 blocks.
-	targetTx := pfcutil.NewTx(&wire.MsgTx{
+	targetTx := dcrutil.NewTx(&wire.MsgTx{
 		TxOut: []*wire.TxOut{{
 			Value:    10,
 			Version:  0,
@@ -100,7 +100,7 @@ func TestCalcSequenceLock(t *testing.T) {
 
 	// Adding a utxo with a height of 0x7fffffff indicates that the output
 	// is currently unmined.
-	view.AddTxOuts(pfcutil.NewTx(unConfTx), 0x7fffffff, wire.NullBlockIndex)
+	view.AddTxOuts(dcrutil.NewTx(unConfTx), 0x7fffffff, wire.NullBlockIndex)
 
 	tests := []struct {
 		name      string
@@ -355,7 +355,7 @@ func TestCalcSequenceLock(t *testing.T) {
 		for _, txIn := range test.inputs {
 			tx.AddTxIn(txIn)
 		}
-		utilTx := pfcutil.NewTx(&tx)
+		utilTx := dcrutil.NewTx(&tx)
 
 		// Calculate the sequence lock for the test input data.  Since
 		// the exported function always has the agenda active, use the

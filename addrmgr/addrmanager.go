@@ -23,15 +23,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
 )
 
 // PeersFilename is the default filename to store serialized peers.
 const PeersFilename = "peers.json"
 
 // AddrManager provides a concurrency safe address manager for caching potential
-// peers on the Picfight network.
+// peers on the Decred network.
 type AddrManager struct {
 	mtx            sync.Mutex                               // main mutex used to sync methods
 	peersFile      string                                   // path of file to store peers in
@@ -1134,7 +1134,7 @@ func (a *AddrManager) GetBestLocalAddress(remoteAddr *wire.NetAddress) *wire.Net
 	return bestAddress
 }
 
-// New returns a new Picfight address manager.
+// New returns a new Decred address manager.
 // Use Start to begin processing asynchronous address updates.
 // The address manager uses lookupFunc for necessary DNS lookups.
 func New(dataDir string, lookupFunc func(string) ([]net.IP, error)) *AddrManager {

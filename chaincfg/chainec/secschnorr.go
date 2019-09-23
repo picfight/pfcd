@@ -9,8 +9,8 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcec/secp256k1/schnorr"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1/schnorr"
 )
 
 type secSchnorrDSA struct {

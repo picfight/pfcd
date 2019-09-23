@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -250,7 +250,7 @@ func dbFetchTxIndexEntry(dbTx database.Tx, txHash *chainhash.Hash) (*TxIndexEntr
 // dbAddTxIndexEntries uses an existing database transaction to add a
 // transaction index entry for every transaction in the parent of the passed
 // block (if they were valid) and every stake transaction in the passed block.
-func dbAddTxIndexEntries(dbTx database.Tx, block *pfcutil.Block, blockID uint32) error {
+func dbAddTxIndexEntries(dbTx database.Tx, block *dcrutil.Block, blockID uint32) error {
 	// The offset and length of the transactions within the serialized block.
 	txLocs, stakeTxLocs, err := block.TxLoc()
 	if err != nil {
@@ -262,7 +262,7 @@ func dbAddTxIndexEntries(dbTx database.Tx, block *pfcutil.Block, blockID uint32)
 	// serialize them directly into the slice.  Then, pass the appropriate
 	// subslice to the database to be written.  This approach significantly
 	// cuts down on the number of required allocations.
-	addEntries := func(txns []*pfcutil.Tx, txLocs []wire.TxLoc, blockID uint32) error {
+	addEntries := func(txns []*dcrutil.Tx, txLocs []wire.TxLoc, blockID uint32) error {
 		offset := 0
 		serializedValues := make([]byte, len(txns)*txEntrySize)
 		for i, tx := range txns {
@@ -305,8 +305,8 @@ func dbRemoveTxIndexEntry(dbTx database.Tx, txHash *chainhash.Hash) error {
 // dbRemoveTxIndexEntries uses an existing database transaction to remove the
 // latest transaction entry for every transaction in the parent of the passed
 // block (if they were valid) and every stake transaction in the passed block.
-func dbRemoveTxIndexEntries(dbTx database.Tx, block *pfcutil.Block) error {
-	removeEntries := func(txns []*pfcutil.Tx) error {
+func dbRemoveTxIndexEntries(dbTx database.Tx, block *dcrutil.Block) error {
+	removeEntries := func(txns []*dcrutil.Tx) error {
 		for _, tx := range txns {
 			err := dbRemoveTxIndexEntry(dbTx, tx.Hash())
 			if err != nil {
@@ -440,7 +440,7 @@ func (idx *TxIndex) Create(dbTx database.Tx) error {
 // for every transaction in the passed block.
 //
 // This is part of the Indexer interface.
-func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// NOTE: The fact that the block can disapprove the regular tree of the
 	// previous block is ignored for this index because even though the
 	// disapproved transactions no longer apply spend semantics, they still
@@ -479,7 +479,7 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block, parent *pfcutil.Block,
 // hash-to-transaction mapping for every transaction in the block.
 //
 // This is part of the Indexer interface.
-func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block, parent *pfcutil.Block, view *blockchain.UtxoViewpoint) error {
+func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block, parent *dcrutil.Block, view *blockchain.UtxoViewpoint) error {
 	// NOTE: The fact that the block can disapprove the regular tree of the
 	// previous block is ignored when disconnecting blocks because it is also
 	// ignored when connecting the block.  See the comments in ConnectBlock for

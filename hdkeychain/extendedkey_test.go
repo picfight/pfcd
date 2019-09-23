@@ -16,8 +16,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/hdkeychain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/hdkeychain"
 )
 
 // TestBIP0032Vectors tests the vectors provided by [BIP32] to ensure the

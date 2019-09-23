@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/wire"
 )
 
 // KnownAddress tracks information about a known network address that is used

@@ -12,10 +12,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -144,43 +144,43 @@ type NotificationHandlers struct {
 	// memory pool.  It will only be invoked if a preceding call to
 	// NotifyNewTransactions with the verbose flag set to false has been
 	// made to register for the notification and the function is non-nil.
-	OnTxAccepted func(hash *chainhash.Hash, amount pfcutil.Amount)
+	OnTxAccepted func(hash *chainhash.Hash, amount dcrutil.Amount)
 
 	// OnTxAccepted is invoked when a transaction is accepted into the
 	// memory pool.  It will only be invoked if a preceding call to
 	// NotifyNewTransactions with the verbose flag set to true has been
 	// made to register for the notification and the function is non-nil.
-	OnTxAcceptedVerbose func(txDetails *pfcjson.TxRawResult)
+	OnTxAcceptedVerbose func(txDetails *dcrjson.TxRawResult)
 
-	// OnPfcdConnected is invoked when a wallet connects or disconnects from
-	// pfcd.
+	// OnDcrdConnected is invoked when a wallet connects or disconnects from
+	// dcrd.
 	//
 	// This will only be available when client is connected to a wallet
-	// server such as pfcwallet.
-	OnPfcdConnected func(connected bool)
+	// server such as dcrwallet.
+	OnDcrdConnected func(connected bool)
 
 	// OnAccountBalance is invoked with account balance updates.
 	//
 	// This will only be available when speaking to a wallet server
-	// such as pfcwallet.
-	OnAccountBalance func(account string, balance pfcutil.Amount, confirmed bool)
+	// such as dcrwallet.
+	OnAccountBalance func(account string, balance dcrutil.Amount, confirmed bool)
 
 	// OnWalletLockState is invoked when a wallet is locked or unlocked.
 	//
 	// This will only be available when client is connected to a wallet
-	// server such as pfcwallet.
+	// server such as dcrwallet.
 	OnWalletLockState func(locked bool)
 
 	// OnTicketsPurchased is invoked when a wallet purchases an SStx.
 	//
 	// This will only be available when client is connected to a wallet
-	// server such as pfcwallet.
-	OnTicketsPurchased func(TxHash *chainhash.Hash, amount pfcutil.Amount)
+	// server such as dcrwallet.
+	OnTicketsPurchased func(TxHash *chainhash.Hash, amount dcrutil.Amount)
 
 	// OnVotesCreated is invoked when a wallet generates an SSGen.
 	//
 	// This will only be available when client is connected to a wallet
-	// server such as pfcwallet.
+	// server such as dcrwallet.
 	OnVotesCreated func(txHash *chainhash.Hash,
 		blockHash *chainhash.Hash,
 		height int32,
@@ -190,7 +190,7 @@ type NotificationHandlers struct {
 	// OnRevocationsCreated is invoked when a wallet generates an SSRtx.
 	//
 	// This will only be available when client is connected to a wallet
-	// server such as pfcwallet.
+	// server such as dcrwallet.
 	OnRevocationsCreated func(txHash *chainhash.Hash,
 		sstxIn *chainhash.Hash)
 
@@ -215,7 +215,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 	switch ntfn.Method {
 	// OnBlockConnected
-	case pfcjson.BlockConnectedNtfnMethod:
+	case dcrjson.BlockConnectedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnBlockConnected == nil {
@@ -232,7 +232,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 		c.ntfnHandlers.OnBlockConnected(blockHeader, transactions)
 
 	// OnBlockDisconnected
-	case pfcjson.BlockDisconnectedNtfnMethod:
+	case dcrjson.BlockDisconnectedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnBlockDisconnected == nil {
@@ -248,7 +248,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 		c.ntfnHandlers.OnBlockDisconnected(blockHeader)
 
-	case pfcjson.RelevantTxAcceptedNtfnMethod:
+	case dcrjson.RelevantTxAcceptedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnRelevantTxAccepted == nil {
@@ -264,7 +264,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 		c.ntfnHandlers.OnRelevantTxAccepted(transaction)
 
-	case pfcjson.ReorganizationNtfnMethod:
+	case dcrjson.ReorganizationNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnReorganization == nil {
@@ -282,7 +282,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 		c.ntfnHandlers.OnReorganization(oldHash, oldHeight, newHash, newHeight)
 
 	// OnWinningTickets
-	case pfcjson.WinningTicketsNtfnMethod:
+	case dcrjson.WinningTicketsNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnWinningTickets == nil {
@@ -302,7 +302,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			tickets)
 
 	// OnSpentAndMissedTickets
-	case pfcjson.SpentAndMissedTicketsNtfnMethod:
+	case dcrjson.SpentAndMissedTicketsNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnSpentAndMissedTickets == nil {
@@ -323,7 +323,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			tickets)
 
 	// OnNewTickets
-	case pfcjson.NewTicketsNtfnMethod:
+	case dcrjson.NewTicketsNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnNewTickets == nil {
@@ -344,7 +344,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			tickets)
 
 	// OnStakeDifficulty
-	case pfcjson.StakeDifficultyNtfnMethod:
+	case dcrjson.StakeDifficultyNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnStakeDifficulty == nil {
@@ -364,7 +364,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			stakeDiff)
 
 	// OnTxAccepted
-	case pfcjson.TxAcceptedNtfnMethod:
+	case dcrjson.TxAcceptedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnTxAccepted == nil {
@@ -381,7 +381,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 		c.ntfnHandlers.OnTxAccepted(hash, amt)
 
 	// OnTxAcceptedVerbose
-	case pfcjson.TxAcceptedVerboseNtfnMethod:
+	case dcrjson.TxAcceptedVerboseNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnTxAcceptedVerbose == nil {
@@ -397,25 +397,25 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 		c.ntfnHandlers.OnTxAcceptedVerbose(rawTx)
 
-		// OnPfcdConnected
-	case pfcjson.PfcdConnectedNtfnMethod:
+		// OnDcrdConnected
+	case dcrjson.DcrdConnectedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
-		if c.ntfnHandlers.OnPfcdConnected == nil {
+		if c.ntfnHandlers.OnDcrdConnected == nil {
 			return
 		}
 
-		connected, err := parsePfcdConnectedNtfnParams(ntfn.Params)
+		connected, err := parseDcrdConnectedNtfnParams(ntfn.Params)
 		if err != nil {
-			log.Warnf("Received invalid pfcd connected "+
+			log.Warnf("Received invalid dcrd connected "+
 				"notification: %v", err)
 			return
 		}
 
-		c.ntfnHandlers.OnPfcdConnected(connected)
+		c.ntfnHandlers.OnDcrdConnected(connected)
 
 	// OnAccountBalance
-	case pfcjson.AccountBalanceNtfnMethod:
+	case dcrjson.AccountBalanceNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnAccountBalance == nil {
@@ -432,7 +432,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 		c.ntfnHandlers.OnAccountBalance(account, bal, conf)
 
 	// OnTicketPurchased:
-	case pfcjson.TicketPurchasedNtfnMethod:
+	case dcrjson.TicketPurchasedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnTicketsPurchased == nil {
@@ -449,7 +449,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 		c.ntfnHandlers.OnTicketsPurchased(txHash, amount)
 
 	// OnVotesCreated:
-	case pfcjson.VoteCreatedNtfnMethod:
+	case dcrjson.VoteCreatedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnVotesCreated == nil {
@@ -467,7 +467,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 		c.ntfnHandlers.OnVotesCreated(txHash, blockHash, height, sstxIn, voteBits)
 
 	// OnRevocationsCreated:
-	case pfcjson.RevocationCreatedNtfnMethod:
+	case dcrjson.RevocationCreatedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnRevocationsCreated == nil {
@@ -484,7 +484,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 		c.ntfnHandlers.OnRevocationsCreated(txHash, sstxIn)
 
 	// OnWalletLockState
-	case pfcjson.WalletLockStateNtfnMethod:
+	case dcrjson.WalletLockStateNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnWalletLockState == nil {
@@ -862,7 +862,7 @@ func parseStakeDifficultyNtfnParams(params []json.RawMessage) (
 // parseTxAcceptedNtfnParams parses out the transaction hash and total amount
 // from the parameters of a txaccepted notification.
 func parseTxAcceptedNtfnParams(params []json.RawMessage) (*chainhash.Hash,
-	pfcutil.Amount, error) {
+	dcrutil.Amount, error) {
 
 	if len(params) != 2 {
 		return nil, 0, wrongNumParams(len(params))
@@ -883,7 +883,7 @@ func parseTxAcceptedNtfnParams(params []json.RawMessage) (*chainhash.Hash,
 	}
 
 	// Bounds check amount.
-	amt, err := pfcutil.NewAmount(famt)
+	amt, err := dcrutil.NewAmount(famt)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -899,7 +899,7 @@ func parseTxAcceptedNtfnParams(params []json.RawMessage) (*chainhash.Hash,
 
 // parseTxAcceptedVerboseNtfnParams parses out details about a raw transaction
 // from the parameters of a txacceptedverbose notification.
-func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*pfcjson.TxRawResult,
+func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*dcrjson.TxRawResult,
 	error) {
 
 	if len(params) != 1 {
@@ -907,7 +907,7 @@ func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*pfcjson.TxRawR
 	}
 
 	// Unmarshal first parameter as a raw transaction result object.
-	var rawTx pfcjson.TxRawResult
+	var rawTx dcrjson.TxRawResult
 	err := json.Unmarshal(params[0], &rawTx)
 	if err != nil {
 		return nil, err
@@ -919,9 +919,9 @@ func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*pfcjson.TxRawR
 	return &rawTx, nil
 }
 
-// parsePfcdConnectedNtfnParams parses out the connection status of pfcd
-// and pfcwallet from the parameters of a pfcdconnected notification.
-func parsePfcdConnectedNtfnParams(params []json.RawMessage) (bool, error) {
+// parseDcrdConnectedNtfnParams parses out the connection status of dcrd
+// and dcrwallet from the parameters of a dcrdconnected notification.
+func parseDcrdConnectedNtfnParams(params []json.RawMessage) (bool, error) {
 	if len(params) != 1 {
 		return false, wrongNumParams(len(params))
 	}
@@ -940,7 +940,7 @@ func parsePfcdConnectedNtfnParams(params []json.RawMessage) (bool, error) {
 // and whether or not the balance is confirmed or unconfirmed from the
 // parameters of an accountbalance notification.
 func parseAccountBalanceNtfnParams(params []json.RawMessage) (account string,
-	balance pfcutil.Amount, confirmed bool, err error) {
+	balance dcrutil.Amount, confirmed bool, err error) {
 
 	if len(params) != 3 {
 		return "", 0, false, wrongNumParams(len(params))
@@ -966,7 +966,7 @@ func parseAccountBalanceNtfnParams(params []json.RawMessage) (account string,
 	}
 
 	// Bounds check amount.
-	bal, err := pfcutil.NewAmount(fbal)
+	bal, err := dcrutil.NewAmount(fbal)
 	if err != nil {
 		return "", 0, false, err
 	}
@@ -977,7 +977,7 @@ func parseAccountBalanceNtfnParams(params []json.RawMessage) (account string,
 // parseTicketPurchasedNtfnParams parses out the ticket hash and amount
 // from a recent ticket purchase in the wallet.
 func parseTicketPurchasedNtfnParams(params []json.RawMessage) (txHash *chainhash.Hash,
-	amount pfcutil.Amount, err error) {
+	amount dcrutil.Amount, err error) {
 
 	if len(params) != 2 {
 		return nil, 0, wrongNumParams(len(params))
@@ -1001,7 +1001,7 @@ func parseTicketPurchasedNtfnParams(params []json.RawMessage) (txHash *chainhash
 		return nil, 0, err
 	}
 
-	return thHash, pfcutil.Amount(amt), nil
+	return thHash, dcrutil.Amount(amt), nil
 }
 
 // parseVoteCreatedNtfnParams parses out the hash, block hash, block height,
@@ -1143,7 +1143,7 @@ func (r FutureNotifyBlocksResult) Receive() error {
 //
 // See NotifyBlocks for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyBlocksAsync() FutureNotifyBlocksResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
@@ -1156,7 +1156,7 @@ func (c *Client) NotifyBlocksAsync() FutureNotifyBlocksResult {
 		return newNilFutureResult()
 	}
 
-	cmd := pfcjson.NewNotifyBlocksCmd()
+	cmd := dcrjson.NewNotifyBlocksCmd()
 	return c.sendCmd(cmd)
 }
 
@@ -1169,7 +1169,7 @@ func (c *Client) NotifyBlocksAsync() FutureNotifyBlocksResult {
 // The notifications delivered as a result of this call will be via one of
 // OnBlockConnected or OnBlockDisconnected.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyBlocks() error {
 	return c.NotifyBlocksAsync().Receive()
 }
@@ -1191,7 +1191,7 @@ func (r FutureNotifyWinningTicketsResult) Receive() error {
 //
 // See NotifyWinningTickets for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyWinningTicketsAsync() FutureNotifyWinningTicketsResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
@@ -1204,7 +1204,7 @@ func (c *Client) NotifyWinningTicketsAsync() FutureNotifyWinningTicketsResult {
 		return newNilFutureResult()
 	}
 
-	cmd := pfcjson.NewNotifyWinningTicketsCmd()
+	cmd := dcrjson.NewNotifyWinningTicketsCmd()
 
 	return c.sendCmd(cmd)
 }
@@ -1219,7 +1219,7 @@ func (c *Client) NotifyWinningTicketsAsync() FutureNotifyWinningTicketsResult {
 // The notifications delivered as a result of this call will be those from
 // OnWinningTickets.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyWinningTickets() error {
 	return c.NotifyWinningTicketsAsync().Receive()
 }
@@ -1241,7 +1241,7 @@ func (r FutureNotifySpentAndMissedTicketsResult) Receive() error {
 //
 // See NotifySpentAndMissedTickets for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifySpentAndMissedTicketsAsync() FutureNotifySpentAndMissedTicketsResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
@@ -1254,7 +1254,7 @@ func (c *Client) NotifySpentAndMissedTicketsAsync() FutureNotifySpentAndMissedTi
 		return newNilFutureResult()
 	}
 
-	cmd := pfcjson.NewNotifySpentAndMissedTicketsCmd()
+	cmd := dcrjson.NewNotifySpentAndMissedTicketsCmd()
 
 	return c.sendCmd(cmd)
 }
@@ -1269,7 +1269,7 @@ func (c *Client) NotifySpentAndMissedTicketsAsync() FutureNotifySpentAndMissedTi
 // The notifications delivered as a result of this call will be those from
 // OnSpentAndMissedTickets.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifySpentAndMissedTickets() error {
 	return c.NotifySpentAndMissedTicketsAsync().Receive()
 }
@@ -1291,7 +1291,7 @@ func (r FutureNotifyNewTicketsResult) Receive() error {
 //
 // See NotifyNewTickets for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyNewTicketsAsync() FutureNotifyNewTicketsResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
@@ -1304,7 +1304,7 @@ func (c *Client) NotifyNewTicketsAsync() FutureNotifyNewTicketsResult {
 		return newNilFutureResult()
 	}
 
-	cmd := pfcjson.NewNotifyNewTicketsCmd()
+	cmd := dcrjson.NewNotifyNewTicketsCmd()
 
 	return c.sendCmd(cmd)
 }
@@ -1317,7 +1317,7 @@ func (c *Client) NotifyNewTicketsAsync() FutureNotifyNewTicketsResult {
 //
 // The notifications delivered as a result of this call will be via OnNewTickets.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyNewTickets() error {
 	return c.NotifyNewTicketsAsync().Receive()
 }
@@ -1339,7 +1339,7 @@ func (r FutureNotifyStakeDifficultyResult) Receive() error {
 //
 // See NotifyStakeDifficulty for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyStakeDifficultyAsync() FutureNotifyStakeDifficultyResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
@@ -1352,7 +1352,7 @@ func (c *Client) NotifyStakeDifficultyAsync() FutureNotifyStakeDifficultyResult 
 		return newNilFutureResult()
 	}
 
-	cmd := pfcjson.NewNotifyStakeDifficultyCmd()
+	cmd := dcrjson.NewNotifyStakeDifficultyCmd()
 
 	return c.sendCmd(cmd)
 }
@@ -1367,7 +1367,7 @@ func (c *Client) NotifyStakeDifficultyAsync() FutureNotifyStakeDifficultyResult 
 // The notifications delivered as a result of this call will be via
 // OnStakeDifficulty.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyStakeDifficulty() error {
 	return c.NotifyStakeDifficultyAsync().Receive()
 }
@@ -1389,7 +1389,7 @@ func (r FutureNotifyNewTransactionsResult) Receive() error {
 //
 // See NotifyNewTransactionsAsync for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyNewTransactionsAsync(verbose bool) FutureNotifyNewTransactionsResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
@@ -1402,7 +1402,7 @@ func (c *Client) NotifyNewTransactionsAsync(verbose bool) FutureNotifyNewTransac
 		return newNilFutureResult()
 	}
 
-	cmd := pfcjson.NewNotifyNewTransactionsCmd(&verbose)
+	cmd := dcrjson.NewNotifyNewTransactionsCmd(&verbose)
 	return c.sendCmd(cmd)
 }
 
@@ -1416,7 +1416,7 @@ func (c *Client) NotifyNewTransactionsAsync(verbose bool) FutureNotifyNewTransac
 // OnTxAccepted (when verbose is false) or OnTxAcceptedVerbose (when verbose is
 // true).
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
+// NOTE: This is a dcrd extension and requires a websocket connection.
 func (c *Client) NotifyNewTransactions(verbose bool) error {
 	return c.NotifyNewTransactionsAsync(verbose).Receive()
 }
@@ -1438,24 +1438,24 @@ func (r FutureLoadTxFilterResult) Receive() error {
 //
 // See LoadTxFilter for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
-func (c *Client) LoadTxFilterAsync(reload bool, addresses []pfcutil.Address,
+// NOTE: This is a dcrd extension and requires a websocket connection.
+func (c *Client) LoadTxFilterAsync(reload bool, addresses []dcrutil.Address,
 	outPoints []wire.OutPoint) FutureLoadTxFilterResult {
 
 	addrStrs := make([]string, len(addresses))
 	for i, a := range addresses {
 		addrStrs[i] = a.EncodeAddress()
 	}
-	outPointObjects := make([]pfcjson.OutPoint, len(outPoints))
+	outPointObjects := make([]dcrjson.OutPoint, len(outPoints))
 	for i := range outPoints {
-		outPointObjects[i] = pfcjson.OutPoint{
+		outPointObjects[i] = dcrjson.OutPoint{
 			Hash:  outPoints[i].Hash.String(),
 			Index: outPoints[i].Index,
 			Tree:  outPoints[i].Tree,
 		}
 	}
 
-	cmd := pfcjson.NewLoadTxFilterCmd(reload, addrStrs, outPointObjects)
+	cmd := dcrjson.NewLoadTxFilterCmd(reload, addrStrs, outPointObjects)
 	return c.sendCmd(cmd)
 }
 
@@ -1463,7 +1463,7 @@ func (c *Client) LoadTxFilterAsync(reload bool, addresses []pfcutil.Address,
 // filter.  The filter is consistently updated based on inspected transactions
 // during mempool acceptance, block acceptance, and for all rescanned blocks.
 //
-// NOTE: This is a pfcd extension and requires a websocket connection.
-func (c *Client) LoadTxFilter(reload bool, addresses []pfcutil.Address, outPoints []wire.OutPoint) error {
+// NOTE: This is a dcrd extension and requires a websocket connection.
+func (c *Client) LoadTxFilter(reload bool, addresses []dcrutil.Address, outPoints []wire.OutPoint) error {
 	return c.LoadTxFilterAsync(reload, addresses, outPoints).Receive()
 }

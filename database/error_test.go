@@ -9,7 +9,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/picfight/pfcd/database"
+	"github.com/decred/dcrd/database"
 )
 
 // TestErrorCodeStringer tests the stringized output for the ErrorCode type.

@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/rpcclient"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -67,10 +67,10 @@ const (
 // Harness to exercise functionality.
 type HarnessTestCase func(r *Harness, t *testing.T)
 
-// Harness fully encapsulates an active pfcd process to provide a unified
-// platform for creating rpc driven integration tests involving pfcd. The
-// active pfcd node will typically be run in simnet mode in order to allow for
-// easy generation of test blockchains.  The active pfcd process is fully
+// Harness fully encapsulates an active dcrd process to provide a unified
+// platform for creating rpc driven integration tests involving dcrd. The
+// active dcrd node will typically be run in simnet mode in order to allow for
+// easy generation of test blockchains.  The active dcrd process is fully
 // managed by Harness, which handles the necessary initialization, and teardown
 // of the process along with any temporary directories created as a result.
 // Multiple Harness instances may be run concurrently, in order to allow for
@@ -210,7 +210,7 @@ func New(activeNet *chaincfg.Params, handlers *rpcclient.NotificationHandlers, e
 // NOTE: This method and TearDown should always be called from the same
 // goroutine as they are not concurrent safe.
 func (h *Harness) SetUp(createTestChain bool, numMatureOutputs uint32) error {
-	// Start the pfcd node itself. This spawns a new process which will be
+	// Start the dcrd node itself. This spawns a new process which will be
 	// managed
 	if err := h.node.start(); err != nil {
 		return err
@@ -223,12 +223,12 @@ func (h *Harness) SetUp(createTestChain bool, numMatureOutputs uint32) error {
 
 	// Filter transactions that pay to the coinbase associated with the
 	// wallet.
-	filterAddrs := []pfcutil.Address{h.wallet.coinbaseAddr}
+	filterAddrs := []dcrutil.Address{h.wallet.coinbaseAddr}
 	if err := h.Node.LoadTxFilter(true, filterAddrs, nil); err != nil {
 		return err
 	}
 
-	// Ensure pfcd properly dispatches our registered call-back for each new
+	// Ensure dcrd properly dispatches our registered call-back for each new
 	// block. Otherwise, the memWallet won't function properly.
 	if err := h.Node.NotifyBlocks(); err != nil {
 		return err
@@ -286,7 +286,7 @@ func (h *Harness) TearDown() error {
 	return nil
 }
 
-// connectRPCClient attempts to establish an RPC connection to the created pfcd
+// connectRPCClient attempts to establish an RPC connection to the created dcrd
 // process belonging to this Harness instance. If the initial connection
 // attempt fails, this function will retry h.maxConnRetries times, backing off
 // the time between subsequent attempts. If after h.maxConnRetries attempts,
@@ -318,7 +318,7 @@ func (h *Harness) connectRPCClient() error {
 // wallet.
 //
 // This function is safe for concurrent access.
-func (h *Harness) NewAddress() (pfcutil.Address, error) {
+func (h *Harness) NewAddress() (dcrutil.Address, error) {
 	return h.wallet.NewAddress()
 }
 
@@ -326,7 +326,7 @@ func (h *Harness) NewAddress() (pfcutil.Address, error) {
 // wallet.
 //
 // This function is safe for concurrent access.
-func (h *Harness) ConfirmedBalance() pfcutil.Amount {
+func (h *Harness) ConfirmedBalance() dcrutil.Amount {
 	return h.wallet.ConfirmedBalance()
 }
 
@@ -335,7 +335,7 @@ func (h *Harness) ConfirmedBalance() pfcutil.Amount {
 // according to targetOutputs.
 //
 // This function is safe for concurrent access.
-func (h *Harness) SendOutputs(targetOutputs []*wire.TxOut, feeRate pfcutil.Amount) (*chainhash.Hash, error) {
+func (h *Harness) SendOutputs(targetOutputs []*wire.TxOut, feeRate dcrutil.Amount) (*chainhash.Hash, error) {
 	return h.wallet.SendOutputs(targetOutputs, feeRate)
 }
 
@@ -349,7 +349,7 @@ func (h *Harness) SendOutputs(targetOutputs []*wire.TxOut, feeRate pfcutil.Amoun
 // returned to the pool of spendable outputs.
 //
 // This function is safe for concurrent access.
-func (h *Harness) CreateTransaction(targetOutputs []*wire.TxOut, feeRate pfcutil.Amount) (*wire.MsgTx, error) {
+func (h *Harness) CreateTransaction(targetOutputs []*wire.TxOut, feeRate dcrutil.Amount) (*wire.MsgTx, error) {
 	return h.wallet.CreateTransaction(targetOutputs, feeRate)
 }
 

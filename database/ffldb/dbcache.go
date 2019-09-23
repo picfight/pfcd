@@ -14,7 +14,7 @@ import (
 	"github.com/btcsuite/goleveldb/leveldb"
 	"github.com/btcsuite/goleveldb/leveldb/iterator"
 	"github.com/btcsuite/goleveldb/leveldb/util"
-	"github.com/picfight/pfcd/database/internal/treap"
+	"github.com/decred/dcrd/database/internal/treap"
 )
 
 const (

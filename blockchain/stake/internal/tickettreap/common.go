@@ -8,7 +8,7 @@ package tickettreap
 import (
 	"fmt"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 const (

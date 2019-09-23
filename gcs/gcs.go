@@ -15,7 +15,7 @@ import (
 
 	"github.com/dchest/blake256"
 	"github.com/dchest/siphash"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // Inspired by https://github.com/rasky/gcs

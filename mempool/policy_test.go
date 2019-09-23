@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 // TestCalcMinRequiredTxRelayFee tests the calcMinRequiredTxRelayFee API.
@@ -26,7 +26,7 @@ func TestCalcMinRequiredTxRelayFee(t *testing.T) {
 	tests := []struct {
 		name     string         // test description.
 		size     int64          // Transaction size in bytes.
-		relayFee pfcutil.Amount // minimum relay transaction fee.
+		relayFee dcrutil.Amount // minimum relay transaction fee.
 		want     int64          // Expected fee.
 	}{
 		{
@@ -52,8 +52,8 @@ func TestCalcMinRequiredTxRelayFee(t *testing.T) {
 		{
 			"max standard tx size with max relay fee",
 			maxStandardTxSize,
-			pfcutil.MaxAmount,
-			pfcutil.MaxAmount,
+			dcrutil.MaxAmount,
+			dcrutil.MaxAmount,
 		},
 		{
 			"1500 bytes with 5000 relay fee",
@@ -212,7 +212,7 @@ func TestDust(t *testing.T) {
 	tests := []struct {
 		name     string // test description
 		txOut    wire.TxOut
-		relayFee pfcutil.Amount // minimum relay transaction fee.
+		relayFee dcrutil.Amount // minimum relay transaction fee.
 		isDust   bool
 	}{
 		{
@@ -268,8 +268,8 @@ func TestDust(t *testing.T) {
 		{
 			// Maximum allowed value is never dust.
 			"max amount is never dust",
-			wire.TxOut{Value: pfcutil.MaxAmount, Version: 0, PkScript: pkScript},
-			pfcutil.MaxAmount,
+			wire.TxOut{Value: dcrutil.MaxAmount, Version: 0, PkScript: pkScript},
+			dcrutil.MaxAmount,
 			false,
 		},
 		{
@@ -320,8 +320,8 @@ func TestCheckTransactionStandard(t *testing.T) {
 		SignatureScript:  dummySigScript,
 	}
 	addrHash := [20]byte{0x01}
-	addr, err := pfcutil.NewAddressPubKeyHash(addrHash[:],
-		&chaincfg.RegNetParams, pfcec.STEcdsaSecp256k1)
+	addr, err := dcrutil.NewAddressPubKeyHash(addrHash[:],
+		&chaincfg.RegNetParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		t.Fatalf("NewAddressPubKeyHash: unexpected error: %v", err)
 	}
@@ -530,7 +530,7 @@ func TestCheckTransactionStandard(t *testing.T) {
 	medianTime := time.Now()
 	for _, test := range tests {
 		// Ensure standardness is as expected.
-		tx := pfcutil.NewTx(&test.tx)
+		tx := dcrutil.NewTx(&test.tx)
 		err := checkTransactionStandard(tx, stake.DetermineTxType(&test.tx),
 			test.height, medianTime, DefaultMinRelayTxFee,
 			maxTxVersion)

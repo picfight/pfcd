@@ -11,7 +11,7 @@ import (
 
 	"github.com/decred/slog"
 
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/wire"
 )
 
 // BlockProgressLogger provides periodic logging for other services in order

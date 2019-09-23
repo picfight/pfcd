@@ -28,7 +28,7 @@ set -ex
 
 # Default GOVERSION
 [[ ! "$GOVERSION" ]] && GOVERSION=1.11
-REPO=pfcd
+REPO=dcrd
 
 testrepo () {
   GO=go
@@ -37,7 +37,7 @@ testrepo () {
   fi
 
   $GO version
-  $GO clean -testcache
+
   # binary needed for RPC tests
   env CC=gcc $GO build
   cp "$REPO" "$GOPATH/bin/"
@@ -60,6 +60,16 @@ testrepo () {
     go mod vendor
     unset GO111MODULE
 
+    gometalinter --vendor --disable-all --deadline=10m \
+      --enable=gofmt \
+      --enable=gosimple \
+      --enable=unconvert \
+      --enable=ineffassign \
+      ./...
+    if [ $? != 0 ]; then
+      echo 'gometalinter has some complaints'
+      exit 1
+    fi
   fi
 
   echo "------------------------------------------"
@@ -74,19 +84,19 @@ if [ ! "$DOCKER" ]; then
 fi
 
 # use Travis cache with docker
-DOCKER_IMAGE_TAG=pfcd-go-$GOVERSION
+DOCKER_IMAGE_TAG=decred-golang-builder-$GOVERSION
 mkdir -p ~/.cache
 if [ -f ~/.cache/$DOCKER_IMAGE_TAG.tar ]; then
   # load via cache
   $DOCKER load -i ~/.cache/$DOCKER_IMAGE_TAG.tar
 else
   # pull and save image to cache
-  $DOCKER pull picfight/$DOCKER_IMAGE_TAG
-  $DOCKER save picfight/$DOCKER_IMAGE_TAG > ~/.cache/$DOCKER_IMAGE_TAG.tar
+  $DOCKER pull decred/$DOCKER_IMAGE_TAG
+  $DOCKER save decred/$DOCKER_IMAGE_TAG > ~/.cache/$DOCKER_IMAGE_TAG.tar
 fi
 
-$DOCKER run --rm -it -v $(pwd):/src:Z picfight/$DOCKER_IMAGE_TAG /bin/bash -c "\
+$DOCKER run --rm -it -v $(pwd):/src:Z decred/$DOCKER_IMAGE_TAG /bin/bash -c "\
   rsync -ra --filter=':- .gitignore'  \
-  /src/ /go/src/github.com/picfight/$REPO/ && \
-  dir && \
+  /src/ /go/src/github.com/decred/$REPO/ && \
+  cd github.com/decred/$REPO/ && \
   env GOVERSION=$GOVERSION GO111MODULE=on bash run_tests.sh"

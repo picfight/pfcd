@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain/stake/internal/dbnamespace"
-	"github.com/picfight/pfcd/blockchain/stake/internal/tickettreap"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
+	"github.com/decred/dcrd/blockchain/stake/internal/dbnamespace"
+	"github.com/decred/dcrd/blockchain/stake/internal/tickettreap"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
 )
 
 const (
@@ -80,7 +80,7 @@ const (
 //   Adding a block
 //
 // The steps for the addition of a block are as follows:
-// 1. Remove the n (constant, n=5 for all Picfight networks) many tickets that were
+// 1. Remove the n (constant, n=5 for all Decred networks) many tickets that were
 //     selected this block.  The results of this feed into two database updates:
 //         ------> A database entry containing all the data for the block
 //            |     required to undo the adding of the block (as serialized

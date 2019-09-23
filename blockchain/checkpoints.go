@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current
@@ -188,7 +188,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 
 // isNonstandardTransaction determines whether a transaction contains any
 // scripts which are not one of the standard types.
-func isNonstandardTransaction(tx *pfcutil.Tx) bool {
+func isNonstandardTransaction(tx *dcrutil.Tx) bool {
 	// Check all of the output public key scripts for non-standard scripts.
 	for _, txOut := range tx.MsgTx().TxOut {
 		scriptClass := txscript.GetScriptClass(txOut.Version, txOut.PkScript)
@@ -216,7 +216,7 @@ func isNonstandardTransaction(tx *pfcutil.Tx) bool {
 // decision and then manually added to the list of checkpoints for a network.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) IsCheckpointCandidate(block *pfcutil.Block) (bool, error) {
+func (b *BlockChain) IsCheckpointCandidate(block *dcrutil.Block) (bool, error) {
 	b.chainLock.RLock()
 	defer b.chainLock.RUnlock()
 

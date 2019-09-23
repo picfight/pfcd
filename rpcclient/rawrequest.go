@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/picfight/pfcd/pfcjson"
+	"github.com/decred/dcrd/dcrjson"
 )
 
 // FutureRawResult is a future promise to deliver the result of a RawRequest RPC
@@ -41,10 +41,10 @@ func (c *Client) RawRequestAsync(method string, params []json.RawMessage) Future
 
 	// Create a raw JSON-RPC request using the provided method and params
 	// and marshal it.  This is done rather than using the sendCmd function
-	// since that relies on marshalling registered pfcjson commands rather
+	// since that relies on marshalling registered dcrjson commands rather
 	// than custom commands.
 	id := c.NextID()
-	rawRequest := &pfcjson.Request{
+	rawRequest := &dcrjson.Request{
 		Jsonrpc: "1.0",
 		ID:      id,
 		Method:  method,

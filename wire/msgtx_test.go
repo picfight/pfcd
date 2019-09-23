@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // TestTx tests the MsgTx API.

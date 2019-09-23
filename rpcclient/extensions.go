@@ -11,10 +11,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -38,20 +38,20 @@ func (r FutureCreateEncryptedWalletResult) Receive() error {
 //
 // See CreateEncryptedWallet for the blocking version and more details.
 //
-// NOTE: This is a pfcwallet extension.
+// NOTE: This is a dcrwallet extension.
 func (c *Client) CreateEncryptedWalletAsync(passphrase string) FutureCreateEncryptedWalletResult {
-	cmd := pfcjson.NewCreateEncryptedWalletCmd(passphrase)
+	cmd := dcrjson.NewCreateEncryptedWalletCmd(passphrase)
 	return c.sendCmd(cmd)
 }
 
 // CreateEncryptedWallet requests the creation of an encrypted wallet.  Wallets
-// managed by pfcwallet are only written to disk with encrypted private keys,
+// managed by dcrwallet are only written to disk with encrypted private keys,
 // and generating wallets on the fly is impossible as it requires user input for
 // the encryption passphrase.  This RPC specifies the passphrase and instructs
 // the wallet creation.  This may error if a wallet is already opened, or the
 // new wallet cannot be written to disk.
 //
-// NOTE: This is a pfcwallet extension.
+// NOTE: This is a dcrwallet extension.
 func (c *Client) CreateEncryptedWallet(passphrase string) error {
 	return c.CreateEncryptedWalletAsync(passphrase).Receive()
 }
@@ -84,9 +84,9 @@ func (r FutureDebugLevelResult) Receive() (string, error) {
 //
 // See DebugLevel for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) DebugLevelAsync(levelSpec string) FutureDebugLevelResult {
-	cmd := pfcjson.NewDebugLevelCmd(levelSpec)
+	cmd := dcrjson.NewDebugLevelCmd(levelSpec)
 	return c.sendCmd(cmd)
 }
 
@@ -99,7 +99,7 @@ func (c *Client) DebugLevelAsync(levelSpec string) FutureDebugLevelResult {
 // Additionally, the special keyword 'show' can be used to get a list of the
 // available subsystems.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) DebugLevel(levelSpec string) (string, error) {
 	return c.DebugLevelAsync(levelSpec).Receive()
 }
@@ -110,14 +110,14 @@ type FutureEstimateStakeDiffResult chan *response
 
 // Receive waits for the response promised by the future and returns the hash
 // and height of the block in the longest (best) chain.
-func (r FutureEstimateStakeDiffResult) Receive() (*pfcjson.EstimateStakeDiffResult, error) {
+func (r FutureEstimateStakeDiffResult) Receive() (*dcrjson.EstimateStakeDiffResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarsal result as a estimatestakediff result object.
-	var est pfcjson.EstimateStakeDiffResult
+	var est dcrjson.EstimateStakeDiffResult
 	err = json.Unmarshal(res, &est)
 	if err != nil {
 		return nil, err
@@ -132,17 +132,17 @@ func (r FutureEstimateStakeDiffResult) Receive() (*pfcjson.EstimateStakeDiffResu
 //
 // See EstimateStakeDiff for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) EstimateStakeDiffAsync(tickets *uint32) FutureEstimateStakeDiffResult {
-	cmd := pfcjson.NewEstimateStakeDiffCmd(tickets)
+	cmd := dcrjson.NewEstimateStakeDiffCmd(tickets)
 	return c.sendCmd(cmd)
 }
 
 // EstimateStakeDiff returns the minimum, maximum, and expected next stake
 // difficulty.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) EstimateStakeDiff(tickets *uint32) (*pfcjson.EstimateStakeDiffResult, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) EstimateStakeDiff(tickets *uint32) (*dcrjson.EstimateStakeDiffResult, error) {
 	return c.EstimateStakeDiffAsync(tickets).Receive()
 }
 
@@ -170,16 +170,16 @@ func (r FutureExistsAddressResult) Receive() (bool, error) {
 // ExistsAddressAsync returns an instance of a type that can be used to get the
 // result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
-func (c *Client) ExistsAddressAsync(address pfcutil.Address) FutureExistsAddressResult {
-	cmd := pfcjson.NewExistsAddressCmd(address.EncodeAddress())
+func (c *Client) ExistsAddressAsync(address dcrutil.Address) FutureExistsAddressResult {
+	cmd := dcrjson.NewExistsAddressCmd(address.EncodeAddress())
 	return c.sendCmd(cmd)
 }
 
 // ExistsAddress returns information about whether or not an address has been
 // used on the main chain or in mempool.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) ExistsAddress(address pfcutil.Address) (bool, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) ExistsAddress(address dcrutil.Address) (bool, error) {
 	return c.ExistsAddressAsync(address).Receive()
 }
 
@@ -208,21 +208,21 @@ func (r FutureExistsAddressesResult) Receive() (string, error) {
 // ExistsAddressesAsync returns an instance of a type that can be used to get the
 // result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
-func (c *Client) ExistsAddressesAsync(addresses []pfcutil.Address) FutureExistsAddressesResult {
+func (c *Client) ExistsAddressesAsync(addresses []dcrutil.Address) FutureExistsAddressesResult {
 	addrsStr := make([]string, len(addresses))
 	for i := range addresses {
 		addrsStr[i] = addresses[i].EncodeAddress()
 	}
 
-	cmd := pfcjson.NewExistsAddressesCmd(addrsStr)
+	cmd := dcrjson.NewExistsAddressesCmd(addrsStr)
 	return c.sendCmd(cmd)
 }
 
 // ExistsAddresses returns information about whether or not an address exists
 // in the blockchain or memory pool.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) ExistsAddresses(addresses []pfcutil.Address) (string, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) ExistsAddresses(addresses []dcrutil.Address) (string, error) {
 	return c.ExistsAddressesAsync(addresses).Receive()
 }
 
@@ -256,7 +256,7 @@ func (c *Client) ExistsMissedTicketsAsync(hashes []*chainhash.Hash) FutureExists
 		copy(hashBlob[i*chainhash.HashSize:(i+1)*chainhash.HashSize],
 			hash[:])
 	}
-	cmd := pfcjson.NewExistsMissedTicketsCmd(hex.EncodeToString(hashBlob))
+	cmd := dcrjson.NewExistsMissedTicketsCmd(hex.EncodeToString(hashBlob))
 	return c.sendCmd(cmd)
 }
 
@@ -297,14 +297,14 @@ func (c *Client) ExistsExpiredTicketsAsync(hashes []*chainhash.Hash) FutureExist
 		copy(hashBlob[i*chainhash.HashSize:(i+1)*chainhash.HashSize],
 			hash[:])
 	}
-	cmd := pfcjson.NewExistsExpiredTicketsCmd(hex.EncodeToString(hashBlob))
+	cmd := dcrjson.NewExistsExpiredTicketsCmd(hex.EncodeToString(hashBlob))
 	return c.sendCmd(cmd)
 }
 
 // ExistsExpiredTickets returns information about whether or not a ticket hash exists
 // in the expired ticket database.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) ExistsExpiredTickets(hashes []*chainhash.Hash) (string, error) {
 	return c.ExistsExpiredTicketsAsync(hashes).Receive()
 }
@@ -335,14 +335,14 @@ func (r FutureExistsLiveTicketResult) Receive() (bool, error) {
 // result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
 func (c *Client) ExistsLiveTicketAsync(hash *chainhash.Hash) FutureExistsLiveTicketResult {
-	cmd := pfcjson.NewExistsLiveTicketCmd(hash.String())
+	cmd := dcrjson.NewExistsLiveTicketCmd(hash.String())
 	return c.sendCmd(cmd)
 }
 
 // ExistsLiveTicket returns information about whether or not a ticket hash exists
 // in the live ticket database.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) ExistsLiveTicket(hash *chainhash.Hash) (bool, error) {
 	return c.ExistsLiveTicketAsync(hash).Receive()
 }
@@ -378,14 +378,14 @@ func (c *Client) ExistsLiveTicketsAsync(hashes []*chainhash.Hash) FutureExistsLi
 		copy(hashBlob[i*chainhash.HashSize:(i+1)*chainhash.HashSize],
 			hash[:])
 	}
-	cmd := pfcjson.NewExistsLiveTicketsCmd(hex.EncodeToString(hashBlob))
+	cmd := dcrjson.NewExistsLiveTicketsCmd(hex.EncodeToString(hashBlob))
 	return c.sendCmd(cmd)
 }
 
 // ExistsLiveTickets returns information about whether or not a ticket hash exists
 // in the live ticket database.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) ExistsLiveTickets(hashes []*chainhash.Hash) (string, error) {
 	return c.ExistsLiveTicketsAsync(hashes).Receive()
 }
@@ -421,14 +421,14 @@ func (c *Client) ExistsMempoolTxsAsync(hashes []*chainhash.Hash) FutureExistsMem
 		copy(hashBlob[i*chainhash.HashSize:(i+1)*chainhash.HashSize],
 			hash[:])
 	}
-	cmd := pfcjson.NewExistsMempoolTxsCmd(hex.EncodeToString(hashBlob))
+	cmd := dcrjson.NewExistsMempoolTxsCmd(hex.EncodeToString(hashBlob))
 	return c.sendCmd(cmd)
 }
 
 // ExistsMempoolTxs returns information about whether or not a ticket hash exists
 // in the live ticket database.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) ExistsMempoolTxs(hashes []*chainhash.Hash) (string, error) {
 	return c.ExistsMempoolTxsAsync(hashes).Receive()
 }
@@ -486,18 +486,18 @@ func (r FutureExportWatchingWalletResult) Receive() ([]byte, []byte, error) {
 //
 // See ExportWatchingWallet for the blocking version and more details.
 //
-// NOTE: This is a pfcwallet extension.
+// NOTE: This is a dcrwallet extension.
 func (c *Client) ExportWatchingWalletAsync(account string) FutureExportWatchingWalletResult {
-	cmd := pfcjson.NewExportWatchingWalletCmd(&account, pfcjson.Bool(true))
+	cmd := dcrjson.NewExportWatchingWalletCmd(&account, dcrjson.Bool(true))
 	return c.sendCmd(cmd)
 }
 
 // ExportWatchingWallet returns the raw bytes for a watching-only version of
 // wallet.bin and tx.bin, respectively, for the specified account that can be
-// used by pfcwallet to enable a wallet which does not have the private keys
+// used by dcrwallet to enable a wallet which does not have the private keys
 // necessary to spend funds.
 //
-// NOTE: This is a pfcwallet extension.
+// NOTE: This is a dcrwallet extension.
 func (c *Client) ExportWatchingWallet(account string) ([]byte, []byte, error) {
 	return c.ExportWatchingWalletAsync(account).Receive()
 }
@@ -515,7 +515,7 @@ func (r FutureGetBestBlockResult) Receive() (*chainhash.Hash, int64, error) {
 	}
 
 	// Unmarshal result as a getbestblock result object.
-	var bestBlock pfcjson.GetBestBlockResult
+	var bestBlock dcrjson.GetBestBlockResult
 	err = json.Unmarshal(res, &bestBlock)
 	if err != nil {
 		return nil, 0, err
@@ -536,16 +536,16 @@ func (r FutureGetBestBlockResult) Receive() (*chainhash.Hash, int64, error) {
 //
 // See GetBestBlock for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetBestBlockAsync() FutureGetBestBlockResult {
-	cmd := pfcjson.NewGetBestBlockCmd()
+	cmd := dcrjson.NewGetBestBlockCmd()
 	return c.sendCmd(cmd)
 }
 
 // GetBestBlock returns the hash and height of the block in the longest (best)
 // chain.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetBestBlock() (*chainhash.Hash, int64, error) {
 	return c.GetBestBlockAsync().Receive()
 }
@@ -578,15 +578,15 @@ func (r FutureGetCurrentNetResult) Receive() (wire.CurrencyNet, error) {
 //
 // See GetCurrentNet for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetCurrentNetAsync() FutureGetCurrentNetResult {
-	cmd := pfcjson.NewGetCurrentNetCmd()
+	cmd := dcrjson.NewGetCurrentNetCmd()
 	return c.sendCmd(cmd)
 }
 
 // GetCurrentNet returns the network the server is running on.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetCurrentNet() (wire.CurrencyNet, error) {
 	return c.GetCurrentNetAsync().Receive()
 }
@@ -597,14 +597,14 @@ type FutureGetHeadersResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // getheaders result.
-func (r FutureGetHeadersResult) Receive() (*pfcjson.GetHeadersResult, error) {
+func (r FutureGetHeadersResult) Receive() (*dcrjson.GetHeadersResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarsal result as a getheaders result object.
-	var vr pfcjson.GetHeadersResult
+	var vr dcrjson.GetHeadersResult
 	err = json.Unmarshal(res, &vr)
 	if err != nil {
 		return nil, err
@@ -622,7 +622,7 @@ func (c *Client) GetHeadersAsync(blockLocators []*chainhash.Hash, hashStop *chai
 	for i := range blockLocators {
 		copy(concatenatedLocators[i*chainhash.HashSize:], blockLocators[i][:])
 	}
-	cmd := pfcjson.NewGetHeadersCmd(hex.EncodeToString(concatenatedLocators),
+	cmd := dcrjson.NewGetHeadersCmd(hex.EncodeToString(concatenatedLocators),
 		hashStop.String())
 	return c.sendCmd(cmd)
 }
@@ -630,7 +630,7 @@ func (c *Client) GetHeadersAsync(blockLocators []*chainhash.Hash, hashStop *chai
 // GetHeaders mimics the wire protocol getheaders and headers messages by
 // returning all headers on the main chain after the first known block in the
 // locators, up until a block hash matches hashStop.
-func (c *Client) GetHeaders(blockLocators []*chainhash.Hash, hashStop *chainhash.Hash) (*pfcjson.GetHeadersResult, error) {
+func (c *Client) GetHeaders(blockLocators []*chainhash.Hash, hashStop *chainhash.Hash) (*dcrjson.GetHeadersResult, error) {
 	return c.GetHeadersAsync(blockLocators, hashStop).Receive()
 }
 
@@ -640,14 +640,14 @@ type FutureGetStakeDifficultyResult chan *response
 
 // Receive waits for the response promised by the future and returns the network
 // the server is running on.
-func (r FutureGetStakeDifficultyResult) Receive() (*pfcjson.GetStakeDifficultyResult, error) {
+func (r FutureGetStakeDifficultyResult) Receive() (*dcrjson.GetStakeDifficultyResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal result as a pfcjson.GetStakeDifficultyResult.
-	var gsdr pfcjson.GetStakeDifficultyResult
+	// Unmarshal result as a dcrjson.GetStakeDifficultyResult.
+	var gsdr dcrjson.GetStakeDifficultyResult
 	err = json.Unmarshal(res, &gsdr)
 	if err != nil {
 		return nil, err
@@ -662,16 +662,16 @@ func (r FutureGetStakeDifficultyResult) Receive() (*pfcjson.GetStakeDifficultyRe
 //
 // See GetStakeDifficulty for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetStakeDifficultyAsync() FutureGetStakeDifficultyResult {
-	cmd := pfcjson.NewGetStakeDifficultyCmd()
+	cmd := dcrjson.NewGetStakeDifficultyCmd()
 	return c.sendCmd(cmd)
 }
 
 // GetStakeDifficulty returns the current and next stake difficulty.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) GetStakeDifficulty() (*pfcjson.GetStakeDifficultyResult, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) GetStakeDifficulty() (*dcrjson.GetStakeDifficultyResult, error) {
 	return c.GetStakeDifficultyAsync().Receive()
 }
 
@@ -681,14 +681,14 @@ type FutureGetStakeVersionsResult chan *response
 
 // Receive waits for the response promised by the future and returns the network
 // the server is running on.
-func (r FutureGetStakeVersionsResult) Receive() (*pfcjson.GetStakeVersionsResult, error) {
+func (r FutureGetStakeVersionsResult) Receive() (*dcrjson.GetStakeVersionsResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal result as a pfcjson.GetStakeVersionsResult.
-	var gsvr pfcjson.GetStakeVersionsResult
+	// Unmarshal result as a dcrjson.GetStakeVersionsResult.
+	var gsvr dcrjson.GetStakeVersionsResult
 	err = json.Unmarshal(res, &gsvr)
 	if err != nil {
 		return nil, err
@@ -703,16 +703,16 @@ func (r FutureGetStakeVersionsResult) Receive() (*pfcjson.GetStakeVersionsResult
 //
 // See GetStakeVersionInfo for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetStakeVersionInfoAsync(count int32) FutureGetStakeVersionInfoResult {
-	cmd := pfcjson.NewGetStakeVersionInfoCmd(count)
+	cmd := dcrjson.NewGetStakeVersionInfoCmd(count)
 	return c.sendCmd(cmd)
 }
 
 // GetStakeVersionInfo returns the stake versions results for past requested intervals (count).
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) GetStakeVersionInfo(count int32) (*pfcjson.GetStakeVersionInfoResult, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) GetStakeVersionInfo(count int32) (*dcrjson.GetStakeVersionInfoResult, error) {
 	return c.GetStakeVersionInfoAsync(count).Receive()
 }
 
@@ -722,14 +722,14 @@ type FutureGetStakeVersionInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the network
 // the server is running on.
-func (r FutureGetStakeVersionInfoResult) Receive() (*pfcjson.GetStakeVersionInfoResult, error) {
+func (r FutureGetStakeVersionInfoResult) Receive() (*dcrjson.GetStakeVersionInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal result as a pfcjson.GetStakeVersionInfoResult.
-	var gsvr pfcjson.GetStakeVersionInfoResult
+	// Unmarshal result as a dcrjson.GetStakeVersionInfoResult.
+	var gsvr dcrjson.GetStakeVersionInfoResult
 	err = json.Unmarshal(res, &gsvr)
 	if err != nil {
 		return nil, err
@@ -744,16 +744,16 @@ func (r FutureGetStakeVersionInfoResult) Receive() (*pfcjson.GetStakeVersionInfo
 //
 // See GetStakeVersions for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetStakeVersionsAsync(hash string, count int32) FutureGetStakeVersionsResult {
-	cmd := pfcjson.NewGetStakeVersionsCmd(hash, count)
+	cmd := dcrjson.NewGetStakeVersionsCmd(hash, count)
 	return c.sendCmd(cmd)
 }
 
 // GetStakeVersions returns the stake versions and vote versions of past requested blocks.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) GetStakeVersions(hash string, count int32) (*pfcjson.GetStakeVersionsResult, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) GetStakeVersions(hash string, count int32) (*dcrjson.GetStakeVersionsResult, error) {
 	return c.GetStakeVersionsAsync(hash, count).Receive()
 }
 
@@ -763,7 +763,7 @@ type FutureGetTicketPoolValueResult chan *response
 
 // Receive waits for the response promised by the future and returns the network
 // the server is running on.
-func (r FutureGetTicketPoolValueResult) Receive() (pfcutil.Amount, error) {
+func (r FutureGetTicketPoolValueResult) Receive() (dcrutil.Amount, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return 0, err
@@ -777,7 +777,7 @@ func (r FutureGetTicketPoolValueResult) Receive() (pfcutil.Amount, error) {
 	}
 
 	// Convert to an amount.
-	amt, err := pfcutil.NewAmount(val)
+	amt, err := dcrutil.NewAmount(val)
 	if err != nil {
 		return 0, err
 	}
@@ -791,16 +791,16 @@ func (r FutureGetTicketPoolValueResult) Receive() (pfcutil.Amount, error) {
 //
 // See GetTicketPoolValue for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetTicketPoolValueAsync() FutureGetTicketPoolValueResult {
-	cmd := pfcjson.NewGetTicketPoolValueCmd()
+	cmd := dcrjson.NewGetTicketPoolValueCmd()
 	return c.sendCmd(cmd)
 }
 
 // GetTicketPoolValue returns the value of the live ticket pool.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) GetTicketPoolValue() (pfcutil.Amount, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) GetTicketPoolValue() (dcrutil.Amount, error) {
 	return c.GetTicketPoolValueAsync().Receive()
 }
 
@@ -810,14 +810,14 @@ type FutureGetVoteInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the network
 // the server is running on.
-func (r FutureGetVoteInfoResult) Receive() (*pfcjson.GetVoteInfoResult, error) {
+func (r FutureGetVoteInfoResult) Receive() (*dcrjson.GetVoteInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unmarshal result as a pfcjson.GetVoteInfoResult.
-	var gsvr pfcjson.GetVoteInfoResult
+	// Unmarshal result as a dcrjson.GetVoteInfoResult.
+	var gsvr dcrjson.GetVoteInfoResult
 	err = json.Unmarshal(res, &gsvr)
 	if err != nil {
 		return nil, err
@@ -832,17 +832,17 @@ func (r FutureGetVoteInfoResult) Receive() (*pfcjson.GetVoteInfoResult, error) {
 //
 // See GetVoteInfo for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) GetVoteInfoAsync(version uint32) FutureGetVoteInfoResult {
-	cmd := pfcjson.NewGetVoteInfoCmd(version)
+	cmd := dcrjson.NewGetVoteInfoCmd(version)
 	return c.sendCmd(cmd)
 }
 
 // GetVoteInfo returns voting information for the specified stake version. This
 // includes current voting window, quorum, total votes and agendas.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) GetVoteInfo(version uint32) (*pfcjson.GetVoteInfoResult, error) {
+// NOTE: This is a dcrd extension.
+func (c *Client) GetVoteInfo(version uint32) (*dcrjson.GetVoteInfoResult, error) {
 	return c.GetVoteInfoAsync(version).Receive()
 }
 
@@ -852,14 +852,14 @@ type FutureListAddressTransactionsResult chan *response
 
 // Receive waits for the response promised by the future and returns information
 // about all transactions associated with the provided addresses.
-func (r FutureListAddressTransactionsResult) Receive() ([]pfcjson.ListTransactionsResult, error) {
+func (r FutureListAddressTransactionsResult) Receive() ([]dcrjson.ListTransactionsResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal the result as an array of listtransactions objects.
-	var transactions []pfcjson.ListTransactionsResult
+	var transactions []dcrjson.ListTransactionsResult
 	err = json.Unmarshal(res, &transactions)
 	if err != nil {
 		return nil, err
@@ -873,22 +873,22 @@ func (r FutureListAddressTransactionsResult) Receive() ([]pfcjson.ListTransactio
 //
 // See ListAddressTransactions for the blocking version and more details.
 //
-// NOTE: This is a pfcd extension.
-func (c *Client) ListAddressTransactionsAsync(addresses []pfcutil.Address, account string) FutureListAddressTransactionsResult {
+// NOTE: This is a dcrd extension.
+func (c *Client) ListAddressTransactionsAsync(addresses []dcrutil.Address, account string) FutureListAddressTransactionsResult {
 	// Convert addresses to strings.
 	addrs := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
 		addrs = append(addrs, addr.EncodeAddress())
 	}
-	cmd := pfcjson.NewListAddressTransactionsCmd(addrs, &account)
+	cmd := dcrjson.NewListAddressTransactionsCmd(addrs, &account)
 	return c.sendCmd(cmd)
 }
 
 // ListAddressTransactions returns information about all transactions associated
 // with the provided addresses.
 //
-// NOTE: This is a pfcwallet extension.
-func (c *Client) ListAddressTransactions(addresses []pfcutil.Address, account string) ([]pfcjson.ListTransactionsResult, error) {
+// NOTE: This is a dcrwallet extension.
+func (c *Client) ListAddressTransactions(addresses []dcrutil.Address, account string) ([]dcrjson.ListTransactionsResult, error) {
 	return c.ListAddressTransactionsAsync(addresses, account).Receive()
 }
 
@@ -904,8 +904,8 @@ func (r FutureLiveTicketsResult) Receive() ([]*chainhash.Hash, error) {
 		return nil, err
 	}
 
-	// Unmarshal the result as a pfcjson.LiveTicketsResult.
-	var container pfcjson.LiveTicketsResult
+	// Unmarshal the result as a dcrjson.LiveTicketsResult.
+	var container dcrjson.LiveTicketsResult
 	err = json.Unmarshal(res, &container)
 	if err != nil {
 		return nil, err
@@ -927,14 +927,14 @@ func (r FutureLiveTicketsResult) Receive() ([]*chainhash.Hash, error) {
 // result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
 func (c *Client) LiveTicketsAsync() FutureLiveTicketsResult {
-	cmd := pfcjson.NewLiveTicketsCmd()
+	cmd := dcrjson.NewLiveTicketsCmd()
 	return c.sendCmd(cmd)
 }
 
 // LiveTickets returns all currently missed tickets from the missed
 // ticket database in the daemon.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) LiveTickets() ([]*chainhash.Hash, error) {
 	return c.LiveTicketsAsync().Receive()
 }
@@ -951,8 +951,8 @@ func (r FutureMissedTicketsResult) Receive() ([]*chainhash.Hash, error) {
 		return nil, err
 	}
 
-	// Unmarshal the result as a pfcjson.MissedTicketsResult.
-	var container pfcjson.MissedTicketsResult
+	// Unmarshal the result as a dcrjson.MissedTicketsResult.
+	var container dcrjson.MissedTicketsResult
 	err = json.Unmarshal(res, &container)
 	if err != nil {
 		return nil, err
@@ -974,14 +974,14 @@ func (r FutureMissedTicketsResult) Receive() ([]*chainhash.Hash, error) {
 // result of the RPC at some future time by invoking the Receive function on the
 // returned instance.
 func (c *Client) MissedTicketsAsync() FutureMissedTicketsResult {
-	cmd := pfcjson.NewMissedTicketsCmd()
+	cmd := dcrjson.NewMissedTicketsCmd()
 	return c.sendCmd(cmd)
 }
 
 // MissedTickets returns all currently missed tickets from the missed
 // ticket database in the daemon.
 //
-// NOTE: This is a pfcd extension.
+// NOTE: This is a dcrd extension.
 func (c *Client) MissedTickets() ([]*chainhash.Hash, error) {
 	return c.MissedTicketsAsync().Receive()
 }
@@ -992,14 +992,14 @@ type FutureSessionResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // session result.
-func (r FutureSessionResult) Receive() (*pfcjson.SessionResult, error) {
+func (r FutureSessionResult) Receive() (*dcrjson.SessionResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a session result object.
-	var session pfcjson.SessionResult
+	var session dcrjson.SessionResult
 	err = json.Unmarshal(res, &session)
 	if err != nil {
 		return nil, err
@@ -1014,14 +1014,14 @@ func (r FutureSessionResult) Receive() (*pfcjson.SessionResult, error) {
 //
 // See Session for the blocking version and more details.
 //
-// NOTE: This is a Picfight extension.
+// NOTE: This is a Decred extension.
 func (c *Client) SessionAsync() FutureSessionResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
 		return newFutureError(ErrWebsocketsRequired)
 	}
 
-	cmd := pfcjson.NewSessionCmd()
+	cmd := dcrjson.NewSessionCmd()
 	return c.sendCmd(cmd)
 }
 
@@ -1029,8 +1029,8 @@ func (c *Client) SessionAsync() FutureSessionResult {
 //
 // This RPC requires the client to be running in websocket mode.
 //
-// NOTE: This is a Picfight extension.
-func (c *Client) Session() (*pfcjson.SessionResult, error) {
+// NOTE: This is a Decred extension.
+func (c *Client) Session() (*dcrjson.SessionResult, error) {
 	return c.SessionAsync().Receive()
 }
 
@@ -1040,14 +1040,14 @@ type FutureTicketFeeInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // ticketfeeinfo result.
-func (r FutureTicketFeeInfoResult) Receive() (*pfcjson.TicketFeeInfoResult, error) {
+func (r FutureTicketFeeInfoResult) Receive() (*dcrjson.TicketFeeInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarsal result as a ticketfeeinfo result object.
-	var tfir pfcjson.TicketFeeInfoResult
+	var tfir dcrjson.TicketFeeInfoResult
 	err = json.Unmarshal(res, &tfir)
 	if err != nil {
 		return nil, err
@@ -1062,7 +1062,7 @@ func (r FutureTicketFeeInfoResult) Receive() (*pfcjson.TicketFeeInfoResult, erro
 //
 // See TicketFeeInfo for the blocking version and more details.
 //
-// NOTE: This is a Picfight extension.
+// NOTE: This is a Decred extension.
 func (c *Client) TicketFeeInfoAsync(blocks *uint32, windows *uint32) FutureTicketFeeInfoResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
@@ -1078,7 +1078,7 @@ func (c *Client) TicketFeeInfoAsync(blocks *uint32, windows *uint32) FutureTicke
 		windows = &zeroUint32
 	}
 
-	cmd := pfcjson.NewTicketFeeInfoCmd(blocks, windows)
+	cmd := dcrjson.NewTicketFeeInfoCmd(blocks, windows)
 	return c.sendCmd(cmd)
 }
 
@@ -1086,8 +1086,8 @@ func (c *Client) TicketFeeInfoAsync(blocks *uint32, windows *uint32) FutureTicke
 //
 // This RPC requires the client to be running in websocket mode.
 //
-// NOTE: This is a Picfight extension.
-func (c *Client) TicketFeeInfo(blocks *uint32, windows *uint32) (*pfcjson.TicketFeeInfoResult, error) {
+// NOTE: This is a Decred extension.
+func (c *Client) TicketFeeInfo(blocks *uint32, windows *uint32) (*dcrjson.TicketFeeInfoResult, error) {
 	return c.TicketFeeInfoAsync(blocks, windows).Receive()
 }
 
@@ -1097,7 +1097,7 @@ type FutureTicketVWAPResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // ticketvwap result.
-func (r FutureTicketVWAPResult) Receive() (pfcutil.Amount, error) {
+func (r FutureTicketVWAPResult) Receive() (dcrutil.Amount, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return 0, err
@@ -1110,7 +1110,7 @@ func (r FutureTicketVWAPResult) Receive() (pfcutil.Amount, error) {
 		return 0, err
 	}
 
-	amt, err := pfcutil.NewAmount(vwap)
+	amt, err := dcrutil.NewAmount(vwap)
 	if err != nil {
 		return 0, err
 	}
@@ -1124,14 +1124,14 @@ func (r FutureTicketVWAPResult) Receive() (pfcutil.Amount, error) {
 //
 // See TicketVWAP for the blocking version and more details.
 //
-// NOTE: This is a Picfight extension.
+// NOTE: This is a Decred extension.
 func (c *Client) TicketVWAPAsync(start *uint32, end *uint32) FutureTicketVWAPResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
 		return newFutureError(ErrWebsocketsRequired)
 	}
 
-	cmd := pfcjson.NewTicketVWAPCmd(start, end)
+	cmd := dcrjson.NewTicketVWAPCmd(start, end)
 	return c.sendCmd(cmd)
 }
 
@@ -1139,8 +1139,8 @@ func (c *Client) TicketVWAPAsync(start *uint32, end *uint32) FutureTicketVWAPRes
 //
 // This RPC requires the client to be running in websocket mode.
 //
-// NOTE: This is a Picfight extension.
-func (c *Client) TicketVWAP(start *uint32, end *uint32) (pfcutil.Amount, error) {
+// NOTE: This is a Decred extension.
+func (c *Client) TicketVWAP(start *uint32, end *uint32) (dcrutil.Amount, error) {
 	return c.TicketVWAPAsync(start, end).Receive()
 }
 
@@ -1150,14 +1150,14 @@ type FutureTxFeeInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // txfeeinfo result.
-func (r FutureTxFeeInfoResult) Receive() (*pfcjson.TxFeeInfoResult, error) {
+func (r FutureTxFeeInfoResult) Receive() (*dcrjson.TxFeeInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarsal result as a txfeeinfo result object.
-	var tfir pfcjson.TxFeeInfoResult
+	var tfir dcrjson.TxFeeInfoResult
 	err = json.Unmarshal(res, &tfir)
 	if err != nil {
 		return nil, err
@@ -1172,14 +1172,14 @@ func (r FutureTxFeeInfoResult) Receive() (*pfcjson.TxFeeInfoResult, error) {
 //
 // See TxFeeInfo for the blocking version and more details.
 //
-// NOTE: This is a Picfight extension.
+// NOTE: This is a Decred extension.
 func (c *Client) TxFeeInfoAsync(blocks *uint32, start *uint32, end *uint32) FutureTxFeeInfoResult {
 	// Not supported in HTTP POST mode.
 	if c.config.HTTPPostMode {
 		return newFutureError(ErrWebsocketsRequired)
 	}
 
-	cmd := pfcjson.NewTxFeeInfoCmd(blocks, start, end)
+	cmd := dcrjson.NewTxFeeInfoCmd(blocks, start, end)
 	return c.sendCmd(cmd)
 }
 
@@ -1187,8 +1187,8 @@ func (c *Client) TxFeeInfoAsync(blocks *uint32, start *uint32, end *uint32) Futu
 //
 // This RPC requires the client to be running in websocket mode.
 //
-// NOTE: This is a Picfight extension.
-func (c *Client) TxFeeInfo(blocks *uint32, start *uint32, end *uint32) (*pfcjson.TxFeeInfoResult, error) {
+// NOTE: This is a Decred extension.
+func (c *Client) TxFeeInfo(blocks *uint32, start *uint32, end *uint32) (*dcrjson.TxFeeInfoResult, error) {
 	return c.TxFeeInfoAsync(blocks, start, end).Receive()
 }
 
@@ -1198,14 +1198,14 @@ type FutureVersionResult chan *response
 
 // Receive waits for the response promised by the future and returns the version
 // result.
-func (r FutureVersionResult) Receive() (map[string]pfcjson.VersionResult, error) {
+func (r FutureVersionResult) Receive() (map[string]dcrjson.VersionResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarsal result as a version result object.
-	var vr map[string]pfcjson.VersionResult
+	var vr map[string]dcrjson.VersionResult
 	err = json.Unmarshal(res, &vr)
 	if err != nil {
 		return nil, err
@@ -1219,11 +1219,11 @@ func (r FutureVersionResult) Receive() (map[string]pfcjson.VersionResult, error)
 //
 // See Version for the blocking version and more details.
 func (c *Client) VersionAsync() FutureVersionResult {
-	cmd := pfcjson.NewVersionCmd()
+	cmd := dcrjson.NewVersionCmd()
 	return c.sendCmd(cmd)
 }
 
 // Version returns information about the server's JSON-RPC API versions.
-func (c *Client) Version() (map[string]pfcjson.VersionResult, error) {
+func (c *Client) Version() (map[string]dcrjson.VersionResult, error) {
 	return c.VersionAsync().Receive()
 }

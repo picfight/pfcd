@@ -8,10 +8,10 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
 )
 
 // NextLotteryData returns the next tickets eligible for spending as SSGen
@@ -106,7 +106,7 @@ func (b *BlockChain) MissedTickets() ([]chainhash.Hash, error) {
 // corresponding to the given address.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) TicketsWithAddress(address pfcutil.Address) ([]chainhash.Hash, error) {
+func (b *BlockChain) TicketsWithAddress(address dcrutil.Address) ([]chainhash.Hash, error) {
 	b.chainLock.RLock()
 	sn := b.bestChain.Tip().stakeNode
 	b.chainLock.RUnlock()
@@ -220,7 +220,7 @@ func (b *BlockChain) CheckExpiredTickets(hashes []chainhash.Hash) []bool {
 // This function is safe for concurrent access.  All live tickets are at least
 // 256 blocks deep on mainnet, so the UTXO set should generally always have
 // the asked for transactions.
-func (b *BlockChain) TicketPoolValue() (pfcutil.Amount, error) {
+func (b *BlockChain) TicketPoolValue() (dcrutil.Amount, error) {
 	b.chainLock.RLock()
 	sn := b.bestChain.Tip().stakeNode
 	b.chainLock.RUnlock()
@@ -240,5 +240,5 @@ func (b *BlockChain) TicketPoolValue() (pfcutil.Amount, error) {
 	if err != nil {
 		return 0, err
 	}
-	return pfcutil.Amount(amt), nil
+	return dcrutil.Amount(amt), nil
 }

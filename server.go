@@ -20,24 +20,24 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/picfight/pfcd/addrmgr"
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/connmgr"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/fees"
-	"github.com/picfight/pfcd/gcs"
-	"github.com/picfight/pfcd/gcs/blockcf"
-	"github.com/picfight/pfcd/internal/version"
-	"github.com/picfight/pfcd/mempool"
-	"github.com/picfight/pfcd/mining"
-	"github.com/picfight/pfcd/peer"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/addrmgr"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/indexers"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/connmgr"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/fees"
+	"github.com/decred/dcrd/gcs"
+	"github.com/decred/dcrd/gcs/blockcf"
+	"github.com/decred/dcrd/internal/version"
+	"github.com/decred/dcrd/mempool"
+	"github.com/decred/dcrd/mining"
+	"github.com/decred/dcrd/peer"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -64,8 +64,8 @@ const (
 
 var (
 	// userAgentName is the user agent name and is used to help identify
-	// ourselves to other Picfight peers.
-	userAgentName = "pfcd"
+	// ourselves to other Decred peers.
+	userAgentName = "dcrd"
 
 	// userAgentVersion is the user agent version and is used to help
 	// identify ourselves to other peers.
@@ -73,7 +73,7 @@ var (
 		version.Patch)
 )
 
-// broadcastMsg provides the ability to house a Picfight message to be broadcast
+// broadcastMsg provides the ability to house a Decred message to be broadcast
 // to all connected peers except specified excluded peers.
 type broadcastMsg struct {
 	message      wire.Message
@@ -171,8 +171,8 @@ func (ps *peerState) forAllPeers(closure func(sp *serverPeer)) {
 	ps.forAllOutboundPeers(closure)
 }
 
-// server provides a Picfight server for handling communications to and from
-// Picfight peers.
+// server provides a Decred server for handling communications to and from
+// Decred peers.
 type server struct {
 	// The following variables must only be used atomically.
 	// Putting the uint64s first makes them 64-bit aligned for 32-bit systems.
@@ -599,9 +599,9 @@ func (sp *serverPeer) OnTx(p *peer.Peer, msg *wire.MsgTx) {
 	}
 
 	// Add the transaction to the known inventory for the peer.
-	// Convert the raw MsgTx to a pfcutil.Tx which provides some convenience
+	// Convert the raw MsgTx to a dcrutil.Tx which provides some convenience
 	// methods and things such as hash caching.
-	tx := pfcutil.NewTx(msg)
+	tx := dcrutil.NewTx(msg)
 	iv := wire.NewInvVect(wire.InvTypeTx, tx.Hash())
 	p.AddKnownInventory(iv)
 
@@ -617,9 +617,9 @@ func (sp *serverPeer) OnTx(p *peer.Peer, msg *wire.MsgTx) {
 // OnBlock is invoked when a peer receives a block wire message.  It blocks
 // until the network block has been fully processed.
 func (sp *serverPeer) OnBlock(p *peer.Peer, msg *wire.MsgBlock, buf []byte) {
-	// Convert the raw MsgBlock to a pfcutil.Block which provides some
+	// Convert the raw MsgBlock to a dcrutil.Block which provides some
 	// convenience methods and things such as hash caching.
-	block := pfcutil.NewBlockFromBlockAndBytes(msg, buf)
+	block := dcrutil.NewBlockFromBlockAndBytes(msg, buf)
 
 	// Add the block to the known inventory for the peer.
 	iv := wire.NewInvVect(wire.InvTypeBlock, block.Hash())
@@ -1144,7 +1144,7 @@ func (s *server) PruneRebroadcastInventory() {
 // both websocket and getblocktemplate long poll clients of the passed
 // transactions.  This function should be called whenever new transactions
 // are added to the mempool.
-func (s *server) AnnounceNewTransactions(newTxs []*pfcutil.Tx) {
+func (s *server) AnnounceNewTransactions(newTxs []*dcrutil.Tx) {
 	// Generate and relay inventory vectors for all newly accepted
 	// transactions into the memory pool due to the original being
 	// accepted.
@@ -1737,7 +1737,7 @@ func (s *server) peerHandler() {
 
 	if !cfg.DisableDNSSeed {
 		// Add peers discovered through DNS to the address manager.
-		connmgr.SeedFromDNS(activeNetParams.Params, defaultRequiredServices, pfcdLookup, func(addrs []*wire.NetAddress) {
+		connmgr.SeedFromDNS(activeNetParams.Params, defaultRequiredServices, dcrdLookup, func(addrs []*wire.NetAddress) {
 			// Bitcoind uses a lookup of the dns seeder here. This
 			// is rather strange since the values looked up by the
 			// DNS seed lookups will vary quite a lot.
@@ -1854,7 +1854,7 @@ func (s *server) OutboundGroupCount(key string) int {
 	return <-replyChan
 }
 
-// AddedNodeInfo returns an array of pfcjson.GetAddedNodeInfoResult structures
+// AddedNodeInfo returns an array of dcrjson.GetAddedNodeInfoResult structures
 // describing the persistent (added) nodes.
 func (s *server) AddedNodeInfo() []*serverPeer {
 	replyChan := make(chan []*serverPeer)
@@ -2004,7 +2004,7 @@ out:
 				}
 
 				for iv, data := range pendingInvs {
-					tx, ok := data.(*pfcutil.Tx)
+					tx, ok := data.(*dcrutil.Tx)
 					if !ok {
 						continue
 					}
@@ -2254,7 +2254,7 @@ out:
 			// listen port?
 			// XXX this assumes timeout is in seconds.
 			listenPort, err := s.nat.AddPortMapping("tcp", int(lport), int(lport),
-				"pfcd listen port", 20*60)
+				"dcrd listen port", 20*60)
 			if err != nil {
 				srvrLog.Warnf("can't add UPnP port mapping: %v", err)
 			}
@@ -2304,14 +2304,18 @@ func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFla
 
 	// Enable validation of OP_SHA256 if the stake vote for the agenda is
 	// active.
-	{
+	isActive, err := chain.IsLNFeaturesAgendaActive()
+	if err != nil {
+		return 0, err
+	}
+	if isActive {
 		scriptFlags |= txscript.ScriptVerifySHA256
 	}
 	return scriptFlags, nil
 }
 
-// newServer returns a new pfcd server configured to listen on addr for the
-// PicFight network type specified by chainParams.  Use start to begin accepting
+// newServer returns a new dcrd server configured to listen on addr for the
+// Decred network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
 func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Params, dataDir string, interrupt <-chan struct{}) (*server, error) {
 	services := defaultServices
@@ -2319,7 +2323,7 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		services &^= wire.SFNodeCF
 	}
 
-	amgr := addrmgr.New(cfg.DataDir, pfcdLookup)
+	amgr := addrmgr.New(cfg.DataDir, dcrdLookup)
 
 	var listeners []net.Listener
 	var nat NAT
@@ -2507,7 +2511,7 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 	feC := fees.EstimatorConfig{
 		ChainParams:  chainParams,
 		MinBucketFee: cfg.minRelayTxFee,
-		MaxBucketFee: pfcutil.Amount(fees.DefaultMaxBucketFeeMultiplier) * cfg.minRelayTxFee,
+		MaxBucketFee: dcrutil.Amount(fees.DefaultMaxBucketFeeMultiplier) * cfg.minRelayTxFee,
 		MaxConfirms:  fees.DefaultMaxConfirmations,
 		FeeRateStep:  fees.DefaultFeeRateStep,
 		DatabaseFile: path.Join(dataDir, "feesdb"),
@@ -2550,9 +2554,7 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 				return standardScriptVerifyFlags(bm.chain)
 			},
-			AcceptSequenceLocks: func() (bool, error) {
-				return true, nil
-			},
+			AcceptSequenceLocks: bm.chain.IsFixSeqLocksAgendaActive,
 		},
 		ChainParams: chainParams,
 		NextStakeDifficulty: func() (int64, error) {
@@ -2654,7 +2656,7 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		OnAccept:       s.inboundPeerConnected,
 		RetryDuration:  connectionRetryInterval,
 		TargetOutbound: uint32(targetOutbound),
-		Dial:           pfcdDial,
+		Dial:           dcrdDial,
 		OnConnection:   s.outboundPeerConnected,
 		GetNewAddress:  newAddressFunc,
 	})
@@ -2707,9 +2709,9 @@ func addrStringToNetAddr(addr string) (net.Addr, error) {
 	}
 
 	// Attempt to look up an IP address associated with the parsed host.
-	// The pfcdLookup function will transparently handle performing the
+	// The dcrdLookup function will transparently handle performing the
 	// lookup over Tor if necessary.
-	ips, err := pfcdLookup(host)
+	ips, err := dcrdLookup(host)
 	if err != nil {
 		return nil, err
 	}

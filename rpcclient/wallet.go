@@ -9,10 +9,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 // *****************************
@@ -25,14 +25,14 @@ type FutureGetTransactionResult chan *response
 
 // Receive waits for the response promised by the future and returns detailed
 // information about a wallet transaction.
-func (r FutureGetTransactionResult) Receive() (*pfcjson.GetTransactionResult, error) {
+func (r FutureGetTransactionResult) Receive() (*dcrjson.GetTransactionResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a gettransaction result object
-	var getTx pfcjson.GetTransactionResult
+	var getTx dcrjson.GetTransactionResult
 	err = json.Unmarshal(res, &getTx)
 	if err != nil {
 		return nil, err
@@ -52,14 +52,14 @@ func (c *Client) GetTransactionAsync(txHash *chainhash.Hash) FutureGetTransactio
 		hash = txHash.String()
 	}
 
-	cmd := pfcjson.NewGetTransactionCmd(hash, nil)
+	cmd := dcrjson.NewGetTransactionCmd(hash, nil)
 	return c.sendCmd(cmd)
 }
 
 // GetTransaction returns detailed information about a wallet transaction.
 //
 // See GetRawTransaction to return the raw transaction instead.
-func (c *Client) GetTransaction(txHash *chainhash.Hash) (*pfcjson.GetTransactionResult, error) {
+func (c *Client) GetTransaction(txHash *chainhash.Hash) (*dcrjson.GetTransactionResult, error) {
 	return c.GetTransactionAsync(txHash).Receive()
 }
 
@@ -70,14 +70,14 @@ type FutureListTransactionsResult chan *response
 
 // Receive waits for the response promised by the future and returns a list of
 // the most recent transactions.
-func (r FutureListTransactionsResult) Receive() ([]pfcjson.ListTransactionsResult, error) {
+func (r FutureListTransactionsResult) Receive() ([]dcrjson.ListTransactionsResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as an array of listtransaction result objects.
-	var transactions []pfcjson.ListTransactionsResult
+	var transactions []dcrjson.ListTransactionsResult
 	err = json.Unmarshal(res, &transactions)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (r FutureListTransactionsResult) Receive() ([]pfcjson.ListTransactionsResul
 //
 // See ListTransactions for the blocking version and more details.
 func (c *Client) ListTransactionsAsync(account string) FutureListTransactionsResult {
-	cmd := pfcjson.NewListTransactionsCmd(&account, nil, nil, nil)
+	cmd := dcrjson.NewListTransactionsCmd(&account, nil, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -100,7 +100,7 @@ func (c *Client) ListTransactionsAsync(account string) FutureListTransactionsRes
 //
 // See the ListTransactionsCount and ListTransactionsCountFrom to control the
 // number of transactions returned and starting point, respectively.
-func (c *Client) ListTransactions(account string) ([]pfcjson.ListTransactionsResult, error) {
+func (c *Client) ListTransactions(account string) ([]dcrjson.ListTransactionsResult, error) {
 	return c.ListTransactionsAsync(account).Receive()
 }
 
@@ -110,7 +110,7 @@ func (c *Client) ListTransactions(account string) ([]pfcjson.ListTransactionsRes
 //
 // See ListTransactionsCount for the blocking version and more details.
 func (c *Client) ListTransactionsCountAsync(account string, count int) FutureListTransactionsResult {
-	cmd := pfcjson.NewListTransactionsCmd(&account, &count, nil, nil)
+	cmd := dcrjson.NewListTransactionsCmd(&account, &count, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -119,7 +119,7 @@ func (c *Client) ListTransactionsCountAsync(account string, count int) FutureLis
 //
 // See the ListTransactions and ListTransactionsCountFrom functions for
 // different options.
-func (c *Client) ListTransactionsCount(account string, count int) ([]pfcjson.ListTransactionsResult, error) {
+func (c *Client) ListTransactionsCount(account string, count int) ([]dcrjson.ListTransactionsResult, error) {
 	return c.ListTransactionsCountAsync(account, count).Receive()
 }
 
@@ -129,7 +129,7 @@ func (c *Client) ListTransactionsCount(account string, count int) ([]pfcjson.Lis
 //
 // See ListTransactionsCountFrom for the blocking version and more details.
 func (c *Client) ListTransactionsCountFromAsync(account string, count, from int) FutureListTransactionsResult {
-	cmd := pfcjson.NewListTransactionsCmd(&account, &count, &from, nil)
+	cmd := dcrjson.NewListTransactionsCmd(&account, &count, &from, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -137,7 +137,7 @@ func (c *Client) ListTransactionsCountFromAsync(account string, count, from int)
 // to the passed count while skipping the first 'from' transactions.
 //
 // See the ListTransactions and ListTransactionsCount functions to use defaults.
-func (c *Client) ListTransactionsCountFrom(account string, count, from int) ([]pfcjson.ListTransactionsResult, error) {
+func (c *Client) ListTransactionsCountFrom(account string, count, from int) ([]dcrjson.ListTransactionsResult, error) {
 	return c.ListTransactionsCountFromAsync(account, count, from).Receive()
 }
 
@@ -151,14 +151,14 @@ type FutureListUnspentResult chan *response
 // future was returned by a call to ListUnspentMinAsync, ListUnspentMinMaxAsync,
 // or ListUnspentMinMaxAddressesAsync, the range may be limited by the
 // parameters of the RPC invocation.
-func (r FutureListUnspentResult) Receive() ([]pfcjson.ListUnspentResult, error) {
+func (r FutureListUnspentResult) Receive() ([]dcrjson.ListUnspentResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as an array of listunspent results.
-	var unspent []pfcjson.ListUnspentResult
+	var unspent []dcrjson.ListUnspentResult
 	err = json.Unmarshal(res, &unspent)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func (r FutureListUnspentResult) Receive() ([]pfcjson.ListUnspentResult, error) 
 //
 // See ListUnspent for the blocking version and more details.
 func (c *Client) ListUnspentAsync() FutureListUnspentResult {
-	cmd := pfcjson.NewListUnspentCmd(nil, nil, nil)
+	cmd := dcrjson.NewListUnspentCmd(nil, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -183,7 +183,7 @@ func (c *Client) ListUnspentAsync() FutureListUnspentResult {
 //
 // See ListUnspentMin for the blocking version and more details.
 func (c *Client) ListUnspentMinAsync(minConf int) FutureListUnspentResult {
-	cmd := pfcjson.NewListUnspentCmd(&minConf, nil, nil)
+	cmd := dcrjson.NewListUnspentCmd(&minConf, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -193,7 +193,7 @@ func (c *Client) ListUnspentMinAsync(minConf int) FutureListUnspentResult {
 //
 // See ListUnspentMinMax for the blocking version and more details.
 func (c *Client) ListUnspentMinMaxAsync(minConf, maxConf int) FutureListUnspentResult {
-	cmd := pfcjson.NewListUnspentCmd(&minConf, &maxConf, nil)
+	cmd := dcrjson.NewListUnspentCmd(&minConf, &maxConf, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -202,41 +202,41 @@ func (c *Client) ListUnspentMinMaxAsync(minConf, maxConf int) FutureListUnspentR
 // function on the returned instance.
 //
 // See ListUnspentMinMaxAddresses for the blocking version and more details.
-func (c *Client) ListUnspentMinMaxAddressesAsync(minConf, maxConf int, addrs []pfcutil.Address) FutureListUnspentResult {
+func (c *Client) ListUnspentMinMaxAddressesAsync(minConf, maxConf int, addrs []dcrutil.Address) FutureListUnspentResult {
 	addrStrs := make([]string, 0, len(addrs))
 	for _, a := range addrs {
 		addrStrs = append(addrStrs, a.EncodeAddress())
 	}
 
-	cmd := pfcjson.NewListUnspentCmd(&minConf, &maxConf, &addrStrs)
+	cmd := dcrjson.NewListUnspentCmd(&minConf, &maxConf, &addrStrs)
 	return c.sendCmd(cmd)
 }
 
 // ListUnspent returns all unspent transaction outputs known to a wallet, using
 // the default number of minimum and maximum number of confirmations as a
 // filter (1 and 9999999, respectively).
-func (c *Client) ListUnspent() ([]pfcjson.ListUnspentResult, error) {
+func (c *Client) ListUnspent() ([]dcrjson.ListUnspentResult, error) {
 	return c.ListUnspentAsync().Receive()
 }
 
 // ListUnspentMin returns all unspent transaction outputs known to a wallet,
 // using the specified number of minimum conformations and default number of
 // maximum confiramtions (9999999) as a filter.
-func (c *Client) ListUnspentMin(minConf int) ([]pfcjson.ListUnspentResult, error) {
+func (c *Client) ListUnspentMin(minConf int) ([]dcrjson.ListUnspentResult, error) {
 	return c.ListUnspentMinAsync(minConf).Receive()
 }
 
 // ListUnspentMinMax returns all unspent transaction outputs known to a wallet,
 // using the specified number of minimum and maximum number of confirmations as
 // a filter.
-func (c *Client) ListUnspentMinMax(minConf, maxConf int) ([]pfcjson.ListUnspentResult, error) {
+func (c *Client) ListUnspentMinMax(minConf, maxConf int) ([]dcrjson.ListUnspentResult, error) {
 	return c.ListUnspentMinMaxAsync(minConf, maxConf).Receive()
 }
 
 // ListUnspentMinMaxAddresses returns all unspent transaction outputs that pay
 // to any of specified addresses in a wallet using the specified number of
 // minimum and maximum number of confirmations as a filter.
-func (c *Client) ListUnspentMinMaxAddresses(minConf, maxConf int, addrs []pfcutil.Address) ([]pfcjson.ListUnspentResult, error) {
+func (c *Client) ListUnspentMinMaxAddresses(minConf, maxConf int, addrs []dcrutil.Address) ([]dcrjson.ListUnspentResult, error) {
 	return c.ListUnspentMinMaxAddressesAsync(minConf, maxConf, addrs).Receive()
 }
 
@@ -248,14 +248,14 @@ type FutureListSinceBlockResult chan *response
 // Receive waits for the response promised by the future and returns all
 // transactions added in blocks since the specified block hash, or all
 // transactions if it is nil.
-func (r FutureListSinceBlockResult) Receive() (*pfcjson.ListSinceBlockResult, error) {
+func (r FutureListSinceBlockResult) Receive() (*dcrjson.ListSinceBlockResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a listsinceblock result object.
-	var listResult pfcjson.ListSinceBlockResult
+	var listResult dcrjson.ListSinceBlockResult
 	err = json.Unmarshal(res, &listResult)
 	if err != nil {
 		return nil, err
@@ -272,10 +272,10 @@ func (r FutureListSinceBlockResult) Receive() (*pfcjson.ListSinceBlockResult, er
 func (c *Client) ListSinceBlockAsync(blockHash *chainhash.Hash) FutureListSinceBlockResult {
 	var hash *string
 	if blockHash != nil {
-		hash = pfcjson.String(blockHash.String())
+		hash = dcrjson.String(blockHash.String())
 	}
 
-	cmd := pfcjson.NewListSinceBlockCmd(hash, nil, nil)
+	cmd := dcrjson.NewListSinceBlockCmd(hash, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -284,7 +284,7 @@ func (c *Client) ListSinceBlockAsync(blockHash *chainhash.Hash) FutureListSinceB
 // minimum confirmations as a filter.
 //
 // See ListSinceBlockMinConf to override the minimum number of confirmations.
-func (c *Client) ListSinceBlock(blockHash *chainhash.Hash) (*pfcjson.ListSinceBlockResult, error) {
+func (c *Client) ListSinceBlock(blockHash *chainhash.Hash) (*dcrjson.ListSinceBlockResult, error) {
 	return c.ListSinceBlockAsync(blockHash).Receive()
 }
 
@@ -296,10 +296,10 @@ func (c *Client) ListSinceBlock(blockHash *chainhash.Hash) (*pfcjson.ListSinceBl
 func (c *Client) ListSinceBlockMinConfAsync(blockHash *chainhash.Hash, minConfirms int) FutureListSinceBlockResult {
 	var hash *string
 	if blockHash != nil {
-		hash = pfcjson.String(blockHash.String())
+		hash = dcrjson.String(blockHash.String())
 	}
 
-	cmd := pfcjson.NewListSinceBlockCmd(hash, &minConfirms, nil)
+	cmd := dcrjson.NewListSinceBlockCmd(hash, &minConfirms, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -308,7 +308,7 @@ func (c *Client) ListSinceBlockMinConfAsync(blockHash *chainhash.Hash, minConfir
 // number of minimum confirmations as a filter.
 //
 // See ListSinceBlock to use the default minimum number of confirmations.
-func (c *Client) ListSinceBlockMinConf(blockHash *chainhash.Hash, minConfirms int) (*pfcjson.ListSinceBlockResult, error) {
+func (c *Client) ListSinceBlockMinConf(blockHash *chainhash.Hash, minConfirms int) (*dcrjson.ListSinceBlockResult, error) {
 	return c.ListSinceBlockMinConfAsync(blockHash, minConfirms).Receive()
 }
 
@@ -333,15 +333,15 @@ func (r FutureLockUnspentResult) Receive() error {
 //
 // See LockUnspent for the blocking version and more details.
 func (c *Client) LockUnspentAsync(unlock bool, ops []*wire.OutPoint) FutureLockUnspentResult {
-	outputs := make([]pfcjson.TransactionInput, len(ops))
+	outputs := make([]dcrjson.TransactionInput, len(ops))
 	for i, op := range ops {
-		outputs[i] = pfcjson.TransactionInput{
+		outputs[i] = dcrjson.TransactionInput{
 			Txid: op.Hash.String(),
 			Vout: op.Index,
 			Tree: op.Tree,
 		}
 	}
-	cmd := pfcjson.NewLockUnspentCmd(unlock, outputs)
+	cmd := dcrjson.NewLockUnspentCmd(unlock, outputs)
 	return c.sendCmd(cmd)
 }
 
@@ -379,7 +379,7 @@ func (r FutureListLockUnspentResult) Receive() ([]*wire.OutPoint, error) {
 	}
 
 	// Unmarshal as an array of transaction inputs.
-	var inputs []pfcjson.TransactionInput
+	var inputs []dcrjson.TransactionInput
 	err = json.Unmarshal(res, &inputs)
 	if err != nil {
 		return nil, err
@@ -392,7 +392,7 @@ func (r FutureListLockUnspentResult) Receive() ([]*wire.OutPoint, error) {
 		if err != nil {
 			return nil, err
 		}
-		ops[i] = wire.NewOutPoint(sha, input.Vout, input.Tree) // Picfight TODO
+		ops[i] = wire.NewOutPoint(sha, input.Vout, input.Tree) // Decred TODO
 	}
 
 	return ops, nil
@@ -404,7 +404,7 @@ func (r FutureListLockUnspentResult) Receive() ([]*wire.OutPoint, error) {
 //
 // See ListLockUnspent for the blocking version and more details.
 func (c *Client) ListLockUnspentAsync() FutureListLockUnspentResult {
-	cmd := pfcjson.NewListLockUnspentCmd()
+	cmd := dcrjson.NewListLockUnspentCmd()
 	return c.sendCmd(cmd)
 }
 
@@ -442,9 +442,9 @@ func (r FutureSendToAddressResult) Receive() (*chainhash.Hash, error) {
 // returned instance.
 //
 // See SendToAddress for the blocking version and more details.
-func (c *Client) SendToAddressAsync(address pfcutil.Address, amount pfcutil.Amount) FutureSendToAddressResult {
+func (c *Client) SendToAddressAsync(address dcrutil.Address, amount dcrutil.Amount) FutureSendToAddressResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewSendToAddressCmd(addr, amount.ToCoin(), nil, nil)
+	cmd := dcrjson.NewSendToAddressCmd(addr, amount.ToCoin(), nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -456,7 +456,7 @@ func (c *Client) SendToAddressAsync(address pfcutil.Address, amount pfcutil.Amou
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SendToAddress(address pfcutil.Address, amount pfcutil.Amount) (*chainhash.Hash, error) {
+func (c *Client) SendToAddress(address dcrutil.Address, amount dcrutil.Amount) (*chainhash.Hash, error) {
 	return c.SendToAddressAsync(address, amount).Receive()
 }
 
@@ -465,12 +465,12 @@ func (c *Client) SendToAddress(address pfcutil.Address, amount pfcutil.Amount) (
 // function on the returned instance.
 //
 // See SendToAddressComment for the blocking version and more details.
-func (c *Client) SendToAddressCommentAsync(address pfcutil.Address,
-	amount pfcutil.Amount, comment,
+func (c *Client) SendToAddressCommentAsync(address dcrutil.Address,
+	amount dcrutil.Amount, comment,
 	commentTo string) FutureSendToAddressResult {
 
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewSendToAddressCmd(addr, amount.ToCoin(), &comment,
+	cmd := dcrjson.NewSendToAddressCmd(addr, amount.ToCoin(), &comment,
 		&commentTo)
 	return c.sendCmd(cmd)
 }
@@ -487,7 +487,7 @@ func (c *Client) SendToAddressCommentAsync(address pfcutil.Address,
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SendToAddressComment(address pfcutil.Address, amount pfcutil.Amount, comment, commentTo string) (*chainhash.Hash, error) {
+func (c *Client) SendToAddressComment(address dcrutil.Address, amount dcrutil.Amount, comment, commentTo string) (*chainhash.Hash, error) {
 	return c.SendToAddressCommentAsync(address, amount, comment,
 		commentTo).Receive()
 }
@@ -521,9 +521,9 @@ func (r FutureSendFromResult) Receive() (*chainhash.Hash, error) {
 // returned instance.
 //
 // See SendFrom for the blocking version and more details.
-func (c *Client) SendFromAsync(fromAccount string, toAddress pfcutil.Address, amount pfcutil.Amount) FutureSendFromResult {
+func (c *Client) SendFromAsync(fromAccount string, toAddress dcrutil.Address, amount dcrutil.Amount) FutureSendFromResult {
 	addr := toAddress.EncodeAddress()
-	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(), nil,
+	cmd := dcrjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(), nil,
 		nil, nil)
 	return c.sendCmd(cmd)
 }
@@ -536,7 +536,7 @@ func (c *Client) SendFromAsync(fromAccount string, toAddress pfcutil.Address, am
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SendFrom(fromAccount string, toAddress pfcutil.Address, amount pfcutil.Amount) (*chainhash.Hash, error) {
+func (c *Client) SendFrom(fromAccount string, toAddress dcrutil.Address, amount dcrutil.Amount) (*chainhash.Hash, error) {
 	return c.SendFromAsync(fromAccount, toAddress, amount).Receive()
 }
 
@@ -545,9 +545,9 @@ func (c *Client) SendFrom(fromAccount string, toAddress pfcutil.Address, amount 
 // the returned instance.
 //
 // See SendFromMinConf for the blocking version and more details.
-func (c *Client) SendFromMinConfAsync(fromAccount string, toAddress pfcutil.Address, amount pfcutil.Amount, minConfirms int) FutureSendFromResult {
+func (c *Client) SendFromMinConfAsync(fromAccount string, toAddress dcrutil.Address, amount dcrutil.Amount, minConfirms int) FutureSendFromResult {
 	addr := toAddress.EncodeAddress()
-	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(),
+	cmd := dcrjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(),
 		&minConfirms, nil, nil)
 	return c.sendCmd(cmd)
 }
@@ -561,7 +561,7 @@ func (c *Client) SendFromMinConfAsync(fromAccount string, toAddress pfcutil.Addr
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SendFromMinConf(fromAccount string, toAddress pfcutil.Address, amount pfcutil.Amount, minConfirms int) (*chainhash.Hash, error) {
+func (c *Client) SendFromMinConf(fromAccount string, toAddress dcrutil.Address, amount dcrutil.Amount, minConfirms int) (*chainhash.Hash, error) {
 	return c.SendFromMinConfAsync(fromAccount, toAddress, amount,
 		minConfirms).Receive()
 }
@@ -572,11 +572,11 @@ func (c *Client) SendFromMinConf(fromAccount string, toAddress pfcutil.Address, 
 //
 // See SendFromComment for the blocking version and more details.
 func (c *Client) SendFromCommentAsync(fromAccount string,
-	toAddress pfcutil.Address, amount pfcutil.Amount, minConfirms int,
+	toAddress dcrutil.Address, amount dcrutil.Amount, minConfirms int,
 	comment, commentTo string) FutureSendFromResult {
 
 	addr := toAddress.EncodeAddress()
-	cmd := pfcjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(),
+	cmd := dcrjson.NewSendFromCmd(fromAccount, addr, amount.ToCoin(),
 		&minConfirms, &comment, &commentTo)
 	return c.sendCmd(cmd)
 }
@@ -592,8 +592,8 @@ func (c *Client) SendFromCommentAsync(fromAccount string,
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SendFromComment(fromAccount string, toAddress pfcutil.Address,
-	amount pfcutil.Amount, minConfirms int,
+func (c *Client) SendFromComment(fromAccount string, toAddress dcrutil.Address,
+	amount dcrutil.Amount, minConfirms int,
 	comment, commentTo string) (*chainhash.Hash, error) {
 
 	return c.SendFromCommentAsync(fromAccount, toAddress, amount,
@@ -629,12 +629,12 @@ func (r FutureSendManyResult) Receive() (*chainhash.Hash, error) {
 // returned instance.
 //
 // See SendMany for the blocking version and more details.
-func (c *Client) SendManyAsync(fromAccount string, amounts map[pfcutil.Address]pfcutil.Amount) FutureSendManyResult {
+func (c *Client) SendManyAsync(fromAccount string, amounts map[dcrutil.Address]dcrutil.Amount) FutureSendManyResult {
 	convertedAmounts := make(map[string]float64, len(amounts))
 	for addr, amount := range amounts {
 		convertedAmounts[addr.EncodeAddress()] = amount.ToCoin()
 	}
-	cmd := pfcjson.NewSendManyCmd(fromAccount, convertedAmounts, nil, nil)
+	cmd := dcrjson.NewSendManyCmd(fromAccount, convertedAmounts, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -646,7 +646,7 @@ func (c *Client) SendManyAsync(fromAccount string, amounts map[pfcutil.Address]p
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SendMany(fromAccount string, amounts map[pfcutil.Address]pfcutil.Amount) (*chainhash.Hash, error) {
+func (c *Client) SendMany(fromAccount string, amounts map[dcrutil.Address]dcrutil.Amount) (*chainhash.Hash, error) {
 	return c.SendManyAsync(fromAccount, amounts).Receive()
 }
 
@@ -656,14 +656,14 @@ func (c *Client) SendMany(fromAccount string, amounts map[pfcutil.Address]pfcuti
 //
 // See SendManyMinConf for the blocking version and more details.
 func (c *Client) SendManyMinConfAsync(fromAccount string,
-	amounts map[pfcutil.Address]pfcutil.Amount,
+	amounts map[dcrutil.Address]dcrutil.Amount,
 	minConfirms int) FutureSendManyResult {
 
 	convertedAmounts := make(map[string]float64, len(amounts))
 	for addr, amount := range amounts {
 		convertedAmounts[addr.EncodeAddress()] = amount.ToCoin()
 	}
-	cmd := pfcjson.NewSendManyCmd(fromAccount, convertedAmounts,
+	cmd := dcrjson.NewSendManyCmd(fromAccount, convertedAmounts,
 		&minConfirms, nil)
 	return c.sendCmd(cmd)
 }
@@ -678,7 +678,7 @@ func (c *Client) SendManyMinConfAsync(fromAccount string,
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
 func (c *Client) SendManyMinConf(fromAccount string,
-	amounts map[pfcutil.Address]pfcutil.Amount,
+	amounts map[dcrutil.Address]dcrutil.Amount,
 	minConfirms int) (*chainhash.Hash, error) {
 
 	return c.SendManyMinConfAsync(fromAccount, amounts, minConfirms).Receive()
@@ -690,14 +690,14 @@ func (c *Client) SendManyMinConf(fromAccount string,
 //
 // See SendManyComment for the blocking version and more details.
 func (c *Client) SendManyCommentAsync(fromAccount string,
-	amounts map[pfcutil.Address]pfcutil.Amount, minConfirms int,
+	amounts map[dcrutil.Address]dcrutil.Amount, minConfirms int,
 	comment string) FutureSendManyResult {
 
 	convertedAmounts := make(map[string]float64, len(amounts))
 	for addr, amount := range amounts {
 		convertedAmounts[addr.EncodeAddress()] = amount.ToCoin()
 	}
-	cmd := pfcjson.NewSendManyCmd(fromAccount, convertedAmounts,
+	cmd := dcrjson.NewSendManyCmd(fromAccount, convertedAmounts,
 		&minConfirms, &comment)
 	return c.sendCmd(cmd)
 }
@@ -713,7 +713,7 @@ func (c *Client) SendManyCommentAsync(fromAccount string,
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
 func (c *Client) SendManyComment(fromAccount string,
-	amounts map[pfcutil.Address]pfcutil.Amount, minConfirms int,
+	amounts map[dcrutil.Address]dcrutil.Amount, minConfirms int,
 	comment string) (*chainhash.Hash, error) {
 
 	return c.SendManyCommentAsync(fromAccount, amounts, minConfirms,
@@ -759,9 +759,9 @@ func (r FuturePurchaseTicketResult) Receive() ([]*chainhash.Hash, error) {
 // future chan to receive the transactions representing the purchased tickets
 // when they come.
 func (c *Client) PurchaseTicketAsync(fromAccount string,
-	spendLimit pfcutil.Amount, minConf *int, ticketAddress pfcutil.Address,
-	numTickets *int, poolAddress pfcutil.Address, poolFees *pfcutil.Amount,
-	expiry *int, ticketFee *pfcutil.Amount) FuturePurchaseTicketResult {
+	spendLimit dcrutil.Amount, minConf *int, ticketAddress dcrutil.Address,
+	numTickets *int, poolAddress dcrutil.Address, poolFees *dcrutil.Amount,
+	expiry *int, ticketFee *dcrutil.Amount) FuturePurchaseTicketResult {
 	// An empty string is used to keep the sendCmd
 	// passing of the command from accidentally
 	// removing certain fields. We fill in the
@@ -803,9 +803,9 @@ func (c *Client) PurchaseTicketAsync(fromAccount string,
 		ticketFeeFloat = ticketFee.ToCoin()
 	}
 
-	cmd := pfcjson.NewPurchaseTicketCmd(fromAccount, spendLimit.ToCoin(),
+	cmd := dcrjson.NewPurchaseTicketCmd(fromAccount, spendLimit.ToCoin(),
 		&minConfVal, &ticketAddrStr, &numTicketsVal, &poolAddrStr,
-		&poolFeesFloat, &expiryVal, pfcjson.String(""), &ticketFeeFloat)
+		&poolFeesFloat, &expiryVal, dcrjson.String(""), &ticketFeeFloat)
 
 	return c.sendCmd(cmd)
 }
@@ -813,9 +813,9 @@ func (c *Client) PurchaseTicketAsync(fromAccount string,
 // PurchaseTicket takes an account and a spending limit and calls the async
 // puchasetickets command.
 func (c *Client) PurchaseTicket(fromAccount string,
-	spendLimit pfcutil.Amount, minConf *int, ticketAddress pfcutil.Address,
-	numTickets *int, poolAddress pfcutil.Address, poolFees *pfcutil.Amount,
-	expiry *int, ticketChange *bool, ticketFee *pfcutil.Amount) ([]*chainhash.Hash, error) {
+	spendLimit dcrutil.Amount, minConf *int, ticketAddress dcrutil.Address,
+	numTickets *int, poolAddress dcrutil.Address, poolFees *dcrutil.Amount,
+	expiry *int, ticketChange *bool, ticketFee *dcrutil.Amount) ([]*chainhash.Hash, error) {
 
 	return c.PurchaseTicketAsync(fromAccount, spendLimit, minConf, ticketAddress,
 		numTickets, poolAddress, poolFees, expiry, ticketFee).Receive()
@@ -834,7 +834,7 @@ type FutureAddMultisigAddressResult chan *response
 // Receive waits for the response promised by the future and returns the
 // multisignature address that requires the specified number of signatures for
 // the provided addresses.
-func (r FutureAddMultisigAddressResult) Receive() (pfcutil.Address, error) {
+func (r FutureAddMultisigAddressResult) Receive() (dcrutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
@@ -847,7 +847,7 @@ func (r FutureAddMultisigAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return dcrutil.DecodeAddress(addr)
 }
 
 // AddMultisigAddressAsync returns an instance of a type that can be used to get
@@ -855,19 +855,19 @@ func (r FutureAddMultisigAddressResult) Receive() (pfcutil.Address, error) {
 // the returned instance.
 //
 // See AddMultisigAddress for the blocking version and more details.
-func (c *Client) AddMultisigAddressAsync(requiredSigs int, addresses []pfcutil.Address, account string) FutureAddMultisigAddressResult {
+func (c *Client) AddMultisigAddressAsync(requiredSigs int, addresses []dcrutil.Address, account string) FutureAddMultisigAddressResult {
 	addrs := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
 		addrs = append(addrs, addr.String())
 	}
 
-	cmd := pfcjson.NewAddMultisigAddressCmd(requiredSigs, addrs, &account)
+	cmd := dcrjson.NewAddMultisigAddressCmd(requiredSigs, addrs, &account)
 	return c.sendCmd(cmd)
 }
 
 // AddMultisigAddress adds a multisignature address that requires the specified
 // number of signatures for the provided addresses to the wallet.
-func (c *Client) AddMultisigAddress(requiredSigs int, addresses []pfcutil.Address, account string) (pfcutil.Address, error) {
+func (c *Client) AddMultisigAddress(requiredSigs int, addresses []dcrutil.Address, account string) (dcrutil.Address, error) {
 	return c.AddMultisigAddressAsync(requiredSigs, addresses,
 		account).Receive()
 }
@@ -878,14 +878,14 @@ type FutureCreateMultisigResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // multisignature address and script needed to redeem it.
-func (r FutureCreateMultisigResult) Receive() (*pfcjson.CreateMultiSigResult, error) {
+func (r FutureCreateMultisigResult) Receive() (*dcrjson.CreateMultiSigResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a createmultisig result object.
-	var multisigRes pfcjson.CreateMultiSigResult
+	var multisigRes dcrjson.CreateMultiSigResult
 	err = json.Unmarshal(res, &multisigRes)
 	if err != nil {
 		return nil, err
@@ -899,20 +899,20 @@ func (r FutureCreateMultisigResult) Receive() (*pfcjson.CreateMultiSigResult, er
 // the returned instance.
 //
 // See CreateMultisig for the blocking version and more details.
-func (c *Client) CreateMultisigAsync(requiredSigs int, addresses []pfcutil.Address) FutureCreateMultisigResult {
+func (c *Client) CreateMultisigAsync(requiredSigs int, addresses []dcrutil.Address) FutureCreateMultisigResult {
 	addrs := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
 		addrs = append(addrs, addr.String())
 	}
 
-	cmd := pfcjson.NewCreateMultisigCmd(requiredSigs, addrs)
+	cmd := dcrjson.NewCreateMultisigCmd(requiredSigs, addrs)
 	return c.sendCmd(cmd)
 }
 
 // CreateMultisig creates a multisignature address that requires the specified
 // number of signatures for the provided addresses and returns the
 // multisignature address and script needed to redeem it.
-func (c *Client) CreateMultisig(requiredSigs int, addresses []pfcutil.Address) (*pfcjson.CreateMultiSigResult, error) {
+func (c *Client) CreateMultisig(requiredSigs int, addresses []dcrutil.Address) (*dcrjson.CreateMultiSigResult, error) {
 	return c.CreateMultisigAsync(requiredSigs, addresses).Receive()
 }
 
@@ -933,7 +933,7 @@ func (r FutureCreateNewAccountResult) Receive() error {
 //
 // See CreateNewAccount for the blocking version and more details.
 func (c *Client) CreateNewAccountAsync(account string) FutureCreateNewAccountResult {
-	cmd := pfcjson.NewCreateNewAccountCmd(account)
+	cmd := dcrjson.NewCreateNewAccountCmd(account)
 	return c.sendCmd(cmd)
 }
 
@@ -948,7 +948,7 @@ type FutureGetNewAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns a new
 // address.
-func (r FutureGetNewAddressResult) Receive() (pfcutil.Address, error) {
+func (r FutureGetNewAddressResult) Receive() (dcrutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
@@ -961,7 +961,7 @@ func (r FutureGetNewAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return dcrutil.DecodeAddress(addr)
 }
 
 // GapPolicy defines the policy to use when the BIP0044 unused address gap limit
@@ -982,7 +982,7 @@ const (
 //
 // See GetNewAddress for the blocking version and more details.
 func (c *Client) GetNewAddressAsync(account string) FutureGetNewAddressResult {
-	cmd := pfcjson.NewGetNewAddressCmd(&account, nil)
+	cmd := dcrjson.NewGetNewAddressCmd(&account, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -992,18 +992,18 @@ func (c *Client) GetNewAddressAsync(account string) FutureGetNewAddressResult {
 //
 // See GetNewAddressGapPolicy for the blocking version and more details.
 func (c *Client) GetNewAddressGapPolicyAsync(account string, gapPolicy GapPolicy) FutureGetNewAddressResult {
-	cmd := pfcjson.NewGetNewAddressCmd(&account, (*string)(&gapPolicy))
+	cmd := dcrjson.NewGetNewAddressCmd(&account, (*string)(&gapPolicy))
 	return c.sendCmd(cmd)
 }
 
 // GetNewAddress returns a new address.
-func (c *Client) GetNewAddress(account string) (pfcutil.Address, error) {
+func (c *Client) GetNewAddress(account string) (dcrutil.Address, error) {
 	return c.GetNewAddressAsync(account).Receive()
 }
 
 // GetNewAddressGapPolicy returns a new address while allowing callers to
 // control the BIP0044 unused address gap limit policy.
-func (c *Client) GetNewAddressGapPolicy(account string, gapPolicy GapPolicy) (pfcutil.Address, error) {
+func (c *Client) GetNewAddressGapPolicy(account string, gapPolicy GapPolicy) (dcrutil.Address, error) {
 	return c.GetNewAddressGapPolicyAsync(account, gapPolicy).Receive()
 }
 
@@ -1014,7 +1014,7 @@ type FutureGetRawChangeAddressResult chan *response
 // Receive waits for the response promised by the future and returns a new
 // address for receiving change that will be associated with the provided
 // account.  Note that this is only for raw transactions and NOT for normal use.
-func (r FutureGetRawChangeAddressResult) Receive() (pfcutil.Address, error) {
+func (r FutureGetRawChangeAddressResult) Receive() (dcrutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
@@ -1027,7 +1027,7 @@ func (r FutureGetRawChangeAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return dcrutil.DecodeAddress(addr)
 }
 
 // GetRawChangeAddressAsync returns an instance of a type that can be used to
@@ -1036,14 +1036,14 @@ func (r FutureGetRawChangeAddressResult) Receive() (pfcutil.Address, error) {
 //
 // See GetRawChangeAddress for the blocking version and more details.
 func (c *Client) GetRawChangeAddressAsync(account string) FutureGetRawChangeAddressResult {
-	cmd := pfcjson.NewGetRawChangeAddressCmd(&account)
+	cmd := dcrjson.NewGetRawChangeAddressCmd(&account)
 	return c.sendCmd(cmd)
 }
 
 // GetRawChangeAddress returns a new address for receiving change that will be
 // associated with the provided account.  Note that this is only for raw
 // transactions and NOT for normal use.
-func (c *Client) GetRawChangeAddress(account string) (pfcutil.Address, error) {
+func (c *Client) GetRawChangeAddress(account string) (dcrutil.Address, error) {
 	return c.GetRawChangeAddressAsync(account).Receive()
 }
 
@@ -1052,8 +1052,8 @@ func (c *Client) GetRawChangeAddress(account string) (pfcutil.Address, error) {
 type FutureGetAccountAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns the current
-// Picfight address for receiving payments to the specified account.
-func (r FutureGetAccountAddressResult) Receive() (pfcutil.Address, error) {
+// Decred address for receiving payments to the specified account.
+func (r FutureGetAccountAddressResult) Receive() (dcrutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
@@ -1066,7 +1066,7 @@ func (r FutureGetAccountAddressResult) Receive() (pfcutil.Address, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeAddress(addr)
+	return dcrutil.DecodeAddress(addr)
 }
 
 // GetAccountAddressAsync returns an instance of a type that can be used to get
@@ -1075,13 +1075,13 @@ func (r FutureGetAccountAddressResult) Receive() (pfcutil.Address, error) {
 //
 // See GetAccountAddress for the blocking version and more details.
 func (c *Client) GetAccountAddressAsync(account string) FutureGetAccountAddressResult {
-	cmd := pfcjson.NewGetAccountAddressCmd(account)
+	cmd := dcrjson.NewGetAccountAddressCmd(account)
 	return c.sendCmd(cmd)
 }
 
-// GetAccountAddress returns the current Picfight address for receiving payments
+// GetAccountAddress returns the current Decred address for receiving payments
 // to the specified account.
-func (c *Client) GetAccountAddress(account string) (pfcutil.Address, error) {
+func (c *Client) GetAccountAddress(account string) (dcrutil.Address, error) {
 	return c.GetAccountAddressAsync(account).Receive()
 }
 
@@ -1112,14 +1112,14 @@ func (r FutureGetAccountResult) Receive() (string, error) {
 // returned instance.
 //
 // See GetAccount for the blocking version and more details.
-func (c *Client) GetAccountAsync(address pfcutil.Address) FutureGetAccountResult {
+func (c *Client) GetAccountAsync(address dcrutil.Address) FutureGetAccountResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewGetAccountCmd(addr)
+	cmd := dcrjson.NewGetAccountCmd(addr)
 	return c.sendCmd(cmd)
 }
 
 // GetAccount returns the account associated with the passed address.
-func (c *Client) GetAccount(address pfcutil.Address) (string, error) {
+func (c *Client) GetAccount(address dcrutil.Address) (string, error) {
 	return c.GetAccountAsync(address).Receive()
 }
 
@@ -1129,7 +1129,7 @@ type FutureGetAddressesByAccountResult chan *response
 
 // Receive waits for the response promised by the future and returns the list of
 // addresses associated with the passed account.
-func (r FutureGetAddressesByAccountResult) Receive() ([]pfcutil.Address, error) {
+func (r FutureGetAddressesByAccountResult) Receive() ([]dcrutil.Address, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
@@ -1142,9 +1142,9 @@ func (r FutureGetAddressesByAccountResult) Receive() ([]pfcutil.Address, error) 
 		return nil, err
 	}
 
-	addrs := make([]pfcutil.Address, 0, len(addrStrings))
+	addrs := make([]dcrutil.Address, 0, len(addrStrings))
 	for _, addrStr := range addrStrings {
-		addr, err := pfcutil.DecodeAddress(addrStr)
+		addr, err := dcrutil.DecodeAddress(addrStr)
 		if err != nil {
 			return nil, err
 		}
@@ -1160,13 +1160,13 @@ func (r FutureGetAddressesByAccountResult) Receive() ([]pfcutil.Address, error) 
 //
 // See GetAddressesByAccount for the blocking version and more details.
 func (c *Client) GetAddressesByAccountAsync(account string) FutureGetAddressesByAccountResult {
-	cmd := pfcjson.NewGetAddressesByAccountCmd(account)
+	cmd := dcrjson.NewGetAddressesByAccountCmd(account)
 	return c.sendCmd(cmd)
 }
 
 // GetAddressesByAccount returns the list of addresses associated with the
 // passed account.
-func (c *Client) GetAddressesByAccount(account string) ([]pfcutil.Address, error) {
+func (c *Client) GetAddressesByAccount(account string) ([]dcrutil.Address, error) {
 	return c.GetAddressesByAccountAsync(account).Receive()
 }
 
@@ -1210,7 +1210,7 @@ func (r FutureRenameAccountResult) Receive() error {
 //
 // See RenameAccount for the blocking version and more details.
 func (c *Client) RenameAccountAsync(oldAccount, newAccount string) FutureRenameAccountResult {
-	cmd := pfcjson.NewRenameAccountCmd(oldAccount, newAccount)
+	cmd := dcrjson.NewRenameAccountCmd(oldAccount, newAccount)
 	return c.sendCmd(cmd)
 }
 
@@ -1224,15 +1224,15 @@ func (c *Client) RenameAccount(oldAccount, newAccount string) error {
 type FutureValidateAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns information
-// about the given Picfight address.
-func (r FutureValidateAddressResult) Receive() (*pfcjson.ValidateAddressWalletResult, error) {
+// about the given Decred address.
+func (r FutureValidateAddressResult) Receive() (*dcrjson.ValidateAddressWalletResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a validateaddress result object.
-	var addrResult pfcjson.ValidateAddressWalletResult
+	var addrResult dcrjson.ValidateAddressWalletResult
 	err = json.Unmarshal(res, &addrResult)
 	if err != nil {
 		return nil, err
@@ -1246,14 +1246,14 @@ func (r FutureValidateAddressResult) Receive() (*pfcjson.ValidateAddressWalletRe
 // the returned instance.
 //
 // See ValidateAddress for the blocking version and more details.
-func (c *Client) ValidateAddressAsync(address pfcutil.Address) FutureValidateAddressResult {
+func (c *Client) ValidateAddressAsync(address dcrutil.Address) FutureValidateAddressResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewValidateAddressCmd(addr)
+	cmd := dcrjson.NewValidateAddressCmd(addr)
 	return c.sendCmd(cmd)
 }
 
-// ValidateAddress returns information about the given Picfight address.
-func (c *Client) ValidateAddress(address pfcutil.Address) (*pfcjson.ValidateAddressWalletResult, error) {
+// ValidateAddress returns information about the given Decred address.
+func (c *Client) ValidateAddress(address dcrutil.Address) (*dcrjson.ValidateAddressWalletResult, error) {
 	return c.ValidateAddressAsync(address).Receive()
 }
 
@@ -1274,7 +1274,7 @@ func (r FutureKeyPoolRefillResult) Receive() error {
 //
 // See KeyPoolRefill for the blocking version and more details.
 func (c *Client) KeyPoolRefillAsync() FutureKeyPoolRefillResult {
-	cmd := pfcjson.NewKeyPoolRefillCmd(nil)
+	cmd := dcrjson.NewKeyPoolRefillCmd(nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1291,7 +1291,7 @@ func (c *Client) KeyPoolRefill() error {
 //
 // See KeyPoolRefillSize for the blocking version and more details.
 func (c *Client) KeyPoolRefillSizeAsync(newSize uint) FutureKeyPoolRefillResult {
-	cmd := pfcjson.NewKeyPoolRefillCmd(&newSize)
+	cmd := dcrjson.NewKeyPoolRefillCmd(&newSize)
 	return c.sendCmd(cmd)
 }
 
@@ -1312,7 +1312,7 @@ type FutureListAccountsResult chan *response
 
 // Receive waits for the response promised by the future and returns returns a
 // map of account names and their associated balances.
-func (r FutureListAccountsResult) Receive() (map[string]pfcutil.Amount, error) {
+func (r FutureListAccountsResult) Receive() (map[string]dcrutil.Amount, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
@@ -1325,9 +1325,9 @@ func (r FutureListAccountsResult) Receive() (map[string]pfcutil.Amount, error) {
 		return nil, err
 	}
 
-	accountsMap := make(map[string]pfcutil.Amount)
+	accountsMap := make(map[string]dcrutil.Amount)
 	for k, v := range accounts {
-		amount, err := pfcutil.NewAmount(v)
+		amount, err := dcrutil.NewAmount(v)
 		if err != nil {
 			return nil, err
 		}
@@ -1344,7 +1344,7 @@ func (r FutureListAccountsResult) Receive() (map[string]pfcutil.Amount, error) {
 //
 // See ListAccounts for the blocking version and more details.
 func (c *Client) ListAccountsAsync() FutureListAccountsResult {
-	cmd := pfcjson.NewListAccountsCmd(nil)
+	cmd := dcrjson.NewListAccountsCmd(nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1352,7 +1352,7 @@ func (c *Client) ListAccountsAsync() FutureListAccountsResult {
 // using the default number of minimum confirmations.
 //
 // See ListAccountsMinConf to override the minimum number of confirmations.
-func (c *Client) ListAccounts() (map[string]pfcutil.Amount, error) {
+func (c *Client) ListAccounts() (map[string]dcrutil.Amount, error) {
 	return c.ListAccountsAsync().Receive()
 }
 
@@ -1362,7 +1362,7 @@ func (c *Client) ListAccounts() (map[string]pfcutil.Amount, error) {
 //
 // See ListAccountsMinConf for the blocking version and more details.
 func (c *Client) ListAccountsMinConfAsync(minConfirms int) FutureListAccountsResult {
-	cmd := pfcjson.NewListAccountsCmd(&minConfirms)
+	cmd := dcrjson.NewListAccountsCmd(&minConfirms)
 	return c.sendCmd(cmd)
 }
 
@@ -1370,7 +1370,7 @@ func (c *Client) ListAccountsMinConfAsync(minConfirms int) FutureListAccountsRes
 // balances using the specified number of minimum confirmations.
 //
 // See ListAccounts to use the default minimum number of confirmations.
-func (c *Client) ListAccountsMinConf(minConfirms int) (map[string]pfcutil.Amount, error) {
+func (c *Client) ListAccountsMinConf(minConfirms int) (map[string]dcrutil.Amount, error) {
 	return c.ListAccountsMinConfAsync(minConfirms).Receive()
 }
 
@@ -1381,14 +1381,14 @@ type FutureGetBalanceResult chan *response
 
 // Receive waits for the response promised by the future and returns the
 // available balance from the server for the specified account.
-func (r FutureGetBalanceResult) Receive() (*pfcjson.GetBalanceResult, error) {
+func (r FutureGetBalanceResult) Receive() (*dcrjson.GetBalanceResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a floating point number.
-	var balance pfcjson.GetBalanceResult
+	var balance dcrjson.GetBalanceResult
 	err = json.Unmarshal(res, &balance)
 	if err != nil {
 		return nil, err
@@ -1403,7 +1403,7 @@ func (r FutureGetBalanceResult) Receive() (*pfcjson.GetBalanceResult, error) {
 //
 // See GetBalance for the blocking version and more details.
 func (c *Client) GetBalanceAsync(account string) FutureGetBalanceResult {
-	cmd := pfcjson.NewGetBalanceCmd(&account, nil)
+	cmd := dcrjson.NewGetBalanceCmd(&account, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1412,7 +1412,7 @@ func (c *Client) GetBalanceAsync(account string) FutureGetBalanceResult {
 // be "*" for all accounts.
 //
 // See GetBalanceMinConf to override the minimum number of confirmations.
-func (c *Client) GetBalance(account string) (*pfcjson.GetBalanceResult, error) {
+func (c *Client) GetBalance(account string) (*dcrjson.GetBalanceResult, error) {
 	return c.GetBalanceAsync(account).Receive()
 }
 
@@ -1422,7 +1422,7 @@ func (c *Client) GetBalance(account string) (*pfcjson.GetBalanceResult, error) {
 //
 // See GetBalanceMinConf for the blocking version and more details.
 func (c *Client) GetBalanceMinConfAsync(account string, minConfirms int) FutureGetBalanceResult {
-	cmd := pfcjson.NewGetBalanceCmd(&account, &minConfirms)
+	cmd := dcrjson.NewGetBalanceCmd(&account, &minConfirms)
 	return c.sendCmd(cmd)
 }
 
@@ -1431,7 +1431,7 @@ func (c *Client) GetBalanceMinConfAsync(account string, minConfirms int) FutureG
 // account may be "*" for all accounts.
 //
 // See GetBalance to use the default minimum number of confirmations.
-func (c *Client) GetBalanceMinConf(account string, minConfirms int) (*pfcjson.GetBalanceResult, error) {
+func (c *Client) GetBalanceMinConf(account string, minConfirms int) (*dcrjson.GetBalanceResult, error) {
 	return c.GetBalanceMinConfAsync(account, minConfirms).Receive()
 }
 
@@ -1442,7 +1442,7 @@ type FutureGetReceivedByAccountResult chan *response
 
 // Receive waits for the response promised by the future and returns the total
 // amount received with the specified account.
-func (r FutureGetReceivedByAccountResult) Receive() (pfcutil.Amount, error) {
+func (r FutureGetReceivedByAccountResult) Receive() (dcrutil.Amount, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return 0, err
@@ -1455,7 +1455,7 @@ func (r FutureGetReceivedByAccountResult) Receive() (pfcutil.Amount, error) {
 		return 0, err
 	}
 
-	amount, err := pfcutil.NewAmount(balance)
+	amount, err := dcrutil.NewAmount(balance)
 	if err != nil {
 		return 0, err
 	}
@@ -1469,7 +1469,7 @@ func (r FutureGetReceivedByAccountResult) Receive() (pfcutil.Amount, error) {
 //
 // See GetReceivedByAccount for the blocking version and more details.
 func (c *Client) GetReceivedByAccountAsync(account string) FutureGetReceivedByAccountResult {
-	cmd := pfcjson.NewGetReceivedByAccountCmd(account, nil)
+	cmd := dcrjson.NewGetReceivedByAccountCmd(account, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1478,7 +1478,7 @@ func (c *Client) GetReceivedByAccountAsync(account string) FutureGetReceivedByAc
 //
 // See GetReceivedByAccountMinConf to override the minimum number of
 // confirmations.
-func (c *Client) GetReceivedByAccount(account string) (pfcutil.Amount, error) {
+func (c *Client) GetReceivedByAccount(account string) (dcrutil.Amount, error) {
 	return c.GetReceivedByAccountAsync(account).Receive()
 }
 
@@ -1488,7 +1488,7 @@ func (c *Client) GetReceivedByAccount(account string) (pfcutil.Amount, error) {
 //
 // See GetReceivedByAccountMinConf for the blocking version and more details.
 func (c *Client) GetReceivedByAccountMinConfAsync(account string, minConfirms int) FutureGetReceivedByAccountResult {
-	cmd := pfcjson.NewGetReceivedByAccountCmd(account, &minConfirms)
+	cmd := dcrjson.NewGetReceivedByAccountCmd(account, &minConfirms)
 	return c.sendCmd(cmd)
 }
 
@@ -1497,7 +1497,7 @@ func (c *Client) GetReceivedByAccountMinConfAsync(account string, minConfirms in
 // confirmations.
 //
 // See GetReceivedByAccount to use the default minimum number of confirmations.
-func (c *Client) GetReceivedByAccountMinConf(account string, minConfirms int) (pfcutil.Amount, error) {
+func (c *Client) GetReceivedByAccountMinConf(account string, minConfirms int) (dcrutil.Amount, error) {
 	return c.GetReceivedByAccountMinConfAsync(account, minConfirms).Receive()
 }
 
@@ -1507,7 +1507,7 @@ type FutureGetUnconfirmedBalanceResult chan *response
 
 // Receive waits for the response promised by the future and returns returns the
 // unconfirmed balance from the server for the specified account.
-func (r FutureGetUnconfirmedBalanceResult) Receive() (pfcutil.Amount, error) {
+func (r FutureGetUnconfirmedBalanceResult) Receive() (dcrutil.Amount, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return 0, err
@@ -1520,7 +1520,7 @@ func (r FutureGetUnconfirmedBalanceResult) Receive() (pfcutil.Amount, error) {
 		return 0, err
 	}
 
-	amount, err := pfcutil.NewAmount(balance)
+	amount, err := dcrutil.NewAmount(balance)
 	if err != nil {
 		return 0, err
 	}
@@ -1534,13 +1534,13 @@ func (r FutureGetUnconfirmedBalanceResult) Receive() (pfcutil.Amount, error) {
 //
 // See GetUnconfirmedBalance for the blocking version and more details.
 func (c *Client) GetUnconfirmedBalanceAsync(account string) FutureGetUnconfirmedBalanceResult {
-	cmd := pfcjson.NewGetUnconfirmedBalanceCmd(&account)
+	cmd := dcrjson.NewGetUnconfirmedBalanceCmd(&account)
 	return c.sendCmd(cmd)
 }
 
 // GetUnconfirmedBalance returns the unconfirmed balance from the server for
 // the specified account.
-func (c *Client) GetUnconfirmedBalance(account string) (pfcutil.Amount, error) {
+func (c *Client) GetUnconfirmedBalance(account string) (dcrutil.Amount, error) {
 	return c.GetUnconfirmedBalanceAsync(account).Receive()
 }
 
@@ -1551,7 +1551,7 @@ type FutureGetReceivedByAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns the total
 // amount received by the specified address.
-func (r FutureGetReceivedByAddressResult) Receive() (pfcutil.Amount, error) {
+func (r FutureGetReceivedByAddressResult) Receive() (dcrutil.Amount, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return 0, err
@@ -1564,7 +1564,7 @@ func (r FutureGetReceivedByAddressResult) Receive() (pfcutil.Amount, error) {
 		return 0, err
 	}
 
-	amount, err := pfcutil.NewAmount(balance)
+	amount, err := dcrutil.NewAmount(balance)
 	if err != nil {
 		return 0, err
 	}
@@ -1577,9 +1577,9 @@ func (r FutureGetReceivedByAddressResult) Receive() (pfcutil.Amount, error) {
 // function on the returned instance.
 //
 // See GetReceivedByAddress for the blocking version and more details.
-func (c *Client) GetReceivedByAddressAsync(address pfcutil.Address) FutureGetReceivedByAddressResult {
+func (c *Client) GetReceivedByAddressAsync(address dcrutil.Address) FutureGetReceivedByAddressResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewGetReceivedByAddressCmd(addr, nil)
+	cmd := dcrjson.NewGetReceivedByAddressCmd(addr, nil)
 	return c.sendCmd(cmd)
 
 }
@@ -1589,7 +1589,7 @@ func (c *Client) GetReceivedByAddressAsync(address pfcutil.Address) FutureGetRec
 //
 // See GetReceivedByAddressMinConf to override the minimum number of
 // confirmations.
-func (c *Client) GetReceivedByAddress(address pfcutil.Address) (pfcutil.Amount, error) {
+func (c *Client) GetReceivedByAddress(address dcrutil.Address) (dcrutil.Amount, error) {
 	return c.GetReceivedByAddressAsync(address).Receive()
 }
 
@@ -1598,9 +1598,9 @@ func (c *Client) GetReceivedByAddress(address pfcutil.Address) (pfcutil.Amount, 
 // function on the returned instance.
 //
 // See GetReceivedByAddressMinConf for the blocking version and more details.
-func (c *Client) GetReceivedByAddressMinConfAsync(address pfcutil.Address, minConfirms int) FutureGetReceivedByAddressResult {
+func (c *Client) GetReceivedByAddressMinConfAsync(address dcrutil.Address, minConfirms int) FutureGetReceivedByAddressResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewGetReceivedByAddressCmd(addr, &minConfirms)
+	cmd := dcrjson.NewGetReceivedByAddressCmd(addr, &minConfirms)
 	return c.sendCmd(cmd)
 }
 
@@ -1608,7 +1608,7 @@ func (c *Client) GetReceivedByAddressMinConfAsync(address pfcutil.Address, minCo
 // address with at least the specified number of minimum confirmations.
 //
 // See GetReceivedByAddress to use the default minimum number of confirmations.
-func (c *Client) GetReceivedByAddressMinConf(address pfcutil.Address, minConfirms int) (pfcutil.Amount, error) {
+func (c *Client) GetReceivedByAddressMinConf(address dcrutil.Address, minConfirms int) (dcrutil.Amount, error) {
 	return c.GetReceivedByAddressMinConfAsync(address, minConfirms).Receive()
 }
 
@@ -1620,14 +1620,14 @@ type FutureListReceivedByAccountResult chan *response
 
 // Receive waits for the response promised by the future and returns a list of
 // balances by account.
-func (r FutureListReceivedByAccountResult) Receive() ([]pfcjson.ListReceivedByAccountResult, error) {
+func (r FutureListReceivedByAccountResult) Receive() ([]dcrjson.ListReceivedByAccountResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal as an array of listreceivedbyaccount result objects.
-	var received []pfcjson.ListReceivedByAccountResult
+	var received []dcrjson.ListReceivedByAccountResult
 	err = json.Unmarshal(res, &received)
 	if err != nil {
 		return nil, err
@@ -1642,7 +1642,7 @@ func (r FutureListReceivedByAccountResult) Receive() ([]pfcjson.ListReceivedByAc
 //
 // See ListReceivedByAccount for the blocking version and more details.
 func (c *Client) ListReceivedByAccountAsync() FutureListReceivedByAccountResult {
-	cmd := pfcjson.NewListReceivedByAccountCmd(nil, nil, nil)
+	cmd := dcrjson.NewListReceivedByAccountCmd(nil, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1653,7 +1653,7 @@ func (c *Client) ListReceivedByAccountAsync() FutureListReceivedByAccountResult 
 // See ListReceivedByAccountMinConf to override the minimum number of
 // confirmations and ListReceivedByAccountIncludeEmpty to filter accounts that
 // haven't received any payments from the results.
-func (c *Client) ListReceivedByAccount() ([]pfcjson.ListReceivedByAccountResult, error) {
+func (c *Client) ListReceivedByAccount() ([]dcrjson.ListReceivedByAccountResult, error) {
 	return c.ListReceivedByAccountAsync().Receive()
 }
 
@@ -1663,7 +1663,7 @@ func (c *Client) ListReceivedByAccount() ([]pfcjson.ListReceivedByAccountResult,
 //
 // See ListReceivedByAccountMinConf for the blocking version and more details.
 func (c *Client) ListReceivedByAccountMinConfAsync(minConfirms int) FutureListReceivedByAccountResult {
-	cmd := pfcjson.NewListReceivedByAccountCmd(&minConfirms, nil, nil)
+	cmd := dcrjson.NewListReceivedByAccountCmd(&minConfirms, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1674,7 +1674,7 @@ func (c *Client) ListReceivedByAccountMinConfAsync(minConfirms int) FutureListRe
 // See ListReceivedByAccount to use the default minimum number of confirmations
 // and ListReceivedByAccountIncludeEmpty to also filter accounts that haven't
 // received any payments from the results.
-func (c *Client) ListReceivedByAccountMinConf(minConfirms int) ([]pfcjson.ListReceivedByAccountResult, error) {
+func (c *Client) ListReceivedByAccountMinConf(minConfirms int) ([]dcrjson.ListReceivedByAccountResult, error) {
 	return c.ListReceivedByAccountMinConfAsync(minConfirms).Receive()
 }
 
@@ -1684,7 +1684,7 @@ func (c *Client) ListReceivedByAccountMinConf(minConfirms int) ([]pfcjson.ListRe
 //
 // See ListReceivedByAccountIncludeEmpty for the blocking version and more details.
 func (c *Client) ListReceivedByAccountIncludeEmptyAsync(minConfirms int, includeEmpty bool) FutureListReceivedByAccountResult {
-	cmd := pfcjson.NewListReceivedByAccountCmd(&minConfirms, &includeEmpty,
+	cmd := dcrjson.NewListReceivedByAccountCmd(&minConfirms, &includeEmpty,
 		nil)
 	return c.sendCmd(cmd)
 }
@@ -1694,7 +1694,7 @@ func (c *Client) ListReceivedByAccountIncludeEmptyAsync(minConfirms int, include
 // haven't received any payments depending on specified flag.
 //
 // See ListReceivedByAccount and ListReceivedByAccountMinConf to use defaults.
-func (c *Client) ListReceivedByAccountIncludeEmpty(minConfirms int, includeEmpty bool) ([]pfcjson.ListReceivedByAccountResult, error) {
+func (c *Client) ListReceivedByAccountIncludeEmpty(minConfirms int, includeEmpty bool) ([]dcrjson.ListReceivedByAccountResult, error) {
 	return c.ListReceivedByAccountIncludeEmptyAsync(minConfirms,
 		includeEmpty).Receive()
 }
@@ -1707,14 +1707,14 @@ type FutureListReceivedByAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns a list of
 // balances by address.
-func (r FutureListReceivedByAddressResult) Receive() ([]pfcjson.ListReceivedByAddressResult, error) {
+func (r FutureListReceivedByAddressResult) Receive() ([]dcrjson.ListReceivedByAddressResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal as an array of listreceivedbyaddress result objects.
-	var received []pfcjson.ListReceivedByAddressResult
+	var received []dcrjson.ListReceivedByAddressResult
 	err = json.Unmarshal(res, &received)
 	if err != nil {
 		return nil, err
@@ -1729,7 +1729,7 @@ func (r FutureListReceivedByAddressResult) Receive() ([]pfcjson.ListReceivedByAd
 //
 // See ListReceivedByAddress for the blocking version and more details.
 func (c *Client) ListReceivedByAddressAsync() FutureListReceivedByAddressResult {
-	cmd := pfcjson.NewListReceivedByAddressCmd(nil, nil, nil)
+	cmd := dcrjson.NewListReceivedByAddressCmd(nil, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1740,7 +1740,7 @@ func (c *Client) ListReceivedByAddressAsync() FutureListReceivedByAddressResult 
 // See ListReceivedByAddressMinConf to override the minimum number of
 // confirmations and ListReceivedByAddressIncludeEmpty to also include addresses
 // that haven't received any payments in the results.
-func (c *Client) ListReceivedByAddress() ([]pfcjson.ListReceivedByAddressResult, error) {
+func (c *Client) ListReceivedByAddress() ([]dcrjson.ListReceivedByAddressResult, error) {
 	return c.ListReceivedByAddressAsync().Receive()
 }
 
@@ -1750,7 +1750,7 @@ func (c *Client) ListReceivedByAddress() ([]pfcjson.ListReceivedByAddressResult,
 //
 // See ListReceivedByAddressMinConf for the blocking version and more details.
 func (c *Client) ListReceivedByAddressMinConfAsync(minConfirms int) FutureListReceivedByAddressResult {
-	cmd := pfcjson.NewListReceivedByAddressCmd(&minConfirms, nil, nil)
+	cmd := dcrjson.NewListReceivedByAddressCmd(&minConfirms, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -1761,7 +1761,7 @@ func (c *Client) ListReceivedByAddressMinConfAsync(minConfirms int) FutureListRe
 // See ListReceivedByAddress to use the default minimum number of confirmations
 // and ListReceivedByAddressIncludeEmpty to also include addresses that haven't
 // received any payments in the results.
-func (c *Client) ListReceivedByAddressMinConf(minConfirms int) ([]pfcjson.ListReceivedByAddressResult, error) {
+func (c *Client) ListReceivedByAddressMinConf(minConfirms int) ([]dcrjson.ListReceivedByAddressResult, error) {
 	return c.ListReceivedByAddressMinConfAsync(minConfirms).Receive()
 }
 
@@ -1771,7 +1771,7 @@ func (c *Client) ListReceivedByAddressMinConf(minConfirms int) ([]pfcjson.ListRe
 //
 // See ListReceivedByAccountIncludeEmpty for the blocking version and more details.
 func (c *Client) ListReceivedByAddressIncludeEmptyAsync(minConfirms int, includeEmpty bool) FutureListReceivedByAddressResult {
-	cmd := pfcjson.NewListReceivedByAddressCmd(&minConfirms, &includeEmpty,
+	cmd := dcrjson.NewListReceivedByAddressCmd(&minConfirms, &includeEmpty,
 		nil)
 	return c.sendCmd(cmd)
 }
@@ -1781,7 +1781,7 @@ func (c *Client) ListReceivedByAddressIncludeEmptyAsync(minConfirms int, include
 // haven't received any payments depending on specified flag.
 //
 // See ListReceivedByAddress and ListReceivedByAddressMinConf to use defaults.
-func (c *Client) ListReceivedByAddressIncludeEmpty(minConfirms int, includeEmpty bool) ([]pfcjson.ListReceivedByAddressResult, error) {
+func (c *Client) ListReceivedByAddressIncludeEmpty(minConfirms int, includeEmpty bool) ([]dcrjson.ListReceivedByAddressResult, error) {
 	return c.ListReceivedByAddressIncludeEmptyAsync(minConfirms,
 		includeEmpty).Receive()
 }
@@ -1807,7 +1807,7 @@ func (r FutureWalletLockResult) Receive() error {
 //
 // See WalletLock for the blocking version and more details.
 func (c *Client) WalletLockAsync() FutureWalletLockResult {
-	cmd := pfcjson.NewWalletLockCmd()
+	cmd := dcrjson.NewWalletLockCmd()
 	return c.sendCmd(cmd)
 }
 
@@ -1824,7 +1824,7 @@ func (c *Client) WalletLock() error {
 // decryption key which is then stored in memory for the specified timeout
 // (in seconds).
 func (c *Client) WalletPassphrase(passphrase string, timeoutSecs int64) error {
-	cmd := pfcjson.NewWalletPassphraseCmd(passphrase, timeoutSecs)
+	cmd := dcrjson.NewWalletPassphraseCmd(passphrase, timeoutSecs)
 	_, err := c.sendCmdAndWait(cmd)
 	return err
 }
@@ -1846,7 +1846,7 @@ func (r FutureWalletPassphraseChangeResult) Receive() error {
 //
 // See WalletPassphraseChange for the blocking version and more details.
 func (c *Client) WalletPassphraseChangeAsync(old, new string) FutureWalletPassphraseChangeResult {
-	cmd := pfcjson.NewWalletPassphraseChangeCmd(old, new)
+	cmd := dcrjson.NewWalletPassphraseChangeCmd(old, new)
 	return c.sendCmd(cmd)
 }
 
@@ -1887,9 +1887,9 @@ func (r FutureSignMessageResult) Receive() (string, error) {
 // returned instance.
 //
 // See SignMessage for the blocking version and more details.
-func (c *Client) SignMessageAsync(address pfcutil.Address, message string) FutureSignMessageResult {
+func (c *Client) SignMessageAsync(address dcrutil.Address, message string) FutureSignMessageResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewSignMessageCmd(addr, message)
+	cmd := dcrjson.NewSignMessageCmd(addr, message)
 	return c.sendCmd(cmd)
 }
 
@@ -1897,7 +1897,7 @@ func (c *Client) SignMessageAsync(address pfcutil.Address, message string) Futur
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SignMessage(address pfcutil.Address, message string) (string, error) {
+func (c *Client) SignMessage(address dcrutil.Address, message string) (string, error) {
 	return c.SignMessageAsync(address, message).Receive()
 }
 
@@ -1928,9 +1928,9 @@ func (r FutureVerifyMessageResult) Receive() (bool, error) {
 // returned instance.
 //
 // See VerifyMessage for the blocking version and more details.
-func (c *Client) VerifyMessageAsync(address pfcutil.Address, signature, message string) FutureVerifyMessageResult {
+func (c *Client) VerifyMessageAsync(address dcrutil.Address, signature, message string) FutureVerifyMessageResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewVerifyMessageCmd(addr, signature, message)
+	cmd := dcrjson.NewVerifyMessageCmd(addr, signature, message)
 	return c.sendCmd(cmd)
 }
 
@@ -1938,7 +1938,7 @@ func (c *Client) VerifyMessageAsync(address pfcutil.Address, signature, message 
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) VerifyMessage(address pfcutil.Address, signature, message string) (bool, error) {
+func (c *Client) VerifyMessage(address dcrutil.Address, signature, message string) (bool, error) {
 	return c.VerifyMessageAsync(address, signature, message).Receive()
 }
 
@@ -1953,7 +1953,7 @@ type FutureDumpPrivKeyResult chan *response
 // Receive waits for the response promised by the future and returns the private
 // key corresponding to the passed address encoded in the wallet import format
 // (WIF)
-func (r FutureDumpPrivKeyResult) Receive() (*pfcutil.WIF, error) {
+func (r FutureDumpPrivKeyResult) Receive() (*dcrutil.WIF, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
@@ -1966,7 +1966,7 @@ func (r FutureDumpPrivKeyResult) Receive() (*pfcutil.WIF, error) {
 		return nil, err
 	}
 
-	return pfcutil.DecodeWIF(privKeyWIF)
+	return dcrutil.DecodeWIF(privKeyWIF)
 }
 
 // DumpPrivKeyAsync returns an instance of a type that can be used to get the
@@ -1974,9 +1974,9 @@ func (r FutureDumpPrivKeyResult) Receive() (*pfcutil.WIF, error) {
 // returned instance.
 //
 // See DumpPrivKey for the blocking version and more details.
-func (c *Client) DumpPrivKeyAsync(address pfcutil.Address) FutureDumpPrivKeyResult {
+func (c *Client) DumpPrivKeyAsync(address dcrutil.Address) FutureDumpPrivKeyResult {
 	addr := address.EncodeAddress()
-	cmd := pfcjson.NewDumpPrivKeyCmd(addr)
+	cmd := dcrjson.NewDumpPrivKeyCmd(addr)
 	return c.sendCmd(cmd)
 }
 
@@ -1985,7 +1985,7 @@ func (c *Client) DumpPrivKeyAsync(address pfcutil.Address) FutureDumpPrivKeyResu
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) DumpPrivKey(address pfcutil.Address) (*pfcutil.WIF, error) {
+func (c *Client) DumpPrivKey(address dcrutil.Address) (*dcrutil.WIF, error) {
 	return c.DumpPrivKeyAsync(address).Receive()
 }
 
@@ -2006,19 +2006,19 @@ func (r FutureImportPrivKeyResult) Receive() error {
 // returned instance.
 //
 // See ImportPrivKey for the blocking version and more details.
-func (c *Client) ImportPrivKeyAsync(privKeyWIF *pfcutil.WIF) FutureImportPrivKeyResult {
+func (c *Client) ImportPrivKeyAsync(privKeyWIF *dcrutil.WIF) FutureImportPrivKeyResult {
 	wif := ""
 	if privKeyWIF != nil {
 		wif = privKeyWIF.String()
 	}
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, nil, nil, nil)
+	cmd := dcrjson.NewImportPrivKeyCmd(wif, nil, nil, nil)
 	return c.sendCmd(cmd)
 }
 
 // ImportPrivKey imports the passed private key which must be the wallet import
 // format (WIF).
-func (c *Client) ImportPrivKey(privKeyWIF *pfcutil.WIF) error {
+func (c *Client) ImportPrivKey(privKeyWIF *dcrutil.WIF) error {
 	return c.ImportPrivKeyAsync(privKeyWIF).Receive()
 }
 
@@ -2027,19 +2027,19 @@ func (c *Client) ImportPrivKey(privKeyWIF *pfcutil.WIF) error {
 // returned instance.
 //
 // See ImportPrivKey for the blocking version and more details.
-func (c *Client) ImportPrivKeyLabelAsync(privKeyWIF *pfcutil.WIF, label string) FutureImportPrivKeyResult {
+func (c *Client) ImportPrivKeyLabelAsync(privKeyWIF *dcrutil.WIF, label string) FutureImportPrivKeyResult {
 	wif := ""
 	if privKeyWIF != nil {
 		wif = privKeyWIF.String()
 	}
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, nil, nil)
+	cmd := dcrjson.NewImportPrivKeyCmd(wif, &label, nil, nil)
 	return c.sendCmd(cmd)
 }
 
 // ImportPrivKeyLabel imports the passed private key which must be the wallet import
 // format (WIF). It sets the account label to the one provided.
-func (c *Client) ImportPrivKeyLabel(privKeyWIF *pfcutil.WIF, label string) error {
+func (c *Client) ImportPrivKeyLabel(privKeyWIF *dcrutil.WIF, label string) error {
 	return c.ImportPrivKeyLabelAsync(privKeyWIF, label).Receive()
 }
 
@@ -2048,20 +2048,20 @@ func (c *Client) ImportPrivKeyLabel(privKeyWIF *pfcutil.WIF, label string) error
 // returned instance.
 //
 // See ImportPrivKey for the blocking version and more details.
-func (c *Client) ImportPrivKeyRescanAsync(privKeyWIF *pfcutil.WIF, label string, rescan bool) FutureImportPrivKeyResult {
+func (c *Client) ImportPrivKeyRescanAsync(privKeyWIF *dcrutil.WIF, label string, rescan bool) FutureImportPrivKeyResult {
 	wif := ""
 	if privKeyWIF != nil {
 		wif = privKeyWIF.String()
 	}
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, &rescan, nil)
+	cmd := dcrjson.NewImportPrivKeyCmd(wif, &label, &rescan, nil)
 	return c.sendCmd(cmd)
 }
 
 // ImportPrivKeyRescan imports the passed private key which must be the wallet import
 // format (WIF). It sets the account label to the one provided. When rescan is true,
 // the block history is scanned for transactions addressed to provided privKey.
-func (c *Client) ImportPrivKeyRescan(privKeyWIF *pfcutil.WIF, label string, rescan bool) error {
+func (c *Client) ImportPrivKeyRescan(privKeyWIF *dcrutil.WIF, label string, rescan bool) error {
 	return c.ImportPrivKeyRescanAsync(privKeyWIF, label, rescan).Receive()
 }
 
@@ -2071,13 +2071,13 @@ func (c *Client) ImportPrivKeyRescan(privKeyWIF *pfcutil.WIF, label string, resc
 // returned instance.
 //
 // See ImportPrivKey for the blocking version and more details.
-func (c *Client) ImportPrivKeyRescanFromAsync(privKeyWIF *pfcutil.WIF, label string, rescan bool, scanFrom int) FutureImportPrivKeyResult {
+func (c *Client) ImportPrivKeyRescanFromAsync(privKeyWIF *dcrutil.WIF, label string, rescan bool, scanFrom int) FutureImportPrivKeyResult {
 	wif := ""
 	if privKeyWIF != nil {
 		wif = privKeyWIF.String()
 	}
 
-	cmd := pfcjson.NewImportPrivKeyCmd(wif, &label, &rescan, &scanFrom)
+	cmd := dcrjson.NewImportPrivKeyCmd(wif, &label, &rescan, &scanFrom)
 	return c.sendCmd(cmd)
 }
 
@@ -2085,7 +2085,7 @@ func (c *Client) ImportPrivKeyRescanFromAsync(privKeyWIF *pfcutil.WIF, label str
 // import format (WIF). It sets the account label to the one provided. When rescan
 // is true, the block history from block scanFrom is scanned for transactions
 // addressed to provided privKey.
-func (c *Client) ImportPrivKeyRescanFrom(privKeyWIF *pfcutil.WIF, label string, rescan bool, scanFrom int) error {
+func (c *Client) ImportPrivKeyRescanFrom(privKeyWIF *dcrutil.WIF, label string, rescan bool, scanFrom int) error {
 	return c.ImportPrivKeyRescanFromAsync(privKeyWIF, label, rescan, scanFrom).Receive()
 }
 
@@ -2110,7 +2110,7 @@ func (c *Client) ImportScriptAsync(script []byte) FutureImportScriptResult {
 		scriptStr = hex.EncodeToString(script)
 	}
 
-	cmd := pfcjson.NewImportScriptCmd(scriptStr, nil, nil)
+	cmd := dcrjson.NewImportScriptCmd(scriptStr, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -2130,7 +2130,7 @@ func (c *Client) ImportScriptRescanAsync(script []byte, rescan bool) FutureImpor
 		scriptStr = hex.EncodeToString(script)
 	}
 
-	cmd := pfcjson.NewImportScriptCmd(scriptStr, &rescan, nil)
+	cmd := dcrjson.NewImportScriptCmd(scriptStr, &rescan, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -2151,7 +2151,7 @@ func (c *Client) ImportScriptRescanFromAsync(script []byte, rescan bool, scanFro
 		scriptStr = hex.EncodeToString(script)
 	}
 
-	cmd := pfcjson.NewImportScriptCmd(scriptStr, &rescan, &scanFrom)
+	cmd := dcrjson.NewImportScriptCmd(scriptStr, &rescan, &scanFrom)
 	return c.sendCmd(cmd)
 }
 
@@ -2194,7 +2194,7 @@ func (r FutureAccountAddressIndexResult) Receive() (int, error) {
 //
 // See AccountAddressIndex for the blocking version and more details.
 func (c *Client) AccountAddressIndexAsync(account string, branch uint32) FutureAccountAddressIndexResult {
-	cmd := pfcjson.NewAccountAddressIndexCmd(account, int(branch))
+	cmd := dcrjson.NewAccountAddressIndexCmd(account, int(branch))
 	return c.sendCmd(cmd)
 }
 
@@ -2221,7 +2221,7 @@ func (r FutureAccountSyncAddressIndexResult) Receive() error {
 //
 // See AccountSyncAddressIndex for the blocking version and more details.
 func (c *Client) AccountSyncAddressIndexAsync(account string, branch uint32, index int) FutureAccountSyncAddressIndexResult {
-	cmd := pfcjson.NewAccountSyncAddressIndexCmd(account, int(branch), index)
+	cmd := dcrjson.NewAccountSyncAddressIndexCmd(account, int(branch), index)
 	return c.sendCmd(cmd)
 }
 
@@ -2248,7 +2248,7 @@ func (r FutureRevokeTicketsResult) Receive() error {
 //
 // See RevokeTickets for the blocking version and more details.
 func (c *Client) RevokeTicketsAsync() FutureRevokeTicketsResult {
-	cmd := pfcjson.NewRevokeTicketsCmd()
+	cmd := dcrjson.NewRevokeTicketsCmd()
 	return c.sendCmd(cmd)
 }
 
@@ -2275,14 +2275,14 @@ func (r FutureAddTicketResult) Receive() error {
 //
 // See AddTicket for the blocking version and more details.
 func (c *Client) AddTicketAsync(rawHex string) FutureAddTicketResult {
-	cmd := pfcjson.NewAddTicketCmd(rawHex)
+	cmd := dcrjson.NewAddTicketCmd(rawHex)
 	return c.sendCmd(cmd)
 }
 
 // AddTicket manually adds a new ticket to the wallet stake manager. This is used
 // to override normal security settings to insert tickets which would not
 // otherwise be added to the wallet.
-func (c *Client) AddTicket(ticket *pfcutil.Tx) error {
+func (c *Client) AddTicket(ticket *dcrutil.Tx) error {
 	ticketB, err := ticket.MsgTx().Bytes()
 	if err != nil {
 		return err
@@ -2297,14 +2297,14 @@ type FutureFundRawTransactionResult chan *response
 
 // Receive waits for the response promised by the future and returns the unsigned
 // transaction with the passed amount and the given address.
-func (r FutureFundRawTransactionResult) Receive() (*pfcjson.FundRawTransactionResult, error) {
+func (r FutureFundRawTransactionResult) Receive() (*dcrjson.FundRawTransactionResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a string.
-	var infoRes pfcjson.FundRawTransactionResult
+	var infoRes dcrjson.FundRawTransactionResult
 	err = json.Unmarshal(res, &infoRes)
 	if err != nil {
 		return nil, err
@@ -2318,14 +2318,14 @@ func (r FutureFundRawTransactionResult) Receive() (*pfcjson.FundRawTransactionRe
 // returned instance.
 //
 // See FundRawTransaction for the blocking version and more details.
-func (c *Client) FundRawTransactionAsync(rawhex string, fundAccount string, options pfcjson.FundRawTransactionOptions) FutureFundRawTransactionResult {
-	cmd := pfcjson.NewFundRawTransactionCmd(rawhex, fundAccount, &options)
+func (c *Client) FundRawTransactionAsync(rawhex string, fundAccount string, options dcrjson.FundRawTransactionOptions) FutureFundRawTransactionResult {
+	cmd := dcrjson.NewFundRawTransactionCmd(rawhex, fundAccount, &options)
 	return c.sendCmd(cmd)
 }
 
 // FundRawTransaction Add inputs to a transaction until it has enough
 // in value to meet its out value.
-func (c *Client) FundRawTransaction(rawhex string, fundAccount string, options pfcjson.FundRawTransactionOptions) (*pfcjson.FundRawTransactionResult, error) {
+func (c *Client) FundRawTransaction(rawhex string, fundAccount string, options dcrjson.FundRawTransactionOptions) (*dcrjson.FundRawTransactionResult, error) {
 	return c.FundRawTransactionAsync(rawhex, fundAccount, options).Receive()
 }
 
@@ -2335,14 +2335,14 @@ type FutureGenerateVoteResult chan *response
 
 // Receive waits for the response promised by the future and returns the info
 // provided by the server.
-func (r FutureGenerateVoteResult) Receive() (*pfcjson.GenerateVoteResult, error) {
+func (r FutureGenerateVoteResult) Receive() (*dcrjson.GenerateVoteResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a getinfo result object.
-	var infoRes pfcjson.GenerateVoteResult
+	var infoRes dcrjson.GenerateVoteResult
 	err = json.Unmarshal(res, &infoRes)
 	if err != nil {
 		return nil, err
@@ -2357,16 +2357,16 @@ func (r FutureGenerateVoteResult) Receive() (*pfcjson.GenerateVoteResult, error)
 //
 // See GenerateVote for the blocking version and more details.
 func (c *Client) GenerateVoteAsync(blockHash *chainhash.Hash, height int64, sstxHash *chainhash.Hash, voteBits uint16, voteBitsExt string) FutureGenerateVoteResult {
-	cmd := pfcjson.NewGenerateVoteCmd(blockHash.String(), height, sstxHash.String(), voteBits, voteBitsExt)
+	cmd := dcrjson.NewGenerateVoteCmd(blockHash.String(), height, sstxHash.String(), voteBits, voteBitsExt)
 	return c.sendCmd(cmd)
 }
 
 // GenerateVote returns hex of an SSGen.
-func (c *Client) GenerateVote(blockHash *chainhash.Hash, height int64, sstxHash *chainhash.Hash, voteBits uint16, voteBitsExt string) (*pfcjson.GenerateVoteResult, error) {
+func (c *Client) GenerateVote(blockHash *chainhash.Hash, height int64, sstxHash *chainhash.Hash, voteBits uint16, voteBitsExt string) (*dcrjson.GenerateVoteResult, error) {
 	return c.GenerateVoteAsync(blockHash, height, sstxHash, voteBits, voteBitsExt).Receive()
 }
 
-// NOTE: While getinfo is implemented here (in wallet.go), a pfcd chain server
+// NOTE: While getinfo is implemented here (in wallet.go), a dcrd chain server
 // will respond to getinfo requests as well, excluding any wallet information.
 
 // FutureGetInfoResult is a future promise to deliver the result of a
@@ -2375,14 +2375,14 @@ type FutureGetInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the info
 // provided by the server.
-func (r FutureGetInfoResult) Receive() (*pfcjson.InfoWalletResult, error) {
+func (r FutureGetInfoResult) Receive() (*dcrjson.InfoWalletResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a getinfo result object.
-	var infoRes pfcjson.InfoWalletResult
+	var infoRes dcrjson.InfoWalletResult
 	err = json.Unmarshal(res, &infoRes)
 	if err != nil {
 		return nil, err
@@ -2397,14 +2397,14 @@ func (r FutureGetInfoResult) Receive() (*pfcjson.InfoWalletResult, error) {
 //
 // See GetInfo for the blocking version and more details.
 func (c *Client) GetInfoAsync() FutureGetInfoResult {
-	cmd := pfcjson.NewGetInfoCmd()
+	cmd := dcrjson.NewGetInfoCmd()
 	return c.sendCmd(cmd)
 }
 
 // GetInfo returns miscellaneous info regarding the RPC server.  The returned
 // info object may be void of wallet information if the remote server does
 // not include wallet functionality.
-func (c *Client) GetInfo() (*pfcjson.InfoWalletResult, error) {
+func (c *Client) GetInfo() (*dcrjson.InfoWalletResult, error) {
 	return c.GetInfoAsync().Receive()
 }
 
@@ -2414,14 +2414,14 @@ type FutureGetStakeInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the stake
 // info provided by the server.
-func (r FutureGetStakeInfoResult) Receive() (*pfcjson.GetStakeInfoResult, error) {
+func (r FutureGetStakeInfoResult) Receive() (*dcrjson.GetStakeInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a getstakeinfo result object.
-	var infoRes pfcjson.GetStakeInfoResult
+	var infoRes dcrjson.GetStakeInfoResult
 	err = json.Unmarshal(res, &infoRes)
 	if err != nil {
 		return nil, err
@@ -2436,13 +2436,13 @@ func (r FutureGetStakeInfoResult) Receive() (*pfcjson.GetStakeInfoResult, error)
 //
 // See GetStakeInfo for the blocking version and more details.
 func (c *Client) GetStakeInfoAsync() FutureGetStakeInfoResult {
-	cmd := pfcjson.NewGetStakeInfoCmd()
+	cmd := dcrjson.NewGetStakeInfoCmd()
 	return c.sendCmd(cmd)
 }
 
 // GetStakeInfo returns stake mining info from a given wallet. This includes
 // various statistics on tickets it owns and votes it has produced.
-func (c *Client) GetStakeInfo() (*pfcjson.GetStakeInfoResult, error) {
+func (c *Client) GetStakeInfo() (*dcrjson.GetStakeInfoResult, error) {
 	return c.GetStakeInfoAsync().Receive()
 }
 
@@ -2459,7 +2459,7 @@ func (r FutureGetTicketsResult) Receive() ([]*chainhash.Hash, error) {
 	}
 
 	// Unmarshal result as a gettickets result object.
-	var tixRes pfcjson.GetTicketsResult
+	var tixRes dcrjson.GetTicketsResult
 	err = json.Unmarshal(res, &tixRes)
 	if err != nil {
 		return nil, err
@@ -2484,7 +2484,7 @@ func (r FutureGetTicketsResult) Receive() ([]*chainhash.Hash, error) {
 //
 // See GetTicketsfor the blocking version and more details.
 func (c *Client) GetTicketsAsync(includeImmature bool) FutureGetTicketsResult {
-	cmd := pfcjson.NewGetTicketsCmd(includeImmature)
+	cmd := dcrjson.NewGetTicketsCmd(includeImmature)
 	return c.sendCmd(cmd)
 }
 
@@ -2508,7 +2508,7 @@ func (r FutureListScriptsResult) Receive() ([][]byte, error) {
 	}
 
 	// Unmarshal result as a listscripts result object.
-	var resScr pfcjson.ListScriptsResult
+	var resScr dcrjson.ListScriptsResult
 	err = json.Unmarshal(res, &resScr)
 	if err != nil {
 		return nil, err
@@ -2535,7 +2535,7 @@ func (r FutureListScriptsResult) Receive() ([][]byte, error) {
 //
 // See ListScripts for the blocking version and more details.
 func (c *Client) ListScriptsAsync() FutureListScriptsResult {
-	cmd := pfcjson.NewListScriptsCmd()
+	cmd := dcrjson.NewListScriptsCmd()
 	return c.sendCmd(cmd)
 }
 
@@ -2561,13 +2561,13 @@ func (r FutureSetTicketFeeResult) Receive() error {
 // function on the returned instance.
 //
 // See SetTicketFee for the blocking version and more details.
-func (c *Client) SetTicketFeeAsync(fee pfcutil.Amount) FutureSetTicketFeeResult {
-	cmd := pfcjson.NewSetTicketFeeCmd(fee.ToCoin())
+func (c *Client) SetTicketFeeAsync(fee dcrutil.Amount) FutureSetTicketFeeResult {
+	cmd := dcrjson.NewSetTicketFeeCmd(fee.ToCoin())
 	return c.sendCmd(cmd)
 }
 
 // SetTicketFee sets the ticket fee per KB amount.
-func (c *Client) SetTicketFee(fee pfcutil.Amount) error {
+func (c *Client) SetTicketFee(fee dcrutil.Amount) error {
 	return c.SetTicketFeeAsync(fee).Receive()
 }
 
@@ -2586,13 +2586,13 @@ func (r FutureSetTxFeeResult) Receive() error {
 // function on the returned instance.
 //
 // See SetTxFee for the blocking version and more details.
-func (c *Client) SetTxFeeAsync(fee pfcutil.Amount) FutureSetTxFeeResult {
-	cmd := pfcjson.NewSetTxFeeCmd(fee.ToCoin())
+func (c *Client) SetTxFeeAsync(fee dcrutil.Amount) FutureSetTxFeeResult {
+	cmd := dcrjson.NewSetTxFeeCmd(fee.ToCoin())
 	return c.sendCmd(cmd)
 }
 
 // SetTxFee sets the transaction fee per KB amount.
-func (c *Client) SetTxFee(fee pfcutil.Amount) error {
+func (c *Client) SetTxFee(fee dcrutil.Amount) error {
 	return c.SetTxFeeAsync(fee).Receive()
 }
 
@@ -2601,14 +2601,14 @@ func (c *Client) SetTxFee(fee pfcutil.Amount) error {
 type FutureGetVoteChoicesResult chan *response
 
 // Receive waits for the response promised by the future.
-func (r FutureGetVoteChoicesResult) Receive() (*pfcjson.GetVoteChoicesResult, error) {
+func (r FutureGetVoteChoicesResult) Receive() (*dcrjson.GetVoteChoicesResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a getvotechoices result object.
-	var choicesRes pfcjson.GetVoteChoicesResult
+	var choicesRes dcrjson.GetVoteChoicesResult
 	err = json.Unmarshal(res, &choicesRes)
 	if err != nil {
 		return nil, err
@@ -2623,13 +2623,13 @@ func (r FutureGetVoteChoicesResult) Receive() (*pfcjson.GetVoteChoicesResult, er
 //
 // See GetVoteChoices for the blocking version and more details.
 func (c *Client) GetVoteChoicesAsync() FutureGetVoteChoicesResult {
-	cmd := pfcjson.NewGetVoteChoicesCmd()
+	cmd := dcrjson.NewGetVoteChoicesCmd()
 	return c.sendCmd(cmd)
 }
 
 // GetVoteChoices returns the currently-set vote choices for each agenda in the
 // latest supported stake version.
-func (c *Client) GetVoteChoices() (*pfcjson.GetVoteChoicesResult, error) {
+func (c *Client) GetVoteChoices() (*dcrjson.GetVoteChoicesResult, error) {
 	return c.GetVoteChoicesAsync().Receive()
 }
 
@@ -2649,7 +2649,7 @@ func (r FutureSetVoteChoiceResult) Receive() error {
 //
 // See SetVoteChoice for the blocking version and more details.
 func (c *Client) SetVoteChoiceAsync(agendaID, choiceID string) FutureSetVoteChoiceResult {
-	cmd := pfcjson.NewSetVoteChoiceCmd(agendaID, choiceID)
+	cmd := dcrjson.NewSetVoteChoiceCmd(agendaID, choiceID)
 	return c.sendCmd(cmd)
 }
 
@@ -2664,14 +2664,14 @@ type FutureStakePoolUserInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the info
 // provided by the server.
-func (r FutureStakePoolUserInfoResult) Receive() (*pfcjson.StakePoolUserInfoResult, error) {
+func (r FutureStakePoolUserInfoResult) Receive() (*dcrjson.StakePoolUserInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a stakepooluserinfo result object.
-	var infoRes pfcjson.StakePoolUserInfoResult
+	var infoRes dcrjson.StakePoolUserInfoResult
 	err = json.Unmarshal(res, &infoRes)
 	if err != nil {
 		return nil, err
@@ -2685,14 +2685,14 @@ func (r FutureStakePoolUserInfoResult) Receive() (*pfcjson.StakePoolUserInfoResu
 // function on the returned instance.
 //
 // See GetInfo for the blocking version and more details.
-func (c *Client) StakePoolUserInfoAsync(addr pfcutil.Address) FutureStakePoolUserInfoResult {
-	cmd := pfcjson.NewStakePoolUserInfoCmd(addr.EncodeAddress())
+func (c *Client) StakePoolUserInfoAsync(addr dcrutil.Address) FutureStakePoolUserInfoResult {
+	cmd := dcrjson.NewStakePoolUserInfoCmd(addr.EncodeAddress())
 	return c.sendCmd(cmd)
 }
 
 // StakePoolUserInfo returns a list of tickets and information about them
 // that are paying to the passed address.
-func (c *Client) StakePoolUserInfo(addr pfcutil.Address) (*pfcjson.StakePoolUserInfoResult, error) {
+func (c *Client) StakePoolUserInfo(addr dcrutil.Address) (*dcrjson.StakePoolUserInfoResult, error) {
 	return c.StakePoolUserInfoAsync(addr).Receive()
 }
 
@@ -2702,14 +2702,14 @@ type FutureTicketsForAddressResult chan *response
 
 // Receive waits for the response promised by the future and returns the info
 // provided by the server.
-func (r FutureTicketsForAddressResult) Receive() (*pfcjson.TicketsForAddressResult, error) {
+func (r FutureTicketsForAddressResult) Receive() (*dcrjson.TicketsForAddressResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a ticketsforaddress result object.
-	var infoRes pfcjson.TicketsForAddressResult
+	var infoRes dcrjson.TicketsForAddressResult
 	err = json.Unmarshal(res, &infoRes)
 	if err != nil {
 		return nil, err
@@ -2723,8 +2723,8 @@ func (r FutureTicketsForAddressResult) Receive() (*pfcjson.TicketsForAddressResu
 // function on the returned instance.
 //
 // See GetInfo for the blocking version and more details.
-func (c *Client) TicketsForAddressAsync(addr pfcutil.Address) FutureTicketsForAddressResult {
-	cmd := pfcjson.NewTicketsForAddressCmd(addr.EncodeAddress())
+func (c *Client) TicketsForAddressAsync(addr dcrutil.Address) FutureTicketsForAddressResult {
+	cmd := dcrjson.NewTicketsForAddressCmd(addr.EncodeAddress())
 	return c.sendCmd(cmd)
 }
 
@@ -2732,7 +2732,7 @@ func (c *Client) TicketsForAddressAsync(addr pfcutil.Address) FutureTicketsForAd
 // If the daemon server is queried, it returns a search of tickets in the
 // live ticket pool. If the wallet server is queried, it searches all tickets
 // owned by the wallet.
-func (c *Client) TicketsForAddress(addr pfcutil.Address) (*pfcjson.TicketsForAddressResult, error) {
+func (c *Client) TicketsForAddress(addr dcrutil.Address) (*dcrjson.TicketsForAddressResult, error) {
 	return c.TicketsForAddressAsync(addr).Receive()
 }
 
@@ -2742,14 +2742,14 @@ type FutureWalletInfoResult chan *response
 
 // Receive waits for the response promised by the future and returns the stake
 // info provided by the server.
-func (r FutureWalletInfoResult) Receive() (*pfcjson.WalletInfoResult, error) {
+func (r FutureWalletInfoResult) Receive() (*dcrjson.WalletInfoResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal result as a walletinfo result object.
-	var infoRes pfcjson.WalletInfoResult
+	var infoRes dcrjson.WalletInfoResult
 	err = json.Unmarshal(res, &infoRes)
 	if err != nil {
 		return nil, err
@@ -2764,22 +2764,22 @@ func (r FutureWalletInfoResult) Receive() (*pfcjson.WalletInfoResult, error) {
 //
 // See WalletInfo for the blocking version and more details.
 func (c *Client) WalletInfoAsync() FutureWalletInfoResult {
-	cmd := pfcjson.NewWalletInfoCmd()
+	cmd := dcrjson.NewWalletInfoCmd()
 	return c.sendCmd(cmd)
 }
 
 // WalletInfo returns wallet global state info for a given wallet.
-func (c *Client) WalletInfo() (*pfcjson.WalletInfoResult, error) {
+func (c *Client) WalletInfo() (*dcrjson.WalletInfoResult, error) {
 	return c.WalletInfoAsync().Receive()
 }
 
 // TODO(davec): Implement
-// backupwallet (NYI in pfcwallet)
-// encryptwallet (Won't be supported by pfcwallet since it's always encrypted)
-// getwalletinfo (NYI in pfcwallet or pfcjson)
-// listaddressgroupings (NYI in pfcwallet)
-// listreceivedbyaccount (NYI in pfcwallet)
+// backupwallet (NYI in dcrwallet)
+// encryptwallet (Won't be supported by dcrwallet since it's always encrypted)
+// getwalletinfo (NYI in dcrwallet or dcrjson)
+// listaddressgroupings (NYI in dcrwallet)
+// listreceivedbyaccount (NYI in dcrwallet)
 
 // DUMP
-// importwallet (NYI in pfcwallet)
-// dumpwallet (NYI in pfcwallet)
+// importwallet (NYI in dcrwallet)
+// dumpwallet (NYI in dcrwallet)

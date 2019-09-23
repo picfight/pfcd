@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -71,12 +71,12 @@ type cpuminerConfig struct {
 
 	// MiningAddrs is a list of payment addresses to use for the generated
 	// blocks.  Each generated block will randomly choose one of them.
-	MiningAddrs []pfcutil.Address
+	MiningAddrs []dcrutil.Address
 
 	// ProcessBlock defines the function to call with any solved blocks.
 	// It typically must run the provided block through the same set of
 	// rules and handling as any other block coming from the network.
-	ProcessBlock func(*pfcutil.Block, blockchain.BehaviorFlags) (bool, error)
+	ProcessBlock func(*dcrutil.Block, blockchain.BehaviorFlags) (bool, error)
 
 	// ConnectedCount defines the function to use to obtain how many other
 	// peers the server is connected to.  This is used by the automatic
@@ -171,7 +171,7 @@ out:
 
 // submitBlock submits the passed block to network after ensuring it passes all
 // of the consensus validation rules.
-func (m *CPUMiner) submitBlock(block *pfcutil.Block) bool {
+func (m *CPUMiner) submitBlock(block *dcrutil.Block) bool {
 	m.submitBlockLock.Lock()
 	defer m.submitBlockLock.Unlock()
 
@@ -216,7 +216,7 @@ func (m *CPUMiner) submitBlock(block *pfcutil.Block) bool {
 	}
 	minrLog.Infof("Block submitted via CPU miner accepted (hash %s, "+
 		"height %v, amount %v)", block.Hash(), block.Height(),
-		pfcutil.Amount(coinbaseTxGenerated))
+		dcrutil.Amount(coinbaseTxGenerated))
 	return true
 }
 
@@ -391,7 +391,7 @@ out:
 		// a new block template can be generated.  When the return is
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, quit) {
-			block := pfcutil.NewBlock(template.Block)
+			block := dcrutil.NewBlock(template.Block)
 			m.submitBlock(block)
 			m.minedOnParents[template.Block.Header.PrevBlock]++
 		}
@@ -659,7 +659,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*chainhash.Hash, error) {
 		// a new block template can be generated.  When the return is
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, nil) {
-			block := pfcutil.NewBlock(template.Block)
+			block := dcrutil.NewBlock(template.Block)
 			m.submitBlock(block)
 			blockHashes[i] = block.Hash()
 			i++

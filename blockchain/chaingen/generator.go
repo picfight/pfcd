@@ -14,11 +14,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 var (
@@ -55,7 +55,7 @@ type SpendableOut struct {
 	prevOut     wire.OutPoint
 	blockHeight uint32
 	blockIndex  uint32
-	amount      pfcutil.Amount
+	amount      dcrutil.Amount
 }
 
 // PrevOut returns the outpoint associated with the spendable output.
@@ -74,7 +74,7 @@ func (s *SpendableOut) BlockIndex() uint32 {
 }
 
 // Amount returns the amount associated with the spendable output.
-func (s *SpendableOut) Amount() pfcutil.Amount {
+func (s *SpendableOut) Amount() dcrutil.Amount {
 	return s.amount
 }
 
@@ -90,7 +90,7 @@ func makeSpendableOutForTxInternal(tx *wire.MsgTx, blockHeight, txIndex, txOutIn
 		},
 		blockHeight: blockHeight,
 		blockIndex:  txIndex,
-		amount:      pfcutil.Amount(tx.TxOut[txOutIndex].Value),
+		amount:      dcrutil.Amount(tx.TxOut[txOutIndex].Value),
 	}
 }
 
@@ -158,7 +158,7 @@ type Generator struct {
 	blocks           map[chainhash.Hash]*wire.MsgBlock
 	blockHeights     map[chainhash.Hash]uint32
 	blocksByName     map[string]*wire.MsgBlock
-	p2shOpTrueAddr   pfcutil.Address
+	p2shOpTrueAddr   dcrutil.Address
 	p2shOpTrueScript []byte
 
 	// Used for tracking spendable coinbase outputs.
@@ -181,7 +181,7 @@ func MakeGenerator(params *chaincfg.Params) (Generator, error) {
 	// Generate a generic pay-to-script-hash script that is a simple
 	// OP_TRUE.  This allows the tests to avoid needing to generate and
 	// track actual public keys and signatures.
-	p2shOpTrueAddr, err := pfcutil.NewAddressScriptHash(opTrueScript, params)
+	p2shOpTrueAddr, err := dcrutil.NewAddressScriptHash(opTrueScript, params)
 	if err != nil {
 		return Generator{}, err
 	}
@@ -225,7 +225,7 @@ func (g *Generator) TipName() string {
 
 // P2shOpTrueAddr returns the generator p2sh script that is composed with
 // a single OP_TRUE.
-func (g *Generator) P2shOpTrueAddr() pfcutil.Address {
+func (g *Generator) P2shOpTrueAddr() dcrutil.Address {
 	return g.p2shOpTrueAddr
 }
 
@@ -289,14 +289,14 @@ func UniqueOpReturnScript() []byte {
 // using the blockchain code since the intent is to be able to generate known
 // good tests which exercise that code, so it wouldn't make sense to use the
 // same code to generate them.
-func (g *Generator) calcFullSubsidy(blockHeight uint32) pfcutil.Amount {
+func (g *Generator) calcFullSubsidy(blockHeight uint32) dcrutil.Amount {
 	iterations := int64(blockHeight) / g.params.SubsidyReductionInterval
 	subsidy := g.params.BaseSubsidy
 	for i := int64(0); i < iterations; i++ {
 		subsidy *= g.params.MulSubsidy
 		subsidy /= g.params.DivSubsidy
 	}
-	return pfcutil.Amount(subsidy)
+	return dcrutil.Amount(subsidy)
 }
 
 // calcPoWSubsidy returns the proof-of-work subsidy portion from a given full
@@ -307,17 +307,17 @@ func (g *Generator) calcFullSubsidy(blockHeight uint32) pfcutil.Amount {
 // using the blockchain code since the intent is to be able to generate known
 // good tests which exercise that code, so it wouldn't make sense to use the
 // same code to generate them.
-func (g *Generator) calcPoWSubsidy(fullSubsidy pfcutil.Amount, blockHeight uint32, numVotes uint16) pfcutil.Amount {
-	powProportion := pfcutil.Amount(g.params.WorkRewardProportion)
-	totalProportions := pfcutil.Amount(g.params.TotalSubsidyProportions())
+func (g *Generator) calcPoWSubsidy(fullSubsidy dcrutil.Amount, blockHeight uint32, numVotes uint16) dcrutil.Amount {
+	powProportion := dcrutil.Amount(g.params.WorkRewardProportion)
+	totalProportions := dcrutil.Amount(g.params.TotalSubsidyProportions())
 	powSubsidy := (fullSubsidy * powProportion) / totalProportions
 	if int64(blockHeight) < g.params.StakeValidationHeight {
 		return powSubsidy
 	}
 
 	// Reduce the subsidy according to the number of votes.
-	ticketsPerBlock := pfcutil.Amount(g.params.TicketsPerBlock)
-	return (powSubsidy * pfcutil.Amount(numVotes)) / ticketsPerBlock
+	ticketsPerBlock := dcrutil.Amount(g.params.TicketsPerBlock)
+	return (powSubsidy * dcrutil.Amount(numVotes)) / ticketsPerBlock
 }
 
 // calcPoSSubsidy returns the proof-of-stake subsidy portion for a given block
@@ -327,14 +327,14 @@ func (g *Generator) calcPoWSubsidy(fullSubsidy pfcutil.Amount, blockHeight uint3
 // using the blockchain code since the intent is to be able to generate known
 // good tests which exercise that code, so it wouldn't make sense to use the
 // same code to generate them.
-func (g *Generator) calcPoSSubsidy(heightVotedOn uint32) pfcutil.Amount {
+func (g *Generator) calcPoSSubsidy(heightVotedOn uint32) dcrutil.Amount {
 	if int64(heightVotedOn+1) < g.params.StakeValidationHeight {
 		return 0
 	}
 
 	fullSubsidy := g.calcFullSubsidy(heightVotedOn)
-	posProportion := pfcutil.Amount(g.params.StakeRewardProportion)
-	totalProportions := pfcutil.Amount(g.params.TotalSubsidyProportions())
+	posProportion := dcrutil.Amount(g.params.StakeRewardProportion)
+	totalProportions := dcrutil.Amount(g.params.TotalSubsidyProportions())
 	return (fullSubsidy * posProportion) / totalProportions
 }
 
@@ -344,17 +344,17 @@ func (g *Generator) calcPoSSubsidy(heightVotedOn uint32) pfcutil.Amount {
 // using the blockchain code since the intent is to be able to generate known
 // good tests which exercise that code, so it wouldn't make sense to use the
 // same code to generate them.
-func (g *Generator) calcDevSubsidy(fullSubsidy pfcutil.Amount, blockHeight uint32, numVotes uint16) pfcutil.Amount {
-	devProportion := pfcutil.Amount(g.params.BlockTaxProportion)
-	totalProportions := pfcutil.Amount(g.params.TotalSubsidyProportions())
+func (g *Generator) calcDevSubsidy(fullSubsidy dcrutil.Amount, blockHeight uint32, numVotes uint16) dcrutil.Amount {
+	devProportion := dcrutil.Amount(g.params.BlockTaxProportion)
+	totalProportions := dcrutil.Amount(g.params.TotalSubsidyProportions())
 	devSubsidy := (fullSubsidy * devProportion) / totalProportions
 	if int64(blockHeight) < g.params.StakeValidationHeight {
 		return devSubsidy
 	}
 
 	// Reduce the subsidy according to the number of votes.
-	ticketsPerBlock := pfcutil.Amount(g.params.TicketsPerBlock)
-	return (devSubsidy * pfcutil.Amount(numVotes)) / ticketsPerBlock
+	ticketsPerBlock := dcrutil.Amount(g.params.TicketsPerBlock)
+	return (devSubsidy * dcrutil.Amount(numVotes)) / ticketsPerBlock
 }
 
 // standardCoinbaseOpReturnScript returns a standard script suitable for use as
@@ -383,7 +383,7 @@ func standardCoinbaseOpReturnScript(blockHeight uint32) []byte {
 // - Second output is a standard provably prunable data-only coinbase output
 // - Third and subsequent outputs pay the pow subsidy portion to the generic
 //   OP_TRUE p2sh script hash
-func (g *Generator) addCoinbaseTxOutputs(tx *wire.MsgTx, blockHeight uint32, devSubsidy, powSubsidy pfcutil.Amount) {
+func (g *Generator) addCoinbaseTxOutputs(tx *wire.MsgTx, blockHeight uint32, devSubsidy, powSubsidy dcrutil.Amount) {
 	// First output is the developer subsidy.
 	tx.AddTxOut(&wire.TxOut{
 		Value:    int64(devSubsidy),
@@ -443,7 +443,7 @@ func (g *Generator) CreateCoinbaseTx(blockHeight uint32, numVotes uint16) *wire.
 // PurchaseCommitmentScript returns a standard provably-pruneable OP_RETURN
 // commitment script suitable for use in a ticket purchase tx (sstx) using the
 // provided target address, amount, and fee limits.
-func PurchaseCommitmentScript(addr pfcutil.Address, amount, voteFeeLimit, revocationFeeLimit pfcutil.Amount) []byte {
+func PurchaseCommitmentScript(addr dcrutil.Address, amount, voteFeeLimit, revocationFeeLimit dcrutil.Amount) []byte {
 	// The limits are defined in terms of the closest base 2 exponent and
 	// a bit that must be set to specify the limit is to be applied.  The
 	// vote fee exponent is in the bottom 8 bits, while the revocation fee
@@ -484,7 +484,7 @@ func PurchaseCommitmentScript(addr pfcutil.Address, amount, voteFeeLimit, revoca
 // - First output is an OP_SSTX followed by the OP_TRUE p2sh script hash
 // - Second output is an OP_RETURN followed by the commitment script
 // - Third output is an OP_SSTXCHANGE followed by the OP_TRUE p2sh script hash
-func (g *Generator) CreateTicketPurchaseTx(spend *SpendableOut, ticketPrice, fee pfcutil.Amount) *wire.MsgTx {
+func (g *Generator) CreateTicketPurchaseTx(spend *SpendableOut, ticketPrice, fee dcrutil.Amount) *wire.MsgTx {
 	// The first output is the voting rights address.  This impl uses the
 	// standard pay-to-script-hash to an OP_TRUE.
 	pkScript, err := txscript.PayToSStx(g.p2shOpTrueAddr)
@@ -629,8 +629,8 @@ func (g *Generator) CreateVoteTx(voteBlock *wire.MsgBlock, ticketTx *wire.MsgTx,
 	// Calculate the proof-of-stake subsidy proportion based on the block
 	// height.
 	posSubsidy := g.calcPoSSubsidy(voteBlock.Header.Height)
-	voteSubsidy := posSubsidy / pfcutil.Amount(g.params.TicketsPerBlock)
-	ticketPrice := pfcutil.Amount(ticketTx.TxOut[0].Value)
+	voteSubsidy := posSubsidy / dcrutil.Amount(g.params.TicketsPerBlock)
+	ticketPrice := dcrutil.Amount(ticketTx.TxOut[0].Value)
 
 	// The first output is the block (hash and height) the vote is for.
 	blockScript := voteBlockScript(voteBlock)
@@ -1275,7 +1275,7 @@ func hashMerkleBranches(left *chainhash.Hash, right *chainhash.Hash) *chainhash.
 // is stored in a linear array.
 //
 // A merkle tree is a tree in which every non-leaf node is the hash of its
-// children nodes.  A diagram depicting how this works for Picfight transactions
+// children nodes.  A diagram depicting how this works for Decred transactions
 // where h(x) is a blake256 hash follows:
 //
 //	         root = h1234 = h(h12 + h34)
@@ -1296,7 +1296,7 @@ func hashMerkleBranches(left *chainhash.Hash, right *chainhash.Hash) *chainhash.
 // are calculated by concatenating the left node with itself before hashing.
 // Since this function uses nodes that are pointers to the hashes, empty nodes
 // will be nil.
-func buildMerkleTreeStore(transactions []*pfcutil.Tx) []*chainhash.Hash {
+func buildMerkleTreeStore(transactions []*dcrutil.Tx) []*chainhash.Hash {
 	// If there's an empty stake tree, return totally zeroed out merkle tree root
 	// only.
 	if len(transactions) == 0 {
@@ -1348,9 +1348,9 @@ func buildMerkleTreeStore(transactions []*pfcutil.Tx) []*chainhash.Hash {
 // calcMerkleRoot creates a merkle tree from the slice of transactions and
 // returns the root of the tree.
 func calcMerkleRoot(txns []*wire.MsgTx) chainhash.Hash {
-	utilTxns := make([]*pfcutil.Tx, 0, len(txns))
+	utilTxns := make([]*dcrutil.Tx, 0, len(txns))
 	for _, tx := range txns {
-		utilTxns = append(utilTxns, pfcutil.NewTx(tx))
+		utilTxns = append(utilTxns, dcrutil.NewTx(tx))
 	}
 	merkles := buildMerkleTreeStore(utilTxns)
 	return *merkles[len(merkles)-1]
@@ -1390,7 +1390,7 @@ func hashToBig(hash *chainhash.Hash) *big.Int {
 // The formula to calculate N is:
 // 	N = (-1^sign) * mantissa * 256^(exponent-3)
 //
-// This compact form is only used in Picfight to encode unsigned 256-bit numbers
+// This compact form is only used in Decred to encode unsigned 256-bit numbers
 // which represent difficulty targets, thus there really is not a need for a
 // sign bit, but it is implemented here to stay consistent with bitcoind.
 func compactToBig(compact uint32) *big.Int {
@@ -1636,7 +1636,7 @@ func ReplaceVotes(voteBits uint16, newVersion uint32) func(*wire.MsgBlock) {
 // transaction ends up with a unique hash.  The public key script is a simple
 // OP_TRUE p2sh script which avoids the need to track addresses and signature
 // scripts in the tests.  The signature script is the opTrueRedeemScript.
-func (g *Generator) CreateSpendTx(spend *SpendableOut, fee pfcutil.Amount) *wire.MsgTx {
+func (g *Generator) CreateSpendTx(spend *SpendableOut, fee dcrutil.Amount) *wire.MsgTx {
 	spendTx := wire.NewMsgTx()
 	spendTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: spend.prevOut,
@@ -1658,7 +1658,7 @@ func (g *Generator) CreateSpendTx(spend *SpendableOut, fee pfcutil.Amount) *wire
 // is a simple OP_TRUE p2sh script which avoids the need to track addresses and
 // signature scripts in the tests.  This signature script the
 // opTrueRedeemScript.
-func (g *Generator) CreateSpendTxForTx(tx *wire.MsgTx, blockHeight, txIndex uint32, fee pfcutil.Amount) *wire.MsgTx {
+func (g *Generator) CreateSpendTxForTx(tx *wire.MsgTx, blockHeight, txIndex uint32, fee dcrutil.Amount) *wire.MsgTx {
 	spend := MakeSpendableOutForTx(tx, blockHeight, txIndex, 0)
 	return g.CreateSpendTx(&spend, fee)
 }
@@ -2068,7 +2068,7 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 	}
 
 	// Calculate the next required stake difficulty (aka ticket price).
-	ticketPrice := pfcutil.Amount(g.CalcNextRequiredStakeDifficulty())
+	ticketPrice := dcrutil.Amount(g.CalcNextRequiredStakeDifficulty())
 
 	// Generate the appropriate votes and ticket purchases based on the
 	// current tip block and provided ticket spendable outputs.
@@ -2102,7 +2102,7 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 		// Generate ticket purchases (sstx) using the provided spendable
 		// outputs.
 		if ticketSpends != nil {
-			const ticketFee = pfcutil.Amount(2)
+			const ticketFee = dcrutil.Amount(2)
 			for i := 0; i < len(ticketSpends); i++ {
 				out := &ticketSpends[i]
 				purchaseTx := g.CreateTicketPurchaseTx(out,
@@ -2124,7 +2124,7 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 	var numVotes uint16
 	var numTicketRevocations uint8
 	var numTicketPurchases uint8
-	var stakeTreeFees pfcutil.Amount
+	var stakeTreeFees dcrutil.Amount
 	for _, tx := range stakeTxns {
 		switch {
 		case isVoteTx(tx):
@@ -2136,12 +2136,12 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 		}
 
 		// Calculate any fees for the transaction.
-		var inputSum, outputSum pfcutil.Amount
+		var inputSum, outputSum dcrutil.Amount
 		for _, txIn := range tx.TxIn {
-			inputSum += pfcutil.Amount(txIn.ValueIn)
+			inputSum += dcrutil.Amount(txIn.ValueIn)
 		}
 		for _, txOut := range tx.TxOut {
-			outputSum += pfcutil.Amount(txOut.Value)
+			outputSum += dcrutil.Amount(txOut.Value)
 		}
 		stakeTreeFees += (inputSum - outputSum)
 	}
@@ -2162,7 +2162,7 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 		if spend != nil {
 			// Create the transaction with a fee of 1 atom for the
 			// miner and increase the PoW subsidy accordingly.
-			fee := pfcutil.Amount(1)
+			fee := dcrutil.Amount(1)
 			coinbaseTx.TxOut[2].Value += int64(fee)
 
 			// Create a transaction that spends from the provided
@@ -2296,7 +2296,7 @@ func (g *Generator) NextBlock(blockName string, spend *SpendableOut, ticketSpend
 // premine payouts.  The additional amount parameter can be used to create a
 // block that is otherwise a completely valid premine block except it adds the
 // extra amount to each payout and thus create a block that violates consensus.
-func (g *Generator) CreatePremineBlock(blockName string, additionalAmount pfcutil.Amount, mungers ...func(*wire.MsgBlock)) *wire.MsgBlock {
+func (g *Generator) CreatePremineBlock(blockName string, additionalAmount dcrutil.Amount, mungers ...func(*wire.MsgBlock)) *wire.MsgBlock {
 	coinbaseTx := wire.NewMsgTx()
 	coinbaseTx.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: *wire.NewOutPoint(&chainhash.Hash{},
@@ -2310,9 +2310,9 @@ func (g *Generator) CreatePremineBlock(blockName string, additionalAmount pfcuti
 
 	// Add each required output and tally the total payouts for the coinbase
 	// in order to set the input value appropriately.
-	var totalSubsidy pfcutil.Amount
+	var totalSubsidy dcrutil.Amount
 	for _, payout := range g.params.BlockOneLedger {
-		payoutAddr, err := pfcutil.DecodeAddress(payout.Address)
+		payoutAddr, err := dcrutil.DecodeAddress(payout.Address)
 		if err != nil {
 			panic(err)
 		}
@@ -2326,7 +2326,7 @@ func (g *Generator) CreatePremineBlock(blockName string, additionalAmount pfcuti
 			PkScript: pkScript,
 		})
 
-		totalSubsidy += pfcutil.Amount(payout.Amount)
+		totalSubsidy += dcrutil.Amount(payout.Amount)
 	}
 	coinbaseTx.TxIn[0].ValueIn = int64(totalSubsidy)
 

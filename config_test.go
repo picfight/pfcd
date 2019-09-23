@@ -17,7 +17,7 @@ import (
 //
 // For environment variables, use the following to set the variable before the
 // func that loads the configuration is called:
-//   os.Setenv("PFCD_ALT_DNSNAMES", "hostname1,hostname2")
+//   os.Setenv("DCRD_ALT_DNSNAMES", "hostname1,hostname2")
 //
 // These args and env variables will then get parsed during configuration load.
 
@@ -25,7 +25,7 @@ import (
 func TestLoadConfig(t *testing.T) {
 	_, _, err := loadConfig()
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed to load dcrd config: %s", err)
 	}
 }
 
@@ -34,20 +34,20 @@ func TestLoadConfig(t *testing.T) {
 func TestDefaultAltDNSNames(t *testing.T) {
 	cfg, _, err := loadConfig()
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed to load dcrd config: %s", err)
 	}
 	if len(cfg.AltDNSNames) != 0 {
 		t.Fatalf("Invalid default value for altdnsnames: %s", cfg.AltDNSNames)
 	}
 }
 
-// TestAltDNSNamesWithEnv ensures the PFCD_ALT_DNSNAMES environment variable is
+// TestAltDNSNamesWithEnv ensures the DCRD_ALT_DNSNAMES environment variable is
 // parsed into a slice of additional hostnames as intended.
 func TestAltDNSNamesWithEnv(t *testing.T) {
-	os.Setenv("PFCD_ALT_DNSNAMES", "hostname1,hostname2")
+	os.Setenv("DCRD_ALT_DNSNAMES", "hostname1,hostname2")
 	cfg, _, err := loadConfig()
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed to load dcrd config: %s", err)
 	}
 	hostnames := strings.Join(cfg.AltDNSNames, ",")
 	if hostnames != "hostname1,hostname2" {
@@ -63,7 +63,7 @@ func TestAltDNSNamesWithArg(t *testing.T) {
 	os.Args = append(os.Args, "--altdnsnames=\"hostname1,hostname2\"")
 	cfg, _, err := loadConfig()
 	if err != nil {
-		t.Fatalf("Failed to load pfcd config: %s", err)
+		t.Fatalf("Failed to load dcrd config: %s", err)
 	}
 	hostnames := strings.Join(cfg.AltDNSNames, ",")
 	if hostnames != "hostname1,hostname2" {

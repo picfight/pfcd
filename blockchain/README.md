@@ -1,11 +1,11 @@
 blockchain
 ==========
 
-[![Build Status](http://img.shields.io/travis/picfight/pfcd.svg)](https://travis-ci.org/picfight/pfcd)
+[![Build Status](http://img.shields.io/travis/decred/dcrd.svg)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/blockchain)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/decred/dcrd/blockchain)
 
-Package blockchain implements Picfight block handling and chain selection rules.
+Package blockchain implements Decred block handling and chain selection rules.
 The test coverage is currently only around 60%, but will be increasing over
 time. See `test_coverage.txt` for the gocov coverage report.  Alternatively, if
 you are running a POSIX OS, you can run the `cov_report.sh` script for a
@@ -15,16 +15,16 @@ There is an associated blog post about the release of this package
 [here](https://blog.conformal.com/btcchain-the-bitcoin-chain-package-from-bctd/).
 
 This package has intentionally been designed so it can be used as a standalone
-package for any projects needing to handle processing of blocks into the picfight
+package for any projects needing to handle processing of blocks into the decred
 block chain.
 
 ## Installation and Updating
 
 ```bash
-$ go get -u github.com/picfight/pfcd/blockchain
+$ go get -u github.com/decred/dcrd/blockchain
 ```
 
-## Picfight Chain Processing Overview
+## Decred Chain Processing Overview
 
 Before a block is allowed into the block chain, it must go through an intensive
 series of validation rules.  The following list serves as a general outline of
@@ -61,18 +61,18 @@ is by no means exhaustive:
 
 ## Examples
 
-* [ProcessBlock Example](http://godoc.org/github.com/picfight/pfcd/blockchain#example-BlockChain-ProcessBlock)  
+* [ProcessBlock Example](http://godoc.org/github.com/decred/dcrd/blockchain#example-BlockChain-ProcessBlock)  
   Demonstrates how to create a new chain instance and use ProcessBlock to
   attempt to add a block to the chain.  This example intentionally
   attempts to insert a duplicate genesis block to illustrate how an invalid
   block is handled.
 
-* [CompactToBig Example](http://godoc.org/github.com/picfight/pfcd/blockchain#example-CompactToBig)  
+* [CompactToBig Example](http://godoc.org/github.com/decred/dcrd/blockchain#example-CompactToBig)  
   Demonstrates how to convert the compact "bits" in a block header which
   represent the target difficulty to a big integer and display it using the
   typical hex notation.
 
-* [BigToCompact Example](http://godoc.org/github.com/picfight/pfcd/blockchain#example-BigToCompact)  
+* [BigToCompact Example](http://godoc.org/github.com/decred/dcrd/blockchain#example-BigToCompact)  
   Demonstrates how to convert how to convert a target difficulty into the
   compact "bits" in a block header which represent that target difficulty.
 

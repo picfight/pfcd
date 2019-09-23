@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/picfight/pfcd/pfcjson"
+	"github.com/decred/dcrd/dcrjson"
 )
 
 // helpDescsEnUS defines the English descriptions used for the help strings.
@@ -21,7 +21,7 @@ var helpDescsEnUS = map[string]string{
 		"The levelspec can either a debug level or of the form:\n" +
 		"<subsystem>=<level>,<subsystem2>=<level2>,...\n" +
 		"The valid debug levels are trace, debug, info, warn, error, and critical.\n" +
-		"The valid subsystems are AMGR, ADXR, BCDB, BMGR, PFCD, CHAN, DISC, PEER, RPCS, SCRP, SRVR, and TXMP.\n" +
+		"The valid subsystems are AMGR, ADXR, BCDB, BMGR, DCRD, CHAN, DISC, PEER, RPCS, SCRP, SRVR, and TXMP.\n" +
 		"Finally the keyword 'show' will return a list of the available subsystems.",
 	"debuglevel-levelspec":   "The debug level(s) to use or the keyword 'show'",
 	"debuglevel--condition0": "levelspec!=show",
@@ -59,7 +59,7 @@ var helpDescsEnUS = map[string]string{
 	"createrawsstx-amount":        "JSON object with the destination addresses as keys and amounts as values",
 	"createrawsstx-amount--key":   "address",
 	"createrawsstx-amount--value": "n.nnn",
-	"createrawsstx-amount--desc":  "The destination address as the key and the amount in PFC as the value",
+	"createrawsstx-amount--desc":  "The destination address as the key and the amount in DCR as the value",
 	"createrawsstx-couts":         "Array of sstx commit outs to use of type SSTxCommitOut",
 	"sstxcommitout-addr":          "Address to send sstx commit",
 	"sstxcommitout-commitamt":     "Amount to commit",
@@ -82,7 +82,7 @@ var helpDescsEnUS = map[string]string{
 	"createrawtransaction-amounts":        "JSON object with the destination addresses as keys and amounts as values",
 	"createrawtransaction-amounts--key":   "address",
 	"createrawtransaction-amounts--value": "n.nnn",
-	"createrawtransaction-amounts--desc":  "The destination address as the key and the amount in PFC as the value",
+	"createrawtransaction-amounts--desc":  "The destination address as the key and the amount in DCR as the value",
 	"createrawtransaction-locktime":       "Locktime value; a non-zero value will also locktime-activate the inputs",
 	"createrawtransaction-expiry":         "Expiry value; a non-zero value when the transaction expiry",
 	"createrawtransaction--result0":       "Hex-encoded bytes of the serialized transaction",
@@ -125,11 +125,11 @@ var helpDescsEnUS = map[string]string{
 	"scriptpubkeyresult-hex":       "Hex-encoded bytes of the script",
 	"scriptpubkeyresult-reqSigs":   "The number of required signatures",
 	"scriptpubkeyresult-type":      "The type of the script (e.g. 'pubkeyhash')",
-	"scriptpubkeyresult-addresses": "The Picfight addresses associated with this script",
+	"scriptpubkeyresult-addresses": "The Decred addresses associated with this script",
 	"scriptpubkeyresult-commitamt": "The ticket commitment value if the script is for a staking commitment",
 
 	// Vout help.
-	"vout-value":        "The amount in PFC",
+	"vout-value":        "The amount in DCR",
 	"vout-n":            "The index of this transaction output",
 	"vout-scriptPubKey": "The public key script used to pay coins as a JSON object",
 	"vout-version":      "The version of the vout",
@@ -150,7 +150,7 @@ var helpDescsEnUS = map[string]string{
 	"decodescriptresult-asm":       "Disassembly of the script",
 	"decodescriptresult-reqSigs":   "The number of required signatures",
 	"decodescriptresult-type":      "The type of the script (e.g. 'pubkeyhash')",
-	"decodescriptresult-addresses": "The Picfight addresses associated with this script",
+	"decodescriptresult-addresses": "The Decred addresses associated with this script",
 	"decodescriptresult-p2sh":      "The script hash for use in pay-to-script-hash transactions (only present if the provided redeem script is not already a pay-to-script-hash script)",
 
 	// DecodeScriptCmd help.
@@ -231,7 +231,7 @@ var helpDescsEnUS = map[string]string{
 	"getblock--synopsis":   "Returns information about a block given its hash.",
 	"getblock-hash":        "The hash of the block",
 	"getblock-verbose":     "Specifies the block is returned as a JSON object instead of hex-encoded string",
-	"getblock-verbosetx":   "Specifies that each transaction is returned as a JSON object and only applies if the verbose flag is true (pfcd extension)",
+	"getblock-verbosetx":   "Specifies that each transaction is returned as a JSON object and only applies if the verbose flag is true (dcrd extension)",
 	"getblock--condition0": "verbose=false",
 	"getblock--condition1": "verbose=true",
 	"getblock--result0":    "Hex-encoded bytes of the serialized block",
@@ -464,7 +464,7 @@ var helpDescsEnUS = map[string]string{
 	"getconnectioncount--result0":  "The number of connections",
 
 	// GetCurrentNetCmd help.
-	"getcurrentnet--synopsis": "Get Picfight network the server is running on.",
+	"getcurrentnet--synopsis": "Get Decred network the server is running on.",
 	"getcurrentnet--result0":  "The network identifer",
 
 	// GetDifficultyCmd help.
@@ -546,14 +546,14 @@ var helpDescsEnUS = map[string]string{
 	"infochainresult-proxy":           "The proxy used by the server",
 	"infochainresult-difficulty":      "The current target difficulty",
 	"infochainresult-testnet":         "Whether or not server is using testnet",
-	"infochainresult-relayfee":        "The minimum relay fee for non-free transactions in PFC/KB",
+	"infochainresult-relayfee":        "The minimum relay fee for non-free transactions in DCR/KB",
 	"infochainresult-errors":          "Any current errors",
 
 	// InfoWalletResult help.
 	"infowalletresult-version":         "The version of the server",
 	"infowalletresult-protocolversion": "The latest supported protocol version",
 	"infowalletresult-walletversion":   "The version of the wallet server",
-	"infowalletresult-balance":         "The total Picfight balance of the wallet",
+	"infowalletresult-balance":         "The total Decred balance of the wallet",
 	"infowalletresult-blocks":          "The number of blocks processed",
 	"infowalletresult-timeoffset":      "The time offset",
 	"infowalletresult-connections":     "The number of connected peers",
@@ -563,8 +563,8 @@ var helpDescsEnUS = map[string]string{
 	"infowalletresult-keypoololdest":   "Seconds since 1 Jan 1970 GMT of the oldest pre-generated key in the key pool",
 	"infowalletresult-keypoolsize":     "The number of new keys that are pre-generated",
 	"infowalletresult-unlocked_until":  "The timestamp in seconds since 1 Jan 1970 GMT that the wallet is unlocked for transfers, or 0 if the wallet is locked",
-	"infowalletresult-paytxfee":        "The transaction fee set in PFC/KB",
-	"infowalletresult-relayfee":        "The minimum relay fee for non-free transactions in PFC/KB",
+	"infowalletresult-paytxfee":        "The transaction fee set in DCR/KB",
+	"infowalletresult-relayfee":        "The minimum relay fee for non-free transactions in DCR/KB",
 	"infowalletresult-errors":          "Any current errors",
 
 	// GetHeadersCmd help.
@@ -641,7 +641,7 @@ var helpDescsEnUS = map[string]string{
 
 	// GetRawMempoolVerboseResult help.
 	"getrawmempoolverboseresult-size":             "Transaction size in bytes",
-	"getrawmempoolverboseresult-fee":              "Transaction fee in picfight coins",
+	"getrawmempoolverboseresult-fee":              "Transaction fee in decred",
 	"getrawmempoolverboseresult-time":             "Local time transaction entered pool in seconds since 1 Jan 1970 GMT",
 	"getrawmempoolverboseresult-height":           "Block height when transaction entered the pool",
 	"getrawmempoolverboseresult-startingpriority": "Priority when transaction entered the pool",
@@ -671,7 +671,7 @@ var helpDescsEnUS = map[string]string{
 	// GetTxOutResult help.
 	"gettxoutresult-bestblock":     "The block hash that contains the transaction output",
 	"gettxoutresult-confirmations": "The number of confirmations",
-	"gettxoutresult-value":         "The transaction amount in PFC",
+	"gettxoutresult-value":         "The transaction amount in DCR",
 	"gettxoutresult-scriptPubKey":  "The public key script used to pay coins as a JSON object",
 	"gettxoutresult-version":       "The transaction version",
 	"gettxoutresult-coinbase":      "Whether or not the transaction is a coinbase",
@@ -719,7 +719,7 @@ var helpDescsEnUS = map[string]string{
 		"Transactions pulled from the mempool will have the 'confirmations' field set to 0.\n" +
 		"Usage of this RPC requires the optional --addrindex flag to be activated, otherwise all responses will simply return with an error stating the address index has not yet been built.\n" +
 		"Similarly, until the address index has caught up with the current best height, all requests will return an error response in order to avoid serving stale data.",
-	"searchrawtransactions-address":     "The Picfight address to search for",
+	"searchrawtransactions-address":     "The Decred address to search for",
 	"searchrawtransactions-verbose":     "Specifies the transaction is returned as a JSON object instead of hex-encoded string",
 	"searchrawtransactions--condition0": "verbose=0",
 	"searchrawtransactions--condition1": "verbose=1",
@@ -733,7 +733,7 @@ var helpDescsEnUS = map[string]string{
 	// SendRawTransactionCmd help.
 	"sendrawtransaction--synopsis":     "Submits the serialized, hex-encoded transaction to the local peer and relays it to the network.",
 	"sendrawtransaction-hextx":         "Serialized, hex-encoded signed transaction",
-	"sendrawtransaction-allowhighfees": "Whether or not to allow insanely high fees (pfcd does not yet implement this parameter, so it has no effect)",
+	"sendrawtransaction-allowhighfees": "Whether or not to allow insanely high fees (dcrd does not yet implement this parameter, so it has no effect)",
 	"sendrawtransaction--result0":      "The hash of the transaction",
 
 	// SetGenerateCmd help.
@@ -742,8 +742,8 @@ var helpDescsEnUS = map[string]string{
 	"setgenerate-genproclimit": "The number of processors (cores) to limit generation to or -1 for default",
 
 	// StopCmd help.
-	"stop--synopsis": "Shutdown pfcd.",
-	"stop--result0":  "The string 'pfcd stopping.'",
+	"stop--synopsis": "Shutdown dcrd.",
+	"stop--result0":  "The string 'dcrd stopping.'",
 
 	// SubmitBlockOptions help.
 	"submitblockoptions-workid": "This parameter is currently ignored",
@@ -758,16 +758,16 @@ var helpDescsEnUS = map[string]string{
 
 	// ValidateAddressResult help.
 	"validateaddresschainresult-isvalid": "Whether or not the address is valid",
-	"validateaddresschainresult-address": "The Picfight address (only when isvalid is true)",
+	"validateaddresschainresult-address": "The Decred address (only when isvalid is true)",
 
 	// ValidateAddressCmd help.
 	"validateaddress--synopsis": "Verify an address is valid.",
-	"validateaddress-address":   "Picfight address to validate",
+	"validateaddress-address":   "Decred address to validate",
 
 	// VerifyChainCmd help.
 	"verifychain--synopsis": "Verifies the block chain database.\n" +
 		"The actual checks performed by the checklevel parameter are implementation specific.\n" +
-		"For pfcd this is:\n" +
+		"For dcrd this is:\n" +
 		"checklevel=0 - Look up each block and ensure it can be loaded from the database.\n" +
 		"checklevel=1 - Perform basic context-free sanity checks on each block.",
 	"verifychain-checklevel": "How thorough the block verification is",
@@ -776,7 +776,7 @@ var helpDescsEnUS = map[string]string{
 
 	// VerifyMessageCmd help.
 	"verifymessage--synopsis": "Verify a signed message.",
-	"verifymessage-address":   "The Picfight address to use for the signature",
+	"verifymessage-address":   "The Decred address to use for the signature",
 	"verifymessage-signature": "The base-64 encoded signature provided by the signer",
 	"verifymessage-message":   "The signed message",
 	"verifymessage--result0":  "Whether or not the signature verified",
@@ -827,18 +827,18 @@ var helpDescsEnUS = map[string]string{
 	"rescan--synopsis":   "Rescan blocks for transactions matching the loaded transaction filter.",
 	"rescan-blockhashes": "Concatenated block hashes to rescan.  Each next block must be a child of the previous.",
 
-	// -------- Picfight-specific help --------
+	// -------- Decred-specific help --------
 
 	// EstimateFee help.
-	"estimatefee--synopsis": "Returns the estimated fee in pfc/kb.",
+	"estimatefee--synopsis": "Returns the estimated fee in dcr/kb.",
 	"estimatefee-numblocks": "(unused)",
 	"estimatefee--result0":  "Estimated fee.",
 
 	// EstimateSmartFee help.
-	"estimatesmartfee--synopsis":     "Returns the estimated fee using the historical fee data in pfc/kb.",
+	"estimatesmartfee--synopsis":     "Returns the estimated fee using the historical fee data in dcr/kb.",
 	"estimatesmartfee-confirmations": "Estimate the fee rate a transaction requires so that it is mined in up to this number of blocks.",
 	"estimatesmartfee-mode":          "The only supported mode for the moment is 'conservative'.",
-	"estimatesmartfee--result0":      "Estimated fee rate (in PFC/KB).",
+	"estimatesmartfee--result0":      "Estimated fee rate (in DCR/KB).",
 
 	// EstimateStakeDiff help.
 	"estimatestakediff--synopsis":      "Estimate the next minimum, maximum, expected, and user-specified stake difficulty",
@@ -866,12 +866,12 @@ var helpDescsEnUS = map[string]string{
 	"ticketbucket-number":     "Bucket number.",
 
 	// TicketFeeInfo help.
-	"ticketfeeinfo--synopsis":            "Get various information about ticket fees from the mempool, blocks, and difficulty windows (units: PFC/kB)",
+	"ticketfeeinfo--synopsis":            "Get various information about ticket fees from the mempool, blocks, and difficulty windows (units: DCR/kB)",
 	"ticketfeeinfo-blocks":               "The number of blocks, starting from the chain tip and descending, to return fee information about",
 	"ticketfeeinfo-windows":              "The number of difficulty windows to return ticket fee information about",
-	"ticketfeeinforesult-feeinfomempool": "Ticket fee information for all tickets in the mempool (units: PFC/kB)",
-	"ticketfeeinforesult-feeinfoblocks":  "Ticket fee information for a given list of blocks descending from the chain tip (units: PFC/kB)",
-	"ticketfeeinforesult-feeinfowindows": "Ticket fee information for a window period where the stake difficulty was the same (units: PFC/kB)",
+	"ticketfeeinforesult-feeinfomempool": "Ticket fee information for all tickets in the mempool (units: DCR/kB)",
+	"ticketfeeinforesult-feeinfoblocks":  "Ticket fee information for a given list of blocks descending from the chain tip (units: DCR/kB)",
+	"ticketfeeinforesult-feeinfowindows": "Ticket fee information for a window period where the stake difficulty was the same (units: DCR/kB)",
 
 	"feeinfomempool-number": "Number of transactions in the mempool",
 	"feeinfomempool-min":    "Minimum transaction fee in the mempool",
@@ -947,11 +947,11 @@ var rpcResultTypes = map[string][]interface{}{
 	"createrawssrtx":        {(*string)(nil)},
 	"createrawtransaction":  {(*string)(nil)},
 	"debuglevel":            {(*string)(nil), (*string)(nil)},
-	"decoderawtransaction":  {(*pfcjson.TxRawDecodeResult)(nil)},
-	"decodescript":          {(*pfcjson.DecodeScriptResult)(nil)},
+	"decoderawtransaction":  {(*dcrjson.TxRawDecodeResult)(nil)},
+	"decodescript":          {(*dcrjson.DecodeScriptResult)(nil)},
 	"estimatefee":           {(*float64)(nil)},
 	"estimatesmartfee":      {(*float64)(nil)},
-	"estimatestakediff":     {(*pfcjson.EstimateStakeDiffResult)(nil)},
+	"estimatestakediff":     {(*dcrjson.EstimateStakeDiffResult)(nil)},
 	"existsaddress":         {(*bool)(nil)},
 	"existsaddresses":       {(*string)(nil)},
 	"existsmissedtickets":   {(*string)(nil)},
@@ -959,66 +959,66 @@ var rpcResultTypes = map[string][]interface{}{
 	"existsliveticket":      {(*bool)(nil)},
 	"existslivetickets":     {(*string)(nil)},
 	"existsmempooltxs":      {(*string)(nil)},
-	"getaddednodeinfo":      {(*[]string)(nil), (*[]pfcjson.GetAddedNodeInfoResult)(nil)},
-	"getbestblock":          {(*pfcjson.GetBestBlockResult)(nil)},
+	"getaddednodeinfo":      {(*[]string)(nil), (*[]dcrjson.GetAddedNodeInfoResult)(nil)},
+	"getbestblock":          {(*dcrjson.GetBestBlockResult)(nil)},
 	"generate":              {(*[]string)(nil)},
 	"getbestblockhash":      {(*string)(nil)},
-	"getblock":              {(*string)(nil), (*pfcjson.GetBlockVerboseResult)(nil)},
-	"getblockchaininfo":     {(*pfcjson.GetBlockChainInfoResult)(nil)},
+	"getblock":              {(*string)(nil), (*dcrjson.GetBlockVerboseResult)(nil)},
+	"getblockchaininfo":     {(*dcrjson.GetBlockChainInfoResult)(nil)},
 	"getblockcount":         {(*int64)(nil)},
 	"getblockhash":          {(*string)(nil)},
-	"getblockheader":        {(*string)(nil), (*pfcjson.GetBlockHeaderVerboseResult)(nil)},
-	"getblocksubsidy":       {(*pfcjson.GetBlockSubsidyResult)(nil)},
-	"getblocktemplate":      {(*pfcjson.GetBlockTemplateResult)(nil), (*string)(nil), nil},
+	"getblockheader":        {(*string)(nil), (*dcrjson.GetBlockHeaderVerboseResult)(nil)},
+	"getblocksubsidy":       {(*dcrjson.GetBlockSubsidyResult)(nil)},
+	"getblocktemplate":      {(*dcrjson.GetBlockTemplateResult)(nil), (*string)(nil), nil},
 	"getcfilter":            {(*string)(nil)},
 	"getcfilterheader":      {(*string)(nil)},
-	"getchaintips":          {(*[]pfcjson.GetChainTipsResult)(nil)},
+	"getchaintips":          {(*[]dcrjson.GetChainTipsResult)(nil)},
 	"getconnectioncount":    {(*int32)(nil)},
 	"getcurrentnet":         {(*uint32)(nil)},
 	"getdifficulty":         {(*float64)(nil)},
-	"getstakedifficulty":    {(*pfcjson.GetStakeDifficultyResult)(nil)},
-	"getstakeversioninfo":   {(*pfcjson.GetStakeVersionInfoResult)(nil)},
-	"getstakeversions":      {(*pfcjson.GetStakeVersionsResult)(nil)},
+	"getstakedifficulty":    {(*dcrjson.GetStakeDifficultyResult)(nil)},
+	"getstakeversioninfo":   {(*dcrjson.GetStakeVersionInfoResult)(nil)},
+	"getstakeversions":      {(*dcrjson.GetStakeVersionsResult)(nil)},
 	"getgenerate":           {(*bool)(nil)},
 	"gethashespersec":       {(*float64)(nil)},
-	"getheaders":            {(*pfcjson.GetHeadersResult)(nil)},
-	"getinfo":               {(*pfcjson.InfoChainResult)(nil)},
-	"getmempoolinfo":        {(*pfcjson.GetMempoolInfoResult)(nil)},
-	"getmininginfo":         {(*pfcjson.GetMiningInfoResult)(nil)},
-	"getnettotals":          {(*pfcjson.GetNetTotalsResult)(nil)},
+	"getheaders":            {(*dcrjson.GetHeadersResult)(nil)},
+	"getinfo":               {(*dcrjson.InfoChainResult)(nil)},
+	"getmempoolinfo":        {(*dcrjson.GetMempoolInfoResult)(nil)},
+	"getmininginfo":         {(*dcrjson.GetMiningInfoResult)(nil)},
+	"getnettotals":          {(*dcrjson.GetNetTotalsResult)(nil)},
 	"getnetworkhashps":      {(*int64)(nil)},
-	"getpeerinfo":           {(*[]pfcjson.GetPeerInfoResult)(nil)},
-	"getrawmempool":         {(*[]string)(nil), (*pfcjson.GetRawMempoolVerboseResult)(nil)},
-	"getrawtransaction":     {(*string)(nil), (*pfcjson.TxRawResult)(nil)},
+	"getpeerinfo":           {(*[]dcrjson.GetPeerInfoResult)(nil)},
+	"getrawmempool":         {(*[]string)(nil), (*dcrjson.GetRawMempoolVerboseResult)(nil)},
+	"getrawtransaction":     {(*string)(nil), (*dcrjson.TxRawResult)(nil)},
 	"getticketpoolvalue":    {(*float64)(nil)},
-	"gettxout":              {(*pfcjson.GetTxOutResult)(nil)},
-	"getvoteinfo":           {(*pfcjson.GetVoteInfoResult)(nil)},
-	"getwork":               {(*pfcjson.GetWorkResult)(nil), (*bool)(nil)},
+	"gettxout":              {(*dcrjson.GetTxOutResult)(nil)},
+	"getvoteinfo":           {(*dcrjson.GetVoteInfoResult)(nil)},
+	"getwork":               {(*dcrjson.GetWorkResult)(nil), (*bool)(nil)},
 	"getcoinsupply":         {(*int64)(nil)},
 	"help":                  {(*string)(nil), (*string)(nil)},
-	"livetickets":           {(*pfcjson.LiveTicketsResult)(nil)},
-	"missedtickets":         {(*pfcjson.MissedTicketsResult)(nil)},
+	"livetickets":           {(*dcrjson.LiveTicketsResult)(nil)},
+	"missedtickets":         {(*dcrjson.MissedTicketsResult)(nil)},
 	"node":                  nil,
 	"ping":                  nil,
 	"rebroadcastmissed":     nil,
 	"rebroadcastwinners":    nil,
-	"searchrawtransactions": {(*string)(nil), (*[]pfcjson.SearchRawTransactionsResult)(nil)},
+	"searchrawtransactions": {(*string)(nil), (*[]dcrjson.SearchRawTransactionsResult)(nil)},
 	"sendrawtransaction":    {(*string)(nil)},
 	"setgenerate":           nil,
 	"stop":                  {(*string)(nil)},
 	"submitblock":           {nil, (*string)(nil)},
-	"ticketfeeinfo":         {(*pfcjson.TicketFeeInfoResult)(nil)},
-	"ticketsforaddress":     {(*pfcjson.TicketsForAddressResult)(nil)},
+	"ticketfeeinfo":         {(*dcrjson.TicketFeeInfoResult)(nil)},
+	"ticketsforaddress":     {(*dcrjson.TicketsForAddressResult)(nil)},
 	"ticketvwap":            {(*float64)(nil)},
-	"txfeeinfo":             {(*pfcjson.TxFeeInfoResult)(nil)},
-	"validateaddress":       {(*pfcjson.ValidateAddressChainResult)(nil)},
+	"txfeeinfo":             {(*dcrjson.TxFeeInfoResult)(nil)},
+	"validateaddress":       {(*dcrjson.ValidateAddressChainResult)(nil)},
 	"verifychain":           {(*bool)(nil)},
 	"verifymessage":         {(*bool)(nil)},
-	"version":               {(*map[string]pfcjson.VersionResult)(nil)},
+	"version":               {(*map[string]dcrjson.VersionResult)(nil)},
 
 	// Websocket commands.
 	"loadtxfilter":                nil,
-	"session":                     {(*pfcjson.SessionResult)(nil)},
+	"session":                     {(*dcrjson.SessionResult)(nil)},
 	"notifywinningtickets":        nil,
 	"notifyspentandmissedtickets": nil,
 	"notifynewtickets":            nil,
@@ -1062,7 +1062,7 @@ func (c *helpCacher) rpcMethodHelp(method string) (string, error) {
 	}
 
 	// Generate, cache, and return the help.
-	help, err := pfcjson.GenerateHelp(method, helpDescsEnUS, resultTypes...)
+	help, err := dcrjson.GenerateHelp(method, helpDescsEnUS, resultTypes...)
 	if err != nil {
 		return "", err
 	}
@@ -1085,7 +1085,7 @@ func (c *helpCacher) rpcUsage(includeWebsockets bool) (string, error) {
 	// Generate a list of one-line usage for every command.
 	usageTexts := make([]string, 0, len(rpcHandlers))
 	for k := range rpcHandlers {
-		usage, err := pfcjson.MethodUsageText(k)
+		usage, err := dcrjson.MethodUsageText(k)
 		if err != nil {
 			return "", err
 		}
@@ -1095,7 +1095,7 @@ func (c *helpCacher) rpcUsage(includeWebsockets bool) (string, error) {
 	// Include websockets commands if requested.
 	if includeWebsockets {
 		for k := range wsHandlers {
-			usage, err := pfcjson.MethodUsageText(k)
+			usage, err := dcrjson.MethodUsageText(k)
 			if err != nil {
 				return "", err
 			}

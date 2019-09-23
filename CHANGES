@@ -1,6 +1,6 @@
 ============================================================================
-User visible changes for pfcd
-  A full-node Picfight implementation written in Go
+User visible changes for dcrd
+  A full-node Decred implementation written in Go
 ============================================================================
 
 Changes in 0.11.1 (Wed May 27 2015)

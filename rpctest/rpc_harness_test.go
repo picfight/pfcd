@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 )
 
 func testSendOutputs(r *Harness, t *testing.T) {
-	genSpend := func(amt pfcutil.Amount) *chainhash.Hash {
+	genSpend := func(amt dcrutil.Amount) *chainhash.Hash {
 		// Grab a fresh address from the wallet.
 		addr, err := r.NewAddress()
 		if err != nil {
@@ -69,7 +69,7 @@ func testSendOutputs(r *Harness, t *testing.T) {
 
 	// First, generate a small spend which will require only a single
 	// input.
-	txid := genSpend(pfcutil.Amount(5 * pfcutil.AtomsPerCoin))
+	txid := genSpend(dcrutil.Amount(5 * dcrutil.AtomsPerCoin))
 
 	// Generate a single block, the transaction the wallet created should
 	// be found in this block.
@@ -81,7 +81,7 @@ func testSendOutputs(r *Harness, t *testing.T) {
 
 	// Next, generate a spend much greater than the block reward. This
 	// transaction should also have been mined properly.
-	txid = genSpend(pfcutil.Amount(5000 * pfcutil.AtomsPerCoin))
+	txid = genSpend(dcrutil.Amount(5000 * dcrutil.AtomsPerCoin))
 	blockHashes, err = r.Node.Generate(1)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
@@ -182,7 +182,7 @@ func testActiveHarnesses(r *Harness, t *testing.T) {
 
 func testJoinMempools(r *Harness, t *testing.T) {
 	// Assert main test harness has no transactions in its mempool.
-	pooledHashes, err := r.Node.GetRawMempool(pfcjson.GRMAll)
+	pooledHashes, err := r.Node.GetRawMempool(dcrjson.GRMAll)
 	if err != nil {
 		t.Fatalf("unable to get mempool for main test harness: %v", err)
 	}
@@ -234,7 +234,7 @@ func testJoinMempools(r *Harness, t *testing.T) {
 	harnessSynced := make(chan struct{})
 	go func() {
 		for {
-			poolHashes, err := r.Node.GetRawMempool(pfcjson.GRMAll)
+			poolHashes, err := r.Node.GetRawMempool(dcrjson.GRMAll)
 			if err != nil {
 				t.Fatalf("failed to retrieve harness mempool: %v", err)
 			}
@@ -353,7 +353,7 @@ func testMemWalletReorg(r *Harness, t *testing.T) {
 	defer harness.TearDown()
 
 	// Ensure the internal wallet has the expected balance.
-	expectedBalance := pfcutil.Amount(5 * 300 * pfcutil.AtomsPerCoin)
+	expectedBalance := dcrutil.Amount(5 * 300 * dcrutil.AtomsPerCoin)
 	walletBalance := harness.ConfirmedBalance()
 	if expectedBalance != walletBalance {
 		t.Fatalf("wallet balance incorrect: expected %v, got %v",
@@ -373,7 +373,7 @@ func testMemWalletReorg(r *Harness, t *testing.T) {
 	// The original wallet should now have a balance of 0 Coin as its entire
 	// chain should have been decimated in favor of the main harness'
 	// chain.
-	expectedBalance = pfcutil.Amount(0)
+	expectedBalance = dcrutil.Amount(0)
 	walletBalance = harness.ConfirmedBalance()
 	if expectedBalance != walletBalance {
 		t.Fatalf("wallet balance incorrect: expected %v, got %v",
@@ -394,7 +394,7 @@ func testMemWalletLockedOutputs(r *Harness, t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create script: %v", err)
 	}
-	outputAmt := pfcutil.Amount(50 * pfcutil.AtomsPerCoin)
+	outputAmt := dcrutil.Amount(50 * dcrutil.AtomsPerCoin)
 	output := wire.NewTxOut(int64(outputAmt), pkScript)
 	tx, err := r.CreateTransaction([]*wire.TxOut{output}, 10)
 	if err != nil {
@@ -469,7 +469,7 @@ func TestMain(m *testing.M) {
 
 func TestHarness(t *testing.T) {
 	// We should have the expected amount of mature unspent outputs.
-	expectedBalance := pfcutil.Amount(numMatureOutputs * 300 * pfcutil.AtomsPerCoin)
+	expectedBalance := dcrutil.Amount(numMatureOutputs * 300 * dcrutil.AtomsPerCoin)
 	harnessBalance := mainHarness.ConfirmedBalance()
 	if harnessBalance != expectedBalance {
 		t.Fatalf("expected wallet balance of %v instead have %v",

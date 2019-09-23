@@ -32,7 +32,7 @@ func fromBool(v bool) []byte {
 	return nil
 }
 
-// stack represents a stack of immutable objects to be used with picfight
+// stack represents a stack of immutable objects to be used with decred
 // scripts.  Objects may be shared, therefore in usage if a value is to be
 // changed it *must* be deep-copied first to avoid changing other values on the
 // stack.

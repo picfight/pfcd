@@ -14,13 +14,13 @@ filter.  A filter uses constant-size overhead plus on average n+2 bits per item
 added to the filter, where 2^-n is the desired false positive (collision)
 probability.
 
-GCS use in Picfight
+GCS use in Decred
 
 GCS filters are a mechanism for storing and transmitting per-block filters.  The
 usage is intended to be the inverse of Bloom filters: a consensus-validating
 full node commits to a single filter for every block and serves the filter to
 SPV clients that match against the filter locally to determine if the block is
-potentially relevant.  The suggested collision probability for Picfight use is
+potentially relevant.  The suggested collision probability for Decred use is
 2^-20.
 */
 package gcs

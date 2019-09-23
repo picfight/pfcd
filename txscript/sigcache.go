@@ -9,8 +9,8 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/picfight/pfcd/chaincfg/chainec"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/chainec"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // sigCacheEntry represents an entry in the SigCache. Entries within the

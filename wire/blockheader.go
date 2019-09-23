@@ -10,7 +10,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
@@ -22,7 +22,7 @@ import (
 // --> Total 180 bytes.
 const MaxBlockHeaderPayload = 84 + (chainhash.HashSize * 3)
 
-// BlockHeader defines information about a block and is used in the picfight
+// BlockHeader defines information about a block and is used in the decred
 // block (MsgBlock) and headers (MsgHeaders) messages.
 type BlockHeader struct {
 	// Version of the block.  This is not the same as the protocol version.
@@ -185,7 +185,7 @@ func NewBlockHeader(version int32, prevHash *chainhash.Hash,
 	}
 }
 
-// readBlockHeader reads a Picfight block header from r.  See Deserialize for
+// readBlockHeader reads a Decred block header from r.  See Deserialize for
 // decoding block headers stored to disk, such as in a database, as opposed to
 // decoding from the wire.
 func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
@@ -196,7 +196,7 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 		&bh.Nonce, &bh.ExtraData, &bh.StakeVersion)
 }
 
-// writeBlockHeader writes a Picfight block header to w.  See Serialize for
+// writeBlockHeader writes a Decred block header to w.  See Serialize for
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {

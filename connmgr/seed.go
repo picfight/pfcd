@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/wire"
 )
 
 const (

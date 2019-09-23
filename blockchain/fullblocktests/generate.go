@@ -13,14 +13,14 @@ import (
 	"math"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/chaingen"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/chaingen"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -54,7 +54,7 @@ var (
 
 	// lowFee is a single atom and exists to make the test code more
 	// readable.
-	lowFee = pfcutil.Amount(1)
+	lowFee = dcrutil.Amount(1)
 )
 
 // TestInstance is an interface that describes a specific test instance returned
@@ -153,7 +153,7 @@ func (b RejectedNonCanonicalBlock) FullBlockTestInstance() {}
 // payToScriptHashScript returns a standard pay-to-script-hash for the provided
 // redeem script.
 func payToScriptHashScript(redeemScript []byte) []byte {
-	redeemScriptHash := pfcutil.Hash160(redeemScript)
+	redeemScriptHash := dcrutil.Hash160(redeemScript)
 	script, err := txscript.NewScriptBuilder().
 		AddOp(txscript.OP_HASH160).AddData(redeemScriptHash).
 		AddOp(txscript.OP_EQUAL).Script()
@@ -211,7 +211,7 @@ func standardCoinbaseOpReturnScript(blockHeight uint32) []byte {
 // additionalCoinbasePoW returns a function that itself takes a block and
 // modifies it by adding the provided amount to the first proof-of-work coinbase
 // subsidy.
-func additionalCoinbasePoW(amount pfcutil.Amount) func(*wire.MsgBlock) {
+func additionalCoinbasePoW(amount dcrutil.Amount) func(*wire.MsgBlock) {
 	return func(b *wire.MsgBlock) {
 		// Increase the first proof-of-work coinbase subsidy by the
 		// provided amount.
@@ -221,7 +221,7 @@ func additionalCoinbasePoW(amount pfcutil.Amount) func(*wire.MsgBlock) {
 
 // additionalCoinbaseDev returns a function that itself takes a block and
 // modifies it by adding the provided amount to the coinbase developer subsidy.
-func additionalCoinbaseDev(amount pfcutil.Amount) func(*wire.MsgBlock) {
+func additionalCoinbaseDev(amount dcrutil.Amount) func(*wire.MsgBlock) {
 	return func(b *wire.MsgBlock) {
 		// Increase the first proof-of-work coinbase subsidy by the
 		// provided amount.
@@ -234,7 +234,7 @@ func additionalCoinbaseDev(amount pfcutil.Amount) func(*wire.MsgBlock) {
 //
 // NOTE: The coinbase value is NOT updated to reflect the additional fee.  Use
 // 'additionalCoinbasePoW' for that purpose.
-func additionalSpendFee(fee pfcutil.Amount) func(*wire.MsgBlock) {
+func additionalSpendFee(fee dcrutil.Amount) func(*wire.MsgBlock) {
 	return func(b *wire.MsgBlock) {
 		// Increase the fee of the spending transaction by reducing the
 		// amount paid,
@@ -545,7 +545,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.SetTip("bp")
 	g.NextBlock("bpi1", nil, nil, func(b *wire.MsgBlock) {
 		spendOut := chaingen.MakeSpendableOut(g.Tip(), 0, 0)
-		ticketPrice := pfcutil.Amount(g.CalcNextRequiredStakeDifficulty())
+		ticketPrice := dcrutil.Amount(g.CalcNextRequiredStakeDifficulty())
 		tx := g.CreateTicketPurchaseTx(&spendOut, ticketPrice, lowFee)
 		b.AddSTransaction(tx)
 		b.Header.FreshStake++
@@ -854,10 +854,10 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
 				g.Params().OrganizationPkScriptVersion,
 				taxOutput.PkScript, g.Params())
-			p2shTaxAddr := addrs[0].(*pfcutil.AddressScriptHash)
-			p2pkhTaxAddr, err := pfcutil.NewAddressPubKeyHash(
+			p2shTaxAddr := addrs[0].(*dcrutil.AddressScriptHash)
+			p2pkhTaxAddr, err := dcrutil.NewAddressPubKeyHash(
 				p2shTaxAddr.Hash160()[:], g.Params(),
-				pfcec.STEcdsaSecp256k1)
+				dcrec.STEcdsaSecp256k1)
 			if err != nil {
 				panic(err)
 			}
@@ -1337,8 +1337,8 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//                 \-> bv15(9)
 	g.SetTip("bsl5")
 	g.NextBlock("bv15", outs[9], ticketOuts[9], func(b *wire.MsgBlock) {
-		ticketFee := pfcutil.Amount(2)
-		ticketPrice := pfcutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
+		ticketFee := dcrutil.Amount(2)
+		ticketPrice := dcrutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
 		ticketPrice--
 		b.STransactions[5].TxOut[1].PkScript =
 			chaingen.PurchaseCommitmentScript(g.P2shOpTrueAddr(),
@@ -1360,7 +1360,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 
 		prevBlock := g.Tip()
 		spend := chaingen.MakeSpendableOut(prevBlock, 1, 0)
-		ticketPrice := pfcutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
+		ticketPrice := dcrutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
 		ticket := g.CreateTicketPurchaseTx(&spend, ticketPrice, lowFee)
 		b.AddSTransaction(ticket)
 		b.Header.FreshStake++
@@ -2028,7 +2028,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.SetTip("brs3")
 	g.NextBlock("bmf25", outs[15], ticketOuts[15], func(b *wire.MsgBlock) {
 		spendOut := chaingen.MakeSpendableStakeOut(b, 0, 2)
-		ticketPrice := pfcutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
+		ticketPrice := dcrutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
 		ticket := g.CreateTicketPurchaseTx(&spendOut, ticketPrice, lowFee)
 		b.AddSTransaction(ticket)
 		b.Header.FreshStake++
@@ -2096,7 +2096,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.SetTip("brs3")
 	g.NextBlock("bmf31", outs[15], ticketOuts[15], func(b *wire.MsgBlock) {
 		spend := chaingen.MakeSpendableOut(b, 0, 0)
-		ticketPrice := pfcutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
+		ticketPrice := dcrutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
 		ticket := g.CreateTicketPurchaseTx(&spend, ticketPrice, lowFee)
 		b.AddSTransaction(ticket)
 		b.Header.FreshStake++
@@ -2155,7 +2155,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.SetTip("brs3")
 	g.NextBlock("bmf35", outs[15], ticketOuts[15], func(b *wire.MsgBlock) {
 		spend := chaingen.MakeSpendableStakeOut(b, 5, 2)
-		ticketPrice := pfcutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
+		ticketPrice := dcrutil.Amount(g.CalcNextReqStakeDifficulty(g.Tip()))
 		ticket := g.CreateTicketPurchaseTx(&spend, ticketPrice, lowFee)
 		b.AddSTransaction(ticket)
 		b.Header.FreshStake++
@@ -2170,7 +2170,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.NextBlock("bmf36", outs[15], ticketOuts[15], func(b *wire.MsgBlock) {
 		prevBlock := g.Tip()
 		spendOut := chaingen.MakeSpendableOut(prevBlock, 1, 0)
-		ticketPrice := pfcutil.Amount(g.CalcNextRequiredStakeDifficulty())
+		ticketPrice := dcrutil.Amount(g.CalcNextRequiredStakeDifficulty())
 		ticket := g.CreateTicketPurchaseTx(&spendOut, ticketPrice, lowFee)
 		ticket.TxOut[0], ticket.TxOut[2] = ticket.TxOut[2], ticket.TxOut[0]
 		b.AddSTransaction(ticket)
@@ -2187,7 +2187,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	g.NextBlock("bmf37", outs[15], ticketOuts[15], func(b *wire.MsgBlock) {
 		prevBlock := g.Tip()
 		spendOut := chaingen.MakeSpendableOut(prevBlock, 1, 0)
-		ticketPrice := pfcutil.Amount(g.CalcNextRequiredStakeDifficulty())
+		ticketPrice := dcrutil.Amount(g.CalcNextRequiredStakeDifficulty())
 		ticket := g.CreateTicketPurchaseTx(&spendOut, ticketPrice, lowFee)
 		ticket.TxOut[0].PkScript = opTrueScript
 		b.AddSTransaction(ticket)
@@ -2234,7 +2234,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	// NOTE: This section originally came from upstream and applied to the
 	// ability to create two blocks with the same hash that were not
 	// identical through merkle tree tricks in Bitcoin, however, that attack
-	// vector is not possible in Picfight since the block size is included in
+	// vector is not possible in Decred since the block size is included in
 	// the header and adding an additional duplicate transaction changes the
 	// size and consequently the hash.  The tests are therefore not ported
 	// as they do not apply.
@@ -2270,7 +2270,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//
 	// NOTE: This section originally came from upstream and applied to the
 	// ability to create coinbase transactions with the same hash, however,
-	// Picfight enforces the coinbase includes the block height to which it
+	// Decred enforces the coinbase includes the block height to which it
 	// applies, so that condition is not possible.  The tests are therefore
 	// not ported as they do not apply.
 	// ---------------------------------------------------------------------
@@ -2556,7 +2556,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//                  \-> bcb9(19)
 	g.SetTip("bsb2")
 	g.NextBlock("bcb9", outs[19], ticketOuts[19], func(b *wire.MsgBlock) {
-		b.Transactions[1].TxOut[0].Value = pfcutil.MaxAmount + 1
+		b.Transactions[1].TxOut[0].Value = dcrutil.MaxAmount + 1
 	})
 	rejected(blockchain.ErrBadTxOutValue)
 
@@ -2567,7 +2567,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//                  \-> bcb10(19)
 	g.SetTip("bsb2")
 	g.NextBlock("bcb10", outs[19], ticketOuts[19], func(b *wire.MsgBlock) {
-		b.Transactions[1].TxOut[0].Value = pfcutil.MaxAmount
+		b.Transactions[1].TxOut[0].Value = dcrutil.MaxAmount
 		b.Transactions[1].TxOut[1].Value = 1
 	})
 	rejected(blockchain.ErrBadTxOutValue)
@@ -2751,7 +2751,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 		// each contain an OP_RETURN output.
 		//
 		// NOTE: The CreateSpendTx func adds the OP_RETURN output.
-		zeroFee := pfcutil.Amount(0)
+		zeroFee := dcrutil.Amount(0)
 		for i := uint32(0); i < numAdditionalOutputs; i++ {
 			spend := chaingen.MakeSpendableOut(b, 1, i+2)
 			tx := g.CreateSpendTx(&spend, zeroFee)
@@ -2792,7 +2792,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//                  \-> bor2(20) -> bor3(21)           \-> bor6(bor1.tx[5].out[1])
 	g.NextBlock("bor6", nil, ticketOuts[23], func(b *wire.MsgBlock) {
 		// An OP_RETURN output doesn't have any value so use a fee of 0.
-		zeroFee := pfcutil.Amount(0)
+		zeroFee := dcrutil.Amount(0)
 		tx := g.CreateSpendTx(&bor1OpReturnOut, zeroFee)
 		b.AddTransaction(tx)
 	})

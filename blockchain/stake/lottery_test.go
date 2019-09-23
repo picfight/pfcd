@@ -12,8 +12,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/picfight/pfcd/blockchain/stake/internal/tickettreap"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/blockchain/stake/internal/tickettreap"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 func TestBasicPRNG(t *testing.T) {

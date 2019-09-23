@@ -13,16 +13,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/mining"
-	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/indexers"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/mining"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -41,7 +41,7 @@ const (
 
 	// maxRelayFeeMultiplier is the factor that we disallow fees / kB above the
 	// minimum tx fee.  At the current default minimum relay fee of 0.0001
-	// PFC/kB, this results in a maximum allowed high fee of 1 PFC/kB.
+	// DCR/kB, this results in a maximum allowed high fee of 1 DCR/kB.
 	maxRelayFeeMultiplier = 1e4
 
 	// maxVoteDoubleSpends is the maximum number of vote double spends allowed
@@ -84,11 +84,11 @@ type Config struct {
 
 	// FetchUtxoView defines the function to use to fetch unspent
 	// transaction output information.
-	FetchUtxoView func(*pfcutil.Tx, bool) (*blockchain.UtxoViewpoint, error)
+	FetchUtxoView func(*dcrutil.Tx, bool) (*blockchain.UtxoViewpoint, error)
 
 	// BlockByHash defines the function use to fetch the block identified
 	// by the given hash.
-	BlockByHash func(*chainhash.Hash) (*pfcutil.Block, error)
+	BlockByHash func(*chainhash.Hash) (*dcrutil.Block, error)
 
 	// BestHash defines the function to use to access the block hash of
 	// the current best chain.
@@ -106,7 +106,7 @@ type Config struct {
 	// CalcSequenceLock defines the function to use in order to generate
 	// the current sequence lock for the given transaction using the passed
 	// utxo view.
-	CalcSequenceLock func(*pfcutil.Tx, *blockchain.UtxoViewpoint) (*blockchain.SequenceLock, error)
+	CalcSequenceLock func(*dcrutil.Tx, *blockchain.UtxoViewpoint) (*blockchain.SequenceLock, error)
 
 	// SubsidyCache defines a subsidy cache to use.
 	SubsidyCache *blockchain.SubsidyCache
@@ -171,9 +171,9 @@ type Policy struct {
 	// of the max signature operations for a block.
 	MaxSigOpsPerTx int
 
-	// MinRelayTxFee defines the minimum transaction fee in PFC/kB to be
+	// MinRelayTxFee defines the minimum transaction fee in DCR/kB to be
 	// considered a non-zero fee.
-	MinRelayTxFee pfcutil.Amount
+	MinRelayTxFee dcrutil.Amount
 
 	// AllowOldVotes defines whether or not votes on old blocks will be
 	// admitted and relayed.
@@ -215,9 +215,9 @@ type TxPool struct {
 	mtx           sync.RWMutex
 	cfg           Config
 	pool          map[chainhash.Hash]*TxDesc
-	orphans       map[chainhash.Hash]*pfcutil.Tx
-	orphansByPrev map[wire.OutPoint]map[chainhash.Hash]*pfcutil.Tx
-	outpoints     map[wire.OutPoint]*pfcutil.Tx
+	orphans       map[chainhash.Hash]*dcrutil.Tx
+	orphansByPrev map[wire.OutPoint]map[chainhash.Hash]*dcrutil.Tx
+	outpoints     map[wire.OutPoint]*dcrutil.Tx
 
 	// Votes on blocks.
 	votesMtx sync.RWMutex
@@ -230,7 +230,7 @@ type TxPool struct {
 // insertVote inserts a vote into the map of block votes.
 //
 // This function MUST be called with the vote mutex locked (for writes).
-func (mp *TxPool) insertVote(ssgen *pfcutil.Tx) error {
+func (mp *TxPool) insertVote(ssgen *dcrutil.Tx) error {
 	msgTx := ssgen.MsgTx()
 	ticketHash := &msgTx.TxIn[1].PreviousOutPoint.Hash
 
@@ -253,7 +253,7 @@ func (mp *TxPool) insertVote(ssgen *pfcutil.Tx) error {
 
 	voteHash := ssgen.Hash()
 	voteBits := stake.SSGenVoteBits(msgTx)
-	vote := pfcutil.IsFlagSet16(voteBits, pfcutil.BlockValid)
+	vote := dcrutil.IsFlagSet16(voteBits, dcrutil.BlockValid)
 	voteTx := mining.VoteDesc{
 		VoteHash:       *voteHash,
 		TicketHash:     *ticketHash,
@@ -319,7 +319,7 @@ var _ mining.TxSource = (*TxPool)(nil)
 // RemoveOrphan.  See the comment for RemoveOrphan for more details.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) removeOrphan(tx *pfcutil.Tx, removeRedeemers bool) {
+func (mp *TxPool) removeOrphan(tx *dcrutil.Tx, removeRedeemers bool) {
 	txHash := tx.Hash()
 
 	// Nothing to do if passed tx is not an orphan.
@@ -369,7 +369,7 @@ func (mp *TxPool) removeOrphan(tx *pfcutil.Tx, removeRedeemers bool) {
 // previous orphan index.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) RemoveOrphan(tx *pfcutil.Tx) {
+func (mp *TxPool) RemoveOrphan(tx *dcrutil.Tx) {
 	mp.mtx.Lock()
 	mp.removeOrphan(tx, false)
 	mp.mtx.Unlock()
@@ -401,7 +401,7 @@ func (mp *TxPool) limitNumOrphans() error {
 // addOrphan adds an orphan transaction to the orphan pool.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) addOrphan(tx *pfcutil.Tx) {
+func (mp *TxPool) addOrphan(tx *dcrutil.Tx) {
 	// Nothing to do if no orphans are allowed.
 	if mp.cfg.Policy.MaxOrphanTxs <= 0 {
 		return
@@ -415,7 +415,7 @@ func (mp *TxPool) addOrphan(tx *pfcutil.Tx) {
 	for _, txIn := range tx.MsgTx().TxIn {
 		if _, exists := mp.orphansByPrev[txIn.PreviousOutPoint]; !exists {
 			mp.orphansByPrev[txIn.PreviousOutPoint] =
-				make(map[chainhash.Hash]*pfcutil.Tx)
+				make(map[chainhash.Hash]*dcrutil.Tx)
 		}
 		mp.orphansByPrev[txIn.PreviousOutPoint][*tx.Hash()] = tx
 	}
@@ -427,7 +427,7 @@ func (mp *TxPool) addOrphan(tx *pfcutil.Tx) {
 // maybeAddOrphan potentially adds an orphan to the orphan pool.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) maybeAddOrphan(tx *pfcutil.Tx) error {
+func (mp *TxPool) maybeAddOrphan(tx *dcrutil.Tx) error {
 	// Ignore orphan transactions that are too large.  This helps avoid
 	// a memory exhaustion attack based on sending a lot of really large
 	// orphans.  In the case there is a valid transaction larger than this,
@@ -459,7 +459,7 @@ func (mp *TxPool) maybeAddOrphan(tx *pfcutil.Tx) error {
 // that orphans also spend.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) removeOrphanDoubleSpends(tx *pfcutil.Tx) {
+func (mp *TxPool) removeOrphanDoubleSpends(tx *dcrutil.Tx) {
 	msgTx := tx.MsgTx()
 	for _, txIn := range msgTx.TxIn {
 		for _, orphan := range mp.orphansByPrev[txIn.PreviousOutPoint] {
@@ -584,7 +584,7 @@ func (mp *TxPool) HaveAllTransactions(hashes []chainhash.Hash) bool {
 // RemoveTransaction.  See the comment for RemoveTransaction for more details.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) removeTransaction(tx *pfcutil.Tx, removeRedeemers bool) {
+func (mp *TxPool) removeTransaction(tx *dcrutil.Tx, removeRedeemers bool) {
 	txHash := tx.Hash()
 	if removeRedeemers {
 		// Remove any transactions which rely on this one.
@@ -634,7 +634,7 @@ func (mp *TxPool) removeTransaction(tx *pfcutil.Tx, removeRedeemers bool) {
 // they would otherwise become orphans.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) RemoveTransaction(tx *pfcutil.Tx, removeRedeemers bool) {
+func (mp *TxPool) RemoveTransaction(tx *dcrutil.Tx, removeRedeemers bool) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
 	mp.removeTransaction(tx, removeRedeemers)
@@ -648,7 +648,7 @@ func (mp *TxPool) RemoveTransaction(tx *pfcutil.Tx, removeRedeemers bool) {
 // contain transactions which were previously unknown to the memory pool.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) RemoveDoubleSpends(tx *pfcutil.Tx) {
+func (mp *TxPool) RemoveDoubleSpends(tx *dcrutil.Tx) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
 	for _, txIn := range tx.MsgTx().TxIn {
@@ -667,7 +667,7 @@ func (mp *TxPool) RemoveDoubleSpends(tx *pfcutil.Tx) {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
-	tx *pfcutil.Tx, txType stake.TxType, height int64, fee int64) {
+	tx *dcrutil.Tx, txType stake.TxType, height int64, fee int64) {
 
 	// Add the transaction to the pool and mark the referenced outpoints
 	// as spent by the pool.
@@ -710,7 +710,7 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 // main chain.
 //
 // This function MUST be called with the mempool lock held (for reads).
-func (mp *TxPool) checkPoolDoubleSpend(tx *pfcutil.Tx, txType stake.TxType) error {
+func (mp *TxPool) checkPoolDoubleSpend(tx *dcrutil.Tx, txType stake.TxType) error {
 	for i, txIn := range tx.MsgTx().TxIn {
 		// We don't care about double spends of stake bases.
 		if (txType == stake.TxTypeSSGen || txType == stake.TxTypeSSRtx) &&
@@ -763,7 +763,7 @@ func (mp *TxPool) IsRegTxTreeKnownDisapproved(hash *chainhash.Hash) bool {
 // transaction pool.
 //
 // This function MUST be called with the mempool lock held (for reads).
-func (mp *TxPool) fetchInputUtxos(tx *pfcutil.Tx) (*blockchain.UtxoViewpoint, error) {
+func (mp *TxPool) fetchInputUtxos(tx *dcrutil.Tx) (*blockchain.UtxoViewpoint, error) {
 	knownDisapproved := mp.IsRegTxTreeKnownDisapproved(mp.cfg.BestHash())
 	utxoView, err := mp.cfg.FetchUtxoView(tx, !knownDisapproved)
 	if err != nil {
@@ -790,7 +790,7 @@ func (mp *TxPool) fetchInputUtxos(tx *pfcutil.Tx) (*blockchain.UtxoViewpoint, er
 // orphans.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) FetchTransaction(txHash *chainhash.Hash) (*pfcutil.Tx, error) {
+func (mp *TxPool) FetchTransaction(txHash *chainhash.Hash) (*dcrutil.Tx, error) {
 	// Protect concurrent access.
 	mp.mtx.RLock()
 	txDesc, exists := mp.pool[*txHash]
@@ -812,8 +812,8 @@ func (mp *TxPool) FetchTransaction(txHash *chainhash.Hash) (*pfcutil.Tx, error) 
 // We need to make sure thing also assigns the TxType after it evaluates the tx,
 // so that we can easily pick different stake tx types from the mempool later.
 // This should probably be done at the bottom using "IsSStx" etc functions.
-// It should also set the pfcutil tree type for the tx as well.
-func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allowHighFees, rejectDupOrphans bool) ([]*chainhash.Hash, error) {
+// It should also set the dcrutil tree type for the tx as well.
+func (mp *TxPool) maybeAcceptTransaction(tx *dcrutil.Tx, isNew, rateLimit, allowHighFees, rejectDupOrphans bool) ([]*chainhash.Hash, error) {
 	msgTx := tx.MsgTx()
 	txHash := tx.Hash()
 	// Don't accept the transaction if it already exists in the pool.  This
@@ -1279,7 +1279,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit, allow
 // or not the transaction is an orphan.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) MaybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit bool) ([]*chainhash.Hash, error) {
+func (mp *TxPool) MaybeAcceptTransaction(tx *dcrutil.Tx, isNew, rateLimit bool) ([]*chainhash.Hash, error) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
 	hashes, err := mp.maybeAcceptTransaction(tx, isNew, rateLimit, true, true)
@@ -1292,8 +1292,8 @@ func (mp *TxPool) MaybeAcceptTransaction(tx *pfcutil.Tx, isNew, rateLimit bool) 
 // ProcessOrphans.  See the comment for ProcessOrphans for more details.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) processOrphans(acceptedTx *pfcutil.Tx) []*pfcutil.Tx {
-	var acceptedTxns []*pfcutil.Tx
+func (mp *TxPool) processOrphans(acceptedTx *dcrutil.Tx) []*dcrutil.Tx {
+	var acceptedTxns []*dcrutil.Tx
 
 	// Start with processing at least the passed transaction.
 	processList := list.New()
@@ -1301,7 +1301,7 @@ func (mp *TxPool) processOrphans(acceptedTx *pfcutil.Tx) []*pfcutil.Tx {
 	for processList.Len() > 0 {
 		// Pop the transaction to process from the front of the list.
 		firstElement := processList.Remove(processList.Front())
-		processItem := firstElement.(*pfcutil.Tx)
+		processItem := firstElement.(*dcrutil.Tx)
 
 		txType := stake.DetermineTxType(processItem.MsgTx())
 		tree := wire.TxTreeRegular
@@ -1445,7 +1445,7 @@ func (mp *TxPool) PruneExpiredTx() {
 // no transactions were moved from the orphan pool to the mempool.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) ProcessOrphans(acceptedTx *pfcutil.Tx) []*pfcutil.Tx {
+func (mp *TxPool) ProcessOrphans(acceptedTx *dcrutil.Tx) []*dcrutil.Tx {
 	mp.mtx.Lock()
 	acceptedTxns := mp.processOrphans(acceptedTx)
 	mp.mtx.Unlock()
@@ -1463,7 +1463,7 @@ func (mp *TxPool) ProcessOrphans(acceptedTx *pfcutil.Tx) []*pfcutil.Tx {
 // the passed one being accepted.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) ProcessTransaction(tx *pfcutil.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*pfcutil.Tx, error) {
+func (mp *TxPool) ProcessTransaction(tx *dcrutil.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*dcrutil.Tx, error) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
 	defer mp.mtx.Unlock()
@@ -1489,7 +1489,7 @@ func (mp *TxPool) ProcessTransaction(tx *pfcutil.Tx, allowOrphan, rateLimit, all
 		// are now available) and repeat for those accepted
 		// transactions until there are no more.
 		newTxs := mp.processOrphans(tx)
-		acceptedTxs := make([]*pfcutil.Tx, len(newTxs)+1)
+		acceptedTxs := make([]*dcrutil.Tx, len(newTxs)+1)
 
 		// Add the parent transaction first so remote nodes
 		// do not add orphans.
@@ -1592,11 +1592,11 @@ func (mp *TxPool) MiningDescs() []*mining.TxDesc {
 // nil in which case all transactions will be returned.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) RawMempoolVerbose(filterType *stake.TxType) map[string]*pfcjson.GetRawMempoolVerboseResult {
+func (mp *TxPool) RawMempoolVerbose(filterType *stake.TxType) map[string]*dcrjson.GetRawMempoolVerboseResult {
 	mp.mtx.RLock()
 	defer mp.mtx.RUnlock()
 
-	result := make(map[string]*pfcjson.GetRawMempoolVerboseResult,
+	result := make(map[string]*dcrjson.GetRawMempoolVerboseResult,
 		len(mp.pool))
 	bestHeight := mp.cfg.BestHeight()
 
@@ -1618,9 +1618,9 @@ func (mp *TxPool) RawMempoolVerbose(filterType *stake.TxType) map[string]*pfcjso
 				bestHeight+1)
 		}
 
-		mpd := &pfcjson.GetRawMempoolVerboseResult{
+		mpd := &dcrjson.GetRawMempoolVerboseResult{
 			Size:             int32(tx.MsgTx().SerializeSize()),
-			Fee:              pfcutil.Amount(desc.Fee).ToCoin(),
+			Fee:              dcrutil.Amount(desc.Fee).ToCoin(),
 			Time:             desc.Added.Unix(),
 			Height:           desc.Height,
 			StartingPriority: desc.StartingPriority,
@@ -1655,9 +1655,9 @@ func New(cfg *Config) *TxPool {
 	return &TxPool{
 		cfg:           *cfg,
 		pool:          make(map[chainhash.Hash]*TxDesc),
-		orphans:       make(map[chainhash.Hash]*pfcutil.Tx),
-		orphansByPrev: make(map[wire.OutPoint]map[chainhash.Hash]*pfcutil.Tx),
-		outpoints:     make(map[wire.OutPoint]*pfcutil.Tx),
+		orphans:       make(map[chainhash.Hash]*dcrutil.Tx),
+		orphansByPrev: make(map[wire.OutPoint]map[chainhash.Hash]*dcrutil.Tx),
+		outpoints:     make(map[wire.OutPoint]*dcrutil.Tx),
 		votes:         make(map[chainhash.Hash][]mining.VoteDesc),
 	}
 }

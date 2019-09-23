@@ -15,18 +15,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/blockchain/chaingen"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainec"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/mining"
-	"github.com/picfight/pfcd/pfcec"
-	"github.com/picfight/pfcd/pfcec/secp256k1"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/txscript"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/chaingen"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainec"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/mining"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -43,7 +43,7 @@ type fakeChain struct {
 	nextStakeDiff  int64
 	utxos          *blockchain.UtxoViewpoint
 	utxoTimes      map[wire.OutPoint]int64
-	blocks         map[chainhash.Hash]*pfcutil.Block
+	blocks         map[chainhash.Hash]*dcrutil.Block
 	currentHash    chainhash.Hash
 	currentHeight  int64
 	medianTime     time.Time
@@ -74,7 +74,7 @@ func (s *fakeChain) SetNextStakeDifficulty(nextStakeDiff int64) {
 // returned view can be examined for duplicate unspent transaction outputs.
 //
 // This function is safe for concurrent access however the returned view is NOT.
-func (s *fakeChain) FetchUtxoView(tx *pfcutil.Tx, treeValid bool) (*blockchain.UtxoViewpoint, error) {
+func (s *fakeChain) FetchUtxoView(tx *dcrutil.Tx, treeValid bool) (*blockchain.UtxoViewpoint, error) {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -98,7 +98,7 @@ func (s *fakeChain) FetchUtxoView(tx *pfcutil.Tx, treeValid bool) (*blockchain.U
 
 // BlockByHash returns the block with the given hash from the fake chain
 // instance.  Blocks can be added to the instance with the AddBlock function.
-func (s *fakeChain) BlockByHash(hash *chainhash.Hash) (*pfcutil.Block, error) {
+func (s *fakeChain) BlockByHash(hash *chainhash.Hash) (*dcrutil.Block, error) {
 	s.RLock()
 	block, ok := s.blocks[*hash]
 	s.RUnlock()
@@ -111,7 +111,7 @@ func (s *fakeChain) BlockByHash(hash *chainhash.Hash) (*pfcutil.Block, error) {
 
 // AddBlock adds a block that will be available to the BlockByHash function to
 // the fake chain instance.
-func (s *fakeChain) AddBlock(block *pfcutil.Block) {
+func (s *fakeChain) AddBlock(block *dcrutil.Block) {
 	s.Lock()
 	s.blocks[*block.Hash()] = block
 	s.Unlock()
@@ -168,7 +168,7 @@ func (s *fakeChain) SetPastMedianTime(medianTime time.Time) {
 
 // CalcSequenceLock returns the current sequence lock for the passed transaction
 // associated with the fake chain instance.
-func (s *fakeChain) CalcSequenceLock(tx *pfcutil.Tx, view *blockchain.UtxoViewpoint) (*blockchain.SequenceLock, error) {
+func (s *fakeChain) CalcSequenceLock(tx *dcrutil.Tx, view *blockchain.UtxoViewpoint) (*blockchain.SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included in a
 	// block at any given height or time.
 	sequenceLock := &blockchain.SequenceLock{MinHeight: -1, MinTime: -1}
@@ -273,7 +273,7 @@ func (s *fakeChain) FakeUxtoMedianTime(prevOut *wire.OutPoint) int64 {
 // AddFakeUtxoMedianTime adds a median time to the fake chain instance that will
 // be used when querying the median time for the provided transaction and output
 // when calculating by-time sequence locks.
-func (s *fakeChain) AddFakeUtxoMedianTime(tx *pfcutil.Tx, txOutIdx uint32, medianTime time.Time) {
+func (s *fakeChain) AddFakeUtxoMedianTime(tx *dcrutil.Tx, txOutIdx uint32, medianTime time.Time) {
 	s.Lock()
 	s.utxoTimes[wire.OutPoint{
 		Hash:  *tx.Hash(),
@@ -304,16 +304,16 @@ func (s *fakeChain) SetAcceptSequenceLocks(accept bool) {
 // amount associated with it.
 type spendableOutput struct {
 	outPoint wire.OutPoint
-	amount   pfcutil.Amount
+	amount   dcrutil.Amount
 }
 
 // txOutToSpendableOut returns a spendable output given a transaction and index
 // of the output to use.  This is useful as a convenience when creating test
 // transactions.
-func txOutToSpendableOut(tx *pfcutil.Tx, outputNum uint32, tree int8) spendableOutput {
+func txOutToSpendableOut(tx *dcrutil.Tx, outputNum uint32, tree int8) spendableOutput {
 	return spendableOutput{
 		outPoint: wire.OutPoint{Hash: *tx.Hash(), Index: outputNum, Tree: tree},
-		amount:   pfcutil.Amount(tx.MsgTx().TxOut[outputNum].Value),
+		amount:   dcrutil.Amount(tx.MsgTx().TxOut[outputNum].Value),
 	}
 }
 
@@ -327,7 +327,7 @@ type poolHarness struct {
 	// payAddr is the p2sh address for the signing key and is used for the
 	// payment address throughout the tests.
 	signKey     *secp256k1.PrivateKey
-	payAddr     pfcutil.Address
+	payAddr     dcrutil.Address
 	payScript   []byte
 	chainParams *chaincfg.Params
 
@@ -338,18 +338,18 @@ type poolHarness struct {
 // GetScript is the pool harness' implementation of the ScriptDB interface.
 // It returns the pool harness' payment redeen script for any address
 // passed in.
-func (p *poolHarness) GetScript(addr pfcutil.Address) ([]byte, error) {
+func (p *poolHarness) GetScript(addr dcrutil.Address) ([]byte, error) {
 	return p.payScript, nil
 }
 
 // GetKey is the pool harness' implementation of the KeyDB interface.
 // It returns the pool harness' signature key for any address passed in.
-func (p *poolHarness) GetKey(addr pfcutil.Address) (chainec.PrivateKey, bool, error) {
+func (p *poolHarness) GetKey(addr dcrutil.Address) (chainec.PrivateKey, bool, error) {
 	return p.signKey, true, nil
 }
 
 // AddFakeUTXO creates a fake mined uxto for the provided transaction.
-func (p *poolHarness) AddFakeUTXO(tx *pfcutil.Tx, blockHeight int64) {
+func (p *poolHarness) AddFakeUTXO(tx *dcrutil.Tx, blockHeight int64) {
 	p.chain.utxos.AddTxOuts(tx, blockHeight, wire.NullBlockIndex)
 }
 
@@ -358,7 +358,7 @@ func (p *poolHarness) AddFakeUTXO(tx *pfcutil.Tx, blockHeight int64) {
 // address associated with the harness.  It automatically uses a standard
 // signature script that starts with the block height that is required by
 // version 2 blocks.
-func (p *poolHarness) CreateCoinbaseTx(blockHeight int64, numOutputs uint32) (*pfcutil.Tx, error) {
+func (p *poolHarness) CreateCoinbaseTx(blockHeight int64, numOutputs uint32) (*dcrutil.Tx, error) {
 	// Create standard coinbase script.
 	extraNonce := int64(0)
 	coinbaseScript, err := txscript.NewScriptBuilder().
@@ -392,7 +392,7 @@ func (p *poolHarness) CreateCoinbaseTx(blockHeight int64, numOutputs uint32) (*p
 		})
 	}
 
-	return pfcutil.NewTx(tx), nil
+	return dcrutil.NewTx(tx), nil
 }
 
 // CreateSignedTx creates a new signed transaction that consumes the provided
@@ -404,10 +404,10 @@ func (p *poolHarness) CreateCoinbaseTx(blockHeight int64, numOutputs uint32) (*p
 // invoked with the transaction prior to signing it.  This provides callers with
 // the opportunity to modify the transaction which is especially useful for
 // testing.
-func (p *poolHarness) CreateSignedTx(inputs []spendableOutput, numOutputs uint32, mungers ...func(*wire.MsgTx)) (*pfcutil.Tx, error) {
+func (p *poolHarness) CreateSignedTx(inputs []spendableOutput, numOutputs uint32, mungers ...func(*wire.MsgTx)) (*dcrutil.Tx, error) {
 	// Calculate the total input amount and split it amongst the requested
 	// number of outputs.
-	var totalInput pfcutil.Amount
+	var totalInput dcrutil.Amount
 	for _, input := range inputs {
 		totalInput += input.amount
 	}
@@ -452,15 +452,15 @@ func (p *poolHarness) CreateSignedTx(inputs []spendableOutput, numOutputs uint32
 		tx.TxIn[i].SignatureScript = sigScript
 	}
 
-	return pfcutil.NewTx(tx), nil
+	return dcrutil.NewTx(tx), nil
 }
 
 // CreateTxChain creates a chain of zero-fee transactions (each subsequent
 // transaction spends the entire amount from the previous one) with the first
 // one spending the provided outpoint.  Each transaction spends the entire
 // amount of the previous one and as such does not include any fees.
-func (p *poolHarness) CreateTxChain(firstOutput spendableOutput, numTxns uint32) ([]*pfcutil.Tx, error) {
-	txChain := make([]*pfcutil.Tx, 0, numTxns)
+func (p *poolHarness) CreateTxChain(firstOutput spendableOutput, numTxns uint32) ([]*dcrutil.Tx, error) {
+	txChain := make([]*dcrutil.Tx, 0, numTxns)
 	prevOutPoint := firstOutput.outPoint
 	spendableAmount := firstOutput.amount
 	for i := uint32(0); i < numTxns; i++ {
@@ -487,7 +487,7 @@ func (p *poolHarness) CreateTxChain(firstOutput spendableOutput, numTxns uint32)
 		}
 		tx.TxIn[0].SignatureScript = sigScript
 
-		txChain = append(txChain, pfcutil.NewTx(tx))
+		txChain = append(txChain, dcrutil.NewTx(tx))
 
 		// Next transaction uses outputs from this one.
 		prevOutPoint = wire.OutPoint{Hash: tx.TxHash(), Index: 0}
@@ -498,7 +498,7 @@ func (p *poolHarness) CreateTxChain(firstOutput spendableOutput, numTxns uint32)
 
 // CreateTx creates a zero-fee regular transaction from the provided spendable
 // output.
-func (p *poolHarness) CreateTx(out spendableOutput) (*pfcutil.Tx, error) {
+func (p *poolHarness) CreateTx(out spendableOutput) (*dcrutil.Tx, error) {
 	txns, err := p.CreateTxChain(out, 1)
 	if err != nil {
 		return nil, err
@@ -508,9 +508,9 @@ func (p *poolHarness) CreateTx(out spendableOutput) (*pfcutil.Tx, error) {
 
 // CreateTicketPurchase creates a ticket purchase spending the first output of
 // the provided transaction.
-func (p *poolHarness) CreateTicketPurchase(sourceTx *pfcutil.Tx, cost int64) (*pfcutil.Tx, error) {
-	ticketfee := pfcutil.Amount(singleInputTicketSize)
-	ticketPrice := pfcutil.Amount(cost)
+func (p *poolHarness) CreateTicketPurchase(sourceTx *dcrutil.Tx, cost int64) (*dcrutil.Tx, error) {
+	ticketfee := dcrutil.Amount(singleInputTicketSize)
+	ticketPrice := dcrutil.Amount(cost)
 
 	// Generate the p2sh, commitment and change scripts of the ticket.
 	pkScript, err := txscript.PayToSStx(p.payAddr)
@@ -519,7 +519,7 @@ func (p *poolHarness) CreateTicketPurchase(sourceTx *pfcutil.Tx, cost int64) (*p
 	}
 	commitScript := chaingen.PurchaseCommitmentScript(p.payAddr,
 		ticketPrice+ticketfee, 0, ticketPrice)
-	change := pfcutil.Amount(sourceTx.MsgTx().TxOut[0].Value) -
+	change := dcrutil.Amount(sourceTx.MsgTx().TxOut[0].Value) -
 		ticketPrice - ticketfee
 	changeScript, err := txscript.PayToSStxChange(p.payAddr)
 	if err != nil {
@@ -551,7 +551,7 @@ func (p *poolHarness) CreateTicketPurchase(sourceTx *pfcutil.Tx, cost int64) (*p
 	}
 	tx.TxIn[0].SignatureScript = sigScript
 
-	return pfcutil.NewTx(tx), nil
+	return dcrutil.NewTx(tx), nil
 }
 
 // newVoteScript generates a voting script from the passed VoteBits, for
@@ -564,7 +564,7 @@ func newVoteScript(voteBits stake.VoteBits) ([]byte, error) {
 }
 
 // CreateVote creates a vote transaction using the provided ticket.
-func (p *poolHarness) CreateVote(ticket *pfcutil.Tx) (*pfcutil.Tx, error) {
+func (p *poolHarness) CreateVote(ticket *dcrutil.Tx) (*dcrutil.Tx, error) {
 	// Calculate the vote subsidy
 	subsidy := blockchain.CalcStakeVoteSubsidy(p.txPool.cfg.SubsidyCache,
 		p.chain.BestHeight(), p.chainParams)
@@ -617,7 +617,7 @@ func (p *poolHarness) CreateVote(ticket *pfcutil.Tx) (*pfcutil.Tx, error) {
 	redeemTicketScript := ticket.MsgTx().TxOut[0].PkScript
 	signedScript, err := txscript.SignTxOutput(p.chainParams, vote, inputToSign,
 		redeemTicketScript, txscript.SigHashAll, p,
-		p, vote.TxIn[inputToSign].SignatureScript, pfcec.STEcdsaSecp256k1)
+		p, vote.TxIn[inputToSign].SignatureScript, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		return nil, err
 	}
@@ -625,11 +625,11 @@ func (p *poolHarness) CreateVote(ticket *pfcutil.Tx) (*pfcutil.Tx, error) {
 	vote.TxIn[0].SignatureScript = p.chainParams.StakeBaseSigScript
 	vote.TxIn[1].SignatureScript = signedScript
 
-	return pfcutil.NewTx(vote), nil
+	return dcrutil.NewTx(vote), nil
 }
 
 // CreateRevocation creates a revocation using the provided ticket.
-func (p *poolHarness) CreateRevocation(ticket *pfcutil.Tx) (*pfcutil.Tx, error) {
+func (p *poolHarness) CreateRevocation(ticket *dcrutil.Tx) (*dcrutil.Tx, error) {
 	ticketPurchase := ticket.MsgTx()
 	ticketHash := ticketPurchase.TxHash()
 
@@ -663,14 +663,14 @@ func (p *poolHarness) CreateRevocation(ticket *pfcutil.Tx) (*pfcutil.Tx, error) 
 	redeemTicketScript := ticket.MsgTx().TxOut[0].PkScript
 	signedScript, err := txscript.SignTxOutput(p.chainParams, revocation, inputToSign,
 		redeemTicketScript, txscript.SigHashAll, p,
-		p, revocation.TxIn[inputToSign].SignatureScript, pfcec.STEcdsaSecp256k1)
+		p, revocation.TxIn[inputToSign].SignatureScript, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		return nil, err
 	}
 
 	revocation.TxIn[0].SignatureScript = signedScript
 
-	return pfcutil.NewTx(revocation), nil
+	return dcrutil.NewTx(revocation), nil
 }
 
 // newPoolHarness returns a new instance of a pool harness initialized with a
@@ -690,7 +690,7 @@ func newPoolHarness(chainParams *chaincfg.Params) (*poolHarness, []spendableOutp
 	// Generate associated pay-to-script-hash address and resulting payment
 	// script.
 	pubKeyBytes := signPub.SerializeCompressed()
-	payPubKeyAddr, err := pfcutil.NewAddressSecpPubKey(pubKeyBytes,
+	payPubKeyAddr, err := dcrutil.NewAddressSecpPubKey(pubKeyBytes,
 		chainParams)
 	if err != nil {
 		return nil, nil, err
@@ -706,7 +706,7 @@ func newPoolHarness(chainParams *chaincfg.Params) (*poolHarness, []spendableOutp
 	chain := &fakeChain{
 		utxos:       blockchain.NewUtxoViewpoint(),
 		utxoTimes:   make(map[wire.OutPoint]int64),
-		blocks:      make(map[chainhash.Hash]*pfcutil.Block),
+		blocks:      make(map[chainhash.Hash]*dcrutil.Block),
 		scriptFlags: BaseStandardVerifyFlags,
 	}
 	harness := poolHarness{
@@ -777,7 +777,7 @@ type testContext struct {
 // orphan pool and transaction pool status.  It also further determines if it
 // should be reported as available by the HaveTransaction function based upon
 // the two flags and tests that condition as well.
-func testPoolMembership(tc *testContext, tx *pfcutil.Tx, inOrphanPool, inTxPool bool) {
+func testPoolMembership(tc *testContext, tx *dcrutil.Tx, inOrphanPool, inTxPool bool) {
 	txHash := tx.Hash()
 	gotOrphanPool := tc.harness.txPool.IsOrphanInPool(txHash)
 	if inOrphanPool != gotOrphanPool {
@@ -1160,7 +1160,7 @@ func TestOrphanEviction(t *testing.T) {
 
 	// Figure out which transactions were evicted and make sure the number
 	// evicted matches the expected number.
-	var evictedTxns []*pfcutil.Tx
+	var evictedTxns []*dcrutil.Tx
 	for _, tx := range chainedTxns[1:] {
 		if !harness.txPool.IsOrphanInPool(tx.Hash()) {
 			evictedTxns = append(evictedTxns, tx)
@@ -1214,7 +1214,7 @@ func TestExpirationPruning(t *testing.T) {
 	// one block after the previous and the first one expires in the block after
 	// the next one.
 	nextBlockHeight := harness.chain.BestHeight() + 1
-	expiringTxns := make([]*pfcutil.Tx, 0, numTxns)
+	expiringTxns := make([]*dcrutil.Tx, 0, numTxns)
 	for i := 0; i < numTxns; i++ {
 		tx, err := harness.CreateSignedTx([]spendableOutput{
 			txOutToSpendableOut(multiOutputTx, uint32(i), wire.TxTreeRegular),
@@ -1304,7 +1304,7 @@ func TestBasicOrphanRemoval(t *testing.T) {
 	// Attempt to remove an orphan that has no redeemers and is not present,
 	// and ensure the state of all other orphans are unaffected.
 	nonChainedOrphanTx, err := harness.CreateSignedTx([]spendableOutput{{
-		amount:   pfcutil.Amount(5000000000),
+		amount:   dcrutil.Amount(5000000000),
 		outPoint: wire.OutPoint{Hash: chainhash.Hash{}, Index: 0},
 	}}, 1, func(tx *wire.MsgTx) {
 		tx.Expiry = uint32(harness.chain.BestHeight() + 1)
@@ -1713,7 +1713,7 @@ func TestSequenceLockAcceptance(t *testing.T) {
 				PkScript: harness.payScript,
 				Value:    1000000000 + int64(i),
 			})
-			inputTx := pfcutil.NewTx(inputMsgTx)
+			inputTx := dcrutil.NewTx(inputMsgTx)
 			harness.AddFakeUTXO(inputTx, baseHeight)
 			harness.chain.AddFakeUtxoMedianTime(inputTx, 0, baseTime)
 

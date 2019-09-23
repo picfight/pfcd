@@ -9,8 +9,8 @@
 package database
 
 import (
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // Cursor represents a cursor over key/value pairs and nested buckets of a
@@ -228,7 +228,7 @@ type Tx interface {
 	//   - ErrTxClosed if the transaction has already been closed
 	//
 	// Other errors are possible depending on the implementation.
-	StoreBlock(block *pfcutil.Block) error
+	StoreBlock(block *dcrutil.Block) error
 
 	// HasBlock returns whether or not a block with the given hash exists
 	// in the database.

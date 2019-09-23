@@ -22,23 +22,23 @@ import (
 	"time"
 
 	"github.com/btcsuite/go-socks/socks"
+	"github.com/decred/dcrd/connmgr"
+	"github.com/decred/dcrd/database"
+	_ "github.com/decred/dcrd/database/ffldb"
+	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/internal/version"
+	"github.com/decred/dcrd/mempool"
+	"github.com/decred/dcrd/sampleconfig"
 	"github.com/decred/slog"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/picfight/pfcd/connmgr"
-	"github.com/picfight/pfcd/database"
-	_ "github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/internal/version"
-	"github.com/picfight/pfcd/mempool"
-	"github.com/picfight/pfcd/pfcutil"
-	"github.com/picfight/pfcd/sampleconfig"
 )
 
 const (
-	defaultConfigFilename        = "pfcd.conf"
+	defaultConfigFilename        = "dcrd.conf"
 	defaultDataDirname           = "data"
 	defaultLogLevel              = "info"
 	defaultLogDirname            = "logs"
-	defaultLogFilename           = "pfcd.log"
+	defaultLogFilename           = "dcrd.log"
 	defaultMaxSameIP             = 5
 	defaultMaxPeers              = 125
 	defaultBanDuration           = time.Hour * 24
@@ -64,7 +64,7 @@ const (
 )
 
 var (
-	defaultHomeDir     = pfcutil.AppDataDir("pfcd", false)
+	defaultHomeDir     = dcrutil.AppDataDir("dcrd", false)
 	defaultConfigFile  = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
 	knownDbTypes       = database.SupportedDrivers()
@@ -87,7 +87,7 @@ func minUint32(a, b uint32) uint32 {
 	return b
 }
 
-// config defines the configuration options for pfcd.
+// config defines the configuration options for dcrd.
 //
 // See loadConfig for details on the configuration load process.
 type config struct {
@@ -141,7 +141,7 @@ type config struct {
 	MiningTimeOffset     int           `long:"miningtimeoffset" description:"Offset the mining timestamp of a block by this many seconds (positive values are in the past)"`
 	DebugLevel           string        `short:"d" long:"debuglevel" description:"Logging level for all subsystems {trace, debug, info, warn, error, critical} -- You may also specify <subsystem>=<level>,<subsystem2>=<level>,... to set the log level for individual subsystems -- Use show to list available subsystems"`
 	Upnp                 bool          `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
-	MinRelayTxFee        float64       `long:"minrelaytxfee" description:"The minimum transaction fee in PFC/kB to be considered a non-zero fee."`
+	MinRelayTxFee        float64       `long:"minrelaytxfee" description:"The minimum transaction fee in DCR/kB to be considered a non-zero fee."`
 	FreeTxRelayLimit     float64       `long:"limitfreerelay" description:"Limit relay of transactions with no transaction fee to the given amount in thousands of bytes per minute"`
 	NoRelayPriority      bool          `long:"norelaypriority" description:"Do not require free or low-fee transactions to have high priority for relaying"`
 	MaxOrphanTxs         int           `long:"maxorphantx" description:"Max number of orphan transactions to keep in memory"`
@@ -169,13 +169,13 @@ type config struct {
 	PipeRx               uint          `long:"piperx" description:"File descriptor of read end pipe to enable parent -> child process communication"`
 	PipeTx               uint          `long:"pipetx" description:"File descriptor of write end pipe to enable parent <- child process communication"`
 	LifetimeEvents       bool          `long:"lifetimeevents" description:"Send lifetime notifications over the TX pipe"`
-	AltDNSNames          []string      `long:"altdnsnames" description:"Specify additional dns names to use when generating the rpc server certificate" env:"PFCD_ALT_DNSNAMES" env-delim:","`
+	AltDNSNames          []string      `long:"altdnsnames" description:"Specify additional dns names to use when generating the rpc server certificate" env:"DCRD_ALT_DNSNAMES" env-delim:","`
 	onionlookup          func(string) ([]net.IP, error)
 	lookup               func(string) ([]net.IP, error)
 	oniondial            func(string, string) (net.Conn, error)
 	dial                 func(string, string) (net.Conn, error)
-	miningAddrs          []pfcutil.Address
-	minRelayTxFee        pfcutil.Amount
+	miningAddrs          []dcrutil.Address
+	minRelayTxFee        dcrutil.Amount
 	whitelists           []*net.IPNet
 }
 
@@ -374,7 +374,7 @@ func newConfigParser(cfg *config, so *serviceOptions, options flags.Options) *fl
 	return parser
 }
 
-// createDefaultConfig copies the file sample-pfcd.conf to the given destination path,
+// createDefaultConfig copies the file sample-dcrd.conf to the given destination path,
 // and populates it with some randomly generated RPC username and password.
 func createDefaultConfigFile(destPath string) error {
 	// Create the destination directory if it does not exist.
@@ -427,7 +427,7 @@ func createDefaultConfigFile(destPath string) error {
 // 	3) Load configuration file overwriting defaults with any specified options
 // 	4) Parse CLI options and overwrite/add any specified options
 //
-// The above results in pfcd functioning properly without any config settings
+// The above results in dcrd functioning properly without any config settings
 // while still allowing the user to override settings with config files and
 // command line options.  Command line options always take precedence.
 func loadConfig() (*config, []string, error) {
@@ -506,7 +506,7 @@ func loadConfig() (*config, []string, error) {
 		os.Exit(0)
 	}
 
-	// Update the home directory for pfcd if specified. Since the home
+	// Update the home directory for dcrd if specified. Since the home
 	// directory is updated, other variables need to be updated to
 	// reflect the new changes.
 	if preCfg.HomeDir != "" {
@@ -847,7 +847,7 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	// Validate the the minrelaytxfee.
-	cfg.minRelayTxFee, err = pfcutil.NewAmount(cfg.MinRelayTxFee)
+	cfg.minRelayTxFee, err = dcrutil.NewAmount(cfg.MinRelayTxFee)
 	if err != nil {
 		str := "%s: invalid minrelaytxfee: %v"
 		err := fmt.Errorf(str, funcName, err)
@@ -935,10 +935,10 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	// Check getwork keys are valid and saved parsed versions.
-	cfg.miningAddrs = make([]pfcutil.Address, 0, len(cfg.GetWorkKeys)+
+	cfg.miningAddrs = make([]dcrutil.Address, 0, len(cfg.GetWorkKeys)+
 		len(cfg.MiningAddrs))
 	for _, strAddr := range cfg.GetWorkKeys {
-		addr, err := pfcutil.DecodeAddress(strAddr)
+		addr, err := dcrutil.DecodeAddress(strAddr)
 		if err != nil {
 			str := "%s: getworkkey '%s' failed to decode: %v"
 			err := fmt.Errorf(str, funcName, strAddr, err)
@@ -958,7 +958,7 @@ func loadConfig() (*config, []string, error) {
 
 	// Check mining addresses are valid and saved parsed versions.
 	for _, strAddr := range cfg.MiningAddrs {
-		addr, err := pfcutil.DecodeAddress(strAddr)
+		addr, err := dcrutil.DecodeAddress(strAddr)
 		if err != nil {
 			str := "%s: mining address '%s' failed to decode: %v"
 			err := fmt.Errorf(str, funcName, strAddr, err)
@@ -1138,7 +1138,7 @@ func loadConfig() (*config, []string, error) {
 	// Warn if old testnet directory is present.
 	for _, oldDir := range oldTestNets {
 		if fileExists(oldDir) {
-			pfcdLog.Warnf("Block chain data from previous testnet"+
+			dcrdLog.Warnf("Block chain data from previous testnet"+
 				" found (%v) and can probably be removed.",
 				oldDir)
 		}
@@ -1148,32 +1148,32 @@ func loadConfig() (*config, []string, error) {
 	// done.  This prevents the warning on help messages and invalid
 	// options.  Note this should go directly before the return.
 	if configFileError != nil {
-		pfcdLog.Warnf("%v", configFileError)
+		dcrdLog.Warnf("%v", configFileError)
 	}
 
 	return &cfg, remainingArgs, nil
 }
 
-// pfcdDial connects to the address on the named network using the appropriate
+// dcrdDial connects to the address on the named network using the appropriate
 // dial function depending on the address and configuration options.  For
 // example, .onion addresses will be dialed using the onion specific proxy if
 // one was specified, but will otherwise use the normal dial function (which
 // could itself use a proxy or not).
-func pfcdDial(network, addr string) (net.Conn, error) {
+func dcrdDial(network, addr string) (net.Conn, error) {
 	if strings.Contains(addr, ".onion:") {
 		return cfg.oniondial(network, addr)
 	}
 	return cfg.dial(network, addr)
 }
 
-// pfcdLookup returns the correct DNS lookup function to use depending on the
+// dcrdLookup returns the correct DNS lookup function to use depending on the
 // passed host and configuration options.  For example, .onion addresses will be
 // resolved using the onion specific proxy if one was specified, but will
 // otherwise treat the normal proxy as tor unless --noonion was specified in
 // which case the lookup will fail.  Meanwhile, normal IP addresses will be
 // resolved using tor if a proxy was specified unless --noonion was also
 // specified in which case the normal system DNS resolver will be used.
-func pfcdLookup(host string) ([]net.IP, error) {
+func dcrdLookup(host string) ([]net.IP, error) {
 	if strings.HasSuffix(host, ".onion") {
 		return cfg.onionlookup(host)
 	}

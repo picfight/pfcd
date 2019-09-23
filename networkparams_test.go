@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/decred/base58"
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/chaincfg"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
 )
 
 // checkPowLimitsAreConsistent ensures PowLimit and PowLimitBits are consistent
@@ -123,8 +123,8 @@ func checkAddressPrefixesAreConsistent(t *testing.T, privateKeyPrefix string, pa
 	checkInterval(t, pk, 33, params.Name, params.PrivateKeyID)
 }
 
-// TestPicfightNetworkSettings checks Network-specific settings
-func TestPicfightNetworkSettings(t *testing.T) {
+// TestDecredNetworkSettings checks Network-specific settings
+func TestDecredNetworkSettings(t *testing.T) {
 	checkPowLimitsAreConsistent(t, &chaincfg.MainNetParams)
 	checkPowLimitsAreConsistent(t, &chaincfg.TestNet3Params)
 	checkPowLimitsAreConsistent(t, &chaincfg.SimNetParams)

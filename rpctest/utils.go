@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/picfight/pfcd/pfcjson"
-	"github.com/picfight/pfcd/rpcclient"
+	"github.com/decred/dcrd/dcrjson"
+	"github.com/decred/dcrd/rpcclient"
 )
 
 // JoinType is an enum representing a particular type of "node join". A node
@@ -50,7 +50,7 @@ func syncMempools(nodes []*Harness) error {
 
 	for !poolsMatch {
 	retry:
-		firstPool, err := nodes[0].Node.GetRawMempool(pfcjson.GRMAll)
+		firstPool, err := nodes[0].Node.GetRawMempool(dcrjson.GRMAll)
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func syncMempools(nodes []*Harness) error {
 		// first node, then we're done. Otherwise, drop back to the top
 		// of the loop and retry after a short wait period.
 		for _, node := range nodes[1:] {
-			nodePool, err := node.Node.GetRawMempool(pfcjson.GRMAll)
+			nodePool, err := node.Node.GetRawMempool(dcrjson.GRMAll)
 			if err != nil {
 				return err
 			}

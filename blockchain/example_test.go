@@ -11,16 +11,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/database"
-	_ "github.com/picfight/pfcd/database/ffldb"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/database"
+	_ "github.com/decred/dcrd/database/ffldb"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // This example demonstrates how to create a new chain instance and use
 // ProcessBlock to attempt to attempt add a block to the chain.  As the package
-// overview documentation describes, this includes all of the Picfight consensus
+// overview documentation describes, this includes all of the Decred consensus
 // rules.  This example intentionally attempts to insert a duplicate genesis
 // block to illustrate how an invalid block is handled.
 func ExampleBlockChain_ProcessBlock() {
@@ -59,7 +59,7 @@ func ExampleBlockChain_ProcessBlock() {
 	// Process a block.  For this example, we are going to intentionally
 	// cause an error by trying to process the genesis block which already
 	// exists.
-	genesisBlock := pfcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+	genesisBlock := dcrutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 	forkLen, isOrphan, err := chain.ProcessBlock(genesisBlock,
 		blockchain.BFNone)
 	if err != nil {
@@ -80,7 +80,7 @@ func ExampleBlockChain_ProcessBlock() {
 // which represent the target difficulty to a big integer and display it using
 // the typical hex notation.
 func ExampleCompactToBig() {
-	// Convert the bits from block 300000 in the main Picfight block chain.
+	// Convert the bits from block 300000 in the main Decred block chain.
 	bits := uint32(419465580)
 	targetDifficulty := blockchain.CompactToBig(bits)
 

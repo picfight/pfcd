@@ -15,8 +15,8 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/rpctest"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/rpctest"
 )
 
 func testGetBestBlock(r *rpctest.Harness, t *testing.T) {
@@ -148,7 +148,7 @@ func TestRpcServer(t *testing.T) {
 	defer func() {
 		// If one of the integration tests caused a panic within the main
 		// goroutine, then tear down all the harnesses in order to avoid
-		// any leaked pfcd processes.
+		// any leaked dcrd processes.
 		if r := recover(); r != nil {
 			fmt.Println("recovering from test panic: ", r)
 			if err := rpctest.TearDownAll(); err != nil {

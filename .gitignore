@@ -2,7 +2,7 @@
 *~
 
 # Databases
-pfcd.db
+dcrd.db
 *-shm
 *-wal
 
@@ -34,10 +34,10 @@ _testmain.go
 
 # Binaries
 *.exe
-pfcd
+dcrd
 cmd/addblock/addblock
 cmd/checkdevpremine/checkdevpremine
-cmd/pfcctl/pfcctl
+cmd/dcrctl/dcrctl
 cmd/findcheckpoint/findcheckpoint
 cmd/gencerts/gencerts
 cmd/promptsecret/promptsecret

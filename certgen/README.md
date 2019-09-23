@@ -1,9 +1,9 @@
 Certgen
 ======
 
-[![Build Status](http://img.shields.io/travis/picfight/pfcd.svg)](https://travis-ci.org/picfight/pfcd)
+[![Build Status](http://img.shields.io/travis/decred/dcrd.svg)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/pfcd/certgen)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/decred/dcrd/certgen)
 
 ## Overview
 
@@ -14,7 +14,7 @@ RPC and websocket communications.
 ## Installation and Updating
 
 ```bash
-$ go get -u github.com/picfight/pfcd/certgen
+$ go get -u github.com/decred/dcrd/certgen
 ```
 
 ## License

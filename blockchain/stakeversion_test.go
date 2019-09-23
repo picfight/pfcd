@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // isVoterMajorityVersion determines if minVer requirement is met based on

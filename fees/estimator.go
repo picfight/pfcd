@@ -15,10 +15,10 @@ import (
 
 	"github.com/btcsuite/goleveldb/leveldb"
 	ldbutil "github.com/btcsuite/goleveldb/leveldb/util"
-	"github.com/picfight/pfcd/blockchain/stake"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 const (
@@ -103,13 +103,13 @@ type EstimatorConfig struct {
 
 	// MinBucketFee is the value of the fee rate of the lowest bucket for which
 	// estimation is tracked.
-	MinBucketFee pfcutil.Amount
+	MinBucketFee dcrutil.Amount
 
 	// MaxBucketFee is the value of the fee for the highest bucket for which
 	// estimation is tracked.
 	//
 	// It MUST be higher than MinBucketFee.
-	MaxBucketFee pfcutil.Amount
+	MaxBucketFee dcrutil.Amount
 
 	// ExtraBucketFee is an additional bucket fee rate to include in the
 	// database for tracking transactions. Specifying this can be useful when
@@ -119,7 +119,7 @@ type EstimatorConfig struct {
 	//
 	// It MUST have a value between MinBucketFee and MaxBucketFee, otherwise
 	// it's ignored.
-	ExtraBucketFee pfcutil.Amount
+	ExtraBucketFee dcrutil.Amount
 
 	// FeeRateStep is the multiplier to generate the fee rate buckets (each
 	// bucket is higher than the previous one by this factor).
@@ -725,7 +725,7 @@ func (stats *Estimator) estimateMedianFee(targetConfs int32, successPct float64)
 //
 // This function is safe to be called from multiple goroutines but might block
 // until concurrent modifications to the internal database state are complete.
-func (stats *Estimator) EstimateFee(targetConfs int32) (pfcutil.Amount, error) {
+func (stats *Estimator) EstimateFee(targetConfs int32) (dcrutil.Amount, error) {
 	stats.lock.RLock()
 	rate, err := stats.estimateMedianFee(targetConfs, 0.95)
 	stats.lock.RUnlock()
@@ -741,7 +741,7 @@ func (stats *Estimator) EstimateFee(targetConfs int32) (pfcutil.Amount, error) {
 		rate = stats.bucketFeeBounds[0]
 	}
 
-	return pfcutil.Amount(rate), nil
+	return dcrutil.Amount(rate), nil
 }
 
 // Enable establishes the current best height of the blockchain after
@@ -784,7 +784,7 @@ func (stats *Estimator) AddMemPoolTransaction(txHash *chainhash.Hash, fee, size 
 
 	// Note that we use this less exact version instead of fee * 1000 / size
 	// (using ints) because it naturally "downsamples" the fee rates towards the
-	// minimum at values less than 0.001 PFC/KB. This is needed because due to
+	// minimum at values less than 0.001 DCR/KB. This is needed because due to
 	// how the wallet estimates the final fee given an input rate and the final
 	// tx size, there's usually a small discrepancy towards a higher effective
 	// rate in the published tx.
@@ -884,7 +884,7 @@ func (stats *Estimator) processMinedTransaction(blockHeight int64, txh *chainhas
 // ProcessBlock processes all mined transactions in the provided block.
 //
 // This function is safe to be called from multiple goroutines.
-func (stats *Estimator) ProcessBlock(block *pfcutil.Block) error {
+func (stats *Estimator) ProcessBlock(block *dcrutil.Block) error {
 	stats.lock.Lock()
 	defer stats.lock.Unlock()
 

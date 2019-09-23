@@ -8,39 +8,35 @@ package chaincfg
 import (
 	"encoding/hex"
 	"errors"
-	"github.com/picfight/pfcd/blockchainutil"
 	"math/big"
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default
-// network. Network power limit is the highest proof of work value a Decred
-// block can have. params_test.go should cover this section to ensure validity
+// network.
 var (
-	//  mainPowLimit value for the main network.
-	mainPowLimit = blockchainutil.NewDifficultyFromHashString( //
-		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
+	// the overhead of creating it multiple times.
+	bigOne = big.NewInt(1)
 
-	// testNet3PowLimit value for the test network.
-	testNet3PowLimit = blockchainutil.NewDifficultyFromHashString(
-		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	// mainPowLimit is the highest proof of work value a Decred block can
+	// have for the main network.  It is the value 2^224 - 1.
+	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
 
-	// simNetPowLimit value for the simulation test network.
-	simNetPowLimit = blockchainutil.NewDifficultyFromHashString(
-		"7f ff ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	// testNetPowLimit is the highest proof of work value a Decred block
+	// can have for the test network.  It is the value 2^232 - 1.
+	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 232), bigOne)
 
-	// regressionPowLimit value for the regression test network.
-	regressionPowLimit = blockchainutil.NewDifficultyFromHashString(
-		"7f ff ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	// simNetPowLimit is the highest proof of work value a Decred block
+	// can have for the simulation test network.  It is the value 2^255 - 1.
+	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
-	SatoshiPerPicfightcoin = int64(1e8)
-
-	build_id = "b.300"
-
-	SubsidyProductionYears = 44
+	// regNetPowLimit is the highest proof of work value a Decred block
+	// can have for the regression test network.  It is the value 2^255 - 1.
+	regNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 )
 
 // SigHashOptimization is an optimization for verification of transactions that
@@ -160,7 +156,29 @@ func (v *Vote) VoteIndex(vote uint16) int {
 	return -1
 }
 
-const ()
+const (
+	// VoteIDMaxBlockSize is the vote ID for the the maximum block size
+	// increase agenda used for the hard fork demo.
+	VoteIDMaxBlockSize = "maxblocksize"
+
+	// VoteIDSDiffAlgorithm is the vote ID for the new stake difficulty
+	// algorithm (aka ticket price) agenda defined by DCP0001.
+	VoteIDSDiffAlgorithm = "sdiffalgorithm"
+
+	// VoteIDLNSupport is the vote ID for determining if the developers
+	// should work on integrating Lightning Network support.
+	VoteIDLNSupport = "lnsupport"
+
+	// VoteIDLNFeatures is the vote ID for the agenda that introduces
+	// features useful for the Lightning Network (among other uses) defined
+	// by DCP0002 and DCP0003.
+	VoteIDLNFeatures = "lnfeatures"
+
+	// VoteIDFixLNSeqLocks is the vote ID for the agenda that corrects the
+	// sequence lock functionality needed for Lightning Network (among other
+	// uses) defined by DCP0004.
+	VoteIDFixLNSeqLocks = "fixlnseqlocks"
+)
 
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.  This is part of BIP0009.
@@ -196,8 +214,8 @@ type DNSSeed struct {
 	HasFiltering bool
 }
 
-// Params defines a PicFight network by its parameters.  These parameters may be
-// used by PicFight applications to differentiate networks as well as addresses
+// Params defines a Decred network by its parameters.  These parameters may be
+// used by Decred applications to differentiate networks as well as addresses
 // and keys for one network from those intended for use on another network.
 type Params struct {
 	// Name defines a human-readable identifier for the network.
@@ -382,12 +400,12 @@ type Params struct {
 	// stake ticket.
 	MinimumStakeDiff int64
 
-	// Ticket pool sizes for PicFight PoS. This denotes the number of possible
+	// Ticket pool sizes for Decred PoS. This denotes the number of possible
 	// buckets/number of different ticket numbers. It is also the number of
 	// possible winner numbers there are.
 	TicketPoolSize uint16
 
-	// Average number of tickets per block for PicFight PoS.
+	// Average number of tickets per block for Decred PoS.
 	TicketsPerBlock uint16
 
 	// Number of blocks for tickets to mature (spendable at TicketMaturity+1).
@@ -464,10 +482,10 @@ type Params struct {
 }
 
 var (
-	// ErrDuplicateNet describes an error where the parameters for a PicFight
+	// ErrDuplicateNet describes an error where the parameters for a Decred
 	// network could not be set due to the network already being a standard
 	// network or previously-registered into this package.
-	ErrDuplicateNet = errors.New("duplicate PicFight network")
+	ErrDuplicateNet = errors.New("duplicate Decred network")
 
 	// ErrUnknownHDKeyID describes an error where the provided id which
 	// is intended to identify the network for a hierarchical deterministic
@@ -490,7 +508,7 @@ func (d DNSSeed) String() string {
 	return d.Host
 }
 
-// Register registers the network parameters for a PicFight network.  This may
+// Register registers the network parameters for a Decred network.  This may
 // error with ErrDuplicateNet if the network is already registered (either
 // due to a previous Register call, or the network being one of the default
 // networks).

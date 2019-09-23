@@ -4,12 +4,12 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package addrmgr implements concurrency safe Picfight address manager.
+Package addrmgr implements concurrency safe Decred address manager.
 
 Address Manager Overview
 
-In order maintain the peer-to-peer Picfight network, there needs to be a source
-of addresses to connect to as nodes come and go.  The Picfight protocol provides
+In order maintain the peer-to-peer Decred network, there needs to be a source
+of addresses to connect to as nodes come and go.  The Decred protocol provides
 the getaddr and addr messages to allow peers to communicate known addresses
 with each other.  However, there needs to a mechanism to store those results and
 select peers from them.  It is also important to note that remote peers can't

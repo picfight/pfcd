@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/database"
-	"github.com/picfight/pfcd/pfcutil"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/database"
+	"github.com/decred/dcrd/dcrutil"
 )
 
 // BenchmarkBlockHeader benchmarks how long it takes to load the mainnet genesis
@@ -29,7 +29,7 @@ func BenchmarkBlockHeader(b *testing.B) {
 	defer os.RemoveAll(dbPath)
 	defer db.Close()
 	err = db.Update(func(tx database.Tx) error {
-		block := pfcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+		block := dcrutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 		return tx.StoreBlock(block)
 	})
 	if err != nil {
@@ -70,7 +70,7 @@ func BenchmarkBlock(b *testing.B) {
 	defer os.RemoveAll(dbPath)
 	defer db.Close()
 	err = db.Update(func(tx database.Tx) error {
-		block := pfcutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
+		block := dcrutil.NewBlock(chaincfg.MainNetParams.GenesisBlock)
 		return tx.StoreBlock(block)
 	})
 	if err != nil {

@@ -15,19 +15,19 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // makeHeader is a convenience function to make a message header in the form of
 // a byte slice.  It is used to force errors when reading messages.
-func makeHeader(pfcnet CurrencyNet, command string,
+func makeHeader(dcrnet CurrencyNet, command string,
 	payloadLen uint32, checksum uint32) []byte {
 
-	// The length of a Picfight message header is 24 bytes.
-	// 4 byte magic number of the Picfight network + 12 byte command + 4 byte
+	// The length of a Decred message header is 24 bytes.
+	// 4 byte magic number of the Decred network + 12 byte command + 4 byte
 	// payload length + 4 byte checksum.
 	buf := make([]byte, 24)
-	binary.LittleEndian.PutUint32(buf, uint32(pfcnet))
+	binary.LittleEndian.PutUint32(buf, uint32(dcrnet))
 	copy(buf[4:], []byte(command))
 	binary.LittleEndian.PutUint32(buf[16:], payloadLen)
 	binary.LittleEndian.PutUint32(buf[20:], checksum)
@@ -82,7 +82,7 @@ func TestMessage(t *testing.T) {
 		in     Message     // Value to encode
 		out    Message     // Expected decoded value
 		pver   uint32      // Protocol version for wire encoding
-		pfcnet CurrencyNet // Network to use for wire encoding
+		dcrnet CurrencyNet // Network to use for wire encoding
 		bytes  int         // Expected num bytes read/written
 	}{
 		{msgVersion, msgVersion, pver, MainNet, 125},          // [0]
@@ -113,7 +113,7 @@ func TestMessage(t *testing.T) {
 	for i, test := range tests {
 		// Encode to wire format.
 		var buf bytes.Buffer
-		nw, err := WriteMessageN(&buf, test.in, test.pver, test.pfcnet)
+		nw, err := WriteMessageN(&buf, test.in, test.pver, test.dcrnet)
 		if err != nil {
 			t.Errorf("WriteMessage #%d error %v", i, err)
 			continue
@@ -127,7 +127,7 @@ func TestMessage(t *testing.T) {
 
 		// Decode from wire format.
 		rbuf := bytes.NewReader(buf.Bytes())
-		nr, msg, _, err := ReadMessageN(rbuf, test.pver, test.pfcnet)
+		nr, msg, _, err := ReadMessageN(rbuf, test.pver, test.dcrnet)
 		if err != nil {
 			t.Errorf("ReadMessage #%d error %v, msg %v", i, err,
 				spew.Sdump(msg))
@@ -152,7 +152,7 @@ func TestMessage(t *testing.T) {
 	for i, test := range tests {
 		// Encode to wire format.
 		var buf bytes.Buffer
-		err := WriteMessage(&buf, test.in, test.pver, test.pfcnet)
+		err := WriteMessage(&buf, test.in, test.pver, test.dcrnet)
 		if err != nil {
 			t.Errorf("WriteMessage #%d error %v", i, err)
 			continue
@@ -160,7 +160,7 @@ func TestMessage(t *testing.T) {
 
 		// Decode from wire format.
 		rbuf := bytes.NewReader(buf.Bytes())
-		msg, _, err := ReadMessage(rbuf, test.pver, test.pfcnet)
+		msg, _, err := ReadMessage(rbuf, test.pver, test.dcrnet)
 		if err != nil {
 			t.Errorf("ReadMessage #%d error %v, msg %v", i, err,
 				spew.Sdump(msg))
@@ -178,7 +178,7 @@ func TestMessage(t *testing.T) {
 // concrete messages to confirm error paths work correctly.
 func TestReadMessageWireErrors(t *testing.T) {
 	pver := ProtocolVersion
-	pfcnet := MainNet
+	dcrnet := MainNet
 
 	// Ensure message errors are as expected with no function specified.
 	wantErr := "something bad happened"
@@ -202,25 +202,25 @@ func TestReadMessageWireErrors(t *testing.T) {
 	// Wire encoded bytes for a message that exceeds max overall message
 	// length.
 	mpl := uint32(MaxMessagePayload)
-	exceedMaxPayloadBytes := makeHeader(pfcnet, "getaddr", mpl+1, 0)
+	exceedMaxPayloadBytes := makeHeader(dcrnet, "getaddr", mpl+1, 0)
 
 	// Wire encoded bytes for a command which is invalid utf-8.
-	badCommandBytes := makeHeader(pfcnet, "bogus", 0, 0)
+	badCommandBytes := makeHeader(dcrnet, "bogus", 0, 0)
 	badCommandBytes[4] = 0x81
 
 	// Wire encoded bytes for a command which is valid, but not supported.
-	unsupportedCommandBytes := makeHeader(pfcnet, "bogus", 0, 0)
+	unsupportedCommandBytes := makeHeader(dcrnet, "bogus", 0, 0)
 
 	// Wire encoded bytes for a message which exceeds the max payload for
 	// a specific message type.
-	exceedTypePayloadBytes := makeHeader(pfcnet, "getaddr", 1, 0)
+	exceedTypePayloadBytes := makeHeader(dcrnet, "getaddr", 1, 0)
 
 	// Wire encoded bytes for a message which does not deliver the full
 	// payload according to the header length.
-	shortPayloadBytes := makeHeader(pfcnet, "version", 115, 0)
+	shortPayloadBytes := makeHeader(dcrnet, "version", 115, 0)
 
 	// Wire encoded bytes for a message with a bad checksum.
-	badChecksumBytes := makeHeader(pfcnet, "version", 2, 0xbeef)
+	badChecksumBytes := makeHeader(dcrnet, "version", 2, 0xbeef)
 	badChecksumBytes = append(badChecksumBytes, []byte{0x0, 0x0}...)
 
 	// Wire encoded bytes for a message which has a valid header, but is
@@ -228,17 +228,17 @@ func TestReadMessageWireErrors(t *testing.T) {
 	// contained in the message.  Claim there is two, but don't provide
 	// them.  At the same time, forge the header fields so the message is
 	// otherwise accurate.
-	badMessageBytes := makeHeader(pfcnet, "addr", 1, 0xeaadc31c)
+	badMessageBytes := makeHeader(dcrnet, "addr", 1, 0xeaadc31c)
 	badMessageBytes = append(badMessageBytes, 0x2)
 
 	// Wire encoded bytes for a message which the header claims has 15k
 	// bytes of data to discard.
-	discardBytes := makeHeader(pfcnet, "bogus", 15*1024, 0)
+	discardBytes := makeHeader(dcrnet, "bogus", 15*1024, 0)
 
 	tests := []struct {
 		buf     []byte      // Wire encoding
 		pver    uint32      // Protocol version for wire encoding
-		pfcnet  CurrencyNet // Picfight network for wire encoding
+		dcrnet  CurrencyNet // Decred network for wire encoding
 		max     int         // Max size of fixed buffer to induce errors
 		readErr error       // Expected read error
 		bytes   int         // Expected num bytes read
@@ -249,7 +249,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			[]byte{},
 			pver,
-			pfcnet,
+			dcrnet,
 			0,
 			io.EOF,
 			0,
@@ -259,7 +259,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			testNetBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(testNetBytes),
 			&MessageError{},
 			24,
@@ -269,7 +269,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			exceedMaxPayloadBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(exceedMaxPayloadBytes),
 			&MessageError{},
 			24,
@@ -279,7 +279,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			badCommandBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(badCommandBytes),
 			&MessageError{},
 			24,
@@ -289,7 +289,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			unsupportedCommandBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(unsupportedCommandBytes),
 			&MessageError{},
 			24,
@@ -299,7 +299,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			exceedTypePayloadBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(exceedTypePayloadBytes),
 			&MessageError{},
 			24,
@@ -309,7 +309,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			shortPayloadBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(shortPayloadBytes),
 			io.EOF,
 			24,
@@ -319,7 +319,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			badChecksumBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(badChecksumBytes),
 			&MessageError{},
 			26,
@@ -329,7 +329,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			badMessageBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(badMessageBytes),
 			&MessageError{},
 			25,
@@ -339,7 +339,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 		{
 			discardBytes,
 			pver,
-			pfcnet,
+			dcrnet,
 			len(discardBytes),
 			&MessageError{},
 			24,
@@ -350,7 +350,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 	for i, test := range tests {
 		// Decode from wire format.
 		r := newFixedReader(test.max, test.buf)
-		nr, _, _, err := ReadMessageN(r, test.pver, test.pfcnet)
+		nr, _, _, err := ReadMessageN(r, test.pver, test.dcrnet)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.readErr) {
 			t.Errorf("ReadMessage #%d wrong error got: %v <%T>, "+
 				"want: %T", i, err, err, test.readErr)
@@ -380,7 +380,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 // concrete messages to confirm error paths work correctly.
 func TestWriteMessageWireErrors(t *testing.T) {
 	pver := ProtocolVersion
-	pfcnet := MainNet
+	dcrnet := MainNet
 	wireErr := &MessageError{}
 
 	// Fake message with a command that is too long.
@@ -405,30 +405,30 @@ func TestWriteMessageWireErrors(t *testing.T) {
 	tests := []struct {
 		msg    Message     // Message to encode
 		pver   uint32      // Protocol version for wire encoding
-		pfcnet CurrencyNet // Picfight network for wire encoding
+		dcrnet CurrencyNet // Decred network for wire encoding
 		max    int         // Max size of fixed buffer to induce errors
 		err    error       // Expected error
 		bytes  int         // Expected num bytes written
 	}{
 		// Command too long.
-		{badCommandMsg, pver, pfcnet, 0, wireErr, 0},
+		{badCommandMsg, pver, dcrnet, 0, wireErr, 0},
 		// Force error in payload encode.
-		{encodeErrMsg, pver, pfcnet, 0, wireErr, 0},
+		{encodeErrMsg, pver, dcrnet, 0, wireErr, 0},
 		// Force error due to exceeding max overall message payload size.
-		{exceedOverallPayloadErrMsg, pver, pfcnet, 0, wireErr, 0},
+		{exceedOverallPayloadErrMsg, pver, dcrnet, 0, wireErr, 0},
 		// Force error due to exceeding max payload for message type.
-		{exceedPayloadErrMsg, pver, pfcnet, 0, wireErr, 0},
+		{exceedPayloadErrMsg, pver, dcrnet, 0, wireErr, 0},
 		// Force error in header write.
-		{bogusMsg, pver, pfcnet, 0, io.ErrShortWrite, 0},
+		{bogusMsg, pver, dcrnet, 0, io.ErrShortWrite, 0},
 		// Force error in payload write.
-		{bogusMsg, pver, pfcnet, 24, io.ErrShortWrite, 24},
+		{bogusMsg, pver, dcrnet, 24, io.ErrShortWrite, 24},
 	}
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
 		// Encode wire format.
 		w := newFixedWriter(test.max)
-		nw, err := WriteMessageN(w, test.msg, test.pver, test.pfcnet)
+		nw, err := WriteMessageN(w, test.msg, test.pver, test.dcrnet)
 		if reflect.TypeOf(err) != reflect.TypeOf(test.err) {
 			t.Errorf("WriteMessage #%d wrong error got: %v <%T>, "+
 				"want: %T", i, err, err, test.err)

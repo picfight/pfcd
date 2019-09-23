@@ -20,10 +20,10 @@ import (
 
 	"github.com/btcsuite/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/picfight/pfcd/blockchain"
-	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/chaincfg/chainhash"
-	"github.com/picfight/pfcd/wire"
+	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -382,13 +382,13 @@ type HostToNetAddrFunc func(host string, port uint16,
 // It acts as the traffic cop between the external world and the actual
 // goroutine which writes to the network socket.
 
-// Peer provides a basic concurrent safe Picfight peer for handling picfight
+// Peer provides a basic concurrent safe Decred peer for handling decred
 // communications via the peer-to-peer protocol.  It provides full duplex
 // reading and writing, automatic handling of the initial handshake process,
 // querying of usage statistics and other information about the remote peer such
 // as its address, user agent, and protocol version, output message queuing,
 // inventory trickling, and the ability to dynamically register and unregister
-// callbacks for handling Picfight protocol messages.
+// callbacks for handling Decred protocol messages.
 //
 // Outbound messages are typically queued via QueueMessage or QueueInventory.
 // QueueMessage is intended for all messages, including responses to data such
@@ -2039,7 +2039,7 @@ func (p *Peer) WaitForDisconnect() {
 	<-p.quit
 }
 
-// newPeerBase returns a new base Picfight peer based on the inbound flag.  This
+// newPeerBase returns a new base Decred peer based on the inbound flag.  This
 // is used by the NewInboundPeer and NewOutboundPeer functions to perform base
 // setup needed by both types of peers.
 func newPeerBase(cfg *Config, inbound bool) *Peer {
@@ -2074,13 +2074,13 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 	return &p
 }
 
-// NewInboundPeer returns a new inbound Picfight peer. Use Start to begin
+// NewInboundPeer returns a new inbound Decred peer. Use Start to begin
 // processing incoming and outgoing messages.
 func NewInboundPeer(cfg *Config) *Peer {
 	return newPeerBase(cfg, true)
 }
 
-// NewOutboundPeer returns a new outbound Picfight peer.
+// NewOutboundPeer returns a new outbound Decred peer.
 func NewOutboundPeer(cfg *Config, addr string) (*Peer, error) {
 	p := newPeerBase(cfg, false)
 	p.addr = addr
