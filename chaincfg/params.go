@@ -18,6 +18,9 @@ import (
 // These variables are the chain proof-of-work limit parameters for each default
 // network.
 var (
+	//  mainPowLimit value for the main network.
+	mainPowLimit = blockchainutil.NewDifficultyFromHashString( //
+		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 )
 
