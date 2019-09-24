@@ -32,12 +32,12 @@ import (
 	"github.com/decred/dcrd/fees"
 	"github.com/decred/dcrd/gcs"
 	"github.com/decred/dcrd/gcs/blockcf"
-	"github.com/decred/dcrd/internal/version"
 	"github.com/decred/dcrd/mempool"
 	"github.com/decred/dcrd/mining"
 	"github.com/decred/dcrd/peer"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/picfight/pfcd/picfightcoin/version"
 )
 
 const (
@@ -2254,7 +2254,7 @@ out:
 			// listen port?
 			// XXX this assumes timeout is in seconds.
 			listenPort, err := s.nat.AddPortMapping("tcp", int(lport), int(lport),
-				"dcrd listen port", 20*60)
+				"pfcd listen port", 20*60)
 			if err != nil {
 				srvrLog.Warnf("can't add UPnP port mapping: %v", err)
 			}
@@ -2314,7 +2314,7 @@ func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFla
 	return scriptFlags, nil
 }
 
-// newServer returns a new dcrd server configured to listen on addr for the
+// newServer returns a new pfcd server configured to listen on addr for the
 // Decred network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
 func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Params, dataDir string, interrupt <-chan struct{}) (*server, error) {

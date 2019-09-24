@@ -1,4 +1,0 @@
-sudo: false
-before_install:
-  - chmod +x ./goclean.sh
-install:

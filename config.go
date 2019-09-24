@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/picfight/pfcd/picfightcoin"
 	"net"
 	"os"
 	"os/user"
@@ -26,19 +27,19 @@ import (
 	"github.com/decred/dcrd/database"
 	_ "github.com/decred/dcrd/database/ffldb"
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/internal/version"
 	"github.com/decred/dcrd/mempool"
-	"github.com/decred/dcrd/sampleconfig"
 	"github.com/decred/slog"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
+	"github.com/picfight/pfcd/picfightcoin/sampleconfig"
+	"github.com/picfight/pfcd/picfightcoin/version"
 )
 
 const (
-	defaultConfigFilename        = "dcrd.conf"
+	defaultConfigFilename        = "pfcd.conf"
 	defaultDataDirname           = "data"
 	defaultLogLevel              = "info"
 	defaultLogDirname            = "logs"
-	defaultLogFilename           = "dcrd.log"
+	defaultLogFilename           = "pfcd.log"
 	defaultMaxSameIP             = 5
 	defaultMaxPeers              = 125
 	defaultBanDuration           = time.Hour * 24
@@ -64,7 +65,7 @@ const (
 )
 
 var (
-	defaultHomeDir     = dcrutil.AppDataDir("dcrd", false)
+	defaultHomeDir     = dcrutil.AppDataDir("pfcd", false)
 	defaultConfigFile  = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
 	knownDbTypes       = database.SupportedDrivers()
@@ -87,7 +88,7 @@ func minUint32(a, b uint32) uint32 {
 	return b
 }
 
-// config defines the configuration options for dcrd.
+// config defines the configuration options for pfcd.
 //
 // See loadConfig for details on the configuration load process.
 type config struct {
@@ -169,7 +170,7 @@ type config struct {
 	PipeRx               uint          `long:"piperx" description:"File descriptor of read end pipe to enable parent -> child process communication"`
 	PipeTx               uint          `long:"pipetx" description:"File descriptor of write end pipe to enable parent <- child process communication"`
 	LifetimeEvents       bool          `long:"lifetimeevents" description:"Send lifetime notifications over the TX pipe"`
-	AltDNSNames          []string      `long:"altdnsnames" description:"Specify additional dns names to use when generating the rpc server certificate" env:"DCRD_ALT_DNSNAMES" env-delim:","`
+	AltDNSNames          []string      `long:"altdnsnames" description:"Specify additional dns names to use when generating the rpc server certificate" env:"PFCD_ALT_DNSNAMES" env-delim:","`
 	onionlookup          func(string) ([]net.IP, error)
 	lookup               func(string) ([]net.IP, error)
 	oniondial            func(string, string) (net.Conn, error)
@@ -427,7 +428,7 @@ func createDefaultConfigFile(destPath string) error {
 // 	3) Load configuration file overwriting defaults with any specified options
 // 	4) Parse CLI options and overwrite/add any specified options
 //
-// The above results in dcrd functioning properly without any config settings
+// The above results in pfcd functioning properly without any config settings
 // while still allowing the user to override settings with config files and
 // command line options.  Command line options always take precedence.
 func loadConfig() (*config, []string, error) {
@@ -506,7 +507,7 @@ func loadConfig() (*config, []string, error) {
 		os.Exit(0)
 	}
 
-	// Update the home directory for dcrd if specified. Since the home
+	// Update the home directory for pfcd if specified. Since the home
 	// directory is updated, other variables need to be updated to
 	// reflect the new changes.
 	if preCfg.HomeDir != "" {
@@ -607,6 +608,20 @@ func loadConfig() (*config, []string, error) {
 	// Multiple networks can't be selected simultaneously.  Count number of
 	// network flags passed and assign active network params.
 	numNets := 0
+	if cfg.TestNet {
+		numNets++
+		activeNetParams = &testNet3Params
+	}
+	if cfg.SimNet {
+		numNets++
+		// Also disable dns seeding on the simulation test network.
+		activeNetParams = &simNetParams
+		cfg.DisableDNSSeed = true
+	}
+	if cfg.RegNet {
+		numNets++
+		activeNetParams = &regNetParams
+	}
 	if numNets > 1 {
 		str := "%s: the testnet, regnet, and simnet params can't be " +
 			"used together -- choose one of the three"
@@ -944,7 +959,7 @@ func loadConfig() (*config, []string, error) {
 
 	// Check mining addresses are valid and saved parsed versions.
 	for _, strAddr := range cfg.MiningAddrs {
-		addr, err := dcrutil.DecodeAddress(strAddr)
+		addr, err := picfightcoin.DecodeAddress(strAddr)
 		if err != nil {
 			str := "%s: mining address '%s' failed to decode: %v"
 			err := fmt.Errorf(str, funcName, strAddr, err)
