@@ -2,7 +2,7 @@ fees
 =======
 
 
-[![Build Status](http://img.shields.io/travis/decred/dcrd.svg)](https://travis-ci.org/decred/dcrd)
+[![Build Status](http://img.shields.io/travis/picfight/dcrd.svg)](https://travis-ci.org/picfight/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/dcrd/fees)
 
@@ -14,7 +14,7 @@ two main goals:
   (expressed in blocks);
 - Attempting to minimize fees while maintaining be above restriction.
 
-This package was started in order to resolve issue decred/dcrd#1412 and related.
+This package was started in order to resolve issue picfight/dcrd#1412 and related.
 See that issue for discussion of the selected approach.
 
 This package was developed for dcrd, a full-node implementation of Decred which

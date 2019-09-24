@@ -1,7 +1,7 @@
 dcrd
 ====
 
-[![Build Status](https://travis-ci.org/decred/dcrd.png?branch=master)](https://travis-ci.org/decred/dcrd)
+[![Build Status](https://travis-ci.org/picfight/dcrd.png?branch=master)](https://travis-ci.org/picfight/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/dcrd)
 [![Go Report Card](https://goreportcard.com/badge/github.com/picfight/dcrd)](https://goreportcard.com/report/github.com/picfight/dcrd)
@@ -166,29 +166,29 @@ You can run a decred node from inside a docker container.  To build the image
 yourself, use the following command:
 
 ```
-docker build -t decred/dcrd .
+docker build -t picfight/dcrd .
 ```
 
 Or you can create an alpine based image (requires Docker 17.05 or higher):
 
 ```
-docker build -t decred/dcrd:alpine -f Dockerfile.alpine .
+docker build -t picfight/dcrd:alpine -f Dockerfile.alpine .
 ```
 
 You can then run the image using:
 
 ```
-docker run decred/dcrd
+docker run picfight/dcrd
 ```
 
 You may wish to use an external volume to customise your config and persist the
 data in an external volume:
 
 ```
-docker run --rm -v /home/user/dcrdata:/root/.dcrd/data decred/dcrd
+docker run --rm -v /home/user/dcrdata:/root/.dcrd/data picfight/dcrd
 ```
 
-For a minimal image, you can use the decred/dcrd:alpine tag.  This is typically
+For a minimal image, you can use the picfight/dcrd:alpine tag.  This is typically
 a more secure option while also being a much smaller image.
 
 You can run dcrctl from inside the image.  For example, run an image (mounting
@@ -196,7 +196,7 @@ your data from externally) with:
 
 ```
 docker run --rm -ti --name=dcrd-1 -v /home/user/.dcrd:/root/.dcrd \
-  decred/dcrd:alpine
+  picfight/dcrd:alpine
 ```
 
 And then run dcrctl commands against it.  For example:
