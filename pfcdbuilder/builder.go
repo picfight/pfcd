@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/picfight/coin_knife"
+	"github.com/jfixby/coinknife"
 	"path/filepath"
 )
 
 func main() {
 
-	set := &coin_knife.Settings{
+	set := &coinknife.Settings{
 		PathToInputRepo:      `D:\PICFIGHT\src\github.com\decred\dcrd`,
-		PathToOutputRepo:     `D:\PICFIGHT\src\github.com\picfight\pfcd`,
+		PathToOutputRepo:     `D:\PICFIGHT\src\github.com\picfight\dcrd`,
 		DoNotProcessAnyFiles: false,
 		FileNameProcessor:    PicfightCoinFileNameGenerator,
 		IsFileProcessable:    ProcessableFiles,
@@ -18,6 +18,6 @@ func main() {
 		InjectorsPath:        filepath.Join("", "code_injections", "d"),
 	}
 
-	coin_knife.Build(set)
+	coinknife.Build(set)
 
 }

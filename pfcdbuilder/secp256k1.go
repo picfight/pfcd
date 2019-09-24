@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/jfixby/pin/commandline"
 	"github.com/jfixby/pin/fileops"
-	"github.com/picfight/coin_knife/eproc"
 	"path/filepath"
 	"strings"
 )
@@ -19,7 +19,7 @@ func FixSecp256k1Checksum(targetProject string) {
 	batFile := filepath.Join(batName)
 	fileops.WriteStringToFile(batFile, batData)
 
-	ext := &eproc.ExternalProcess{
+	ext := &commandline.ExternalProcess{
 		CommandName: batFile,
 	}
 	ext.Launch(true)
