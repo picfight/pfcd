@@ -37,7 +37,7 @@ testrepo () {
   fi
 
   $GO version
-  $GO clean -testcache
+
   # binary needed for RPC tests
   env CC=gcc $GO build
   cp "$REPO" "$GOPATH/bin/"

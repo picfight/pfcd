@@ -18,9 +18,25 @@ import (
 // These variables are the chain proof-of-work limit parameters for each default
 // network.
 var (
-	//  picfightPowLimit value for the PicFight coin network.
-	picfightPowLimit = NewDifficultyFromHashString( //
-		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
+	// the overhead of creating it multiple times.
+	bigOne = big.NewInt(1)
+
+	// mainPowLimit is the highest proof of work value a Decred block can
+	// have for the main network.  It is the value 2^224 - 1.
+	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
+
+	// testNetPowLimit is the highest proof of work value a Decred block
+	// can have for the test network.  It is the value 2^232 - 1.
+	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 232), bigOne)
+
+	// simNetPowLimit is the highest proof of work value a Decred block
+	// can have for the simulation test network.  It is the value 2^255 - 1.
+	simNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+
+	// regNetPowLimit is the highest proof of work value a Decred block
+	// can have for the regression test network.  It is the value 2^255 - 1.
+	regNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 )
 
 // SigHashOptimization is an optimization for verification of transactions that
@@ -139,6 +155,30 @@ func (v *Vote) VoteIndex(vote uint16) int {
 
 	return -1
 }
+
+const (
+	// VoteIDMaxBlockSize is the vote ID for the the maximum block size
+	// increase agenda used for the hard fork demo.
+	VoteIDMaxBlockSize = "maxblocksize"
+
+	// VoteIDSDiffAlgorithm is the vote ID for the new stake difficulty
+	// algorithm (aka ticket price) agenda defined by DCP0001.
+	VoteIDSDiffAlgorithm = "sdiffalgorithm"
+
+	// VoteIDLNSupport is the vote ID for determining if the developers
+	// should work on integrating Lightning Network support.
+	VoteIDLNSupport = "lnsupport"
+
+	// VoteIDLNFeatures is the vote ID for the agenda that introduces
+	// features useful for the Lightning Network (among other uses) defined
+	// by DCP0002 and DCP0003.
+	VoteIDLNFeatures = "lnfeatures"
+
+	// VoteIDFixLNSeqLocks is the vote ID for the agenda that corrects the
+	// sequence lock functionality needed for Lightning Network (among other
+	// uses) defined by DCP0004.
+	VoteIDFixLNSeqLocks = "fixlnseqlocks"
+)
 
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.  This is part of BIP0009.
@@ -617,5 +657,8 @@ func (p *Params) LatestCheckpointHeight() int64 {
 
 func init() {
 	// Register all default networks when the package is initialized.
-	mustRegister(&PicFightCoinParams)
+	mustRegister(&MainNetParams)
+	mustRegister(&TestNet3Params)
+	mustRegister(&SimNetParams)
+	mustRegister(&RegNetParams)
 }
