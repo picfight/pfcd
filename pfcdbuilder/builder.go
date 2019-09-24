@@ -113,10 +113,10 @@ func processableFiles(file string) bool {
 	if strings.HasSuffix(file, ".eot") {
 		return false
 	}
-	//------------------------------
 	if strings.HasSuffix(file, ".sum") {
-		return true
+		return false
 	}
+	//------------------------------
 	if strings.HasSuffix(file, ".mod") {
 		return true
 	}
