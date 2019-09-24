@@ -7,7 +7,6 @@ require (
 	github.com/btcsuite/winsvc v1.0.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/decred/base58 v1.0.0
-	github.com/decred/dcrd v1.3.0
 	github.com/decred/dcrd/addrmgr v1.0.2
 	github.com/decred/dcrd/blockchain v1.2.0
 	github.com/decred/dcrd/blockchain/stake v1.2.1
@@ -16,6 +15,7 @@ require (
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
 	github.com/decred/dcrd/connmgr v1.1.0
 	github.com/decred/dcrd/database v1.1.0
+	github.com/decred/dcrd/dcrec v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
 	github.com/decred/dcrd/dcrjson v1.2.0
 	github.com/decred/dcrd/dcrutil v1.4.0
@@ -35,4 +35,5 @@ require (
 	github.com/jrick/bitset v1.0.0
 	github.com/jrick/logrotate v1.0.0
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
