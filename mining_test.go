@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/decred/dcrd/blockchain/stake"
+	"github.com/picfight/dcrd/blockchain/stake"
 )
 
 // TestStakeTxFeePrioHeap tests the priority heaps including the stake types for

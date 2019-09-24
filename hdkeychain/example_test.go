@@ -8,8 +8,8 @@ package hdkeychain_test
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/hdkeychain"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/hdkeychain"
 )
 
 // This example demonstrates how to generate a cryptographically random seed

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/decred/dcrd/dcrjson"
+	"github.com/picfight/dcrd/dcrjson"
 )
 
 const (

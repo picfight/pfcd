@@ -15,9 +15,9 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/indexers"
-	"github.com/decred/dcrd/internal/limits"
-	"github.com/decred/dcrd/internal/version"
+	"github.com/picfight/dcrd/blockchain/indexers"
+	"github.com/picfight/dcrd/internal/limits"
+	"github.com/picfight/dcrd/internal/version"
 )
 
 var cfg *config

@@ -11,7 +11,7 @@ import (
 	"sort"
 	"testing"
 
-	. "github.com/decred/dcrd/dcrutil"
+	. "github.com/picfight/dcrd/dcrutil"
 )
 
 func TestAmountCreation(t *testing.T) {

@@ -4,7 +4,7 @@ fees
 
 [![Build Status](http://img.shields.io/travis/decred/dcrd.svg)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/decred/dcrd/fees)
+[![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/dcrd/fees)
 
 Package fees provides decred-specific methods for tracking and estimating fee
 rates for new transactions to be mined into the network. Fee rate estimation has
@@ -25,7 +25,7 @@ standalone package for any projects needing the functionality provided.
 ## Installation and Updating
 
 ```bash
-$ go get -u github.com/decred/dcrd/fees
+$ go get -u github.com/picfight/dcrd/fees
 ```
 
 ## License

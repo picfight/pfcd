@@ -8,7 +8,7 @@ package schnorr
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/picfight/dcrd/dcrec/secp256k1"
 )
 
 // These constants define the lengths of serialized public keys.

@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/blockchain/indexers"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/internal/limits"
+	"github.com/picfight/dcrd/blockchain"
+	"github.com/picfight/dcrd/blockchain/indexers"
+	"github.com/picfight/dcrd/database"
+	"github.com/picfight/dcrd/internal/limits"
 	"github.com/decred/slog"
 )
 

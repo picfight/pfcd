@@ -8,7 +8,7 @@ package chaincfg
 import (
 	"time"
 
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/wire"
 )
 
 // MainNetParams defines the network parameters for the main Decred network.

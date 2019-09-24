@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/wire"
 )
 
 // mustParseHash converts the passed big-endian hex string into a

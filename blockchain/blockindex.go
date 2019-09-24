@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/blockchain/stake"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/database"
+	"github.com/picfight/dcrd/wire"
 )
 
 // blockStatus is a bit field representing the validation state of the block.

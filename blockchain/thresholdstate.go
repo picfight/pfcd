@@ -8,9 +8,9 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/wire"
 )
 
 // ThresholdState define the various threshold states used when voting on

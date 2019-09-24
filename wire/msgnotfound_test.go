@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
 )
 
 // TestNotFound tests the MsgNotFound API.

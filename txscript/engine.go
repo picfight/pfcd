@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/dcrec/secp256k1"
+	"github.com/picfight/dcrd/wire"
 )
 
 // ScriptFlags is a bitmask defining additional operations or tests that will be

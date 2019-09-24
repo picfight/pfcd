@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/txscript"
+	"github.com/picfight/dcrd/wire"
 	"github.com/decred/slog"
 )
 

@@ -11,8 +11,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/wire"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default

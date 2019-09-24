@@ -11,15 +11,15 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/hdkeychain"
-	"github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/blockchain"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/dcrec/secp256k1"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/hdkeychain"
+	"github.com/picfight/dcrd/rpcclient"
+	"github.com/picfight/dcrd/txscript"
+	"github.com/picfight/dcrd/wire"
 )
 
 var (

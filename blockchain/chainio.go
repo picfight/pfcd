@@ -13,12 +13,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/internal/dbnamespace"
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/blockchain/internal/dbnamespace"
+	"github.com/picfight/dcrd/blockchain/stake"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/database"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/wire"
 )
 
 const (

@@ -16,12 +16,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/chaingen"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/blockchain/chaingen"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/database"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/wire"
 )
 
 // TestBlockchainSpendJournal tests for whether or not the spend journal is being

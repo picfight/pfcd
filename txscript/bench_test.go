@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/wire"
 )
 
 var (

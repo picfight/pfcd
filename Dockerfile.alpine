@@ -1,7 +1,7 @@
 # Build image
 FROM golang:1.11
 
-WORKDIR /go/src/github.com/decred/dcrd
+WORKDIR /go/src/github.com/picfight/dcrd
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go install . ./cmd/...

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/wire"
 )
 
 func TestBigToCompact(t *testing.T) {

@@ -16,9 +16,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/internal/version"
+	"github.com/picfight/dcrd/dcrjson"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/internal/version"
 
 	flags "github.com/jessevdk/go-flags"
 )

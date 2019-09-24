@@ -15,13 +15,13 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrec/edwards"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrec/secp256k1/schnorr"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/dcrec"
+	"github.com/picfight/dcrd/dcrec/edwards"
+	"github.com/picfight/dcrd/dcrec/secp256k1"
+	"github.com/picfight/dcrd/dcrec/secp256k1/schnorr"
+	"github.com/picfight/dcrd/wire"
 )
 
 var optimizeSigVerification = chaincfg.SigHashOptimization

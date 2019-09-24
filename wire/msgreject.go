@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
 )
 
 // RejectCode represents a numeric value by which a remote peer indicates

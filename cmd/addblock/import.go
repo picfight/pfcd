@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/blockchain/indexers"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/blockchain"
+	"github.com/picfight/dcrd/blockchain/indexers"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/database"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/wire"
 )
 
 var zeroHash = chainhash.Hash{}

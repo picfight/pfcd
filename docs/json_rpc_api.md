@@ -1020,7 +1020,7 @@ various languages.
 **8.1 Go**
 
 This section provides examples of using the RPC interface using Go and the
-[rpcclient](https://github.com/decred/dcrd/tree/master/rpcclient) package.
+[rpcclient](https://github.com/picfight/dcrd/tree/master/rpcclient) package.
 
 * [Using getblockcount to Retrieve the Current Block Height](#ExampleGetBlockCount)
 * [Using getblock to Retrieve the Genesis Block](#ExampleGetBlock)
@@ -1032,7 +1032,7 @@ This section provides examples of using the RPC interface using Go and the
 **8.1.1 Using getblockcount to Retrieve the Current Block Height**<br />
 
 The following is an example Go application which uses the
-[rpcclient](https://github.com/decred/dcrd/tree/master/rpcclient) package to connect with
+[rpcclient](https://github.com/picfight/dcrd/tree/master/rpcclient) package to connect with
 a dcrd instance via Websockets, issues [getblockcount](#getblockcount) to
 retrieve the current block height, and displays it.
 
@@ -1044,8 +1044,8 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/rpcclient"
 )
 
 func main() {
@@ -1094,7 +1094,7 @@ Block count: 203528
 **8.1.2 Using getblock to Retrieve the Genesis Block**<br />
 
 The following is an example Go application which uses the
-[rpcclient](https://github.com/decred/dcrd/tree/master/rpcclient) package to connect with
+[rpcclient](https://github.com/picfight/dcrd/tree/master/rpcclient) package to connect with
 a dcrd instance via Websockets, issues [getblock](#getblock) to retrieve
 information about the Genesis block, and display a few details about it.
 
@@ -1107,9 +1107,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/rpcclient"
 )
 
 func main() {
@@ -1184,7 +1184,7 @@ Num transactions: 1
 Notifications (Websocket-specific)**<br />
 
 The following is an example Go application which uses the
-[rpcclient](https://github.com/decred/dcrd/tree/master/rpcclient) package to connect with
+[rpcclient](https://github.com/picfight/dcrd/tree/master/rpcclient) package to connect with
 a dcrd instance via Websockets and registers for
 [blockconnected](#blockconnected) and [blockdisconnected](#blockdisconnected)
 notifications with [notifyblocks](#notifyblocks).  It also sets up handlers for
@@ -1199,8 +1199,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/rpcclient"
 )
 
 func main() {

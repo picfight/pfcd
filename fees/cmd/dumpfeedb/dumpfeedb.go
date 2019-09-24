@@ -11,8 +11,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/fees"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/fees"
 	flags "github.com/jessevdk/go-flags"
 )
 

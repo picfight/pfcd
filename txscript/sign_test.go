@@ -12,12 +12,12 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainec"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainec"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/dcrec"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/wire"
 )
 
 // testingParams defines the chain params to use throughout these tests so it

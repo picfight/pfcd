@@ -14,7 +14,7 @@ import (
 	"github.com/btcsuite/winsvc/eventlog"
 	"github.com/btcsuite/winsvc/mgr"
 	"github.com/btcsuite/winsvc/svc"
-	"github.com/decred/dcrd/internal/version"
+	"github.com/picfight/dcrd/internal/version"
 )
 
 const (

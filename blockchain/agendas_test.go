@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/chaingen"
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/blockchain/chaingen"
+	"github.com/picfight/dcrd/blockchain/stake"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/txscript"
+	"github.com/picfight/dcrd/wire"
 )
 
 // testLNFeaturesDeployment ensures the deployment of the LN features agenda

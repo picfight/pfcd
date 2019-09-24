@@ -8,7 +8,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/wire"
 )
 
 // RegNetParams defines the network parameters for the regression test network.

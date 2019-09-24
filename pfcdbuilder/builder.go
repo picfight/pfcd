@@ -27,20 +27,11 @@ func main() {
 }
 
 func nameGenerator(data string) string {
-	//data = fileproc.Replace(data, "btcsuite", "btcziggurat")
 	return data
 }
 
 func fileGenerator(data string) string {
-	//data = fileproc.Replace(data, "btcsuite/btcd", "btcziggurat/btcd")
-	//data = fileproc.Replace(data, "btcsuite\btcd", "btcziggurat\btcd")
-	//
-	//data = fileproc.Replace(data, "btcsuite/btcutil", "btcziggurat/btcutil")
-	//data = fileproc.Replace(data, "btcsuite\btcutil", "btcziggurat\btcutil")
-	//
-	//data = fileproc.Replace(data, "btcsuite/btcwallet", "btcziggurat/btcwallet")
-	//data = fileproc.Replace(data, "btcsuite\btcwallet", "btcziggurat\btcwallet")
-
+	data = coinknife.Replace(data, "github.com/decred/dcrd", "github.com/picfight/dcrd")
 	return data
 }
 

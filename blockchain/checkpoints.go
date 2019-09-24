@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainhash"
+	"github.com/picfight/dcrd/dcrutil"
+	"github.com/picfight/dcrd/txscript"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current

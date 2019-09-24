@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/dcrec"
+	"github.com/picfight/dcrd/dcrutil"
 	"golang.org/x/crypto/ripemd160"
 )
 

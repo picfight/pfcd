@@ -8,12 +8,12 @@ package dcrutil_test
 import (
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainec"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrec/edwards"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	. "github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg/chainec"
+	"github.com/picfight/dcrd/dcrec"
+	"github.com/picfight/dcrd/dcrec/edwards"
+	"github.com/picfight/dcrd/dcrec/secp256k1"
+	. "github.com/picfight/dcrd/dcrutil"
 )
 
 func TestEncodeDecodeWIF(t *testing.T) {

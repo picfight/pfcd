@@ -8,7 +8,7 @@ package chaincfg
 import (
 	"time"
 
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/wire"
 )
 
 // TestNet3Params defines the network parameters for the test currency network.

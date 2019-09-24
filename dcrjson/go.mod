@@ -1,3 +1,3 @@
-module github.com/decred/dcrd/dcrjson
+module github.com/picfight/dcrd/dcrjson
 
-require github.com/decred/dcrd/chaincfg/chainhash v1.0.1
+require github.com/picfight/dcrd/chaincfg/chainhash v1.0.1

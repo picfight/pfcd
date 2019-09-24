@@ -10,9 +10,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/peer"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/dcrd/chaincfg"
+	"github.com/picfight/dcrd/peer"
+	"github.com/picfight/dcrd/wire"
 )
 
 // mockRemotePeer creates a basic inbound peer listening on the simnet port for

@@ -42,13 +42,13 @@ transactions).
 **2.1 Installation**<br />
 
 The first step is to install dcrd.  The installation instructions can be found
-[here](https://github.com/decred/dcrd/tree/master/README.md#Installation).
+[here](https://github.com/picfight/dcrd/tree/master/README.md#Installation).
 
 <a name="Configuration" />
 
 **2.2 Configuration**<br />
 
-dcrd has a number of [configuration](http://godoc.org/github.com/decred/dcrd)
+dcrd has a number of [configuration](http://godoc.org/github.com/picfight/dcrd)
 options, which can be viewed by running: `$ dcrd --help`.
 
 <a name="DcrctlConfig" />
@@ -85,7 +85,7 @@ For a list of available options, run: `$ dcrctl --help`
 <a name="Mining" />
 
 **2.4 Mining**<br />
-dcrd supports the [getwork](https://github.com/decred/dcrd/tree/master/docs/json_rpc_api.md#getwork)
+dcrd supports the [getwork](https://github.com/picfight/dcrd/tree/master/docs/json_rpc_api.md#getwork)
 RPC.  The limited user cannot access this RPC.<br />
 
 **1. Add the payment addresses with the `miningaddr` option.**<br />
@@ -121,10 +121,10 @@ certificate into the default system Certificate Authority list.
 <a name="NetworkConfig" />
 
 **3.1 Network Configuration**<br />
-* [What Ports Are Used by Default?](https://github.com/decred/dcrd/tree/master/docs/default_ports.md)
-* [How To Listen on Specific Interfaces](https://github.com/decred/dcrd/tree/master/docs/configure_peer_server_listen_interfaces.md)
-* [How To Configure RPC Server to Listen on Specific Interfaces](https://github.com/decred/dcrd/tree/master/docs/configure_rpc_server_listen_interfaces.md)
-* [Configuring dcrd with Tor](https://github.com/decred/dcrd/tree/master/docs/configuring_tor.md)
+* [What Ports Are Used by Default?](https://github.com/picfight/dcrd/tree/master/docs/default_ports.md)
+* [How To Listen on Specific Interfaces](https://github.com/picfight/dcrd/tree/master/docs/configure_peer_server_listen_interfaces.md)
+* [How To Configure RPC Server to Listen on Specific Interfaces](https://github.com/picfight/dcrd/tree/master/docs/configure_rpc_server_listen_interfaces.md)
+* [Configuring dcrd with Tor](https://github.com/picfight/dcrd/tree/master/docs/configuring_tor.md)
 
 <a name="Wallet" />
 
@@ -154,14 +154,14 @@ https://decred.org/community
 
 **5.1 Code Contribution Guidelines**
 
-* [Code Contribution Guidelines](https://github.com/decred/dcrd/tree/master/docs/code_contribution_guidelines.md)
+* [Code Contribution Guidelines](https://github.com/picfight/dcrd/tree/master/docs/code_contribution_guidelines.md)
 
 <a name="JSONRPCReference" />
 
 **5.2 JSON-RPC Reference**
 
-* [JSON-RPC Reference](https://github.com/decred/dcrd/tree/master/docs/json_rpc_api.md)
-    * [RPC Examples](https://github.com/decred/dcrd/tree/master/docs/json_rpc_api.md#ExampleCode)
+* [JSON-RPC Reference](https://github.com/picfight/dcrd/tree/master/docs/json_rpc_api.md)
+    * [RPC Examples](https://github.com/picfight/dcrd/tree/master/docs/json_rpc_api.md#ExampleCode)
 
 <a name="GoModules" />
 
@@ -169,52 +169,52 @@ https://decred.org/community
 
 The following versioned modules are provided by dcrd repository:
 
-* [rpcclient](https://github.com/decred/dcrd/tree/master/rpcclient) - Implements
+* [rpcclient](https://github.com/picfight/dcrd/tree/master/rpcclient) - Implements
   a robust and easy to use Websocket-enabled Decred JSON-RPC client
-* [dcrjson](https://github.com/decred/dcrd/tree/master/dcrjson) - Provides an
+* [dcrjson](https://github.com/picfight/dcrd/tree/master/dcrjson) - Provides an
   extensive API for the underlying JSON-RPC command and return values
-* [wire](https://github.com/decred/dcrd/tree/master/wire) - Implements the
+* [wire](https://github.com/picfight/dcrd/tree/master/wire) - Implements the
   Decred wire protocol
-* [peer](https://github.com/decred/dcrd/tree/master/peer) - Provides a common
+* [peer](https://github.com/picfight/dcrd/tree/master/peer) - Provides a common
   base for creating and managing Decred network peers
-* [blockchain](https://github.com/decred/dcrd/tree/master/blockchain) -
+* [blockchain](https://github.com/picfight/dcrd/tree/master/blockchain) -
   Implements Decred block handling and chain selection rules
-  * [stake](https://github.com/decred/dcrd/tree/master/blockchain/stake) -
+  * [stake](https://github.com/picfight/dcrd/tree/master/blockchain/stake) -
     Provides an API for working with stake transactions and other portions
     related to the Proof-of-Stake (PoS) system
-* [txscript](https://github.com/decred/dcrd/tree/master/txscript) -
+* [txscript](https://github.com/picfight/dcrd/tree/master/txscript) -
   Implements the Decred transaction scripting language
-* [dcrec](https://github.com/decred/dcrd/tree/master/dcrec) - Provides constants
+* [dcrec](https://github.com/picfight/dcrd/tree/master/dcrec) - Provides constants
   for the supported cryptographic signatures supported by Decred scripts
-  * [secp256k1](https://github.com/decred/dcrd/tree/master/dcrec/secp256k1) -
+  * [secp256k1](https://github.com/picfight/dcrd/tree/master/dcrec/secp256k1) -
     Implements the secp256k1 elliptic curve
-  * [edwards](https://github.com/decred/dcrd/tree/master/dcrec/edwards) -
+  * [edwards](https://github.com/picfight/dcrd/tree/master/dcrec/edwards) -
     Implements the edwards25519 twisted Edwards curve
-* [database](https://github.com/decred/dcrd/tree/master/database) -
+* [database](https://github.com/picfight/dcrd/tree/master/database) -
   Provides a database interface for the Decred block chain
-* [mempool](https://github.com/decred/dcrd/tree/master/mempool) - Provides a
+* [mempool](https://github.com/picfight/dcrd/tree/master/mempool) - Provides a
   policy-enforced pool of unmined Decred transactions
-* [dcrutil](https://github.com/decred/dcrd/tree/master/dcrutil) - Provides
+* [dcrutil](https://github.com/picfight/dcrd/tree/master/dcrutil) - Provides
   Decred-specific convenience functions and types
-* [chaincfg](https://github.com/decred/dcrd/tree/master/chaincfg) - Defines
+* [chaincfg](https://github.com/picfight/dcrd/tree/master/chaincfg) - Defines
   chain configuration parameters for the standard Decred networks and allows
   callers to define their own custom Decred networks for testing puproses
-  * [chainhash](https://github.com/decred/dcrd/tree/master/chaincfg/chainhash) -
+  * [chainhash](https://github.com/picfight/dcrd/tree/master/chaincfg/chainhash) -
     Provides a generic hash type and associated functions that allows the
     specific hash algorithm to be abstracted
-* [certgen](https://github.com/decred/dcrd/tree/master/certgen) - Provides a
+* [certgen](https://github.com/picfight/dcrd/tree/master/certgen) - Provides a
   function for creating a new TLS certificate key pair, typically used for
   encrypting RPC and websocket communications
-* [addrmgr](https://github.com/decred/dcrd/tree/master/addrmgr) - Provides a
+* [addrmgr](https://github.com/picfight/dcrd/tree/master/addrmgr) - Provides a
   concurrency safe Decred network address manager
-* [connmgr](https://github.com/decred/dcrd/tree/master/connmgr) - Implements a
+* [connmgr](https://github.com/picfight/dcrd/tree/master/connmgr) - Implements a
   generic Decred network connection manager
-* [hdkeychain](https://github.com/decred/dcrd/tree/master/hdkeychain) - Provides
+* [hdkeychain](https://github.com/picfight/dcrd/tree/master/hdkeychain) - Provides
   an API for working with  Decred hierarchical deterministic extended keys
-* [gcs](https://github.com/decred/dcrd/tree/master/gcs) - Provides an API for
+* [gcs](https://github.com/picfight/dcrd/tree/master/gcs) - Provides an API for
   building and using Golomb-coded set filters useful for light clients such as
   SPV wallets
-* [fees](https://github.com/decred/dcrd/tree/master/fees) - Provides methods for
+* [fees](https://github.com/picfight/dcrd/tree/master/fees) - Provides methods for
   tracking and estimating fee rates for new transactions to be mined into the
   network
 

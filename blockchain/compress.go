@@ -8,9 +8,9 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/txscript"
+	"github.com/picfight/dcrd/blockchain/stake"
+	"github.com/picfight/dcrd/dcrec/secp256k1"
+	"github.com/picfight/dcrd/txscript"
 )
 
 // currentCompressionVersion is the current script compression version of the

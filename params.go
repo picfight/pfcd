@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/picfight/dcrd/chaincfg"
 )
 
 // activeNetParams is a pointer to the parameters specific to the

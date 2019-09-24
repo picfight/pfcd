@@ -3,8 +3,8 @@ dcrd
 
 [![Build Status](https://travis-ci.org/decred/dcrd.png?branch=master)](https://travis-ci.org/decred/dcrd)
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/decred/dcrd)
-[![Go Report Card](https://goreportcard.com/badge/github.com/decred/dcrd)](https://goreportcard.com/report/github.com/decred/dcrd)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/picfight/dcrd)
+[![Go Report Card](https://goreportcard.com/badge/github.com/picfight/dcrd)](https://goreportcard.com/report/github.com/picfight/dcrd)
 
 ## Decred Overview
 
@@ -142,7 +142,7 @@ the repo's root directory.  Some notes:
 ### Example of obtaining and building from source on Windows 10 with Go 1.11:
 
 ```PowerShell
-PS> git clone https://github.com/decred/dcrd $env:USERPROFILE\src\dcrd
+PS> git clone https://github.com/picfight/dcrd $env:USERPROFILE\src\dcrd
 PS> cd $env:USERPROFILE\src\dcrd
 PS> go install . .\cmd\...
 PS> & "$(go env GOPATH)\bin\dcrd" -V
@@ -152,7 +152,7 @@ PS> & "$(go env GOPATH)\bin\dcrd" -V
 ### Example of obtaining and building from source on Linux with Go 1.10:
 
 ```bash
-$ git clone https://github.com/decred/dcrd ~/src/dcrd
+$ git clone https://github.com/picfight/dcrd ~/src/dcrd
 $ cd ~/src/dcrd
 $ vgo install . ./cmd/...
 $ $(vgo env GOPATH)/bin/dcrd -V
@@ -238,13 +238,13 @@ https://decred.org/community
 
 ## Issue Tracker
 
-The [integrated github issue tracker](https://github.com/decred/dcrd/issues)
+The [integrated github issue tracker](https://github.com/picfight/dcrd/issues)
 is used for this project.
 
 ## Documentation
 
 The documentation for dcrd is a work-in-progress.  It is located in the
-[docs](https://github.com/decred/dcrd/tree/master/docs) folder.
+[docs](https://github.com/picfight/dcrd/tree/master/docs) folder.
 
 ## License
 
