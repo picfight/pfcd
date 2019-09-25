@@ -12,10 +12,10 @@ import (
 func main() {
 
 	set := &coinknife.Settings{
-		PathToInputRepo:        `D:\PICFIGHT\src\github.com\picfight\dcrd`,
+		PathToInputRepo:        `D:\PICFIGHT\src\github.com\decred\dcrd`,
 		PathToOutputRepo:       `D:\PICFIGHT\src\github.com\picfight\pfcd`,
 		DoNotProcessAnyFiles:   false,
-		DoNotProcessSubfolders: true,
+		DoNotProcessSubfolders: false,
 		FileNameProcessor:      nameGenerator,
 		IsFileProcessable:      processableFiles,
 		FileContentProcessor:   fileGenerator,
@@ -28,10 +28,12 @@ func main() {
 }
 
 func nameGenerator(data string) string {
+	//data = coinknife.Replace(data, "decred/dcrd", "picfight/pfcd")
 	return data
 }
 
 func fileGenerator(data string) string {
+	//data = coinknife.Replace(data, "decred/dcrd", "picfight/pfcd")
 	//data = coinknife.Replace(data, "github.com/decred/dcrd", "github.com/picfight/dcrd")
 	//data = coinknife.Replace(data, "decred/dcrd", "picfight/dcrd")
 	return data
