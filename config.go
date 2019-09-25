@@ -374,7 +374,7 @@ func newConfigParser(cfg *config, so *serviceOptions, options flags.Options) *fl
 	return parser
 }
 
-// createDefaultConfig copies the file sample-dcrd.conf to the given destination path,
+// createDefaultConfig copies the file sample-pfcd.conf to the given destination path,
 // and populates it with some randomly generated RPC username and password.
 func createDefaultConfigFile(destPath string) error {
 	// Create the destination directory if it does not exist.
@@ -1138,7 +1138,7 @@ func loadConfig() (*config, []string, error) {
 	// Warn if old testnet directory is present.
 	for _, oldDir := range oldTestNets {
 		if fileExists(oldDir) {
-			dcrdLog.Warnf("Block chain data from previous testnet"+
+			pfcdLog.Warnf("Block chain data from previous testnet"+
 				" found (%v) and can probably be removed.",
 				oldDir)
 		}
@@ -1148,32 +1148,32 @@ func loadConfig() (*config, []string, error) {
 	// done.  This prevents the warning on help messages and invalid
 	// options.  Note this should go directly before the return.
 	if configFileError != nil {
-		dcrdLog.Warnf("%v", configFileError)
+		pfcdLog.Warnf("%v", configFileError)
 	}
 
 	return &cfg, remainingArgs, nil
 }
 
-// dcrdDial connects to the address on the named network using the appropriate
+// pfcdDial connects to the address on the named network using the appropriate
 // dial function depending on the address and configuration options.  For
 // example, .onion addresses will be dialed using the onion specific proxy if
 // one was specified, but will otherwise use the normal dial function (which
 // could itself use a proxy or not).
-func dcrdDial(network, addr string) (net.Conn, error) {
+func pfcdDial(network, addr string) (net.Conn, error) {
 	if strings.Contains(addr, ".onion:") {
 		return cfg.oniondial(network, addr)
 	}
 	return cfg.dial(network, addr)
 }
 
-// dcrdLookup returns the correct DNS lookup function to use depending on the
+// pfcdLookup returns the correct DNS lookup function to use depending on the
 // passed host and configuration options.  For example, .onion addresses will be
 // resolved using the onion specific proxy if one was specified, but will
 // otherwise treat the normal proxy as tor unless --noonion was specified in
 // which case the lookup will fail.  Meanwhile, normal IP addresses will be
 // resolved using tor if a proxy was specified unless --noonion was also
 // specified in which case the normal system DNS resolver will be used.
-func dcrdLookup(host string) ([]net.IP, error) {
+func pfcdLookup(host string) ([]net.IP, error) {
 	if strings.HasSuffix(host, ".onion") {
 		return cfg.onionlookup(host)
 	}

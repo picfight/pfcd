@@ -65,7 +65,7 @@ const (
 var (
 	// userAgentName is the user agent name and is used to help identify
 	// ourselves to other Decred peers.
-	userAgentName = "dcrd"
+	userAgentName = "pfcd"
 
 	// userAgentVersion is the user agent version and is used to help
 	// identify ourselves to other peers.
@@ -1737,7 +1737,7 @@ func (s *server) peerHandler() {
 
 	if !cfg.DisableDNSSeed {
 		// Add peers discovered through DNS to the address manager.
-		connmgr.SeedFromDNS(activeNetParams.Params, defaultRequiredServices, dcrdLookup, func(addrs []*wire.NetAddress) {
+		connmgr.SeedFromDNS(activeNetParams.Params, defaultRequiredServices, pfcdLookup, func(addrs []*wire.NetAddress) {
 			// Bitcoind uses a lookup of the dns seeder here. This
 			// is rather strange since the values looked up by the
 			// DNS seed lookups will vary quite a lot.
@@ -2323,7 +2323,7 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		services &^= wire.SFNodeCF
 	}
 
-	amgr := addrmgr.New(cfg.DataDir, dcrdLookup)
+	amgr := addrmgr.New(cfg.DataDir, pfcdLookup)
 
 	var listeners []net.Listener
 	var nat NAT
@@ -2656,7 +2656,7 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		OnAccept:       s.inboundPeerConnected,
 		RetryDuration:  connectionRetryInterval,
 		TargetOutbound: uint32(targetOutbound),
-		Dial:           dcrdDial,
+		Dial:           pfcdDial,
 		OnConnection:   s.outboundPeerConnected,
 		GetNewAddress:  newAddressFunc,
 	})
@@ -2709,9 +2709,9 @@ func addrStringToNetAddr(addr string) (net.Addr, error) {
 	}
 
 	// Attempt to look up an IP address associated with the parsed host.
-	// The dcrdLookup function will transparently handle performing the
+	// The pfcdLookup function will transparently handle performing the
 	// lookup over Tor if necessary.
-	ips, err := dcrdLookup(host)
+	ips, err := pfcdLookup(host)
 	if err != nil {
 		return nil, err
 	}

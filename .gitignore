@@ -2,7 +2,6 @@
 *~
 
 # Databases
-dcrd.db
 pfcd.db
 *-shm
 *-wal
@@ -35,7 +34,6 @@ _testmain.go
 
 # Binaries
 *.exe
-dcrd
 pfcd
 cmd/addblock/addblock
 cmd/checkdevpremine/checkdevpremine

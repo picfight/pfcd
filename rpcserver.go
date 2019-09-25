@@ -1736,7 +1736,7 @@ func handleGetAddedNodeInfo(s *rpcServer, cmd interface{}, closeChan <-chan stru
 		// Do a DNS lookup for the address.  If the lookup fails, just
 		// use the host.
 		var ipList []string
-		ips, err := dcrdLookup(host)
+		ips, err := pfcdLookup(host)
 		if err == nil {
 			ipList = make([]string, 0, len(ips))
 			for _, ip := range ips {
@@ -5743,7 +5743,7 @@ func handleVersion(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (in
 		buildMeta = fmt.Sprintf("%s.%s", build, buildMeta)
 	}
 	result := map[string]dcrjson.VersionResult{
-		"dcrdjsonrpcapi": {
+		"pfcdjsonrpcapi": {
 			VersionString: jsonrpcSemverString,
 			Major:         jsonrpcSemverMajor,
 			Minor:         jsonrpcSemverMinor,
