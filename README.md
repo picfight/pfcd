@@ -119,6 +119,8 @@ pfcd
      
 ```
 
+Enjoy your little blockchain network for a while.
+
 ## Contact
 
 If you have any further questions you can find us at the
