@@ -24,6 +24,14 @@ func main() {
 
 		output := filepath.Join(`D:\PICFIGHT\src\github.com\picfight\pfcd`, fileName)
 
+		pin.D("I", input)
+		pin.D("O", output)
+		pin.D("")
+
+		if 1 == 1 {
+			continue
+		}
+
 		set := &coinknife.Settings{
 			PathToInputRepo:        input,
 			PathToOutputRepo:       output,
@@ -56,7 +64,15 @@ func fileGenerator(data string) string {
 func ignoredFiles() map[string]bool {
 	ignore := make(map[string]bool)
 	ignore[".git"] = true
+	ignore[".github"] = true
+	ignore[".idea"] = true
+	ignore["internal"] = true
+	ignore["rpctest"] = true
 	ignore["vendor"] = true
+	ignore["sampleconfig"] = true
+	ignore["docs"] = true
+	ignore["cmd"] = true
+	ignore["release"] = true
 	ignore["builder"] = true
 	ignore["pfcdbuilder"] = true
 	ignore["picfightcoin"] = true
