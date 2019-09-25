@@ -207,8 +207,8 @@ func detectNetworkForAddress(addr string) (*chaincfg.Params, error) {
 
 	networkChar := addr[0:1]
 	switch networkChar {
-	case chaincfg.PicFightCoinNetParams.NetworkAddressPrefix:
-		return &chaincfg.PicFightCoinNetParams, nil
+	case chaincfg.MainNetParams.NetworkAddressPrefix:
+		return &chaincfg.MainNetParams, nil
 	case chaincfg.TestNet3Params.NetworkAddressPrefix:
 		return &chaincfg.TestNet3Params, nil
 	case chaincfg.SimNetParams.NetworkAddressPrefix:

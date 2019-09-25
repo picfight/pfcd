@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/decred/slog"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
+	"github.com/decred/slog"
 )
 
 const (

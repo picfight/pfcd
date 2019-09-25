@@ -11,9 +11,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/picfight/pfcd/database"
 	"github.com/decred/slog"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/picfight/pfcd/database"
 )
 
 const (
