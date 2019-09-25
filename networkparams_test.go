@@ -125,9 +125,22 @@ func checkAddressPrefixesAreConsistent(t *testing.T, privateKeyPrefix string, pa
 
 // TestDecredNetworkSettings checks Network-specific settings
 func TestDecredNetworkSettings(t *testing.T) {
-	checkPowLimitsAreConsistent(t, &picfightcoin.PicFightCoinNetParams)
 
-	checkGenesisBlockRespectsNetworkPowLimit(t, &picfightcoin.PicFightCoinNetParams)
+	checkPowLimitsAreConsistent(t, &chaincfg.PicFightCoinNetParams)
+	checkPowLimitsAreConsistent(t, &chaincfg.DecredNetParams)
+	checkPowLimitsAreConsistent(t, &chaincfg.TestNet3Params)
+	checkPowLimitsAreConsistent(t, &chaincfg.SimNetParams)
+	checkPowLimitsAreConsistent(t, &chaincfg.RegNetParams)
 
-	checkAddressPrefixesAreConsistent(t, "Pj", &picfightcoin.PicFightCoinNetParams)
+	checkGenesisBlockRespectsNetworkPowLimit(t, &chaincfg.PicFightCoinNetParams)
+	checkGenesisBlockRespectsNetworkPowLimit(t, &chaincfg.DecredNetParams)
+	checkGenesisBlockRespectsNetworkPowLimit(t, &chaincfg.TestNet3Params)
+	checkGenesisBlockRespectsNetworkPowLimit(t, &chaincfg.SimNetParams)
+	checkGenesisBlockRespectsNetworkPowLimit(t, &chaincfg.RegNetParams)
+
+	checkAddressPrefixesAreConsistent(t, "Pj", &chaincfg.PicFightCoinNetParams)
+	checkAddressPrefixesAreConsistent(t, "Pm", &chaincfg.DecredNetParams)
+	checkAddressPrefixesAreConsistent(t, "Pt", &chaincfg.TestNet3Params)
+	checkAddressPrefixesAreConsistent(t, "Ps", &chaincfg.SimNetParams)
+	checkAddressPrefixesAreConsistent(t, "Pr", &chaincfg.RegNetParams)
 }
