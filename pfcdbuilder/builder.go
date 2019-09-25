@@ -62,7 +62,6 @@ func ignoredFiles() map[string]bool {
 	ignore["internal"] = true
 	ignore["rpctest"] = true
 	ignore["vendor"] = true
-	ignore["sampleconfig"] = true
 	ignore["docs"] = true
 	ignore["cmd"] = true
 	ignore["release"] = true

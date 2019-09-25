@@ -1,9 +1,8 @@
-package picfightcoin
+package chaincfg
 
 import (
 	"time"
 
-	"github.com/picfight/pfcd/chaincfg"
 	"github.com/jfixby/difficulty"
 )
 
@@ -16,11 +15,11 @@ var (
 )
 
 // PicFightCoinNetParams defines the network parameters for the main Decred network.
-var PicFightCoinNetParams = chaincfg.Params{
+var PicFightCoinNetParams = Params{
 	Name:        "picfightcoin",
 	Net:         PicfightCoinWire,
 	DefaultPort: "9108",
-	DNSSeeds: []chaincfg.DNSSeed{
+	DNSSeeds: []DNSSeed{
 		{"eu-01.seed.picfight.org", true},
 		{"eu-02.seed.picfight.org", true},
 	},
@@ -52,7 +51,7 @@ var PicFightCoinNetParams = chaincfg.Params{
 	BlockTaxProportion:       1,
 
 	// Checkpoints ordered from oldest to newest.
-	Checkpoints: []chaincfg.Checkpoint{},
+	Checkpoints: []Checkpoint{},
 
 	// The miner confirmation window is defined as:
 	//   target proof of work timespan / target proof of work spacing
@@ -60,7 +59,7 @@ var PicFightCoinNetParams = chaincfg.Params{
 	RuleChangeActivationMultiplier: 3,    // 75%
 	RuleChangeActivationDivisor:    4,
 	RuleChangeActivationInterval:   2016 * 4, // 4 weeks
-	Deployments:                    map[uint32][]chaincfg.ConsensusDeployment{},
+	Deployments:                    map[uint32][]ConsensusDeployment{},
 
 	// Enforce current block version once majority of the network has
 	// upgraded.

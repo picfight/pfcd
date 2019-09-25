@@ -11,8 +11,8 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/wire"
 )
+// PicFight coin ------------------------------------------------------------------
 
-// MainNet ------------------------------------------------------------------------
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network.
@@ -76,9 +76,9 @@ var genesisBlock = wire.MsgBlock{
 		PrevBlock:    chainhash.Hash{},
 		MerkleRoot:   genesisMerkleRoot,
 		StakeRoot:    chainhash.Hash{},
-		Timestamp:    time.Unix(1454954400, 0), // Mon, 08 Feb 2016 18:00:00 GMT
-		Bits:         0x1b01ffff,               // Difficulty 32767
-		SBits:        2 * 1e8,                  // 2 Coin
+		Timestamp:    time.Unix(1569336596, 0),
+		Bits:         picfightPowLimit.ToCompact(),
+		SBits:        2 * 1e8, // 2 Coin
 		Nonce:        0x00000000,
 		StakeVersion: 0,
 	},
