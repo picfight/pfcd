@@ -14,7 +14,6 @@ import (
 	"github.com/btcsuite/winsvc/eventlog"
 	"github.com/btcsuite/winsvc/mgr"
 	"github.com/btcsuite/winsvc/svc"
-	"github.com/picfight/pfcd/picfightcoin/version"
 )
 
 const (

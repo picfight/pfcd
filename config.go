@@ -10,7 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/picfight/pfcd/picfightcoin"
+	"github.com/picfight/pfcd/internal/version"
 	"net"
 	"os"
 	"os/user"
@@ -30,8 +30,6 @@ import (
 	"github.com/picfight/pfcd/mempool"
 	"github.com/decred/slog"
 	"github.com/jessevdk/go-flags"
-	"github.com/picfight/pfcd/picfightcoin/sampleconfig"
-	"github.com/picfight/pfcd/picfightcoin/version"
 )
 
 const (

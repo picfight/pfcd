@@ -7,7 +7,6 @@ package main
 
 import (
 	"github.com/picfight/pfcd/chaincfg"
-	"github.com/picfight/pfcd/picfightcoin"
 )
 
 // activeNetParams is a pointer to the parameters specific to the

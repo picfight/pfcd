@@ -7,7 +7,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/picfight/pfcd/picfightcoin/version"
 	"io/ioutil"
 	"net"
 	"os"

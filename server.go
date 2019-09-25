@@ -37,7 +37,6 @@ import (
 	"github.com/picfight/pfcd/peer"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
-	"github.com/picfight/pfcd/picfightcoin/version"
 )
 
 const (

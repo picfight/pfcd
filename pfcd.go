@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/picfight/pfcd/internal/version"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/blockchain/indexers"
-	"github.com/picfight/pfcd/picfightcoin/version"
 )
 
 var cfg *config

@@ -6,7 +6,6 @@ package main
 
 import (
 	"bytes"
-	"github.com/picfight/pfcd/picfightcoin"
 	"strings"
 	"testing"
 
