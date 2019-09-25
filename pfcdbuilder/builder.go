@@ -26,12 +26,12 @@ func main() {
 
 		pin.D("I", input)
 		pin.D("O", output)
-		pin.D("")
+		//pin.D("")
 
-		if 1 == 1 {
-			continue
-		}
-
+		//if 1 == 1 {
+		//	continue
+		//}
+		ignore := make(map[string]bool)
 		set := &coinknife.Settings{
 			PathToInputRepo:        input,
 			PathToOutputRepo:       output,
@@ -40,7 +40,7 @@ func main() {
 			FileNameProcessor:      nameGenerator,
 			IsFileProcessable:      processableFiles,
 			FileContentProcessor:   fileGenerator,
-			IgnoredFiles:           ignoredFiles(),
+			IgnoredFiles:           ignore,
 			InjectorsPath:          filepath.Join("", "code_injections"),
 		}
 
