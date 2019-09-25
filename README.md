@@ -85,6 +85,40 @@ go clean -testcache
 go test ./...
 ```
 
+## Example run commands
+
+Launch mining node:
+```bash
+pfcd
+     --generate
+     --miningaddr "JsCVh5SVDQovpW1dswaZNan2mfNWy6uRpPx"
+     --listen=127.0.0.1:30000
+     --rpclisten=127.0.0.1:30001
+     --datadir=nodeA
+     --rpccert=nodeA\rpc.cert
+     --rpckey=nodeA\rpc.key     
+     --txindex
+     --addrindex
+     --rpcuser=node.user
+     --rpcpass=node.pass
+```
+
+Launch second node and connect to it the first one fro syncing:
+```bash
+pfcd
+     --listen=127.0.0.1:30002
+     --rpclisten=127.0.0.1:30003
+     --addpeer=127.0.0.1:30000
+     --datadir=nodeB
+     --rpccert=nodeB\rpc.cert
+     --rpckey=nodeB\rpc.key
+     --txindex
+     --addrindex
+     --rpcuser=node.user
+     --rpcpass=node.pass
+     
+```
+
 ## Contact
 
 If you have any further questions you can find us at the
