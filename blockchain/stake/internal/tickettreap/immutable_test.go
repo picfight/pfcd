@@ -633,7 +633,7 @@ func pickRandWinners(sz int, r rand.Source) []int {
 		panic("bad sz!")
 	}
 
-	perBlock := int(chaincfg.MainNetParams.TicketsPerBlock)
+	perBlock := int(chaincfg.DecredNetParams.TicketsPerBlock)
 	winners := make([]int, perBlock)
 	for i := 0; i < perBlock; i++ {
 		winners[i] = int(r.Int63() % int64(sz))
@@ -685,7 +685,7 @@ func TestImmutableMemory(t *testing.T) {
 			treapCopy = treapCopy.Delete(*k)
 		}
 
-		perBlock := int(chaincfg.MainNetParams.TicketsPerBlock)
+		perBlock := int(chaincfg.DecredNetParams.TicketsPerBlock)
 		for j := 0; j < perBlock; j++ {
 			randomHash := randHash(randSource)
 			treapCopy = treapCopy.Put(Key(*randomHash),

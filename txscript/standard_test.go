@@ -41,7 +41,7 @@ func newAddressPubKey(serializedPubKey []byte) dcrutil.Address {
 		panic("invalid public key in test source")
 	}
 	addr, err := dcrutil.NewAddressSecpPubKeyCompressed(pubkey,
-		&chaincfg.MainNetParams)
+		&chaincfg.DecredNetParams)
 	if err != nil {
 		panic("invalid public key in test source")
 	}
@@ -54,7 +54,7 @@ func newAddressPubKey(serializedPubKey []byte) dcrutil.Address {
 // as a helper since the only way it can fail is if there is an error in the
 // test source code.
 func newAddressPubKeyHash(pkHash []byte) dcrutil.Address {
-	addr, err := dcrutil.NewAddressPubKeyHash(pkHash, &chaincfg.MainNetParams,
+	addr, err := dcrutil.NewAddressPubKeyHash(pkHash, &chaincfg.DecredNetParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		panic("invalid public key hash in test source")
@@ -69,7 +69,7 @@ func newAddressPubKeyHash(pkHash []byte) dcrutil.Address {
 // test source code.
 func newAddressScriptHash(scriptHash []byte) dcrutil.Address {
 	addr, err := dcrutil.NewAddressScriptHashFromHash(scriptHash,
-		&chaincfg.MainNetParams)
+		&chaincfg.DecredNetParams)
 	if err != nil {
 		panic("invalid script hash in test source")
 	}
@@ -323,7 +323,7 @@ func TestExtractPkScriptAddrs(t *testing.T) {
 	for i, test := range tests {
 		class, addrs, reqSigs, err := ExtractPkScriptAddrs(
 			DefaultScriptVersion, test.script,
-			&chaincfg.MainNetParams)
+			&chaincfg.DecredNetParams)
 		if err != nil && !test.noparse {
 			t.Errorf("ExtractPkScriptAddrs #%d (%s): %v", i,
 				test.name, err)
@@ -512,7 +512,7 @@ func TestPayToAddrScript(t *testing.T) {
 
 	// 1MirQ9bwyQcGVJPwKUgapu5ouK2E2Ey4gX
 	p2pkhMain, err := dcrutil.NewAddressPubKeyHash(hexToBytes("e34cce70c86"+
-		"373273efcc54ce7d2a491bb4a0e84"), &chaincfg.MainNetParams,
+		"373273efcc54ce7d2a491bb4a0e84"), &chaincfg.DecredNetParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		t.Fatalf("Unable to create public key hash address: %v", err)
@@ -521,7 +521,7 @@ func TestPayToAddrScript(t *testing.T) {
 	// Taken from transaction:
 	// b0539a45de13b3e0403909b8bd1a555b8cbe45fd4e3f3fda76f3a5f52835c29d
 	p2shMain, _ := dcrutil.NewAddressScriptHashFromHash(hexToBytes("e8c30"+
-		"0c87986efa84c37c0519929019ef86eb5b4"), &chaincfg.MainNetParams)
+		"0c87986efa84c37c0519929019ef86eb5b4"), &chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create script hash address: %v", err)
 	}
@@ -529,14 +529,14 @@ func TestPayToAddrScript(t *testing.T) {
 	//  mainnet p2pk 13CG6SJ3yHUXo4Cr2RY4THLLJrNFuG3gUg
 	p2pkCompressedMain, err := dcrutil.NewAddressSecpPubKey(hexToBytes("02192d7"+
 		"4d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4"),
-		&chaincfg.MainNetParams)
+		&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create pubkey address (compressed): %v",
 			err)
 	}
 	p2pkCompressed2Main, err := dcrutil.NewAddressSecpPubKey(hexToBytes("03b0b"+
 		"d634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e65"),
-		&chaincfg.MainNetParams)
+		&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create pubkey address (compressed 2): %v",
 			err)
@@ -630,14 +630,14 @@ func TestMultiSigScript(t *testing.T) {
 	//  mainnet p2pk 13CG6SJ3yHUXo4Cr2RY4THLLJrNFuG3gUg
 	p2pkCompressedMain, err := dcrutil.NewAddressSecpPubKey(hexToBytes("02192d"+
 		"74d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4"),
-		&chaincfg.MainNetParams)
+		&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create pubkey address (compressed): %v",
 			err)
 	}
 	p2pkCompressed2Main, err := dcrutil.NewAddressSecpPubKey(hexToBytes("03b0b"+
 		"d634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e65"),
-		&chaincfg.MainNetParams)
+		&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("Unable to create pubkey address (compressed 2): %v",
 			err)

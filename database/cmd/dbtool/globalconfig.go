@@ -20,7 +20,7 @@ import (
 var (
 	dcrdHomeDir     = dcrutil.AppDataDir("pfcd", false)
 	knownDbTypes    = database.SupportedDrivers()
-	activeNetParams = &chaincfg.MainNetParams
+	activeNetParams = &chaincfg.PicFightCoinNetParams
 
 	// Default global config.
 	cfg = &config{

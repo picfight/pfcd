@@ -182,7 +182,7 @@ func testLNFeaturesDeployment(t *testing.T, params *chaincfg.Params, deploymentV
 // TestLNFeaturesDeployment ensures the deployment of the LN features agenda
 // activate the expected changes.
 func TestLNFeaturesDeployment(t *testing.T) {
-	testLNFeaturesDeployment(t, &chaincfg.MainNetParams, 5)
+	testLNFeaturesDeployment(t, &chaincfg.DecredNetParams, 5)
 	testLNFeaturesDeployment(t, &chaincfg.RegNetParams, 6)
 }
 

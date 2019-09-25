@@ -11,8 +11,8 @@ import (
 	"github.com/picfight/pfcd/wire"
 )
 
-// MainNetParams defines the network parameters for the main Decred network.
-var MainNetParams = Params{
+// DecredNetParams defines the network parameters for the main Decred network.
+var DecredNetParams = Params{
 	Name:        "mainnet",
 	Net:         wire.MainNet,
 	DefaultPort: "9108",

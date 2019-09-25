@@ -59,7 +59,7 @@ func TestDecredGenesisBlock(t *testing.T) {
 
 	// Encode the genesis block to raw bytes.
 	var buf bytes.Buffer
-	err := MainNetParams.GenesisBlock.Serialize(&buf)
+	err := DecredNetParams.GenesisBlock.Serialize(&buf)
 	if err != nil {
 		t.Fatalf("TestDecredGenesisBlock: %v", err)
 	}
@@ -72,11 +72,11 @@ func TestDecredGenesisBlock(t *testing.T) {
 	}
 
 	// Check hash of the block against expected hash.
-	hash := MainNetParams.GenesisBlock.BlockHash()
-	if !MainNetParams.GenesisHash.IsEqual(&hash) {
+	hash := DecredNetParams.GenesisBlock.BlockHash()
+	if !DecredNetParams.GenesisHash.IsEqual(&hash) {
 		t.Fatalf("TestDecredGenesisBlock: Genesis block hash does not "+
 			"appear valid - got %v, want %v", spew.Sdump(hash),
-			spew.Sdump(MainNetParams.GenesisHash))
+			spew.Sdump(DecredNetParams.GenesisHash))
 	}
 }
 

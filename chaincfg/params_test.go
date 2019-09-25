@@ -21,5 +21,5 @@ func TestMustRegisterPanic(t *testing.T) {
 	}()
 
 	// Intentionally try to register duplicate params to force a panic.
-	mustRegister(&MainNetParams)
+	mustRegister(&DecredNetParams)
 }

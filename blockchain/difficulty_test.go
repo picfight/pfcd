@@ -80,7 +80,7 @@ func TestEstimateSupply(t *testing.T) {
 	t.Parallel()
 
 	// The parameters used for the supply estimation.
-	params := &chaincfg.MainNetParams
+	params := &chaincfg.DecredNetParams
 	baseSubsidy := params.BaseSubsidy
 	reduxInterval := params.SubsidyReductionInterval
 	blockOneSubsidy := params.BlockOneSubsidy()

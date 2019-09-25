@@ -810,7 +810,7 @@ func testPoolMembership(tc *testContext, tx *dcrutil.Tx, inOrphanPool, inTxPool 
 func TestSimpleOrphanChain(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -873,7 +873,7 @@ func TestSimpleOrphanChain(t *testing.T) {
 func TestTicketPurchaseOrphan(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -924,7 +924,7 @@ func TestTicketPurchaseOrphan(t *testing.T) {
 func TestVoteOrphan(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -995,7 +995,7 @@ func TestVoteOrphan(t *testing.T) {
 func TestRevocationOrphan(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1066,7 +1066,7 @@ func TestRevocationOrphan(t *testing.T) {
 func TestOrphanReject(t *testing.T) {
 	t.Parallel()
 
-	harness, outputs, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1121,7 +1121,7 @@ func TestOrphanReject(t *testing.T) {
 func TestOrphanEviction(t *testing.T) {
 	t.Parallel()
 
-	harness, outputs, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1182,7 +1182,7 @@ func TestOrphanEviction(t *testing.T) {
 // TestExpirationPruning ensures that transactions that expire without being
 // mined are removed.
 func TestExpirationPruning(t *testing.T) {
-	harness, outputs, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1265,7 +1265,7 @@ func TestBasicOrphanRemoval(t *testing.T) {
 	t.Parallel()
 
 	const maxOrphans = 4
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1342,7 +1342,7 @@ func TestOrphanChainRemoval(t *testing.T) {
 	t.Parallel()
 
 	const maxOrphans = 10
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1405,7 +1405,7 @@ func TestMultiInputOrphanDoubleSpend(t *testing.T) {
 	t.Parallel()
 
 	const maxOrphans = 4
-	harness, outputs, err := newPoolHarness(&chaincfg.MainNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1692,7 +1692,7 @@ func TestSequenceLockAcceptance(t *testing.T) {
 	// Run through the tests twice such that the first time the pool is set to
 	// reject all sequence locks and the second it is not.
 	for _, acceptSeqLocks := range []bool{false, true} {
-		harness, _, err := newPoolHarness(&chaincfg.MainNetParams)
+		harness, _, err := newPoolHarness(&chaincfg.DecredNetParams)
 		if err != nil {
 			t.Fatalf("unable to create test pool: %v", err)
 		}

@@ -26,8 +26,8 @@ var PicFightCoinNetParams = Params{
 	},
 
 	// Chain parameters
-	GenesisBlock:             &genesisBlock,
-	GenesisHash:              &genesisHash,
+	GenesisBlock:             &picfightGenesisBlock,
+	GenesisHash:              &picfightGenesisHash,
 	PowLimit:                 picfightPowLimit.ToBigInt(),
 	PowLimitBits:             picfightPowLimit.ToCompact(),
 	ReduceMinDifficulty:      false,

@@ -65,7 +65,7 @@ func TestEncodeDecodeWIF(t *testing.T) {
 				0x94, 0xb9, 0x67, 0x89, 0xb2, 0x1a, 0x03, 0x98})
 		}
 
-		wif1, err := NewWIF(priv1, &chaincfg.MainNetParams, suite)
+		wif1, err := NewWIF(priv1, &chaincfg.DecredNetParams, suite)
 		if err != nil {
 			t.Fatal(err)
 		}
