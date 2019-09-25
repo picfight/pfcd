@@ -10,21 +10,34 @@ import (
 )
 
 func main() {
+	root := `D:\PICFIGHT\src\github.com\decred\dcrd`
+	ignored := ignoredFiles()
+	subfolders := fileops.ListFiles(root, fileops.FoldersOnly, fileops.DIRECT_CHILDREN)
+	fileops.EngageDeleteSafeLock(true)
+	for _, input := range subfolders {
 
-	set := &coinknife.Settings{
-		PathToInputRepo:        `D:\PICFIGHT\src\github.com\decred\dcrd`,
-		PathToOutputRepo:       `D:\PICFIGHT\src\github.com\picfight\pfcd`,
-		DoNotProcessAnyFiles:   false,
-		DoNotProcessSubfolders: false,
-		FileNameProcessor:      nameGenerator,
-		IsFileProcessable:      processableFiles,
-		FileContentProcessor:   fileGenerator,
-		IgnoredFiles:           ignoredFiles(),
-		InjectorsPath:          filepath.Join("", "code_injections"),
+		p := fileops.PathToArray(input)
+		fileName := p[len(p)-1]
+		if ignored[fileName] {
+			continue
+		}
+
+		output := filepath.Join(`D:\PICFIGHT\src\github.com\picfight\pfcd`, fileName)
+
+		set := &coinknife.Settings{
+			PathToInputRepo:        input,
+			PathToOutputRepo:       output,
+			DoNotProcessAnyFiles:   false,
+			DoNotProcessSubfolders: false,
+			FileNameProcessor:      nameGenerator,
+			IsFileProcessable:      processableFiles,
+			FileContentProcessor:   fileGenerator,
+			IgnoredFiles:           ignoredFiles(),
+			InjectorsPath:          filepath.Join("", "code_injections"),
+		}
+
+		coinknife.Build(set)
 	}
-
-	coinknife.Build(set)
-
 }
 
 func nameGenerator(data string) string {
