@@ -7,25 +7,25 @@ require (
 	github.com/btcsuite/winsvc v1.0.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/decred/base58 v1.0.0
-	github.com/decred/dcrd/addrmgr v1.0.2
-	github.com/decred/dcrd/blockchain v1.2.0
-	github.com/decred/dcrd/blockchain/stake v1.2.1
-	github.com/decred/dcrd/certgen v1.1.0
-	github.com/decred/dcrd/chaincfg v1.5.2
-	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
-	github.com/decred/dcrd/connmgr v1.1.0
-	github.com/decred/dcrd/database v1.1.0
-	github.com/decred/dcrd/dcrec v1.0.0
-	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
-	github.com/decred/dcrd/dcrjson v1.2.0
-	github.com/decred/dcrd/dcrutil v1.4.0
-	github.com/decred/dcrd/fees v1.0.0
-	github.com/decred/dcrd/gcs v1.1.0
-	github.com/decred/dcrd/mempool v1.2.0
-	github.com/decred/dcrd/mining v1.1.1
-	github.com/decred/dcrd/peer v1.2.0
-	github.com/decred/dcrd/txscript v1.1.0
-	github.com/decred/dcrd/wire v1.2.0
+	github.com/picfight/pfcd/addrmgr v1.0.2
+	github.com/picfight/pfcd/blockchain v1.2.0
+	github.com/picfight/pfcd/blockchain/stake v1.2.1
+	github.com/picfight/pfcd/certgen v1.1.0
+	github.com/picfight/pfcd/chaincfg v1.5.2
+	github.com/picfight/pfcd/chaincfg/chainhash v1.0.2
+	github.com/picfight/pfcd/connmgr v1.1.0
+	github.com/picfight/pfcd/database v1.1.0
+	github.com/picfight/pfcd/dcrec v1.0.0
+	github.com/picfight/pfcd/dcrec/secp256k1 v1.0.2
+	github.com/picfight/pfcd/dcrjson v1.2.0
+	github.com/picfight/pfcd/dcrutil v1.4.0
+	github.com/picfight/pfcd/fees v1.0.0
+	github.com/picfight/pfcd/gcs v1.1.0
+	github.com/picfight/pfcd/mempool v1.2.0
+	github.com/picfight/pfcd/mining v1.1.1
+	github.com/picfight/pfcd/peer v1.2.0
+	github.com/picfight/pfcd/txscript v1.1.0
+	github.com/picfight/pfcd/wire v1.2.0
 	github.com/decred/slog v1.0.0
 	github.com/gorilla/websocket v1.4.1
 	github.com/jessevdk/go-flags v1.4.0
