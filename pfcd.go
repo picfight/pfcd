@@ -15,7 +15,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/indexers"
+	"github.com/picfight/pfcd/blockchain/indexers"
 	"github.com/picfight/pfcd/picfightcoin/version"
 )
 

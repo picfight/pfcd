@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/dcrutil"
 	"github.com/decred/slog"
 )
 

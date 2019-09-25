@@ -3,7 +3,7 @@ package picfightcoin
 import (
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg"
 	"github.com/jfixby/difficulty"
 )
 

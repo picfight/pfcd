@@ -8,8 +8,8 @@ package picfightcoin
 import (
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/wire"
 )
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for

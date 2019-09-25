@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/picfightcoin"
 )
 

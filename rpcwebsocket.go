@@ -23,13 +23,13 @@ import (
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/pfcd/blockchain"
+	"github.com/picfight/pfcd/blockchain/stake"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/dcrjson"
+	"github.com/picfight/pfcd/dcrutil"
+	"github.com/picfight/pfcd/txscript"
+	"github.com/picfight/pfcd/wire"
 )
 
 const (

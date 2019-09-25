@@ -3,9 +3,9 @@ package picfightcoin
 import (
 	"fmt"
 	"github.com/decred/base58"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/dcrec"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 // DecodeAddress decodes the string encoding of an address and returns

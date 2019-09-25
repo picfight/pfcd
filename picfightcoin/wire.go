@@ -1,6 +1,6 @@
 package picfightcoin
 
-import "github.com/decred/dcrd/wire"
+import "github.com/picfight/pfcd/wire"
 
 const (
 	// MainNet represents the main Decred network.

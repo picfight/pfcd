@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/decred/base58"
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/picfight/pfcd/blockchain"
+	"github.com/picfight/pfcd/chaincfg"
 )
 
 // checkPowLimitsAreConsistent ensures PowLimit and PowLimitBits are consistent

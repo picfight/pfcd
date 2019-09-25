@@ -2,7 +2,7 @@ package picfightcoin
 
 import (
 	"encoding/hex"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg"
 )
 
 var BlockOneLedgerPicfightCoin = []*chaincfg.TokenPayout{
