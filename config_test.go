@@ -5,7 +5,6 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"strings"
 	"testing"
@@ -76,6 +75,6 @@ func TestAltDNSNamesWithArg(t *testing.T) {
 // init parses the -test.* flags from the command line arguments list and then
 // removes them to allow go-flags tests to succeed.
 func init() {
-	flag.Parse()
-	os.Args = os.Args[:1]
+	//flag.Parse()
+	//os.Args = os.Args[:1]
 }
