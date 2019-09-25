@@ -26,47 +26,10 @@ set -ex
 # https://github.com/Microsoft/BashOnWindows/issues/1854
 # for more details.
 
-# Default GOVERSION
-[[ ! "$GOVERSION" ]] && GOVERSION=1.11
-REPO=pfcd
-
-testrepo () {
-  GO=go
   GO111MODULE=on
-  if [[ $GOVERSION == 1.10 ]]; then
-    GO=vgo
-  fi
 
-  $GO version
-  $GO clean -testcache
-  $GO build -v ./...
-  $GO test -v ./...
-
-  echo "------------------------------------------"
-  echo "Tests completed successfully!"
-}
-
-DOCKER=
-[[ "$1" == "docker" || "$1" == "podman" ]] && DOCKER=$1
-if [ ! "$DOCKER" ]; then
-    testrepo
-    exit
-fi
-
-# use Travis cache with docker
-DOCKER_IMAGE_TAG=golang-builder-$GOVERSION
-mkdir -p ~/.cache
-if [ -f ~/.cache/$DOCKER_IMAGE_TAG.tar ]; then
-  # load via cache
-  $DOCKER load -i ~/.cache/$DOCKER_IMAGE_TAG.tar
-else
-  # pull and save image to cache
-  $DOCKER pull picfight/$DOCKER_IMAGE_TAG
-  $DOCKER save picfight/$DOCKER_IMAGE_TAG > ~/.cache/$DOCKER_IMAGE_TAG.tar
-fi
-
-$DOCKER run --rm -it -v $(pwd):/src:Z picfight/$DOCKER_IMAGE_TAG /bin/bash -c "\
-  rsync -ra --filter=':- .gitignore'  \
-  /src/ /go/src/github.com/picfight/$REPO/ && \
-  dir && \
-  env GOVERSION=$GOVERSION GO111MODULE=on bash run_tests.sh"
+  GO version
+  Go env
+  GO clean -testcache
+  GO build -v ./...
+  GO test -v ./...
