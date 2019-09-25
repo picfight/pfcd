@@ -135,7 +135,7 @@ var picfightGenesisCoinbaseTxLegacy = wire.MsgTx{
 	Expiry:   0,
 }
 
-// MainNet ------------------------------------------------------------------------
+// DecredMainNet ------------------------------------------------------------------------
 
 // decredGenesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network.

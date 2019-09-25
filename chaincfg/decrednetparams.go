@@ -23,8 +23,8 @@ var DecredNetParams = Params{
 	},
 
 	// Chain parameters
-	GenesisBlock:             &picfightGenesisBlock,
-	GenesisHash:              &picfightGenesisHash,
+	GenesisBlock:             &decredGenesisBlock,
+	GenesisHash:              &decredGenesisHash,
 	PowLimit:                 mainPowLimit,
 	PowLimitBits:             0x1d00ffff,
 	ReduceMinDifficulty:      false,
