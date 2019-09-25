@@ -59,12 +59,10 @@ func ignoredFiles() map[string]bool {
 	ignore[".git"] = true
 	ignore[".github"] = true
 	ignore[".idea"] = true
-	ignore["internal"] = true
 	ignore["rpctest"] = true
 	ignore["vendor"] = true
 	ignore["docs"] = true
 	ignore["cmd"] = true
-	ignore["release"] = true
 	ignore["builder"] = true
 	ignore["pfcdbuilder"] = true
 	ignore["picfightcoin"] = true
