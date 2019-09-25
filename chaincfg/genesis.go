@@ -258,7 +258,6 @@ var decredGenesisCoinbaseTxLegacy = wire.MsgTx{
 	Expiry:   0,
 }
 
-
 // TestNet3 ------------------------------------------------------------------------
 
 // testNet3GenesisBlock defines the genesis block of the block chain which

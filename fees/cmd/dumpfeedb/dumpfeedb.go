@@ -11,9 +11,9 @@ import (
 	"os"
 	"path"
 
+	flags "github.com/jessevdk/go-flags"
 	"github.com/picfight/pfcd/dcrutil"
 	"github.com/picfight/pfcd/fees"
-	flags "github.com/jessevdk/go-flags"
 )
 
 type config struct {

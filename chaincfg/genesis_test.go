@@ -42,7 +42,6 @@ func TestPicfightGenesisBlock(t *testing.T) {
 	}
 }
 
-
 // TestDecredGenesisBlock tests the genesis block of the main network for validity by
 // checking the encoded bytes and hashes.
 func TestDecredGenesisBlock(t *testing.T) {
