@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 // BenchmarkBlockHeader benchmarks how long it takes to load the mainnet genesis

@@ -12,14 +12,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/blockchain/fullblocktests"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/pfcd/blockchain"
+	"github.com/picfight/pfcd/blockchain/fullblocktests"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/dcrutil"
+	"github.com/picfight/pfcd/txscript"
+	"github.com/picfight/pfcd/wire"
 )
 
 const (

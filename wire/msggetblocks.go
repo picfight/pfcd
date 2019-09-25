@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
 )
 
 // MaxBlockLocatorsPerMsg is the maximum number of block locator hashes allowed

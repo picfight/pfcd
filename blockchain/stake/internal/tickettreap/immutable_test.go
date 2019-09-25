@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
 )
 
 // assertPanic tests that code correctly panics, and will raise a testing error

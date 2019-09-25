@@ -6,9 +6,9 @@
 package mining
 
 import (
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/pfcd/blockchain"
+	"github.com/picfight/pfcd/dcrutil"
+	"github.com/picfight/pfcd/wire"
 )
 
 const (

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/picfight/pfcd/blockchain/stake"
+	"github.com/picfight/pfcd/chaincfg"
 )
 
 var (

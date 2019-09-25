@@ -11,10 +11,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/database"
-	_ "github.com/decred/dcrd/database/ffldb"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/database"
+	_ "github.com/picfight/pfcd/database/ffldb"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 var (

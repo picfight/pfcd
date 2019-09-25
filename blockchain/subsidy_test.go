@@ -8,7 +8,7 @@ package blockchain
 import (
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg"
 )
 
 func TestBlockSubsidy(t *testing.T) {

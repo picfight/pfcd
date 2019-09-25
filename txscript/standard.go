@@ -9,11 +9,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/dcrec"
+	"github.com/picfight/pfcd/dcrec/secp256k1"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 const (

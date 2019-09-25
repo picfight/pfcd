@@ -12,9 +12,9 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/blockchain"
+	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 var (

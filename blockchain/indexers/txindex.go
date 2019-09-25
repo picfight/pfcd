@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/pfcd/blockchain"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/dcrutil"
+	"github.com/picfight/pfcd/wire"
 )
 
 const (

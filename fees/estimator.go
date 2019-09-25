@@ -15,10 +15,10 @@ import (
 
 	"github.com/btcsuite/goleveldb/leveldb"
 	ldbutil "github.com/btcsuite/goleveldb/leveldb/util"
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/blockchain/stake"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 const (

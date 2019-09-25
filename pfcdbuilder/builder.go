@@ -24,13 +24,6 @@ func main() {
 
 		output := filepath.Join(`D:\PICFIGHT\src\github.com\picfight\pfcd`, fileName)
 
-		pin.D("I", input)
-		pin.D("O", output)
-		//pin.D("")
-
-		//if 1 == 1 {
-		//	continue
-		//}
 		ignore := make(map[string]bool)
 		set := &coinknife.Settings{
 			PathToInputRepo:        input,
@@ -54,7 +47,7 @@ func nameGenerator(data string) string {
 }
 
 func fileGenerator(data string) string {
-	//data = coinknife.Replace(data, "decred/dcrd", "picfight/pfcd")
+	data = coinknife.Replace(data, "decred/dcrd", "picfight/pfcd")
 	//data = coinknife.Replace(data, "github.com/decred/dcrd", "github.com/picfight/dcrd")
 	//data = coinknife.Replace(data, "decred/dcrd", "picfight/dcrd")
 	return data

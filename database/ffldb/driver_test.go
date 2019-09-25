@@ -13,10 +13,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/database"
-	"github.com/decred/dcrd/database/ffldb"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/database"
+	"github.com/picfight/pfcd/database/ffldb"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 // dbType is the database type name for this driver.

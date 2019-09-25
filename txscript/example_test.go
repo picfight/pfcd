@@ -9,14 +9,14 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainec"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg/chainec"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/dcrec"
+	"github.com/picfight/pfcd/dcrec/secp256k1"
+	"github.com/picfight/pfcd/dcrutil"
+	"github.com/picfight/pfcd/txscript"
+	"github.com/picfight/pfcd/wire"
 )
 
 // This example demonstrates creating a script which pays to a Decred address.

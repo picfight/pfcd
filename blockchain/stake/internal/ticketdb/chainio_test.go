@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/stake/internal/dbnamespace"
-	"github.com/decred/dcrd/blockchain/stake/internal/tickettreap"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/database"
-	_ "github.com/decred/dcrd/database/ffldb"
+	"github.com/picfight/pfcd/blockchain/stake/internal/dbnamespace"
+	"github.com/picfight/pfcd/blockchain/stake/internal/tickettreap"
+	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/database"
+	_ "github.com/picfight/pfcd/database/ffldb"
 )
 
 const (

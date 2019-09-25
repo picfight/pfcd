@@ -10,9 +10,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/picfight/pfcd/chaincfg/chainhash"
+	"github.com/picfight/pfcd/dcrjson"
+	"github.com/picfight/pfcd/dcrutil"
 )
 
 // FutureGenerateResult is a future promise to deliver the result of a
