@@ -20,17 +20,6 @@ type params struct {
 	rpcPort string
 }
 
-// mainNetParams contains parameters specific to the main network
-// (wire.MainNet).  NOTE: The RPC port is intentionally different than the
-// reference implementation because pfcd does not handle wallet requests.  The
-// separate wallet process listens on the well-known port and forwards requests
-// it does not handle on to pfcd.  This approach allows the wallet process
-// to emulate the full reference implementation RPC API.
-var mainNetParams = params{
-	Params:  &chaincfg.MainNetParams,
-	rpcPort: "9109",
-}
-
 // testNet3Params contains parameters specific to the test network (version 3)
 // (wire.TestNet3).
 var testNet3Params = params{
@@ -53,6 +42,6 @@ var regNetParams = params{
 }
 
 var pfcNetParams = params{
-	Params:  &picfightcoin.PicFightCoinNetParams,
+	Params:  &chaincfg.PicFightCoinNetParams,
 	rpcPort: "9109",
 }

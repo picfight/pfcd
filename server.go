@@ -32,6 +32,7 @@ import (
 	"github.com/picfight/pfcd/fees"
 	"github.com/picfight/pfcd/gcs"
 	"github.com/picfight/pfcd/gcs/blockcf"
+	"github.com/picfight/pfcd/internal/version"
 	"github.com/picfight/pfcd/mempool"
 	"github.com/picfight/pfcd/mining"
 	"github.com/picfight/pfcd/peer"

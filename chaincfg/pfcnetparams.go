@@ -1,6 +1,7 @@
 package chaincfg
 
 import (
+	"github.com/picfight/pfcd/wire"
 	"time"
 
 	"github.com/jfixby/difficulty"
@@ -17,7 +18,7 @@ var (
 // PicFightCoinNetParams defines the network parameters for the main Decred network.
 var PicFightCoinNetParams = Params{
 	Name:        "picfightcoin",
-	Net:         PicfightCoinWire,
+	Net:         wire.PicfightCoinWire,
 	DefaultPort: "9108",
 	DNSSeeds: []DNSSeed{
 		{"eu-01.seed.picfight.org", true},

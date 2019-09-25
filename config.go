@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/picfight/pfcd/internal/version"
+	"github.com/picfight/pfcd/sampleconfig"
 	"net"
 	"os"
 	"os/user"
@@ -23,13 +24,13 @@ import (
 	"time"
 
 	"github.com/btcsuite/go-socks/socks"
+	"github.com/decred/slog"
+	"github.com/jessevdk/go-flags"
 	"github.com/picfight/pfcd/connmgr"
 	"github.com/picfight/pfcd/database"
 	_ "github.com/picfight/pfcd/database/ffldb"
 	"github.com/picfight/pfcd/dcrutil"
 	"github.com/picfight/pfcd/mempool"
-	"github.com/decred/slog"
-	"github.com/jessevdk/go-flags"
 )
 
 const (
@@ -957,7 +958,7 @@ func loadConfig() (*config, []string, error) {
 
 	// Check mining addresses are valid and saved parsed versions.
 	for _, strAddr := range cfg.MiningAddrs {
-		addr, err := picfightcoin.DecodeAddress(strAddr)
+		addr, err := dcrutil.DecodeAddress(strAddr)
 		if err != nil {
 			str := "%s: mining address '%s' failed to decode: %v"
 			err := fmt.Errorf(str, funcName, strAddr, err)

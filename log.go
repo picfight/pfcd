@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/decred/slog"
+	"github.com/jrick/logrotate/rotator"
 	"github.com/picfight/pfcd/addrmgr"
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/indexers"
@@ -20,8 +22,6 @@ import (
 	"github.com/picfight/pfcd/mempool"
 	"github.com/picfight/pfcd/peer"
 	"github.com/picfight/pfcd/txscript"
-	"github.com/decred/slog"
-	"github.com/jrick/logrotate/rotator"
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and

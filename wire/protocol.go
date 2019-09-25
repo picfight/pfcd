@@ -108,6 +108,9 @@ const (
 	// MainNet represents the main Decred network.
 	MainNet CurrencyNet = 0xd9b400f9
 
+	// PicfightCoinWire represents the picfight coin network.
+	PicfightCoinWire CurrencyNet = 0xd9b488ff
+
 	// RegNet represents the regression test network.
 	RegNet CurrencyNet = 0xdab500fa
 

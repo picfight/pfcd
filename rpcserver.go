@@ -35,6 +35,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/jrick/bitset"
 	"github.com/picfight/pfcd/blockchain"
 	"github.com/picfight/pfcd/blockchain/stake"
 	"github.com/picfight/pfcd/certgen"
@@ -44,10 +45,10 @@ import (
 	"github.com/picfight/pfcd/dcrec/secp256k1"
 	"github.com/picfight/pfcd/dcrjson"
 	"github.com/picfight/pfcd/dcrutil"
+	"github.com/picfight/pfcd/internal/version"
 	"github.com/picfight/pfcd/mempool"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
-	"github.com/jrick/bitset"
 )
 
 // API version constants
@@ -5748,7 +5749,7 @@ func handleVersion(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (in
 			Minor:         jsonrpcSemverMinor,
 			Patch:         jsonrpcSemverPatch,
 		},
-		"dcrd": {
+		"pfcd": {
 			VersionString: version.String(),
 			Major:         uint32(version.Major),
 			Minor:         uint32(version.Minor),

@@ -13,7 +13,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-
 // TestGenesisBlock tests the genesis block of the main network for validity by
 // checking the encoded bytes and hashes.
 func TestGenesisBlock(t *testing.T) {

@@ -11,8 +11,8 @@ import (
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/wire"
 )
-// PicFight coin ------------------------------------------------------------------
 
+// PicFight coin ------------------------------------------------------------------
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network.
