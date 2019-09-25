@@ -1,0 +1,1 @@
+pfcd --generate --miningaddr "JsCVh5SVDQovpW1dswaZNan2mfNWy6uRpPx" --rpclisten=127.0.0.1:30001 --txindex --rpcuser=node.user --rpcpass=node.pass --listen=127.0.0.1:30000 --addrindex --datadir=nodeA --rpccert=nodeA\rpc.cert --rpckey=nodeA\rpc.key
