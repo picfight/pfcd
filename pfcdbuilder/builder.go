@@ -12,7 +12,7 @@ import (
 func main() {
 
 	set := &coinknife.Settings{
-		PathToInputRepo:        `D:\PICFIGHT\src\github.com\decred\dcrd`,
+		PathToInputRepo:        `D:\PICFIGHT\src\github.com\picfight\dcrd`,
 		PathToOutputRepo:       `D:\PICFIGHT\src\github.com\picfight\pfcd`,
 		DoNotProcessAnyFiles:   false,
 		DoNotProcessSubfolders: true,
@@ -110,116 +110,118 @@ func processableFiles(file string) bool {
 	if strings.HasSuffix(file, ".sum") {
 		return false
 	}
+	//-
+	if strings.HasSuffix(file, "api.proto") {
+		return false
+	}
+	if strings.HasSuffix(file, ".pot") {
+		return false
+	}
+	if strings.HasSuffix(file, ".gyp") {
+		return false
+	}
+	if strings.HasSuffix(file, ".cc") {
+		return false
+	}
+	if strings.HasSuffix(file, ".h") {
+		return false
+	}
+	if strings.HasSuffix(file, "notes.sample") {
+		return false
+	}
+	if strings.HasSuffix(file, ".desktop") {
+		return false
+	}
+	if strings.HasSuffix(file, ".log") {
+		return false
+	}
+	if strings.HasSuffix(file, "pfcd.service") {
+		return false
+	}
+	if strings.HasSuffix(file, ".conf") {
+		return false
+	}
+	if strings.HasSuffix(file, ".json") {
+		return false
+	}
+	if strings.HasSuffix(file, ".py") {
+		return false
+	}
+	if strings.HasSuffix(file, ".tmpl") {
+		return false
+	}
+	if strings.HasSuffix(file, ".js") {
+		return false
+	}
+	if strings.HasSuffix(file, ".sh") {
+		return false
+	}
+	if strings.HasSuffix(file, ".css") {
+		return false
+	}
+	if strings.HasSuffix(file, ".lock") {
+		return false
+	}
+	if strings.HasSuffix(file, "LICENSE") {
+		return false
+	}
+	if strings.HasSuffix(file, "CONTRIBUTORS") {
+		return false
+	}
+	if strings.HasSuffix(file, "Dockerfile") {
+		return false
+	}
+	if strings.HasSuffix(file, "Dockerfile.alpine") {
+		return false
+	}
+	if strings.HasSuffix(file, "CHANGES") {
+		return false
+	}
+	if strings.HasSuffix(file, ".iml") {
+		return false
+	}
+	if strings.HasSuffix(file, ".yml") {
+		return false
+	}
+	if strings.HasSuffix(file, ".toml") {
+		return false
+	}
+	if strings.HasSuffix(file, ".md") {
+		return false
+	}
+	if strings.HasSuffix(file, ".xml") {
+		return false
+	}
+	if strings.HasSuffix(file, ".gitignore") {
+		return false
+	}
+	if strings.HasSuffix(file, ".editorconfig") {
+		return false
+	}
+	if strings.HasSuffix(file, ".eslintignore") {
+		return false
+	}
+	if strings.HasSuffix(file, ".stylelintrc") {
+		return false
+	}
+	if strings.HasSuffix(file, "config") {
+		return false
+	}
+	if strings.HasSuffix(file, ".html") {
+		return false
+	}
+	if strings.HasSuffix(file, ".po") {
+		return false
+	}
+	if strings.HasSuffix(file, ".less") {
+		return false
+	}
+
 	//------------------------------
 	if strings.HasSuffix(file, ".mod") {
 		return true
 	}
-	if strings.HasSuffix(file, "api.proto") {
-		return true
-	}
-	if strings.HasSuffix(file, ".pot") {
-		return true
-	}
-	if strings.HasSuffix(file, ".gyp") {
-		return true
-	}
-	if strings.HasSuffix(file, ".cc") {
-		return true
-	}
-	if strings.HasSuffix(file, ".h") {
-		return true
-	}
-	if strings.HasSuffix(file, "notes.sample") {
-		return true
-	}
-	if strings.HasSuffix(file, ".desktop") {
-		return true
-	}
-	if strings.HasSuffix(file, ".log") {
-		return true
-	}
-	if strings.HasSuffix(file, "dcrd.service") {
-		return true
-	}
-	if strings.HasSuffix(file, ".conf") {
-		return true
-	}
-	if strings.HasSuffix(file, ".json") {
-		return true
-	}
-	if strings.HasSuffix(file, ".py") {
-		return true
-	}
 	if strings.HasSuffix(file, ".go") {
-		return true
-	}
-	if strings.HasSuffix(file, ".tmpl") {
-		return true
-	}
-	if strings.HasSuffix(file, ".js") {
-		return true
-	}
-	if strings.HasSuffix(file, ".sh") {
-		return true
-	}
-	if strings.HasSuffix(file, ".css") {
-		return true
-	}
-	if strings.HasSuffix(file, ".lock") {
-		return true
-	}
-	if strings.HasSuffix(file, "LICENSE") {
-		return true
-	}
-	if strings.HasSuffix(file, "CONTRIBUTORS") {
-		return true
-	}
-	if strings.HasSuffix(file, "Dockerfile") {
-		return true
-	}
-	if strings.HasSuffix(file, "Dockerfile.alpine") {
-		return true
-	}
-	if strings.HasSuffix(file, "CHANGES") {
-		return true
-	}
-	if strings.HasSuffix(file, ".iml") {
-		return true
-	}
-	if strings.HasSuffix(file, ".yml") {
-		return true
-	}
-	if strings.HasSuffix(file, ".toml") {
-		return true
-	}
-	if strings.HasSuffix(file, ".md") {
-		return true
-	}
-	if strings.HasSuffix(file, ".xml") {
-		return true
-	}
-	if strings.HasSuffix(file, ".gitignore") {
-		return true
-	}
-	if strings.HasSuffix(file, ".editorconfig") {
-		return true
-	}
-	if strings.HasSuffix(file, ".eslintignore") {
-		return true
-	}
-	if strings.HasSuffix(file, ".stylelintrc") {
-		return true
-	}
-	if strings.HasSuffix(file, "config") {
-		return true
-	}
-	if strings.HasSuffix(file, ".html") {
-		return true
-	}
-	if strings.HasSuffix(file, ".po") {
-		return true
-	}
-	if strings.HasSuffix(file, ".less") {
 		return true
 	}
 
