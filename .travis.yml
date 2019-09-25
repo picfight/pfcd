@@ -7,7 +7,7 @@ services:
   - docker
 
 env:
-  - GOVERSION=1.11
+  - GOVERSION=1.13
 
 before_install:
   - chmod +x ./run_tests.sh
