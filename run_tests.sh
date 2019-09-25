@@ -32,6 +32,7 @@ REPO=pfcd
 
 testrepo () {
   GO=go
+  GO111MODULE=on
   if [[ $GOVERSION == 1.10 ]]; then
     GO=vgo
   fi
