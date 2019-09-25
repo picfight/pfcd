@@ -103,7 +103,7 @@ pfcd
      --rpcpass=node.pass
 ```
 
-Launch second node and connect to it the first one fro syncing:
+Launch second node and connect to it the first one for syncing:
 ```bash
 pfcd
      --listen=127.0.0.1:30002
