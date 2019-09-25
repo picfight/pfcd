@@ -28,8 +28,8 @@ set -ex
 
   GO111MODULE=on
 
-  GO version
-  Go env
-  GO clean -testcache
-  GO build -v ./...
-  GO test -v ./...
+  go version
+  go env
+  go clean -testcache
+  go build -v ./...
+  go test -v ./...
