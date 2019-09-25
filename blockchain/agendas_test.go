@@ -321,7 +321,7 @@ func testFixSeqLocksDeployment(t *testing.T, params *chaincfg.Params, deployment
 // TestFixSeqLocksDeployment ensures the deployment of the fix sequence locks
 // agenda activates as expected.
 func TestFixSeqLocksDeployment(t *testing.T) {
-	testFixSeqLocksDeployment(t, &chaincfg.MainNetParams, 6)
+	testFixSeqLocksDeployment(t, &chaincfg.DecredNetParams, 6)
 	testFixSeqLocksDeployment(t, &chaincfg.RegNetParams, 7)
 }
 

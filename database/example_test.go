@@ -136,7 +136,7 @@ func Example_blockStorageAndRetrieval() {
 	// read-write transaction and store a genesis block in the database as
 	// and example.
 	err = db.Update(func(tx database.Tx) error {
-		genesisBlock := chaincfg.MainNetParams.GenesisBlock
+		genesisBlock := chaincfg.DecredNetParams.GenesisBlock
 		return tx.StoreBlock(dcrutil.NewBlock(genesisBlock))
 	})
 	if err != nil {
@@ -148,7 +148,7 @@ func Example_blockStorageAndRetrieval() {
 	// transaction and fetch the block stored above.
 	var loadedBlockBytes []byte
 	err = db.Update(func(tx database.Tx) error {
-		genesisHash := chaincfg.MainNetParams.GenesisHash
+		genesisHash := chaincfg.DecredNetParams.GenesisHash
 		blockBytes, err := tx.FetchBlock(genesisHash)
 		if err != nil {
 			return err
