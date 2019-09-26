@@ -879,7 +879,7 @@ func sdiffAlgoDeploymentVersion(network wire.CurrencyNet) uint32 {
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) calcNextRequiredStakeDifficulty(curNode *blockNode) (int64, error) {
 	// Consensus voting on the new stake difficulty algorithm is only
-	// enabled on mainnet, testnet v2 (removed from code), and regnet.
+	// enabled on decred and regnet.
 	net := b.chainParams.Net
 	if net == wire.PicfightCoinWire {
 		return b.calcNextRequiredStakeDifficultyV2(curNode)
@@ -1375,7 +1375,7 @@ func (b *BlockChain) estimateNextStakeDifficultyV2(curNode *blockNode, newTicket
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) estimateNextStakeDifficulty(curNode *blockNode, newTickets int64, useMaxTickets bool) (int64, error) {
 	// Consensus voting on the new stake difficulty algorithm is only
-	// enabled on mainnet, testnet v2 (removed from code), and regnet.
+	// enabled on decred and regnet.
 	net := b.chainParams.Net
 	if net == wire.PicfightCoinWire {
 		return b.calcNextRequiredStakeDifficultyV2(curNode)
