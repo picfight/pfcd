@@ -983,9 +983,10 @@ func (b *BlockChain) checkBlockHeaderPositional(header *wire.BlockHeader, prevNo
 	}
 
 	if !fastAdd {
+		net := b.chainParams.Net
 		// Reject version 6 blocks for networks other than the main
 		// network once a majority of the network has upgraded.
-		if b.chainParams.Net != wire.MainNet && header.Version < 7 &&
+		if net != wire.DecredWire && header.Version < 7 &&
 			b.isMajorityVersion(7, prevNode, b.chainParams.BlockRejectNumRequired) {
 
 			str := "new blocks with version %d are no longer valid"

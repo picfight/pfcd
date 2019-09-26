@@ -1950,7 +1950,11 @@ mempoolLoop:
 
 	// Choose the block version to generate based on the network.
 	blockVersion := int32(generatedBlockVersion)
-	if g.chainParams.Net != wire.MainNet && g.chainParams.Net != wire.SimNet {
+	net := g.chainParams.Net
+	if net == wire.TestNet3 {
+		blockVersion = generatedBlockVersionTest
+	}
+	if net == wire.RegNet {
 		blockVersion = generatedBlockVersionTest
 	}
 
