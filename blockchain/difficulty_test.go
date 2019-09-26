@@ -212,7 +212,7 @@ func TestCalcNextRequiredStakeDiffV2(t *testing.T) {
 	// used by the tests are the expected ones.  All of the test values will
 	// need to be updated if these parameters change since they are manually
 	// calculated based on them.
-	params := &chaincfg.PicFightCoinNetParams
+	params := &chaincfg.DecredNetParams
 	assertStakeDiffParamsMainNet(t, params)
 	minStakeDiff := params.MinimumStakeDiff
 	ticketMaturity := uint32(params.TicketMaturity)
@@ -518,7 +518,7 @@ func TestEstimateNextStakeDiffV2(t *testing.T) {
 	// Assert the param values directly used by the tests are the expected
 	// ones.  All of the test values will need to be updated if these
 	// parameters change since they are manually calculated based on them.
-	mainNetParams := &chaincfg.PicFightCoinNetParams
+	mainNetParams := &chaincfg.DecredNetParams
 	testNetParams := &chaincfg.TestNet3Params
 	assertStakeDiffParamsMainNet(t, mainNetParams)
 	assertStakeDiffParamsTestNet(t, testNetParams)
