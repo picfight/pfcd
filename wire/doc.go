@@ -84,7 +84,8 @@ The Decred network is a magic number which is used to identify the start of a
 message and which Decred network the message applies to.  This package provides
 the following constants:
 
-	wire.MainNet
+    wire.PicfightCoinWire
+	wire.DecredWire
 	wire.TestNet3 (Test network version 3)
 	wire.SimNet   (Simulation test network)
 	wire.RegNet   (Regression test network)

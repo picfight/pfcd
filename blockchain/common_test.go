@@ -26,7 +26,7 @@ const (
 	testDbType = "ffldb"
 
 	// blockDataNet is the expected network in the test block data.
-	blockDataNet = wire.MainNet
+	blockDataNet = wire.DecredWire
 )
 
 // isSupportedDbType returns whether or not the passed database type is

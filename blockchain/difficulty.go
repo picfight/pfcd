@@ -862,10 +862,10 @@ func (b *BlockChain) calcNextRequiredStakeDifficultyV2(curNode *blockNode) (int6
 //
 // This function is safe for concurrent access.
 func sdiffAlgoDeploymentVersion(network wire.CurrencyNet) uint32 {
-	if network != wire.MainNet {
-		return 5
+	if network == wire.DecredWire {
+		return 4
 	}
-	return 4
+	return 5
 }
 
 // calcNextRequiredStakeDifficulty calculates the required stake difficulty for

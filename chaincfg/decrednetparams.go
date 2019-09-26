@@ -14,7 +14,7 @@ import (
 // DecredNetParams defines the network parameters for the main Decred network.
 var DecredNetParams = Params{
 	Name:        "mainnet",
-	Net:         wire.MainNet,
+	Net:         wire.DecredWire,
 	DefaultPort: "9108",
 	DNSSeeds: []DNSSeed{
 		{"mainnet-seed.decred.mindcry.org", true},
