@@ -603,17 +603,22 @@ func (b *BlockChain) NextThresholdState(hash *chainhash.Hash, version uint32, de
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) isLNFeaturesAgendaActive(prevNode *blockNode) (bool, error) {
-	// Consensus voting on LN features is only enabled on mainnet, testnet
-	// v2 (removed from code), and regnet.
+	// Consensus voting on LN features is only enabled on decred and regnet.
 	net := b.chainParams.Net
-	if net != wire.MainNet && net != wire.RegNet {
+	if net == wire.PicfightCoinWire {
+		return true, nil
+	}
+	if net == wire.TestNet3 {
+		return true, nil
+	}
+	if net == wire.SimNet {
 		return true, nil
 	}
 
 	// Determine the version for the LN features agenda as defined in
 	// DCP0002 and DCP0003 for the provided network.
 	deploymentVer := uint32(5)
-	if b.chainParams.Net != wire.MainNet {
+	if b.chainParams.Net != wire.DecredWire {
 		deploymentVer = 6
 	}
 
@@ -654,16 +659,19 @@ func (b *BlockChain) IsLNFeaturesAgendaActive() (bool, error) {
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) isFixSeqLocksAgendaActive(prevNode *blockNode) (bool, error) {
 	// Consensus voting on the fix sequence locks agenda is only enabled on
-	// mainnet, testnet v3, and regnet.
+	// decred, testnet v3, and regnet.
 	net := b.chainParams.Net
-	if net != wire.MainNet && net != wire.TestNet3 && net != wire.RegNet {
+	if net == wire.PicfightCoinWire {
+		return true, nil
+	}
+	if net == wire.SimNet {
 		return true, nil
 	}
 
 	// Determine the version for the fix sequence locks agenda as defined in
 	// DCP0004 for the provided network.
 	deploymentVer := uint32(6)
-	if b.chainParams.Net != wire.MainNet {
+	if b.chainParams.Net != wire.DecredWire {
 		deploymentVer = 7
 	}
 
