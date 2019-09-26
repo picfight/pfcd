@@ -363,7 +363,7 @@ out:
 		template, err := m.g.NewBlockTemplate(payToAddr)
 		m.submitBlockLock.Unlock()
 		if err != nil {
-			errStr := fmt.Sprintf("Failed to create new block "+
+			errStr := fmt.Sprintf("Failed to create new block (1) "+
 				"template: %v", err)
 			minrLog.Errorf(errStr)
 			continue
@@ -642,7 +642,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*chainhash.Hash, error) {
 		template, err := m.g.NewBlockTemplate(payToAddr)
 		m.submitBlockLock.Unlock()
 		if err != nil {
-			errStr := fmt.Sprintf("Failed to create new block "+
+			errStr := fmt.Sprintf("Failed to create new block (2)"+
 				"template: %v", err)
 			minrLog.Errorf(errStr)
 			continue

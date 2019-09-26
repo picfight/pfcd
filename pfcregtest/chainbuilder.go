@@ -214,7 +214,6 @@ type launchArguments struct {
 	WalletExtraArguments map[string]interface{}
 }
 
-
 // launchHarnessSequence
 func launchHarnessSequence(h *coinharness.Harness, args *launchArguments) {
 	node := h.Node

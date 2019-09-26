@@ -36,7 +36,6 @@ func (setup *SimpleTestSetup) TearDown() {
 	setup.WorkingDir.Dispose()
 }
 
-
 // Setup deploys this test setup
 func Setup() *SimpleTestSetup {
 	setup := &SimpleTestSetup{

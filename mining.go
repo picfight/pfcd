@@ -24,13 +24,14 @@ import (
 )
 
 const (
-	// generatedBlockVersion is the version of the block being generated for
+	// generatedDecredMainBlockVersion is the version of the block being generated for
 	// the main network.  It is defined as a constant here rather than using
 	// the wire.BlockVersion constant since a change in the block version
 	// will require changes to the generated block.  Using the wire constant
 	// for generated block version could allow creation of invalid blocks
 	// for the updated version.
-	generatedBlockVersion = 6
+	generatedDecredMainBlockVersion   = 6
+	generatedPicfightCoinBlockVersion = 7
 
 	// generatedBlockVersionTest is the version of the block being generated
 	// for networks other than the main and simulation networks.
@@ -1949,8 +1950,11 @@ mempoolLoop:
 	}
 
 	// Choose the block version to generate based on the network.
-	blockVersion := int32(generatedBlockVersion)
+	blockVersion := int32(generatedDecredMainBlockVersion)
 	net := g.chainParams.Net
+	if net == wire.PicfightCoinWire {
+		blockVersion = generatedPicfightCoinBlockVersion
+	}
 	if net == wire.TestNet3 {
 		blockVersion = generatedBlockVersionTest
 	}
