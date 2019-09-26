@@ -23,7 +23,7 @@ func Example_newMaster() {
 	}
 
 	// Generate a new master node using the seed.
-	key, err := hdkeychain.NewMaster(seed, &chaincfg.DecredNetParams)
+	key, err := hdkeychain.NewMaster(seed, &chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -119,12 +119,12 @@ func Example_defaultWalletLayout() {
 
 	// Get and show the address associated with the extended keys for the
 	// main Decred network.
-	acct0ExtAddr, err := acct0Ext10.Address(&chaincfg.DecredNetParams)
+	acct0ExtAddr, err := acct0Ext10.Address(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	acct0IntAddr, err := acct0Int0.Address(&chaincfg.DecredNetParams)
+	acct0IntAddr, err := acct0Int0.Address(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		fmt.Println(err)
 		return

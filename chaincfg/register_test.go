@@ -53,7 +53,7 @@ func TestRegister(t *testing.T) {
 			register: []registerTest{
 				{
 					name:   "duplicate mainnet",
-					params: &DecredNetParams,
+					params: &PicFightCoinNetParams,
 					err:    ErrDuplicateNet,
 				},
 				{
@@ -74,7 +74,7 @@ func TestRegister(t *testing.T) {
 			},
 			p2pkhMagics: []magicTest{
 				{
-					magic: DecredNetParams.PubKeyHashAddrID,
+					magic: PicFightCoinNetParams.PubKeyHashAddrID,
 					valid: true,
 				},
 				{
@@ -100,7 +100,7 @@ func TestRegister(t *testing.T) {
 			},
 			p2shMagics: []magicTest{
 				{
-					magic: DecredNetParams.ScriptHashAddrID,
+					magic: PicFightCoinNetParams.ScriptHashAddrID,
 					valid: true,
 				},
 				{
@@ -126,8 +126,8 @@ func TestRegister(t *testing.T) {
 			},
 			hdMagics: []hdTest{
 				{
-					priv: DecredNetParams.HDPrivateKeyID[:],
-					want: DecredNetParams.HDPublicKeyID[:],
+					priv: PicFightCoinNetParams.HDPrivateKeyID[:],
+					want: PicFightCoinNetParams.HDPublicKeyID[:],
 					err:  nil,
 				},
 				{
@@ -170,7 +170,7 @@ func TestRegister(t *testing.T) {
 			},
 			p2pkhMagics: []magicTest{
 				{
-					magic: DecredNetParams.PubKeyHashAddrID,
+					magic: PicFightCoinNetParams.PubKeyHashAddrID,
 					valid: true,
 				},
 				{
@@ -196,7 +196,7 @@ func TestRegister(t *testing.T) {
 			},
 			p2shMagics: []magicTest{
 				{
-					magic: DecredNetParams.ScriptHashAddrID,
+					magic: PicFightCoinNetParams.ScriptHashAddrID,
 					valid: true,
 				},
 				{
@@ -233,7 +233,7 @@ func TestRegister(t *testing.T) {
 			register: []registerTest{
 				{
 					name:   "duplicate mainnet",
-					params: &DecredNetParams,
+					params: &PicFightCoinNetParams,
 					err:    ErrDuplicateNet,
 				},
 				{
@@ -259,7 +259,7 @@ func TestRegister(t *testing.T) {
 			},
 			p2pkhMagics: []magicTest{
 				{
-					magic: DecredNetParams.PubKeyHashAddrID,
+					magic: PicFightCoinNetParams.PubKeyHashAddrID,
 					valid: true,
 				},
 				{
@@ -285,7 +285,7 @@ func TestRegister(t *testing.T) {
 			},
 			p2shMagics: []magicTest{
 				{
-					magic: DecredNetParams.ScriptHashAddrID,
+					magic: PicFightCoinNetParams.ScriptHashAddrID,
 					valid: true,
 				},
 				{
@@ -311,8 +311,8 @@ func TestRegister(t *testing.T) {
 			},
 			hdMagics: []hdTest{
 				{
-					priv: DecredNetParams.HDPrivateKeyID[:],
-					want: DecredNetParams.HDPublicKeyID[:],
+					priv: PicFightCoinNetParams.HDPrivateKeyID[:],
+					want: PicFightCoinNetParams.HDPublicKeyID[:],
 					err:  nil,
 				},
 				{

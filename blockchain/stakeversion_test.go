@@ -88,8 +88,8 @@ func TestCalcWantHeight(t *testing.T) {
 		},
 		{
 			name:       "mainnet params",
-			skip:       chaincfg.DecredNetParams.StakeValidationHeight,
-			interval:   chaincfg.DecredNetParams.StakeVersionInterval,
+			skip:       chaincfg.PicFightCoinNetParams.StakeValidationHeight,
+			interval:   chaincfg.PicFightCoinNetParams.StakeVersionInterval,
 			multiplier: 5000,
 		},
 		{
@@ -112,8 +112,8 @@ func TestCalcWantHeight(t *testing.T) {
 		},
 		{
 			name:       "negative mainnet params",
-			skip:       chaincfg.DecredNetParams.StakeValidationHeight,
-			interval:   chaincfg.DecredNetParams.StakeVersionInterval,
+			skip:       chaincfg.PicFightCoinNetParams.StakeValidationHeight,
+			interval:   chaincfg.PicFightCoinNetParams.StakeVersionInterval,
 			multiplier: 1000,
 			negative:   1,
 		},
@@ -715,7 +715,7 @@ func TestIsStakeMajorityVersion(t *testing.T) {
 }
 
 func TestLarge(t *testing.T) {
-	params := &chaincfg.DecredNetParams
+	params := &chaincfg.PicFightCoinNetParams
 
 	numRuns := 5
 	numBlocks := params.StakeVersionInterval * 100

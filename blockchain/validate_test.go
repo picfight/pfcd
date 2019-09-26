@@ -903,7 +903,7 @@ func TestTxValidationErrors(t *testing.T) {
 	}
 
 	// Ensure transaction is rejected due to being too large.
-	err := CheckTransactionSanity(tx, &chaincfg.DecredNetParams)
+	err := CheckTransactionSanity(tx, &chaincfg.PicFightCoinNetParams)
 	rerr, ok := err.(RuleError)
 	if !ok {
 		t.Fatalf("CheckTransactionSanity: unexpected error type for "+

@@ -172,8 +172,8 @@ func TestPersistence(t *testing.T) {
 		"b1key2": "foo2",
 		"b1key3": "foo3",
 	}
-	genesisBlock := dcrutil.NewBlock(chaincfg.DecredNetParams.GenesisBlock)
-	genesisHash := chaincfg.DecredNetParams.GenesisHash
+	genesisBlock := dcrutil.NewBlock(chaincfg.PicFightCoinNetParams.GenesisBlock)
+	genesisHash := chaincfg.PicFightCoinNetParams.GenesisHash
 	err = db.Update(func(tx database.Tx) error {
 		metadataBucket := tx.Metadata()
 		if metadataBucket == nil {

@@ -665,7 +665,7 @@ func TestLocateInventory(t *testing.T) {
 	// 	genesis -> 1 -> 2 -> ... -> 15 -> 16  -> 17  -> 18
 	// 	                              \-> 16a -> 17a
 	tip := branchTip
-	chain := newFakeChain(&chaincfg.DecredNetParams)
+	chain := newFakeChain(&chaincfg.PicFightCoinNetParams)
 	branch0Nodes := chainedFakeNodes(chain.bestChain.Genesis(), 18)
 	branch1Nodes := chainedFakeNodes(branch0Nodes[14], 2)
 	for _, node := range branch0Nodes {

@@ -67,7 +67,7 @@ func ExampleExtractPkScriptAddrs() {
 
 	// Extract and print details from the script.
 	scriptClass, addresses, reqSigs, err := txscript.ExtractPkScriptAddrs(
-		txscript.DefaultScriptVersion, script, &chaincfg.DecredNetParams)
+		txscript.DefaultScriptVersion, script, &chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -95,7 +95,7 @@ func ExampleSignTxOutput() {
 	privKey, pubKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
 	pubKeyHash := dcrutil.Hash160(pubKey.SerializeCompressed())
 	addr, err := dcrutil.NewAddressPubKeyHash(pubKeyHash,
-		&chaincfg.DecredNetParams, dcrec.STEcdsaSecp256k1)
+		&chaincfg.PicFightCoinNetParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -154,7 +154,7 @@ func ExampleSignTxOutput() {
 	// Notice that the script database parameter is nil here since it isn't
 	// used.  It must be specified when pay-to-script-hash transactions are
 	// being signed.
-	sigScript, err := txscript.SignTxOutput(&chaincfg.DecredNetParams,
+	sigScript, err := txscript.SignTxOutput(&chaincfg.PicFightCoinNetParams,
 		redeemTx, 0, originTx.TxOut[0].PkScript, txscript.SigHashAll,
 		txscript.KeyClosure(lookupKey), nil, nil,
 		dcrec.STEcdsaSecp256k1)

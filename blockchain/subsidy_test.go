@@ -12,7 +12,7 @@ import (
 )
 
 func TestBlockSubsidy(t *testing.T) {
-	mainnet := &chaincfg.DecredNetParams
+	mainnet := &chaincfg.PicFightCoinNetParams
 	subsidyCache := NewSubsidyCache(0, mainnet)
 
 	totalSubsidy := mainnet.BlockOneSubsidy()

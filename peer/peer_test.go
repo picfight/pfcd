@@ -226,7 +226,7 @@ func TestPeerConnection(t *testing.T) {
 		},
 		UserAgentName:    "peer",
 		UserAgentVersion: "1.0",
-		ChainParams:      &chaincfg.DecredNetParams,
+		ChainParams:      &chaincfg.PicFightCoinNetParams,
 		Services:         0,
 	}
 	wantStats := peerStats{
@@ -402,7 +402,7 @@ func TestPeerListeners(t *testing.T) {
 		},
 		UserAgentName:    "peer",
 		UserAgentVersion: "1.0",
-		ChainParams:      &chaincfg.DecredNetParams,
+		ChainParams:      &chaincfg.PicFightCoinNetParams,
 		Services:         wire.SFNodeBloom,
 	}
 	inConn, outConn := pipe(
@@ -557,7 +557,7 @@ func TestOutboundPeer(t *testing.T) {
 		},
 		UserAgentName:    "peer",
 		UserAgentVersion: "1.0",
-		ChainParams:      &chaincfg.DecredNetParams,
+		ChainParams:      &chaincfg.PicFightCoinNetParams,
 		Services:         0,
 	}
 
@@ -704,7 +704,7 @@ func TestDuplicateVersionMsg(t *testing.T) {
 		},
 		UserAgentName:    "peer",
 		UserAgentVersion: "1.0",
-		ChainParams:      &chaincfg.DecredNetParams,
+		ChainParams:      &chaincfg.PicFightCoinNetParams,
 		Services:         0,
 	}
 	inConn, outConn := pipe(
