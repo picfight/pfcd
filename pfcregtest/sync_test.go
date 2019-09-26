@@ -11,7 +11,7 @@ import (
 )
 
 func TestCertCreationWithHosts(t *testing.T) {
-
+	t.SkipNow()
 	fileops.EngageDeleteSafeLock(true)
 	fileops.CopyFolderContentToFolder(
 		filepath.Join("1000-blocks", "nodeA"),
