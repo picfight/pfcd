@@ -119,12 +119,12 @@ func Example_defaultWalletLayout() {
 
 	// Get and show the address associated with the extended keys for the
 	// main Decred network.
-	acct0ExtAddr, err := acct0Ext10.Address(&chaincfg.PicFightCoinNetParams)
+	acct0ExtAddr, err := acct0Ext10.Address(&chaincfg.DecredNetParams)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	acct0IntAddr, err := acct0Int0.Address(&chaincfg.PicFightCoinNetParams)
+	acct0IntAddr, err := acct0Int0.Address(&chaincfg.DecredNetParams)
 	if err != nil {
 		fmt.Println(err)
 		return
