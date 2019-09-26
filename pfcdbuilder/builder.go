@@ -65,6 +65,7 @@ func ignoredFiles() map[string]bool {
 	ignore["cmd"] = true
 	ignore["builder"] = true
 	ignore["pfcdbuilder"] = true
+	ignore["pfcregtest"] = true
 	ignore["picfightcoin"] = true
 	return ignore
 }
