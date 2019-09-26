@@ -14,8 +14,8 @@ github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/ad
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jfixby/coinharness v0.0.0-20190926185122-3ff6bc845c84 h1:jNLMGjRi0P++eV0Om4/c+bW5uHqClUjgS41wi7GsXzo=
 github.com/jfixby/coinharness v0.0.0-20190926185122-3ff6bc845c84/go.mod h1:d/brli3srPhkdmg/3B9ZnaxEj6SgbZbGj27eapvPwOY=
-github.com/jfixby/coinknife v0.0.0-20190924133401-1d91f49342ec h1:fpdGnFn+itGFvEhbm+H+u8WuKTFco2eePz8HGws+IHc=
-github.com/jfixby/coinknife v0.0.0-20190924133401-1d91f49342ec/go.mod h1:xSXEkW0zBqOCyL49Pn5m2jMtjx+rjlB/EuPCJeP9g5Q=
+github.com/jfixby/coinknife v0.0.0-20190926203656-03d129b9318a h1:LIrKPA4Rmu4jiqnqjEB43hMUwjMADinQKoNfMRcTuys=
+github.com/jfixby/coinknife v0.0.0-20190926203656-03d129b9318a/go.mod h1:xSXEkW0zBqOCyL49Pn5m2jMtjx+rjlB/EuPCJeP9g5Q=
 github.com/jfixby/difficulty v1.0.0 h1:lvI8yfV7Mz09HvD70fB/PICgHjcbFa6HrA2ER8X1CNg=
 github.com/jfixby/difficulty v1.0.0/go.mod h1:eKUkJx0XjkDwjU7lA22IfU30feJcoObdPJ7rF46turk=
 github.com/jfixby/pin v0.0.0-20190926185208-4828e1e664f4 h1:D7GpxLTy82tCGW56r/88JMHEC/d7VtHl/Q2jJ9awZKc=

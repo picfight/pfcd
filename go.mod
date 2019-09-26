@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jfixby/coinharness v0.0.0-20190926185122-3ff6bc845c84
-	github.com/jfixby/coinknife v0.0.0-20190924133401-1d91f49342ec
+	github.com/jfixby/coinknife v0.0.0-20190926203656-03d129b9318a
 	github.com/jfixby/difficulty v1.0.0
 	github.com/jfixby/pin v0.0.0-20190926185208-4828e1e664f4
 	github.com/jrick/bitset v1.0.0
