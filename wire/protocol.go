@@ -105,8 +105,8 @@ type CurrencyNet uint32
 // this package does not provide that functionality since it's generally a
 // better idea to simply disconnect clients that are misbehaving over TCP.
 const (
-	// MainNet represents the main Decred network.
-	MainNet CurrencyNet = 0xd9b400f9
+	// DecredWire represents the main Decred network.
+	DecredWire CurrencyNet = 0xd9b400f9
 
 	// PicfightCoinWire represents the picfight coin network.
 	PicfightCoinWire CurrencyNet = 0xd9b488ff
@@ -130,10 +130,11 @@ const (
 // bnStrings is a map of Decred networks back to their constant names for
 // pretty printing.
 var bnStrings = map[CurrencyNet]string{
-	MainNet:  "MainNet",
-	TestNet3: "TestNet3",
-	RegNet:   "RegNet",
-	SimNet:   "SimNet",
+	PicfightCoinWire: "PicfightCoinWire",
+	DecredWire:       "DecredWire",
+	TestNet3:         "TestNet3",
+	RegNet:           "RegNet",
+	SimNet:           "SimNet",
 }
 
 // String returns the CurrencyNet in human-readable form.

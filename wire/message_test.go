@@ -85,28 +85,28 @@ func TestMessage(t *testing.T) {
 		dcrnet CurrencyNet // Network to use for wire encoding
 		bytes  int         // Expected num bytes read/written
 	}{
-		{msgVersion, msgVersion, pver, MainNet, 125},          // [0]
-		{msgVerack, msgVerack, pver, MainNet, 24},             // [1]
-		{msgGetAddr, msgGetAddr, pver, MainNet, 24},           // [2]
-		{msgAddr, msgAddr, pver, MainNet, 25},                 // [3]
-		{msgGetBlocks, msgGetBlocks, pver, MainNet, 61},       // [4]
-		{msgBlock, msgBlock, pver, MainNet, 522},              // [5]
-		{msgInv, msgInv, pver, MainNet, 25},                   // [6]
-		{msgGetData, msgGetData, pver, MainNet, 25},           // [7]
-		{msgNotFound, msgNotFound, pver, MainNet, 25},         // [8]
-		{msgTx, msgTx, pver, MainNet, 39},                     // [9]
-		{msgPing, msgPing, pver, MainNet, 32},                 // [10]
-		{msgPong, msgPong, pver, MainNet, 32},                 // [11]
-		{msgGetHeaders, msgGetHeaders, pver, MainNet, 61},     // [12]
-		{msgHeaders, msgHeaders, pver, MainNet, 25},           // [13]
-		{msgMemPool, msgMemPool, pver, MainNet, 24},           // [15]
-		{msgReject, msgReject, pver, MainNet, 79},             // [20]
-		{msgGetCFilter, msgGetCFilter, pver, MainNet, 57},     // [21]
-		{msgGetCFHeaders, msgGetCFHeaders, pver, MainNet, 58}, // [22]
-		{msgGetCFTypes, msgGetCFTypes, pver, MainNet, 24},     // [23]
-		{msgCFilter, msgCFilter, pver, MainNet, 65},           // [24]
-		{msgCFHeaders, msgCFHeaders, pver, MainNet, 58},       // [25]
-		{msgCFTypes, msgCFTypes, pver, MainNet, 26},           // [26]
+		{msgVersion, msgVersion, pver, DecredWire, 125},          // [0]
+		{msgVerack, msgVerack, pver, DecredWire, 24},             // [1]
+		{msgGetAddr, msgGetAddr, pver, DecredWire, 24},           // [2]
+		{msgAddr, msgAddr, pver, DecredWire, 25},                 // [3]
+		{msgGetBlocks, msgGetBlocks, pver, DecredWire, 61},       // [4]
+		{msgBlock, msgBlock, pver, DecredWire, 522},              // [5]
+		{msgInv, msgInv, pver, DecredWire, 25},                   // [6]
+		{msgGetData, msgGetData, pver, DecredWire, 25},           // [7]
+		{msgNotFound, msgNotFound, pver, DecredWire, 25},         // [8]
+		{msgTx, msgTx, pver, DecredWire, 39},                     // [9]
+		{msgPing, msgPing, pver, DecredWire, 32},                 // [10]
+		{msgPong, msgPong, pver, DecredWire, 32},                 // [11]
+		{msgGetHeaders, msgGetHeaders, pver, DecredWire, 61},     // [12]
+		{msgHeaders, msgHeaders, pver, DecredWire, 25},           // [13]
+		{msgMemPool, msgMemPool, pver, DecredWire, 24},           // [15]
+		{msgReject, msgReject, pver, DecredWire, 79},             // [20]
+		{msgGetCFilter, msgGetCFilter, pver, DecredWire, 57},     // [21]
+		{msgGetCFHeaders, msgGetCFHeaders, pver, DecredWire, 58}, // [22]
+		{msgGetCFTypes, msgGetCFTypes, pver, DecredWire, 24},     // [23]
+		{msgCFilter, msgCFilter, pver, DecredWire, 65},           // [24]
+		{msgCFHeaders, msgCFHeaders, pver, DecredWire, 58},       // [25]
+		{msgCFTypes, msgCFTypes, pver, DecredWire, 26},           // [26]
 	}
 
 	t.Logf("Running %d tests", len(tests))
@@ -178,7 +178,7 @@ func TestMessage(t *testing.T) {
 // concrete messages to confirm error paths work correctly.
 func TestReadMessageWireErrors(t *testing.T) {
 	pver := ProtocolVersion
-	dcrnet := MainNet
+	dcrnet := DecredWire
 
 	// Ensure message errors are as expected with no function specified.
 	wantErr := "something bad happened"
@@ -255,7 +255,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 			0,
 		},
 
-		// Wrong network.  Want MainNet, but giving TestNet. [1]
+		// Wrong network.  Want DecredWire, but giving TestNet. [1]
 		{
 			testNetBytes,
 			pver,
@@ -380,7 +380,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 // concrete messages to confirm error paths work correctly.
 func TestWriteMessageWireErrors(t *testing.T) {
 	pver := ProtocolVersion
-	dcrnet := MainNet
+	dcrnet := DecredWire
 	wireErr := &MessageError{}
 
 	// Fake message with a command that is too long.
