@@ -10,6 +10,7 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 // PicFight coin ------------------------------------------------------------------
@@ -76,8 +77,8 @@ var picfightGenesisBlock = wire.MsgBlock{
 		PrevBlock:    chainhash.Hash{},
 		MerkleRoot:   picfightGenesisMerkleRoot,
 		StakeRoot:    chainhash.Hash{},
-		Timestamp:    time.Unix(1569336596, 0),
-		Bits:         picfightPowLimit.ToCompact(),
+		Timestamp:    picfightcoin.GenesisBlockTimestamp(),
+		Bits:         picfightcoin.GenesisBlockPowBits(),
 		SBits:        2 * 1e8, // 2 Coin
 		Nonce:        0x00000000,
 		StakeVersion: 0,
