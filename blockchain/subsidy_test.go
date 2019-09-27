@@ -51,46 +51,6 @@ func picFightCoinBlockSubsidyCheck(t *testing.T, net *chaincfg.Params) {
 	}
 }
 
-//func TestPicfightCoinBlockSubsidy2(t *testing.T) {
-//	t.SkipNow()
-//	net := &chaincfg.DecredNetParams
-//	//calc := net.SubsidyCalculator
-//	calc := &chaincfg.DecredMainNetSubsidyCalculator{}
-//	net.SubsidyCalculator = calc
-//
-//	expectedTotal := calc.ExpectedTotalNetworkSubsidy()
-//	genBlocksNum := calc.NumberOfGeneratingBlocks()
-//	preminedCoins := calc.PreminedCoins()
-//	firstBlock := calc.FirstGeneratingBlockIndex()
-//
-//	totalSubsidy := preminedCoins
-//	for i := int64(0); i <= genBlocksNum; i++ {
-//		blockIndex := firstBlock + i
-//
-//		work := CalcBlockWorkSubsidy(nil, blockIndex,
-//			net.TicketsPerBlock, net)
-//		stake := CalcStakeVoteSubsidy(nil, blockIndex,
-//			net) * int64(net.TicketsPerBlock)
-//		tax := CalcBlockTaxSubsidy(nil, blockIndex,
-//			net.TicketsPerBlock, net)
-//		if (i%100000 == 0) {
-//			//fmt.Println(fmt.Sprintf("block: %v/%v: %v", i, genBlocksNum, work+stake+tax))
-//		}
-//		if (work + stake + tax) == 0 {
-//			break
-//		}
-//		totalSubsidy.AtomsValue = totalSubsidy.AtomsValue + (work + stake + tax)
-//
-//	}
-//
-//	if totalSubsidy.AtomsValue != expectedTotal.AtomsValue {
-//		t.Errorf("Bad total subsidy; want %v, got %v",
-//			expectedTotal.AtomsValue,
-//			totalSubsidy.AtomsValue,
-//		)
-//	}
-//}
-
 func TestDecredBlockSubsidyFull(t *testing.T) {
 	net := &chaincfg.DecredNetParams
 	calc := net.SubsidyCalculator

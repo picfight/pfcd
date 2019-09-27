@@ -34,7 +34,7 @@ var PicFightCoinNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	SubsidyCalculator:        picfightcoin.Subsidy(),
+	SubsidyCalculator:        picfightcoin.PicFightCoinSubsidy(),
 	BaseSubsidy:              0,    // not used
 	MulSubsidy:               0,  // not used
 	DivSubsidy:               0,  // not used

@@ -12,8 +12,6 @@ import (
 	"github.com/picfight/picfightcoin"
 )
 
-var decredSubsidy = &picfightcoin.DecredMainNetSubsidyCalculator{}
-
 // DecredNetParams defines the network parameters for the main Decred network.
 var DecredNetParams = Params{
 	Name:        "mainnet",
@@ -43,13 +41,14 @@ var DecredNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              decredSubsidy.BaseSubsidy(),              // 3119582664, // 21m
-	MulSubsidy:               decredSubsidy.MulSubsidy(),               // 100,
-	DivSubsidy:               decredSubsidy.DivSubsidy(),               // 101,
-	SubsidyReductionInterval: decredSubsidy.SubsidyReductionInterval(), // 6144,
-	WorkRewardProportion:     decredSubsidy.WorkRewardProportion(),     // 6,
-	StakeRewardProportion:    decredSubsidy.StakeRewardProportion(),    // 3,
-	BlockTaxProportion:       decredSubsidy.BlockTaxProportion(),       // 1,
+	SubsidyCalculator:        picfightcoin.DecredSubsidy,
+	BaseSubsidy:              picfightcoin.DecredSubsidy.BaseSubsidy(),              // 3119582664, // 21m
+	MulSubsidy:               picfightcoin.DecredSubsidy.MulSubsidy(),               // 100,
+	DivSubsidy:               picfightcoin.DecredSubsidy.DivSubsidy(),               // 101,
+	SubsidyReductionInterval: picfightcoin.DecredSubsidy.SubsidyReductionInterval(), // 6144,
+	WorkRewardProportion:     picfightcoin.DecredSubsidy.WorkRewardProportion(),     // 6,
+	StakeRewardProportion:    picfightcoin.DecredSubsidy.StakeRewardProportion(),    // 3,
+	BlockTaxProportion:       picfightcoin.DecredSubsidy.BlockTaxProportion(),       // 1,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
@@ -229,7 +228,7 @@ var DecredNetParams = Params{
 	// Decred PoS parameters
 	MinimumStakeDiff:        2 * 1e8, // 2 Coin
 	TicketPoolSize:          8192,
-	TicketsPerBlock:         decredSubsidy.TicketsPerBlock(), //,5
+	TicketsPerBlock:         picfightcoin.DecredSubsidy.TicketsPerBlock(), //,5
 	TicketMaturity:          256,
 	TicketExpiry:            40960, // 5*TicketPoolSize
 	CoinbaseMaturity:        256,
@@ -238,10 +237,10 @@ var DecredNetParams = Params{
 	StakeDiffAlpha:          1, // Minimal
 	StakeDiffWindowSize:     144,
 	StakeDiffWindows:        20,
-	StakeVersionInterval:    144 * 2 * 7, // ~1 week
-	MaxFreshStakePerBlock:   20,          // 4*TicketsPerBlock
-	StakeEnabledHeight:      256 + 256,   // CoinbaseMaturity + TicketMaturity
-	StakeValidationHeight:   4096,        // ~14 days
+	StakeVersionInterval:    144 * 2 * 7,                                        // ~1 week
+	MaxFreshStakePerBlock:   20,                                                 // 4*TicketsPerBlock
+	StakeEnabledHeight:      256 + 256,                                          // CoinbaseMaturity + TicketMaturity
+	StakeValidationHeight:   picfightcoin.DecredSubsidy.StakeValidationHeight(), // 4096,        // ~14 days
 	StakeBaseSigScript:      []byte{0x00, 0x00},
 	StakeMajorityMultiplier: 3,
 	StakeMajorityDivisor:    4,
@@ -251,6 +250,4 @@ var DecredNetParams = Params{
 	OrganizationPkScript:        hexDecode("a914f5916158e3e2c4551c1796708db8367207ed13bb87"),
 	OrganizationPkScriptVersion: 0,
 	BlockOneLedger:              BlockOneLedgerDecredMainNet,
-
-	SubsidyCalculator: decredSubsidy,
 }
