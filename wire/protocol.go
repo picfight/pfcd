@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/picfight/picfightcoin"
 )
 
 const (
@@ -108,8 +110,7 @@ const (
 	// DecredWire represents the main Decred network.
 	DecredWire CurrencyNet = 0xd9b400f9
 
-	// PicfightCoinWire represents the picfight coin network.
-	PicfightCoinWire CurrencyNet = 0xd9b488ff
+	PicfightCoinWire = CurrencyNet(picfightcoin.PicfightCoinWire)
 
 	// RegNet represents the regression test network.
 	RegNet CurrencyNet = 0xdab500fa
