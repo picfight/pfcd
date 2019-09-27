@@ -19,7 +19,7 @@ func TestTotalSubsidyCalcAlgo(t *testing.T) {
 	t.Skip()
 	netParams := &chaincfg.MainNetParams
 	// we need the exact sum value, so use BigIntEngine
-	testChainSubsidy(t, bignum.BigIntEngine{}, netParams)
+	testChainSubsidy(t, bignum.BigDecimalEngine{}, netParams)
 }
 
 func testChainSubsidy(t *testing.T, engine bignum.BigNumEngine, netParams *chaincfg.Params) {
@@ -71,7 +71,7 @@ func TestFloatEngine(t *testing.T) {
 	subsidyBlocksNumber := int64(3)
 	targetTotalSubsidy := float64(1)
 	resultFloat64 := testCalcSubsidy(t, bignum.Float64Engine{}, subsidyBlocksNumber, targetTotalSubsidy, 0, 1).ToFloat64()
-	resultBigFloat := testCalcSubsidy(t, bignum.BigIntEngine{}, subsidyBlocksNumber, targetTotalSubsidy, 0, 1).ToFloat64()
+	resultBigFloat := testCalcSubsidy(t, bignum.BigDecimalEngine{}, subsidyBlocksNumber, targetTotalSubsidy, 0, 1).ToFloat64()
 
 	if resultFloat64 != (resultBigFloat) {
 		t.Fatalf("mismatched total subsidy -- \n got %v, \nwant %v", resultFloat64, resultBigFloat)
