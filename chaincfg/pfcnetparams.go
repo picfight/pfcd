@@ -2,17 +2,8 @@ package chaincfg
 
 import (
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 	"time"
-
-	"github.com/jfixby/difficulty"
-)
-
-// These variables are the chain proof-of-work limit parameters for each default
-// network.
-var (
-	//  picfightPowLimit value for the PicFight coin network.
-	picfightPowLimit = difficulty.NewDifficultyFromHashString( //
-		"00 00 ff ff ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 )
 
 // PicFightCoinNetParams defines the network parameters for the main Decred network.
@@ -28,8 +19,8 @@ var PicFightCoinNetParams = Params{
 	// Chain parameters
 	GenesisBlock:             &picfightGenesisBlock,
 	GenesisHash:              &picfightGenesisHash,
-	PowLimit:                 picfightPowLimit.ToBigInt(),
-	PowLimitBits:             picfightPowLimit.ToCompact(),
+	PowLimit:                 picfightcoin.NetworkPoWLimit().ToBigInt(),
+	PowLimitBits:             picfightcoin.NetworkPoWLimit().ToCompact(),
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        false,
