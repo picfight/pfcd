@@ -38,6 +38,7 @@ func cloneParams(params *chaincfg.Params) *chaincfg.Params {
 	dec := gob.NewDecoder(buf)
 	dec.Decode(&paramsCopy)
 	paramsCopy.SubsidyCalculator = calc
+	params.SubsidyCalculator = calc
 	return &paramsCopy
 }
 
