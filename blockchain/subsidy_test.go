@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/jfixby/coin"
+	"github.com/jfixby/pin"
 	"github.com/picfight/pfcd/chaincfg"
 )
 
@@ -50,62 +51,62 @@ func picFightCoinBlockSubsidyCheck(t *testing.T, net *chaincfg.Params) {
 	}
 }
 
-func TestPicfightCoinBlockSubsidy2(t *testing.T) {
-	t.SkipNow()
-	net := &chaincfg.DecredNetParams
-	//calc := net.SubsidyCalculator
-	calc := &chaincfg.DecredSubsidyCalculator{}
-	net.SubsidyCalculator = calc
-
-	expectedTotal := calc.ExpectedTotalNetworkSubsidy()
-	genBlocksNum := calc.NumberOfGeneratingBlocks()
-	preminedCoins := calc.PreminedCoins()
-	firstBlock := calc.FirstGeneratingBlockIndex()
-
-	totalSubsidy := preminedCoins
-	for i := int64(0); i <= genBlocksNum; i++ {
-		blockIndex := firstBlock + i
-
-		work := CalcBlockWorkSubsidy(nil, blockIndex,
-			net.TicketsPerBlock, net)
-		stake := CalcStakeVoteSubsidy(nil, blockIndex,
-			net) * int64(net.TicketsPerBlock)
-		tax := CalcBlockTaxSubsidy(nil, blockIndex,
-			net.TicketsPerBlock, net)
-		if (i%100000 == 0) {
-			//fmt.Println(fmt.Sprintf("block: %v/%v: %v", i, genBlocksNum, work+stake+tax))
-		}
-		if (work + stake + tax) == 0 {
-			break
-		}
-		totalSubsidy.AtomsValue = totalSubsidy.AtomsValue + (work + stake + tax)
-
-	}
-
-	if totalSubsidy.AtomsValue != expectedTotal.AtomsValue {
-		t.Errorf("Bad total subsidy; want %v, got %v",
-			expectedTotal.AtomsValue,
-			totalSubsidy.AtomsValue,
-		)
-	}
-}
+//func TestPicfightCoinBlockSubsidy2(t *testing.T) {
+//	t.SkipNow()
+//	net := &chaincfg.DecredNetParams
+//	//calc := net.SubsidyCalculator
+//	calc := &chaincfg.DecredMainNetSubsidyCalculator{}
+//	net.SubsidyCalculator = calc
+//
+//	expectedTotal := calc.ExpectedTotalNetworkSubsidy()
+//	genBlocksNum := calc.NumberOfGeneratingBlocks()
+//	preminedCoins := calc.PreminedCoins()
+//	firstBlock := calc.FirstGeneratingBlockIndex()
+//
+//	totalSubsidy := preminedCoins
+//	for i := int64(0); i <= genBlocksNum; i++ {
+//		blockIndex := firstBlock + i
+//
+//		work := CalcBlockWorkSubsidy(nil, blockIndex,
+//			net.TicketsPerBlock, net)
+//		stake := CalcStakeVoteSubsidy(nil, blockIndex,
+//			net) * int64(net.TicketsPerBlock)
+//		tax := CalcBlockTaxSubsidy(nil, blockIndex,
+//			net.TicketsPerBlock, net)
+//		if (i%100000 == 0) {
+//			//fmt.Println(fmt.Sprintf("block: %v/%v: %v", i, genBlocksNum, work+stake+tax))
+//		}
+//		if (work + stake + tax) == 0 {
+//			break
+//		}
+//		totalSubsidy.AtomsValue = totalSubsidy.AtomsValue + (work + stake + tax)
+//
+//	}
+//
+//	if totalSubsidy.AtomsValue != expectedTotal.AtomsValue {
+//		t.Errorf("Bad total subsidy; want %v, got %v",
+//			expectedTotal.AtomsValue,
+//			totalSubsidy.AtomsValue,
+//		)
+//	}
+//}
 
 func TestDecredBlockSubsidyFull(t *testing.T) {
 	net := &chaincfg.DecredNetParams
+	calc := net.SubsidyCalculator
 	net.SubsidyCalculator = nil
 	subsidyCache := NewSubsidyCache(0, net)
 
 	exepctedValue := int64(2103834590794301)
 	// value received by block-by-block testing
 	fullDecredBlockSubsidyCheck(t, net, subsidyCache, exepctedValue)
+	net.SubsidyCalculator = calc
 }
 
 func TestDecredBlockSubsidyFunctionFull(t *testing.T) {
 	net := &chaincfg.DecredNetParams
-	net.SubsidyCalculator = &chaincfg.DecredSubsidyCalculator{
-		Net: net,
-	}
 	expected := net.SubsidyCalculator.ExpectedTotalNetworkSubsidy().AtomsValue
+	pin.AssertNotNil("net.SubsidyCalculator", net.SubsidyCalculator)
 	fullDecredBlockSubsidyCheck(t, net, nil, expected)
 }
 
@@ -120,6 +121,9 @@ func fullDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, cache *Subs
 			net) * int64(net.TicketsPerBlock)
 		tax := CalcBlockTaxSubsidy(cache, blockIndex,
 			net.TicketsPerBlock, net)
+		if (i%100000 == 0) {
+			//fmt.Println(fmt.Sprintf("block: %v/%v: %v", i, "?", work+stake+tax))
+		}
 		if (work + stake + tax) == 0 {
 			break
 		}
@@ -140,22 +144,22 @@ func fullDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, cache *Subs
 // most likely is invalid due to incorrect testing
 const originalTestExpected int64 = 2099999999800912
 
+func TestDecredBlockSubsidyFunctionOriginal(t *testing.T) {
+	net := &chaincfg.DecredNetParams
+	pin.AssertNotNil("net.SubsidyCalculator", net.SubsidyCalculator)
+	expected := net.SubsidyCalculator.ExpectedTotalNetworkSubsidy().AtomsValue
+	expected = originalTestExpected
+	originalDecredBlockSubsidyCheck(t, net, nil, expected)
+}
+
 func TestDecredBlockSubsidyOriginal(t *testing.T) {
 	net := &chaincfg.DecredNetParams
+	calc := net.SubsidyCalculator
 	net.SubsidyCalculator = nil
 	subsidyCache := NewSubsidyCache(0, net)
 
 	originalDecredBlockSubsidyCheck(t, net, subsidyCache, originalTestExpected)
-}
-
-func TestDecredBlockSubsidyFunctionOriginal(t *testing.T) {
-	net := &chaincfg.DecredNetParams
-	net.SubsidyCalculator = &chaincfg.DecredSubsidyCalculator{
-		Net: net,
-	}
-	expected := net.SubsidyCalculator.ExpectedTotalNetworkSubsidy().AtomsValue
-	expected = originalTestExpected
-	originalDecredBlockSubsidyCheck(t, net, nil, expected)
+	net.SubsidyCalculator = calc
 }
 
 func originalDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, subsidyCache *SubsidyCache, expected int64) {
