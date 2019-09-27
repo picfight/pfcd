@@ -31,7 +31,11 @@ func testLNFeaturesDeployment(t *testing.T, params *chaincfg.Params, deploymentV
 	// never expires to prevent test failures when the real expiration time
 	// passes.  Also, clone the provided parameters first to avoid mutating
 	// them.
+	orName := params.Name
 	params = cloneParams(params)
+	if params.Name != orName {
+		t.Errorf("Failed to clone params: %v", params)
+	}
 	var deployment *chaincfg.ConsensusDeployment
 	deployments := params.Deployments[deploymentVer]
 	for deploymentID, depl := range deployments {
@@ -194,7 +198,11 @@ func testFixSeqLocksDeployment(t *testing.T, params *chaincfg.Params, deployment
 	// for the fix sequence locks agenda and ensure it is always available to
 	// vote by removing the time constraints to prevent test failures when the
 	// real expiration time passes.
+	orName := params.Name
 	params = cloneParams(params)
+	if params.Name != orName {
+		t.Errorf("Failed to clone params: %v", params)
+	}
 	var deployment *chaincfg.ConsensusDeployment
 	deployments := params.Deployments[deploymentVer]
 	for deploymentID, depl := range deployments {
