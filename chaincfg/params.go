@@ -13,6 +13,7 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default
@@ -479,6 +480,8 @@ type Params struct {
 	// block height 1. If there are no payouts to be given, set this
 	// to an empty slice.
 	BlockOneLedger []*TokenPayout
+
+	SubsidyCalculator picfightcoin.SubsidyCalculator
 }
 
 var (

@@ -11,8 +11,42 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 )
 
-func TestBlockSubsidy(t *testing.T) {
-	mainnet := &chaincfg.PicFightCoinNetParams
+func TestPicfightCoinBlockSubsidy(t *testing.T) {
+	net := &chaincfg.PicFightCoinNetParams
+	calc := net.SubsidyCalculator
+
+	expectedTotal := calc.ExpectedTotalNetworkSubsidy()
+	genBlocksNum := calc.NumberOfGeneratingBlocks()
+	preminedCoins := calc.PreminedCoins()
+	firstBlock := calc.FirstGeneratingBlockIndex()
+
+	totalSubsidy := preminedCoins
+	for i := int64(0); i <= genBlocksNum; i++ {
+		blockIndex := firstBlock + i
+
+		work := CalcBlockWorkSubsidy(nil, blockIndex,
+			net.TicketsPerBlock, net)
+		stake := CalcStakeVoteSubsidy(nil, blockIndex,
+			net) * int64(net.TicketsPerBlock)
+		tax := CalcBlockTaxSubsidy(nil, blockIndex,
+			net.TicketsPerBlock, net)
+		if (work + stake + tax) == 0 {
+			break
+		}
+		totalSubsidy.AtomsValue = totalSubsidy.AtomsValue + (work + stake + tax)
+
+	}
+
+	if totalSubsidy.AtomsValue != expectedTotal.AtomsValue {
+		t.Errorf("Bad total subsidy; want %v, got %v",
+			expectedTotal,
+			totalSubsidy,
+		)
+	}
+}
+
+func TestDecredBlockSubsidy(t *testing.T) {
+	mainnet := &chaincfg.DecredNetParams
 	subsidyCache := NewSubsidyCache(0, mainnet)
 
 	totalSubsidy := mainnet.BlockOneSubsidy()
