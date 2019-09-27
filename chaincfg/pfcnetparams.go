@@ -34,10 +34,10 @@ var PicFightCoinNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              3119582664, // 21m
-	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 6144,
+	BaseSubsidy:              0,    // not used
+	MulSubsidy:               100,  // not used
+	DivSubsidy:               101,  // not used
+	SubsidyReductionInterval: 6144, // not used
 	WorkRewardProportion:     6,
 	StakeRewardProportion:    3,
 	BlockTaxProportion:       1,
