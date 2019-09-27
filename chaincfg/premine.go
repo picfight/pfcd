@@ -12,7 +12,8 @@ import (
 func BlockOneLedgerPicfightCoin() []*TokenPayout {
 	premine := picfightcoin.Premine()
 	payout := []*TokenPayout{}
-	for addressString, amountAtoms := range premine {
+	for addressString, amount := range premine {
+		amountAtoms := amount.ToAtoms()
 		payout = append(payout,
 			&TokenPayout{addressString, amountAtoms},
 		)

@@ -14,12 +14,12 @@ require (
 	github.com/decred/slog v1.0.0
 	github.com/gorilla/websocket v1.4.1
 	github.com/jessevdk/go-flags v1.4.0
-	github.com/jfixby/coinharness v0.0.0-20190926185122-3ff6bc845c84
+	github.com/jfixby/coin v0.0.0-20190927091650-385b78bc116b // indirect
 	github.com/jfixby/coinknife v0.0.0-20190926203656-03d129b9318a
-	github.com/jfixby/difficulty v1.0.0
+	github.com/jfixby/difficulty v1.0.0 // indirect
 	github.com/jfixby/pin v0.0.0-20190926185208-4828e1e664f4
 	github.com/jrick/bitset v1.0.0
 	github.com/jrick/logrotate v1.0.0
-	github.com/picfight/pfcharness v0.0.0-20190926171930-b728f233fcf8
+	github.com/picfight/picfightcoin v0.0.0-20190927092138-900034d8152b
 	golang.org/x/crypto v0.0.0-20190926180335-cea2066c6411
 )
