@@ -810,7 +810,7 @@ func testPoolMembership(tc *testContext, tx *dcrutil.Tx, inOrphanPool, inTxPool 
 func TestSimpleOrphanChain(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1121,7 +1121,7 @@ func TestOrphanReject(t *testing.T) {
 func TestOrphanEviction(t *testing.T) {
 	t.Parallel()
 
-	harness, outputs, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1265,7 +1265,7 @@ func TestBasicOrphanRemoval(t *testing.T) {
 	t.Parallel()
 
 	const maxOrphans = 4
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1405,7 +1405,7 @@ func TestMultiInputOrphanDoubleSpend(t *testing.T) {
 	t.Parallel()
 
 	const maxOrphans = 4
-	harness, outputs, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1692,7 +1692,7 @@ func TestSequenceLockAcceptance(t *testing.T) {
 	// Run through the tests twice such that the first time the pool is set to
 	// reject all sequence locks and the second it is not.
 	for _, acceptSeqLocks := range []bool{false, true} {
-		harness, _, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
+		harness, _, err := newPoolHarness(&chaincfg.DecredNetParams)
 		if err != nil {
 			t.Fatalf("unable to create test pool: %v", err)
 		}
