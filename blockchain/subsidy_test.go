@@ -20,7 +20,7 @@ func TestPicfightCoinBlockSubsidy(t *testing.T) {
 }
 
 func picFightCoinBlockSubsidyCheck(t *testing.T, net *chaincfg.Params) {
-	calc := net.SubsidyCalculator
+	calc := net.SubsidyCalculator()
 	expectedTotal := calc.ExpectedTotalNetworkSubsidy()
 	genBlocksNum := calc.NumberOfGeneratingBlocks()
 	preminedCoins := calc.PreminedCoins()
@@ -65,7 +65,7 @@ func TestDecredBlockSubsidyFull(t *testing.T) {
 
 func TestDecredBlockSubsidyFunctionFull(t *testing.T) {
 	net := &chaincfg.DecredNetParams
-	expected := net.SubsidyCalculator.ExpectedTotalNetworkSubsidy().AtomsValue
+	expected := net.SubsidyCalculator().ExpectedTotalNetworkSubsidy().AtomsValue
 	pin.AssertNotNil("net.SubsidyCalculator", net.SubsidyCalculator)
 	fullDecredBlockSubsidyCheck(t, net, nil, expected)
 }
@@ -107,7 +107,7 @@ const originalTestExpected int64 = 2099999999800912
 func TestDecredBlockSubsidyFunctionOriginal(t *testing.T) {
 	net := &chaincfg.DecredNetParams
 	pin.AssertNotNil("net.SubsidyCalculator", net.SubsidyCalculator)
-	expected := net.SubsidyCalculator.ExpectedTotalNetworkSubsidy().AtomsValue
+	expected := net.SubsidyCalculator().ExpectedTotalNetworkSubsidy().AtomsValue
 	expected = originalTestExpected
 	originalDecredBlockSubsidyCheck(t, net, nil, expected)
 }

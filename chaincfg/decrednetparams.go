@@ -41,7 +41,7 @@ var DecredNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	SubsidyCalculator:        picfightcoin.DecredSubsidy,
+	SubsidyCalculator:        func() picfightcoin.SubsidyCalculator { return picfightcoin.DecredSubsidy },
 	BaseSubsidy:              picfightcoin.DecredSubsidy.BaseSubsidy(),              // 3119582664, // 21m
 	MulSubsidy:               picfightcoin.DecredSubsidy.MulSubsidy(),               // 100,
 	DivSubsidy:               picfightcoin.DecredSubsidy.DivSubsidy(),               // 101,

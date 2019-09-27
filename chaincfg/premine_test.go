@@ -24,7 +24,7 @@ func TestPremine(t *testing.T) {
 func TestDecredBlock1(t *testing.T) {
 	params := DecredNetParams
 
-	block1_subsidy := params.SubsidyCalculator.CalcBlockSubsidy(1)
+	block1_subsidy := params.SubsidyCalculator().CalcBlockSubsidy(1)
 
 	// Block height 1 subsidy is 'special' and used to
 	// distribute initial tokens, if any.
@@ -43,7 +43,7 @@ func TestDecredBlock1(t *testing.T) {
 func TestPicFightCoinBlock1(t *testing.T) {
 	params := PicFightCoinNetParams
 
-	block1_subsidy := params.SubsidyCalculator.CalcBlockSubsidy(1)
+	block1_subsidy := params.SubsidyCalculator().CalcBlockSubsidy(1)
 
 	// Block height 1 subsidy is 'special' and used to
 	// distribute initial tokens, if any.

@@ -481,7 +481,7 @@ type Params struct {
 	// to an empty slice.
 	BlockOneLedger []*TokenPayout
 
-	SubsidyCalculator picfightcoin.SubsidyCalculator
+	SubsidyCalculator func() picfightcoin.SubsidyCalculator
 }
 
 var (

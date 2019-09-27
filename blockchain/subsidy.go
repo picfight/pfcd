@@ -66,7 +66,7 @@ func NewSubsidyCache(height int64, params *chaincfg.Params) *SubsidyCache {
 // Safe for concurrent access.
 func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 	if s.params.SubsidyCalculator != nil {
-		return s.params.SubsidyCalculator.CalcBlockSubsidy(height)
+		return s.params.SubsidyCalculator().CalcBlockSubsidy(height)
 	}
 
 	// Block height 1 subsidy is 'special' and used to
@@ -126,7 +126,7 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 // proportion of the total subsidy.
 func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *chaincfg.Params) int64 {
 	if params.SubsidyCalculator != nil {
-		return params.SubsidyCalculator.CalcBlockWorkSubsidy(height, voters)
+		return params.SubsidyCalculator().CalcBlockWorkSubsidy(height, voters)
 	}
 
 	subsidy := subsidyCache.CalcBlockSubsidy(height)
@@ -161,7 +161,7 @@ func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, voters uint1
 // Safe for concurrent access.
 func CalcStakeVoteSubsidy(subsidyCache *SubsidyCache, height int64, params *chaincfg.Params) int64 {
 	if params.SubsidyCalculator != nil {
-		return params.SubsidyCalculator.CalcStakeVoteSubsidy(height)
+		return params.SubsidyCalculator().CalcStakeVoteSubsidy(height)
 	}
 	// Calculate the actual reward for this block, then further reduce reward
 	// proportional to StakeRewardProportion.
@@ -183,7 +183,7 @@ func CalcStakeVoteSubsidy(subsidyCache *SubsidyCache, height int64, params *chai
 // Safe for concurrent access.
 func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *chaincfg.Params) int64 {
 	if params.SubsidyCalculator != nil {
-		return params.SubsidyCalculator.CalcBlockTaxSubsidy(height, voters)
+		return params.SubsidyCalculator().CalcBlockTaxSubsidy(height, voters)
 	}
 
 	if params.BlockTaxProportion == 0 {

@@ -26,8 +26,8 @@ import (
 // cloneParams returns a deep copy of the provided parameters so the caller is
 // free to modify them without worrying about interfering with other tests.
 func cloneParams(params *chaincfg.Params) *chaincfg.Params {
-	calc := params.SubsidyCalculator
-	params.SubsidyCalculator = nil
+	//calc := params.SubsidyCalculator
+	//params.SubsidyCalculator = nil
 	// Encode via gob.
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
@@ -37,8 +37,8 @@ func cloneParams(params *chaincfg.Params) *chaincfg.Params {
 	var paramsCopy chaincfg.Params
 	dec := gob.NewDecoder(buf)
 	dec.Decode(&paramsCopy)
-	paramsCopy.SubsidyCalculator = calc
-	params.SubsidyCalculator = calc
+	//paramsCopy.SubsidyCalculator = calc
+	//params.SubsidyCalculator = calc
 	return &paramsCopy
 }
 
