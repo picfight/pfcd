@@ -21,8 +21,8 @@ var PicFightCoinNetParams = Params{
 	Net:         wire.PicfightCoinWire,
 	DefaultPort: "9108",
 	DNSSeeds: []DNSSeed{
-		{"eu-01.seed.picfight.org", true},
-		{"eu-02.seed.picfight.org", true},
+		{picfightcoin.DNSSeeds()[0], true},
+		{picfightcoin.DNSSeeds()[1], true},
 	},
 
 	// Chain parameters
