@@ -5,8 +5,19 @@
 
 package chaincfg
 
-var BlockOneLedgerPicfightCoin = []*TokenPayout{
-	{"JsCVh5SVDQovpW1dswaZNan2mfNWy6uRpPx", 9000000 * 1e8},
+import (
+	"github.com/picfight/picfightcoin"
+)
+
+func BlockOneLedgerPicfightCoin() []*TokenPayout {
+	premine := picfightcoin.Premine()
+	payout := []*TokenPayout{}
+	for addressString, amountAtoms := range premine {
+		payout = append(payout,
+			&TokenPayout{addressString, amountAtoms},
+		)
+	}
+	return payout
 }
 
 var BlockOneLedgerDecredMainNet = []*TokenPayout{
