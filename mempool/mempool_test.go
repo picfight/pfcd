@@ -1066,7 +1066,7 @@ func TestRevocationOrphan(t *testing.T) {
 func TestOrphanReject(t *testing.T) {
 	t.Parallel()
 
-	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
