@@ -41,6 +41,10 @@ func NewSubsidyCache(height int64, params *chaincfg.Params) *SubsidyCache {
 		params:       params,
 	}
 
+	if params.SubsidyCalculator != nil {
+		return &sc
+	}
+
 	iteration := uint64(height / params.SubsidyReductionInterval)
 	if iteration < subsidyCacheInitWidth {
 		return &sc
