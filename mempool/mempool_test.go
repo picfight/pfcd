@@ -873,7 +873,7 @@ func TestSimpleOrphanChain(t *testing.T) {
 func TestTicketPurchaseOrphan(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -924,7 +924,7 @@ func TestTicketPurchaseOrphan(t *testing.T) {
 func TestVoteOrphan(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -995,7 +995,7 @@ func TestVoteOrphan(t *testing.T) {
 func TestRevocationOrphan(t *testing.T) {
 	t.Parallel()
 
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
@@ -1342,7 +1342,7 @@ func TestOrphanChainRemoval(t *testing.T) {
 	t.Parallel()
 
 	const maxOrphans = 10
-	harness, spendableOuts, err := newPoolHarness(&chaincfg.DecredNetParams)
+	harness, spendableOuts, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
