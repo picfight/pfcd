@@ -1182,7 +1182,7 @@ func TestOrphanEviction(t *testing.T) {
 // TestExpirationPruning ensures that transactions that expire without being
 // mined are removed.
 func TestExpirationPruning(t *testing.T) {
-	harness, outputs, err := newPoolHarness(&chaincfg.DecredNetParams)
+	harness, outputs, err := newPoolHarness(&chaincfg.PicFightCoinNetParams)
 	if err != nil {
 		t.Fatalf("unable to create test pool: %v", err)
 	}
