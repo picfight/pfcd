@@ -982,67 +982,76 @@ func (b *BlockChain) checkBlockHeaderPositional(header *wire.BlockHeader, prevNo
 		return ruleError(ErrForkTooOld, str)
 	}
 
-	if !fastAdd {
-		net := b.chainParams.Net
-		// Reject version 6 blocks for networks other than the main
-		// network once a majority of the network has upgraded.
-		if net != wire.DecredWire && header.Version < 7 &&
-			b.isMajorityVersion(7, prevNode, b.chainParams.BlockRejectNumRequired) {
+	if fastAdd {
+		return nil
+	}
 
-			str := "new blocks with version %d are no longer valid"
-			str = fmt.Sprintf(str, header.Version)
-			return ruleError(ErrBlockVersionTooOld, str)
-		}
+	net := b.chainParams.Net
 
-		// Reject version 5 blocks once a majority of the network has
-		// upgraded.
-		if header.Version < 6 && b.isMajorityVersion(6, prevNode,
-			b.chainParams.BlockRejectNumRequired) {
+	if net == wire.PicfightCoinWire && header.Version < 8 {
+		str := b.chainParams.Name + " network accepts only blocks version 8+"
+		str = fmt.Sprintf(str, header.Version)
+		return ruleError(ErrBlockVersionTooOld, str)
+	}
 
-			str := "new blocks with version %d are no longer valid"
-			str = fmt.Sprintf(str, header.Version)
-			return ruleError(ErrBlockVersionTooOld, str)
-		}
+	// Reject version 6 blocks for networks other than the main
+	// network once a majority of the network has upgraded.
+	if net != wire.DecredWire && header.Version < 7 &&
+		b.isMajorityVersion(7, prevNode, b.chainParams.BlockRejectNumRequired) {
 
-		// Reject version 4 blocks once a majority of the network has
-		// upgraded.
-		if header.Version < 5 && b.isMajorityVersion(5, prevNode,
-			b.chainParams.BlockRejectNumRequired) {
+		str := "new blocks with version %d are no longer valid"
+		str = fmt.Sprintf(str, header.Version)
+		return ruleError(ErrBlockVersionTooOld, str)
+	}
 
-			str := "new blocks with version %d are no longer valid"
-			str = fmt.Sprintf(str, header.Version)
-			return ruleError(ErrBlockVersionTooOld, str)
-		}
+	// Reject version 5 blocks once a majority of the network has
+	// upgraded.
+	if header.Version < 6 && b.isMajorityVersion(6, prevNode,
+		b.chainParams.BlockRejectNumRequired) {
 
-		// Reject version 3 blocks once a majority of the network has
-		// upgraded.
-		if header.Version < 4 && b.isMajorityVersion(4, prevNode,
-			b.chainParams.BlockRejectNumRequired) {
+		str := "new blocks with version %d are no longer valid"
+		str = fmt.Sprintf(str, header.Version)
+		return ruleError(ErrBlockVersionTooOld, str)
+	}
 
-			str := "new blocks with version %d are no longer valid"
-			str = fmt.Sprintf(str, header.Version)
-			return ruleError(ErrBlockVersionTooOld, str)
-		}
+	// Reject version 4 blocks once a majority of the network has
+	// upgraded.
+	if header.Version < 5 && b.isMajorityVersion(5, prevNode,
+		b.chainParams.BlockRejectNumRequired) {
 
-		// Reject version 2 blocks once a majority of the network has
-		// upgraded.
-		if header.Version < 3 && b.isMajorityVersion(3, prevNode,
-			b.chainParams.BlockRejectNumRequired) {
+		str := "new blocks with version %d are no longer valid"
+		str = fmt.Sprintf(str, header.Version)
+		return ruleError(ErrBlockVersionTooOld, str)
+	}
 
-			str := "new blocks with version %d are no longer valid"
-			str = fmt.Sprintf(str, header.Version)
-			return ruleError(ErrBlockVersionTooOld, str)
-		}
+	// Reject version 3 blocks once a majority of the network has
+	// upgraded.
+	if header.Version < 4 && b.isMajorityVersion(4, prevNode,
+		b.chainParams.BlockRejectNumRequired) {
 
-		// Reject version 1 blocks once a majority of the network has
-		// upgraded.
-		if header.Version < 2 && b.isMajorityVersion(2, prevNode,
-			b.chainParams.BlockRejectNumRequired) {
+		str := "new blocks with version %d are no longer valid"
+		str = fmt.Sprintf(str, header.Version)
+		return ruleError(ErrBlockVersionTooOld, str)
+	}
 
-			str := "new blocks with version %d are no longer valid"
-			str = fmt.Sprintf(str, header.Version)
-			return ruleError(ErrBlockVersionTooOld, str)
-		}
+	// Reject version 2 blocks once a majority of the network has
+	// upgraded.
+	if header.Version < 3 && b.isMajorityVersion(3, prevNode,
+		b.chainParams.BlockRejectNumRequired) {
+
+		str := "new blocks with version %d are no longer valid"
+		str = fmt.Sprintf(str, header.Version)
+		return ruleError(ErrBlockVersionTooOld, str)
+	}
+
+	// Reject version 1 blocks once a majority of the network has
+	// upgraded.
+	if header.Version < 2 && b.isMajorityVersion(2, prevNode,
+		b.chainParams.BlockRejectNumRequired) {
+
+		str := "new blocks with version %d are no longer valid"
+		str = fmt.Sprintf(str, header.Version)
+		return ruleError(ErrBlockVersionTooOld, str)
 	}
 
 	return nil
@@ -1136,59 +1145,60 @@ func (b *BlockChain) checkBlockHeaderContext(header *wire.BlockHeader, prevNode 
 	}
 
 	fastAdd := flags&BFFastAdd == BFFastAdd
-	if !fastAdd {
-		// Ensure the stake difficulty specified in the block header
-		// matches the calculated difficulty based on the previous block
-		// and difficulty retarget rules.
-		expSDiff, err := b.calcNextRequiredStakeDifficulty(prevNode)
-		if err != nil {
-			return err
-		}
-		if header.SBits != expSDiff {
-			errStr := fmt.Sprintf("block stake difficulty of %d "+
-				"is not the expected value of %d", header.SBits,
-				expSDiff)
-			return ruleError(ErrUnexpectedDifficulty, errStr)
-		}
+	if fastAdd {
+		return nil
+	}
+	// Ensure the stake difficulty specified in the block header
+	// matches the calculated difficulty based on the previous block
+	// and difficulty retarget rules.
+	expSDiff, err := b.calcNextRequiredStakeDifficulty(prevNode)
+	if err != nil {
+		return err
+	}
+	if header.SBits != expSDiff {
+		errStr := fmt.Sprintf("block stake difficulty of %d "+
+			"is not the expected value of %d", header.SBits,
+			expSDiff)
+		return ruleError(ErrUnexpectedDifficulty, errStr)
+	}
 
-		// Enforce the stake version in the header once a majority of
-		// the network has upgraded to version 3 blocks.
-		if header.Version >= 3 && b.isMajorityVersion(3, prevNode,
-			b.chainParams.BlockEnforceNumRequired) {
+	// Enforce the stake version in the header once a majority of
+	// the network has upgraded to version 3 blocks.
+	if header.Version >= 3 && b.isMajorityVersion(3, prevNode,
+		b.chainParams.BlockEnforceNumRequired) {
 
-			expectedStakeVer := b.calcStakeVersion(prevNode)
-			if header.StakeVersion != expectedStakeVer {
-				str := fmt.Sprintf("block stake version of %d "+
-					"is not the expected version of %d",
-					header.StakeVersion, expectedStakeVer)
-				return ruleError(ErrBadStakeVersion, str)
-			}
+		expectedStakeVer := b.calcStakeVersion(prevNode)
+		if header.StakeVersion != expectedStakeVer {
+			str := fmt.Sprintf("block stake version of %d "+
+				"is not the expected version of %d",
+				header.StakeVersion, expectedStakeVer)
+			return ruleError(ErrBadStakeVersion, str)
 		}
+	}
 
-		// Ensure the header commits to the correct pool size based on
-		// its position within the chain.
-		parentStakeNode, err := b.fetchStakeNode(prevNode)
-		if err != nil {
-			return err
-		}
-		calcPoolSize := uint32(parentStakeNode.PoolSize())
-		if header.PoolSize != calcPoolSize {
-			errStr := fmt.Sprintf("block header commitment to "+
-				"pool size %d does not match expected size %d",
-				header.PoolSize, calcPoolSize)
-			return ruleError(ErrPoolSize, errStr)
-		}
+	// Ensure the header commits to the correct pool size based on
+	// its position within the chain.
+	parentStakeNode, err := b.fetchStakeNode(prevNode)
+	if err != nil {
+		return err
+	}
+	calcPoolSize := uint32(parentStakeNode.PoolSize())
+	if header.PoolSize != calcPoolSize {
+		errStr := fmt.Sprintf("block header commitment to "+
+			"pool size %d does not match expected size %d",
+			header.PoolSize, calcPoolSize)
+		return ruleError(ErrPoolSize, errStr)
+	}
 
-		// Ensure the header commits to the correct final state of the
-		// ticket lottery.
-		calcFinalState := parentStakeNode.FinalState()
-		if header.FinalState != calcFinalState {
-			errStr := fmt.Sprintf("block header commitment to "+
-				"final state of the ticket lottery %x does not "+
-				"match expected value %x", header.FinalState,
-				calcFinalState)
-			return ruleError(ErrInvalidFinalState, errStr)
-		}
+	// Ensure the header commits to the correct final state of the
+	// ticket lottery.
+	calcFinalState := parentStakeNode.FinalState()
+	if header.FinalState != calcFinalState {
+		errStr := fmt.Sprintf("block header commitment to "+
+			"final state of the ticket lottery %x does not "+
+			"match expected value %x", header.FinalState,
+			calcFinalState)
+		return ruleError(ErrInvalidFinalState, errStr)
 	}
 
 	return nil

@@ -31,7 +31,7 @@ const (
 	// for generated block version could allow creation of invalid blocks
 	// for the updated version.
 	generatedDecredMainBlockVersion   = 6
-	generatedPicfightCoinBlockVersion = 7
+	generatedPicfightCoinBlockVersion = 8
 
 	// generatedBlockVersionTest is the version of the block being generated
 	// for networks other than the main and simulation networks.

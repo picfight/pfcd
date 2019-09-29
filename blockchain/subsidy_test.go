@@ -81,7 +81,7 @@ func fullDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, cache *Subs
 			net) * int64(net.TicketsPerBlock)
 		tax := CalcBlockTaxSubsidy(cache, blockIndex,
 			net.TicketsPerBlock, net)
-		if (i%100000 == 0) {
+		if i%100000 == 0 {
 			//fmt.Println(fmt.Sprintf("block: %v/%v: %v", i, "?", work+stake+tax))
 		}
 		if (work + stake + tax) == 0 {
