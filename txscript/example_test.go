@@ -103,7 +103,7 @@ func ExampleSignTxOutput() {
 
 	// For this example, create a fake transaction that represents what
 	// would ordinarily be the real transaction that is being spent.  It
-	// contains a single output that pays to address in the amount of 1 DCR.
+	// contains a single output that pays to address in the amount of 1 PFC.
 	originTx := wire.NewMsgTx()
 	prevOut := wire.NewOutPoint(&chainhash.Hash{}, ^uint32(0), wire.TxTreeRegular)
 	txIn := wire.NewTxIn(prevOut, 100000000, []byte{txscript.OP_0, txscript.OP_0})

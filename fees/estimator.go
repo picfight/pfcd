@@ -784,7 +784,7 @@ func (stats *Estimator) AddMemPoolTransaction(txHash *chainhash.Hash, fee, size 
 
 	// Note that we use this less exact version instead of fee * 1000 / size
 	// (using ints) because it naturally "downsamples" the fee rates towards the
-	// minimum at values less than 0.001 DCR/KB. This is needed because due to
+	// minimum at values less than 0.001 PFC/KB. This is needed because due to
 	// how the wallet estimates the final fee given an input rate and the final
 	// tx size, there's usually a small discrepancy towards a higher effective
 	// rate in the published tx.
