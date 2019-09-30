@@ -1,6 +1,7 @@
 package chaincfg
 
 import (
+	"github.com/jfixby/coin"
 	"github.com/picfight/picfightcoin"
 	"testing"
 )
@@ -11,13 +12,21 @@ func TestPremine(t *testing.T) {
 	expected := picfightcoin.PremineTotal.AtomsValue
 	for _, e := range premine {
 		totalAtoms = totalAtoms + e.Amount
-		if totalAtoms != expected {
-			t.Errorf("Premine mismatch: got %v expected %v ",
-				totalAtoms,
-				expected,
-			)
-			t.Fail()
-		}
+	}
+	if totalAtoms != expected {
+		t.Errorf("Premine mismatch: got %v expected %v ",
+			totalAtoms,
+			expected,
+		)
+		t.Fail()
+	}
+	expected = coin.FromFloat(4000000).AtomsValue
+	if totalAtoms != expected {
+		t.Errorf("Premine mismatch: got %v expected %v ",
+			totalAtoms,
+			expected,
+		)
+		t.Fail()
 	}
 }
 
