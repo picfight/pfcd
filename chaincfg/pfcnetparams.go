@@ -41,13 +41,13 @@ var PicFightCoinNetParams = Params{
 
 	// Subsidy parameters.
 	SubsidyCalculator:        func() picfightcoin.SubsidyCalculator { return picfightcoin.PicFightCoinSubsidy() },
-	BaseSubsidy:              0, // not used
-	MulSubsidy:               0, // not used
-	DivSubsidy:               0, // not used
-	SubsidyReductionInterval: 1, // not used
-	WorkRewardProportion:     0, // not used
-	StakeRewardProportion:    0, // not used
-	BlockTaxProportion:       0, // not used
+	BaseSubsidy:              0,  // not used
+	MulSubsidy:               0,  // not used
+	DivSubsidy:               0,  // not used
+	SubsidyReductionInterval: 1,  // not used
+	WorkRewardProportion:     60, // 60%
+	StakeRewardProportion:    40, // 40%
+	BlockTaxProportion:       0,  // 0%
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},

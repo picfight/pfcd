@@ -1,10 +1,36 @@
 package chaincfg
 
 import (
+	"fmt"
 	"github.com/jfixby/coin"
 	"github.com/picfight/picfightcoin"
 	"testing"
 )
+
+func TestLockPremine(t *testing.T) {
+	{ // LOCK PROJECT SUBSIDY
+		projectPremine := picfightcoin.Premine()["JsKFRL5ivSH7CnYaTtaBT4M9fZG878g49Fg"]
+		expected := coin.FromFloat(4000000 - 6000)
+		if projectPremine.AtomsValue != expected.AtomsValue {
+			t.Errorf("Premine mismatch: got %v expected %v ",
+				projectPremine,
+				expected,
+			)
+			t.Fail()
+		}
+	}
+	{ // LOCK PROJECT POS SUBSIDY
+		projectPosPremine := picfightcoin.Premine()["JsRjbYZ448FxZQ5kQAc15NcwUQ1oqYydVEG"]
+		expected := coin.FromFloat(6000)
+		if projectPosPremine.AtomsValue != expected.AtomsValue {
+			t.Errorf("Premine mismatch: got %v expected %v ",
+				projectPosPremine,
+				expected,
+			)
+			t.Fail()
+		}
+	}
+}
 
 func TestPremine(t *testing.T) {
 	premine := BlockOneLedgerPicfightCoin()
@@ -12,6 +38,11 @@ func TestPremine(t *testing.T) {
 	expected := picfightcoin.PremineTotal.AtomsValue
 	for _, e := range premine {
 		totalAtoms = totalAtoms + e.Amount
+		fmt.Println(fmt.Sprintf("premine: %v -> %v",
+			e.Address,
+			e.Amount,
+		),
+		)
 	}
 	if totalAtoms != expected {
 		t.Errorf("Premine mismatch: got %v expected %v ",
@@ -28,6 +59,7 @@ func TestPremine(t *testing.T) {
 		)
 		t.Fail()
 	}
+
 }
 
 func TestDecredBlock1(t *testing.T) {
