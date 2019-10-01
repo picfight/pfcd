@@ -19,6 +19,6 @@ require (
 	github.com/jfixby/pin v0.0.0-20190926185208-4828e1e664f4
 	github.com/jrick/bitset v1.0.0
 	github.com/jrick/logrotate v1.0.0
-	github.com/picfight/picfightcoin v0.0.0-20190930210555-0c9b14074eac
+	github.com/picfight/picfightcoin v0.0.0-20191001115746-c680a917d1fe
 	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
 )
