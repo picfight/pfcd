@@ -13,6 +13,7 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 var (
@@ -686,16 +687,30 @@ func estimateSupplyV2(params *chaincfg.Params, height int64) int64 {
 	}
 	panic("No SubsidyCalculator provided")
 }
-func estimateSupply(params *chaincfg.Params, height int64) int64 {
+
+func estimateSupply(net *chaincfg.Params, height int64) int64 {
+	params := net.DecredSubsidyParams
+	if net == &chaincfg.DecredNetParams {
+		params = &picfightcoin.DecredSubsidyParams{
+			BaseSubsidy:              3119582664,
+			MulSubsidy:               100,
+			DivSubsidy:               101,
+			SubsidyReductionInterval: 6144,
+			// Subsidy parameters.
+		}
+	}
+	return estimateDecredSupply(params, height, net.BlockOneSubsidy())
+}
+
+func estimateDecredSupply(params *picfightcoin.DecredSubsidyParams, height int64, BlockOneSubsidy int64) int64 {
 	if height <= 0 {
 		return 0
 	}
-
 	// Estimate the supply by calculating the full block subsidy for each
 	// reduction interval and multiplying it the number of blocks in the
 	// interval then adding the subsidy produced by number of blocks in the
 	// current interval.
-	supply := params.BlockOneSubsidy()
+	supply := BlockOneSubsidy
 	reductions := height / params.SubsidyReductionInterval
 	subsidy := params.BaseSubsidy
 	for i := int64(0); i < reductions; i++ {

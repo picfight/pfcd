@@ -11,6 +11,7 @@ import (
 	"github.com/jfixby/coin"
 	"github.com/jfixby/pin"
 	"github.com/picfight/pfcd/chaincfg"
+	"github.com/picfight/picfightcoin"
 )
 
 func TestPicfightCoinBlockSubsidy(t *testing.T) {
@@ -56,10 +57,9 @@ func TestDecredBlockSubsidyFull(t *testing.T) {
 	calc := net.SubsidyCalculator
 	net.SubsidyCalculator = nil
 	subsidyCache := NewSubsidyCache(0, net)
-
 	exepctedValue := int64(2103834590794301)
 	// value received by block-by-block testing
-	fullDecredBlockSubsidyCheck(t, net, subsidyCache, exepctedValue)
+	fullDecredBlockSubsidyCheck(t, subsidyCache, exepctedValue)
 	net.SubsidyCalculator = calc
 }
 
@@ -67,10 +67,12 @@ func TestDecredBlockSubsidyFunctionFull(t *testing.T) {
 	net := &chaincfg.DecredNetParams
 	expected := net.SubsidyCalculator().ExpectedTotalNetworkSubsidy().AtomsValue
 	pin.AssertNotNil("net.SubsidyCalculator", net.SubsidyCalculator)
-	fullDecredBlockSubsidyCheck(t, net, nil, expected)
+	fullDecredBlockSubsidyCheck(t, nil, expected)
 }
 
-func fullDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, cache *SubsidyCache, expected int64) {
+func fullDecredBlockSubsidyCheck(t *testing.T, cache *SubsidyCache, expected int64) {
+	net := &chaincfg.DecredNetParams
+	//--------------------
 	totalSubsidy := coin.Amount{0}
 	for i := int64(0); ; i++ {
 		blockIndex := i
@@ -109,7 +111,7 @@ func TestDecredBlockSubsidyFunctionOriginal(t *testing.T) {
 	pin.AssertNotNil("net.SubsidyCalculator", net.SubsidyCalculator)
 	expected := net.SubsidyCalculator().ExpectedTotalNetworkSubsidy().AtomsValue
 	expected = originalTestExpected
-	originalDecredBlockSubsidyCheck(t, net, nil, expected)
+	originalDecredBlockSubsidyCheck(t, nil, expected)
 }
 
 func TestDecredBlockSubsidyOriginal(t *testing.T) {
@@ -117,12 +119,20 @@ func TestDecredBlockSubsidyOriginal(t *testing.T) {
 	calc := net.SubsidyCalculator
 	net.SubsidyCalculator = nil
 	subsidyCache := NewSubsidyCache(0, net)
-
-	originalDecredBlockSubsidyCheck(t, net, subsidyCache, originalTestExpected)
+	originalDecredBlockSubsidyCheck(t, subsidyCache, originalTestExpected)
 	net.SubsidyCalculator = calc
 }
 
-func originalDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, subsidyCache *SubsidyCache, expected int64) {
+func originalDecredBlockSubsidyCheck(t *testing.T, subsidyCache *SubsidyCache, expected int64) {
+	net := &chaincfg.DecredNetParams
+	params := &picfightcoin.DecredSubsidyParams{
+		BaseSubsidy:              3119582664,
+		MulSubsidy:               100,
+		DivSubsidy:               101,
+		SubsidyReductionInterval: 6144,
+		// Subsidy parameters.
+	}
+	//--------------------
 	totalSubsidy := net.BlockOneSubsidy()
 	for i := int64(0); ; i++ {
 		// Genesis block or first block.
@@ -130,11 +140,11 @@ func originalDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, subsidy
 			continue
 		}
 
-		if i%net.SubsidyReductionInterval == 0 {
-			numBlocks := net.SubsidyReductionInterval
+		if i%params.SubsidyReductionInterval == 0 {
+			numBlocks := params.SubsidyReductionInterval
 			// First reduction internal, which is reduction interval - 2
 			// to skip the genesis block and block one.
-			if i == net.SubsidyReductionInterval {
+			if i == params.SubsidyReductionInterval {
 				numBlocks -= 2
 			}
 			height := i - numBlocks
@@ -152,7 +162,7 @@ func originalDecredBlockSubsidyCheck(t *testing.T, net *chaincfg.Params, subsidy
 
 			// First reduction internal, subtract the stake subsidy for
 			// blocks before the staking system is enabled.
-			if i == net.SubsidyReductionInterval {
+			if i == params.SubsidyReductionInterval {
 				totalSubsidy -= stake * (net.StakeValidationHeight - 2)
 			}
 		}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 func TestBigToCompact(t *testing.T) {
@@ -86,13 +87,20 @@ func TestEstimateSupplyV2(t *testing.T) {
 	checkEstimateSupply(t, estimateSupplyV2)
 }
 
-func checkEstimateSupply(t *testing.T, estimateSupply func(params *chaincfg.Params, height int64) int64) {
+func checkEstimateSupply(t *testing.T, estimateSupply func(n *chaincfg.Params, height int64) int64) {
 
 	// The parameters used for the supply estimation.
-	params := &chaincfg.DecredNetParams
+	net := &chaincfg.DecredNetParams
+	params := &picfightcoin.DecredSubsidyParams{
+		// Subsidy parameters.
+		BaseSubsidy:              3119582664,
+		MulSubsidy:               100,
+		DivSubsidy:               101,
+		SubsidyReductionInterval: 6144,
+	}
 	baseSubsidy := params.BaseSubsidy
 	reduxInterval := params.SubsidyReductionInterval
-	blockOneSubsidy := params.BlockOneSubsidy()
+	blockOneSubsidy := net.BlockOneSubsidy()
 
 	// intervalSubsidy is a helper function to return the full block subsidy
 	// for the given reduction interval.
@@ -131,7 +139,7 @@ func checkEstimateSupply(t *testing.T, estimateSupply func(params *chaincfg.Para
 	for _, test := range tests {
 		// Ensure the function to calculate the estimated supply is
 		// working properly.
-		gotSupply := estimateSupply(params, test.height)
+		gotSupply := estimateSupply(net, test.height)
 		if gotSupply != test.expected {
 			t.Errorf("estimateSupply (height %d): did not get "+
 				"expected supply - got %d, want %d", test.height,

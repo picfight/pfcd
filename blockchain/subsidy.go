@@ -15,6 +15,7 @@ import (
 	"github.com/picfight/pfcd/dcrutil"
 	"github.com/picfight/pfcd/txscript"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 // The number of values to precalculate on initialization of the subsidy
@@ -41,6 +42,10 @@ func NewSubsidyCache(height int64, params *chaincfg.Params) *SubsidyCache {
 		params:       params,
 	}
 
+	if params.DecredSubsidyParams == nil {
+		return &sc
+	}
+
 	iteration := uint64(height / params.DecredSubsidyParams.SubsidyReductionInterval)
 	if iteration < subsidyCacheInitWidth {
 		return &sc
@@ -65,20 +70,31 @@ func NewSubsidyCache(height int64, params *chaincfg.Params) *SubsidyCache {
 //
 // Safe for concurrent access.
 func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
-	if s.params.SubsidyCalculator != nil {
+	net := s.params
+	if net.SubsidyCalculator != nil {
 		return s.params.SubsidyCalculator().CalcBlockSubsidy(height)
+	}
+	params := net.DecredSubsidyParams
+	if net == &chaincfg.DecredNetParams {
+		params = &picfightcoin.DecredSubsidyParams{
+			BaseSubsidy:              3119582664,
+			MulSubsidy:               100,
+			DivSubsidy:               101,
+			SubsidyReductionInterval: 6144,
+			// Subsidy parameters.
+		}
 	}
 
 	// Block height 1 subsidy is 'special' and used to
 	// distribute initial tokens, if any.
 	if height == 1 {
-		return s.params.BlockOneSubsidy()
+		return net.BlockOneSubsidy()
 	}
 
-	iteration := uint64(height / s.params.SubsidyReductionInterval)
+	iteration := uint64(height / params.SubsidyReductionInterval)
 
 	if iteration == 0 {
-		return s.params.BaseSubsidy
+		return params.BaseSubsidy
 	}
 
 	// First, check the cache.
@@ -96,8 +112,8 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 	cachedValue, existsInCache = s.subsidyCache[iteration-1]
 	s.subsidyCacheLock.RUnlock()
 	if existsInCache {
-		cachedValue *= s.params.MulSubsidy
-		cachedValue /= s.params.DivSubsidy
+		cachedValue *= params.MulSubsidy
+		cachedValue /= params.DivSubsidy
 
 		s.subsidyCacheLock.Lock()
 		s.subsidyCache[iteration] = cachedValue
@@ -109,10 +125,10 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 	// Calculate the subsidy from scratch and store in the
 	// cache. TODO If there's an older item in the cache,
 	// calculate it from that to save time.
-	subsidy := s.params.BaseSubsidy
+	subsidy := params.BaseSubsidy
 	for i := uint64(0); i < iteration; i++ {
-		subsidy *= s.params.MulSubsidy
-		subsidy /= s.params.DivSubsidy
+		subsidy *= params.MulSubsidy
+		subsidy /= params.DivSubsidy
 	}
 
 	s.subsidyCacheLock.Lock()
