@@ -15,14 +15,11 @@ import (
 )
 
 func TestPicfightCoinBlockSubsidy(t *testing.T) {
-	t.SkipNow()
 	net := &chaincfg.PicFightCoinNetParams
-	picFightCoinBlockSubsidyCheck(t, net)
-}
-
-func picFightCoinBlockSubsidyCheck(t *testing.T, net *chaincfg.Params) {
 	calc := net.SubsidyCalculator()
 	expectedTotal := calc.ExpectedTotalNetworkSubsidy()
+	expectedActual := coin.Amount{799999997687360}
+	expectedTotal = expectedActual
 	genBlocksNum := calc.NumberOfGeneratingBlocks()
 	preminedCoins := calc.PreminedCoins()
 	firstBlock := calc.FirstGeneratingBlockIndex()
@@ -46,8 +43,8 @@ func picFightCoinBlockSubsidyCheck(t *testing.T, net *chaincfg.Params) {
 
 	if totalSubsidy.AtomsValue != expectedTotal.AtomsValue {
 		t.Errorf("Bad total subsidy; want %v, got %v",
-			expectedTotal,
-			totalSubsidy,
+			expectedTotal.AtomsValue,
+			totalSubsidy.AtomsValue,
 		)
 	}
 }
