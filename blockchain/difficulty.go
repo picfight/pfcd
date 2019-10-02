@@ -680,6 +680,12 @@ func (b *BlockChain) calcNextRequiredStakeDifficultyV1(curNode *blockNode) (int6
 // invalidated by stakeholders thereby removing the PoW subsidy for them.
 //
 // This function is safe for concurrent access.
+func estimateSupplyV2(params *chaincfg.Params, height int64) int64 {
+	if params.SubsidyCalculator != nil {
+		return params.SubsidyCalculator().EstimateSupply(height)
+	}
+	panic("No SubsidyCalculator provided")
+}
 func estimateSupply(params *chaincfg.Params, height int64) int64 {
 	if height <= 0 {
 		return 0

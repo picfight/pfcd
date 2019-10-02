@@ -40,14 +40,14 @@ var PicFightCoinNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	SubsidyCalculator:        func() picfightcoin.SubsidyCalculator { return picfightcoin.PicFightCoinSubsidy() },
-	BaseSubsidy:              0,  // not used
-	MulSubsidy:               0,  // not used
-	DivSubsidy:               0,  // not used
-	SubsidyReductionInterval: 1,  // not used
-	WorkRewardProportion:     6, // 60%
-	StakeRewardProportion:    4, // 40%
-	BlockTaxProportion:       0,  // 0%
+	SubsidyCalculator: picfightcoin.PicFightCoinSubsidy,
+	//BaseSubsidy:              0,  // not used
+	//MulSubsidy:               0,  // not used
+	//DivSubsidy:               0,  // not used
+	SubsidyReductionInterval: picfightcoin.PicFightCoinSubsidy().SubsidyReductionInterval(), //
+	WorkRewardProportion:     picfightcoin.PicFightCoinSubsidy().WorkRewardProportion(),     //
+	StakeRewardProportion:    picfightcoin.PicFightCoinSubsidy().StakeRewardProportion(),    //
+	BlockTaxProportion:       picfightcoin.PicFightCoinSubsidy().BlockTaxProportion(),       //
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},
@@ -95,7 +95,7 @@ var PicFightCoinNetParams = Params{
 	// Decred PoS parameters
 	MinimumStakeDiff:        2 * 1e8, // 2 Coin
 	TicketPoolSize:          8192,
-	TicketsPerBlock:         5,
+	TicketsPerBlock:         picfightcoin.PicFightCoinSubsidy().TicketsPerBlock(),
 	TicketMaturity:          256,
 	TicketExpiry:            40960, // 5*TicketPoolSize
 	CoinbaseMaturity:        256,
@@ -104,10 +104,10 @@ var PicFightCoinNetParams = Params{
 	StakeDiffAlpha:          1, // Minimal
 	StakeDiffWindowSize:     144,
 	StakeDiffWindows:        20,
-	StakeVersionInterval:    144 * 2 * 7, // ~1 week
-	MaxFreshStakePerBlock:   20,          // 4*TicketsPerBlock
-	StakeEnabledHeight:      256 + 256,   // CoinbaseMaturity + TicketMaturity
-	StakeValidationHeight:   4096,        // ~14 days
+	StakeVersionInterval:    144 * 2 * 7,                                                // ~1 week
+	MaxFreshStakePerBlock:   20,                                                         // 4*TicketsPerBlock
+	StakeEnabledHeight:      256 + 256,                                                  // CoinbaseMaturity + TicketMaturity
+	StakeValidationHeight:   picfightcoin.PicFightCoinSubsidy().StakeValidationHeight(), // 4096,        // ~14 days
 	StakeBaseSigScript:      []byte{0x00, 0x00},
 	StakeMajorityMultiplier: 3,
 	StakeMajorityDivisor:    4,

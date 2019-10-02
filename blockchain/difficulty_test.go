@@ -78,6 +78,15 @@ func TestCalcWork(t *testing.T) {
 // difficulty algorithm defined by DCP0001 works as expected.
 func TestEstimateSupply(t *testing.T) {
 	t.Parallel()
+	checkEstimateSupply(t, estimateSupply)
+}
+
+func TestEstimateSupplyV2(t *testing.T) {
+	t.Parallel()
+	checkEstimateSupply(t, estimateSupplyV2)
+}
+
+func checkEstimateSupply(t *testing.T, estimateSupply func(params *chaincfg.Params, height int64) int64) {
 
 	// The parameters used for the supply estimation.
 	params := &chaincfg.DecredNetParams

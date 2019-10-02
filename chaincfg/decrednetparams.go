@@ -41,14 +41,14 @@ var DecredNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	SubsidyCalculator:        func() picfightcoin.SubsidyCalculator { return picfightcoin.DecredSubsidy },
-	BaseSubsidy:              picfightcoin.DecredSubsidy.BaseSubsidy(),              // 3119582664, // 21m
-	MulSubsidy:               picfightcoin.DecredSubsidy.MulSubsidy(),               // 100,
-	DivSubsidy:               picfightcoin.DecredSubsidy.DivSubsidy(),               // 101,
-	SubsidyReductionInterval: picfightcoin.DecredSubsidy.SubsidyReductionInterval(), // 6144,
-	WorkRewardProportion:     picfightcoin.DecredSubsidy.WorkRewardProportion(),     // 6,
-	StakeRewardProportion:    picfightcoin.DecredSubsidy.StakeRewardProportion(),    // 3,
-	BlockTaxProportion:       picfightcoin.DecredSubsidy.BlockTaxProportion(),       // 1,
+	SubsidyCalculator:        picfightcoin.DecredMainNetSubsidy,
+	BaseSubsidy:              picfightcoin.DecredMainNetSubsidy().(picfightcoin.DecredSubsidyCalculator).BaseSubsidy(), // 3119582664, // 21m
+	MulSubsidy:               picfightcoin.DecredMainNetSubsidy().(picfightcoin.DecredSubsidyCalculator).MulSubsidy(),  // 100,
+	DivSubsidy:               picfightcoin.DecredMainNetSubsidy().(picfightcoin.DecredSubsidyCalculator).DivSubsidy(),  // 101,
+	SubsidyReductionInterval: picfightcoin.DecredMainNetSubsidy().SubsidyReductionInterval(),                           // 6144,
+	WorkRewardProportion:     picfightcoin.DecredMainNetSubsidy().WorkRewardProportion(),                               // 6,
+	StakeRewardProportion:    picfightcoin.DecredMainNetSubsidy().StakeRewardProportion(),                              // 3,
+	BlockTaxProportion:       picfightcoin.DecredMainNetSubsidy().BlockTaxProportion(),                                 // 1,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
@@ -228,7 +228,7 @@ var DecredNetParams = Params{
 	// Decred PoS parameters
 	MinimumStakeDiff:        2 * 1e8, // 2 Coin
 	TicketPoolSize:          8192,
-	TicketsPerBlock:         picfightcoin.DecredSubsidy.TicketsPerBlock(), //,5
+	TicketsPerBlock:         picfightcoin.DecredMainNetSubsidy().TicketsPerBlock(), //,5
 	TicketMaturity:          256,
 	TicketExpiry:            40960, // 5*TicketPoolSize
 	CoinbaseMaturity:        256,
@@ -237,10 +237,10 @@ var DecredNetParams = Params{
 	StakeDiffAlpha:          1, // Minimal
 	StakeDiffWindowSize:     144,
 	StakeDiffWindows:        20,
-	StakeVersionInterval:    144 * 2 * 7,                                        // ~1 week
-	MaxFreshStakePerBlock:   20,                                                 // 4*TicketsPerBlock
-	StakeEnabledHeight:      256 + 256,                                          // CoinbaseMaturity + TicketMaturity
-	StakeValidationHeight:   picfightcoin.DecredSubsidy.StakeValidationHeight(), // 4096,        // ~14 days
+	StakeVersionInterval:    144 * 2 * 7,                                                 // ~1 week
+	MaxFreshStakePerBlock:   20,                                                          // 4*TicketsPerBlock
+	StakeEnabledHeight:      256 + 256,                                                   // CoinbaseMaturity + TicketMaturity
+	StakeValidationHeight:   picfightcoin.DecredMainNetSubsidy().StakeValidationHeight(), // 4096,        // ~14 days
 	StakeBaseSigScript:      []byte{0x00, 0x00},
 	StakeMajorityMultiplier: 3,
 	StakeMajorityDivisor:    4,
