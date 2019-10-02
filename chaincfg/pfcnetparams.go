@@ -45,8 +45,8 @@ var PicFightCoinNetParams = Params{
 	MulSubsidy:               0,  // not used
 	DivSubsidy:               0,  // not used
 	SubsidyReductionInterval: 1,  // not used
-	WorkRewardProportion:     60, // 60%
-	StakeRewardProportion:    40, // 40%
+	WorkRewardProportion:     6, // 60%
+	StakeRewardProportion:    4, // 40%
 	BlockTaxProportion:       0,  // 0%
 
 	// Checkpoints ordered from oldest to newest.
