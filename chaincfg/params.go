@@ -301,26 +301,7 @@ type Params struct {
 	// difficulty retargets.
 	RetargetAdjustmentFactor int64
 
-	// Subsidy parameters.
-	//
-	// Subsidy calculation for exponential reductions:
-	// 0 for i in range (0, height / SubsidyReductionInterval):
-	// 1     subsidy *= MulSubsidy
-	// 2     subsidy /= DivSubsidy
-	//
-	// Caveat: Don't overflow the int64 register!!
-
-	// BaseSubsidy is the starting subsidy amount for mined blocks.
-	BaseSubsidy int64
-
-	// Subsidy reduction multiplier.
-	MulSubsidy int64
-
-	// Subsidy reduction divisor.
-	DivSubsidy int64
-
-	// SubsidyReductionInterval is the reduction interval in blocks.
-	SubsidyReductionInterval int64
+	DecredSubsidyParams *picfightcoin.DecredSubsidyParams
 
 	// WorkRewardProportion is the comparative amount of the subsidy given for
 	// creating a block.

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 // SimNetParams defines the network parameters for the simulation test network.
@@ -46,13 +47,16 @@ var SimNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              50000000000,
-	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 128,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
-	BlockTaxProportion:       1,
+	DecredSubsidyParams: &picfightcoin.DecredSubsidyParams{
+		BaseSubsidy:              50000000000,
+		MulSubsidy:               100,
+		DivSubsidy:               101,
+		SubsidyReductionInterval: 128,
+	},
+
+	WorkRewardProportion:  6,
+	StakeRewardProportion: 3,
+	BlockTaxProportion:    1,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,

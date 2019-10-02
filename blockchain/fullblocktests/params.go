@@ -13,6 +13,7 @@ import (
 	"github.com/picfight/pfcd/chaincfg"
 	"github.com/picfight/pfcd/chaincfg/chainhash"
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 // newHashFromStr converts the passed big-endian hex string into a
@@ -123,13 +124,18 @@ var regNetParams = &chaincfg.Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              50000000000,
-	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 128,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
-	BlockTaxProportion:       1,
+
+	// Subsidy parameters.
+	DecredSubsidyParams: &picfightcoin.DecredSubsidyParams{
+		BaseSubsidy:              50000000000,
+		MulSubsidy:               100,
+		DivSubsidy:               101,
+		SubsidyReductionInterval: 128,
+	},
+
+	WorkRewardProportion:  6,
+	StakeRewardProportion: 3,
+	BlockTaxProportion:    1,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,

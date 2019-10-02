@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/picfight/pfcd/wire"
+	"github.com/picfight/picfightcoin"
 )
 
 // TestNet3Params defines the network parameters for the test currency network.
@@ -42,13 +43,16 @@ var TestNet3Params = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              2500000000, // 25 Coin
-	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 2048,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
-	BlockTaxProportion:       1,
+	DecredSubsidyParams: &picfightcoin.DecredSubsidyParams{
+		BaseSubsidy:              2500000000, // 25 Coin
+		MulSubsidy:               100,
+		DivSubsidy:               101,
+		SubsidyReductionInterval: 2048,
+	},
+
+	WorkRewardProportion:  6,
+	StakeRewardProportion: 3,
+	BlockTaxProportion:    1,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
