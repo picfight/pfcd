@@ -40,14 +40,10 @@ var PicFightCoinNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	SubsidyCalculator: picfightcoin.PicFightCoinSubsidy,
-	//BaseSubsidy:              0,  // not used
-	//MulSubsidy:               0,  // not used
-	//DivSubsidy:               0,  // not used
-	SubsidyReductionInterval: picfightcoin.PicFightCoinSubsidy().SubsidyReductionInterval(), //
-	WorkRewardProportion:     picfightcoin.PicFightCoinSubsidy().WorkRewardProportion(),     //
-	StakeRewardProportion:    picfightcoin.PicFightCoinSubsidy().StakeRewardProportion(),    //
-	BlockTaxProportion:       picfightcoin.PicFightCoinSubsidy().BlockTaxProportion(),       //
+	SubsidyCalculator:     picfightcoin.PicFightCoinSubsidy,
+	WorkRewardProportion:  picfightcoin.PicFightCoinSubsidy().WorkRewardProportion(),  //
+	StakeRewardProportion: picfightcoin.PicFightCoinSubsidy().StakeRewardProportion(), //
+	BlockTaxProportion:    picfightcoin.PicFightCoinSubsidy().BlockTaxProportion(),    //
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},

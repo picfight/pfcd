@@ -41,14 +41,10 @@ var DecredNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	SubsidyCalculator:        picfightcoin.DecredMainNetSubsidy,
-	BaseSubsidy:              picfightcoin.DecredMainNetSubsidy().(picfightcoin.DecredSubsidyCalculator).BaseSubsidy(), // 3119582664, // 21m
-	MulSubsidy:               picfightcoin.DecredMainNetSubsidy().(picfightcoin.DecredSubsidyCalculator).MulSubsidy(),  // 100,
-	DivSubsidy:               picfightcoin.DecredMainNetSubsidy().(picfightcoin.DecredSubsidyCalculator).DivSubsidy(),  // 101,
-	SubsidyReductionInterval: picfightcoin.DecredMainNetSubsidy().SubsidyReductionInterval(),                           // 6144,
-	WorkRewardProportion:     picfightcoin.DecredMainNetSubsidy().WorkRewardProportion(),                               // 6,
-	StakeRewardProportion:    picfightcoin.DecredMainNetSubsidy().StakeRewardProportion(),                              // 3,
-	BlockTaxProportion:       picfightcoin.DecredMainNetSubsidy().BlockTaxProportion(),                                 // 1,
+	SubsidyCalculator:     picfightcoin.DecredMainNetSubsidy,
+	WorkRewardProportion:  picfightcoin.DecredMainNetSubsidy().WorkRewardProportion(),
+	StakeRewardProportion: picfightcoin.DecredMainNetSubsidy().StakeRewardProportion(),
+	BlockTaxProportion:    picfightcoin.DecredMainNetSubsidy().BlockTaxProportion(),
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
