@@ -42,6 +42,8 @@ github.com/picfight/picfightcoin v0.0.0-20191001123624-84c8bd500392 h1:VRLJNVZVX
 github.com/picfight/picfightcoin v0.0.0-20191001123624-84c8bd500392/go.mod h1:ha+rYP3z5+4VMMFtxAen2S0YKzVQeR5+B/gLkwAjx18=
 github.com/picfight/picfightcoin v0.0.0-20191002123151-f8c564eeaeaa h1:jfluI547/yk4sa5DaRY3wL2lxHyFeGz8rIUE4qQHuZQ=
 github.com/picfight/picfightcoin v0.0.0-20191002123151-f8c564eeaeaa/go.mod h1:ha+rYP3z5+4VMMFtxAen2S0YKzVQeR5+B/gLkwAjx18=
+github.com/picfight/picfightcoin v0.0.0-20191002184602-b5e70e4070ea h1:rPCedxD0FT6mjcEPwvrAzP3LBbKNJaNJMWcmubDvXkg=
+github.com/picfight/picfightcoin v0.0.0-20191002184602-b5e70e4070ea/go.mod h1:ha+rYP3z5+4VMMFtxAen2S0YKzVQeR5+B/gLkwAjx18=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad h1:5E5raQxcv+6CZ11RrBYQe5WRbUIWpScjh0kvHZkZIrQ=
 golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
