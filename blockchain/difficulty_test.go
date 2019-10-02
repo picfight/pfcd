@@ -79,7 +79,7 @@ func TestCalcWork(t *testing.T) {
 // difficulty algorithm defined by DCP0001 works as expected.
 func TestEstimateSupply(t *testing.T) {
 	t.Parallel()
-	checkEstimateSupply(t, estimateSupply)
+	checkEstimateSupply(t, estimateSupplyV1)
 }
 
 func TestEstimateSupplyV2(t *testing.T) {

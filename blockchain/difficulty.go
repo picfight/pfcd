@@ -681,14 +681,14 @@ func (b *BlockChain) calcNextRequiredStakeDifficultyV1(curNode *blockNode) (int6
 // invalidated by stakeholders thereby removing the PoW subsidy for them.
 //
 // This function is safe for concurrent access.
-func estimateSupplyV2(params *chaincfg.Params, height int64) int64 {
-	if params.SubsidyCalculator != nil {
-		return params.SubsidyCalculator().EstimateSupply(height)
+func estimateSupplyV2(net *chaincfg.Params, height int64) int64 {
+	if net.SubsidyCalculator != nil {
+		return net.SubsidyCalculator().EstimateSupply(height)
 	}
 	panic("No SubsidyCalculator provided")
 }
 
-func estimateSupply(net *chaincfg.Params, height int64) int64 {
+func estimateSupplyV1(net *chaincfg.Params, height int64) int64 {
 	params := net.DecredSubsidyParams
 	if net == &chaincfg.DecredNetParams {
 		params = &picfightcoin.DecredSubsidyParams{
@@ -700,6 +700,13 @@ func estimateSupply(net *chaincfg.Params, height int64) int64 {
 		}
 	}
 	return estimateDecredSupply(params, height, net.BlockOneSubsidy())
+}
+
+func estimateSupply(net *chaincfg.Params, height int64) int64 {
+	if net.SubsidyCalculator != nil {
+		return estimateSupplyV2(net, height)
+	}
+	return estimateSupplyV1(net, height)
 }
 
 func estimateDecredSupply(params *picfightcoin.DecredSubsidyParams, height int64, BlockOneSubsidy int64) int64 {

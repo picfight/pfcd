@@ -11,7 +11,7 @@ import (
 func TestEstimateSupplyRefactored(t *testing.T) {
 	net := &chaincfg.DecredNetParams
 	for height, _ := range decredExpectedSubsidyEstimateValues {
-		oldValue := estimateSupply(net, height)
+		oldValue := estimateSupplyV1(net, height)
 		newValue := estimateSupplyV2(net, height)
 		if oldValue != newValue {
 			t.Errorf("EstimateSupply mismatch at block[%v]: %v != %v",
