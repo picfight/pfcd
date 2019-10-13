@@ -1,1 +1,0 @@
-pfcd --rpclisten=127.0.0.1:30003 --txindex --rpcuser=node.user --rpcpass=node.pass --listen=127.0.0.1:30002 --addpeer=127.0.0.1:30000 --addrindex --datadir=nodeB --rpccert=nodeB\rpc.cert --rpckey=nodeB\rpc.key
