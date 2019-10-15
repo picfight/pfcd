@@ -41,37 +41,43 @@ Also, make sure your firewall is configured to allow inbound connections to port
 
 ## Installing and updating
 
-### Build from source (all platforms)
+### Setup
 
 Building or updating from source requires the following build dependencies:
-
-- **Go 1.13**
-
-  Installation instructions can be found here: https://golang.org/doc/install.
-  It is recommended to add `$GOPATH/bin` to your `PATH` at this point.
 
 - **Git**
 
   Installation instructions can be found at https://git-scm.com or
   https://gitforwindows.org.
+  
+- **Go 1.13**
 
-To build and install from a checked-out repo, run `go install . ./cmd/...` in
-the repo's root directory.  Some notes:
-
-* Set the `GO111MODULE=on` environment variable if using Go 1.11 and building
-  from within `GOPATH`.
+  Installation instructions can be found here: https://golang.org/doc/install.
+  It is recommended to add `$GOPATH/bin` to your `PATH` at this point.
 
 * The `pfcd` executable will be installed to `$GOPATH/bin`.  `GOPATH`
   defaults to `$HOME/go` (or `%USERPROFILE%\go` on Windows) if unset.
+  
+### Build from source (all platforms)
+
+Tip: You can always verify your steps against the Travis. Simply consult with the
+```.travis.yml``` and the ```run_tests.sh``` for the details.
 
 ### Example of obtaining and building from source on Windows:
 
+Checkout:
 ```bash
-git clone https://github.com/picfight/pfcd ~/src/pfcd
-cd ~/src/pfcd
+go get github.com/picfight/pfcd
+```
+
+Build and install:
+```bash
+cd %GOPATH%
+cd src/github.com/picfight/pfcd
+
 set GO111MODULE=on
 go build ./...
-go install . .\cmd\...
+go install . ./cmd/...
 ```
 
 ### Running Tests
@@ -79,6 +85,9 @@ go install . .\cmd\...
 To run the tests locally:
 
 ```bash
+cd %GOPATH%
+cd src/github.com/picfight/pfcd
+
 set GO111MODULE=on
 go build ./...
 go clean -testcache
@@ -87,11 +96,21 @@ go test ./...
 
 ## Example run commands
 
-Launch mining node:
+Launch default node:
+```bash
+pfcd
+```
+
+Launch mining node (set your wallet address):
+```bash
+pfcd --generate --miningaddr "JsKFRL5ivSH7CnYaTtaBT4M9fZG878g49Fg"
+```
+
+Launch mining node with custom settings:
 ```bash
 pfcd
      --generate
-     --miningaddr "JsCVh5SVDQovpW1dswaZNan2mfNWy6uRpPx"
+     --miningaddr "JsKFRL5ivSH7CnYaTtaBT4M9fZG878g49Fg"
      --listen=127.0.0.1:30000
      --rpclisten=127.0.0.1:30001
      --datadir=nodeA
