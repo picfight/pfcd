@@ -28,7 +28,7 @@ The term 'full node' is short for 'fully-validating node' and refers to software
 that fully validates all transactions and blocks, as opposed to trusting a 3rd
 party. In addition to validating transactions and blocks, nearly all full nodes
 also participate in relaying transactions and blocks to other full nodes around
-the world, thus forming the peer-to-peer network.
+the world, thus forming a peer-to-peer network.
 
 ## Getting Started
 
@@ -96,17 +96,17 @@ go test ./...
 
 ## Example run commands
 
-Launch default node:
+Launch the default node:
 ```bash
 pfcd
 ```
 
-Launch mining node (set your wallet address):
+Launch a mining node (set your wallet address):
 ```bash
 pfcd --generate --miningaddr "JsKFRL5ivSH7CnYaTtaBT4M9fZG878g49Fg"
 ```
 
-Launch mining node with custom settings:
+Launch a mining node with custom settings:
 ```bash
 pfcd
      --generate
@@ -122,7 +122,7 @@ pfcd
      --rpcpass=node.pass
 ```
 
-Launch second node and connect to it the first one for syncing:
+Launch the second node and connect to it the first one for syncing:
 ```bash
 pfcd
      --listen=127.0.0.1:30002
