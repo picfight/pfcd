@@ -10,7 +10,7 @@ import (
 func TestLockPremine(t *testing.T) {
 	{ // LOCK PROJECT SUBSIDY
 		projectPremine := picfightcoin.Premine()["JsKFRL5ivSH7CnYaTtaBT4M9fZG878g49Fg"]
-		expected := coin.FromFloat(4000000 - 6000)
+		expected := coin.FromFloat(20291)
 		if projectPremine.AtomsValue != expected.AtomsValue {
 			t.Errorf("Premine mismatch: got %v expected %v ",
 				projectPremine,
@@ -21,7 +21,7 @@ func TestLockPremine(t *testing.T) {
 	}
 	{ // LOCK PROJECT POS SUBSIDY
 		projectPosPremine := picfightcoin.Premine()["JsRjbYZ448FxZQ5kQAc15NcwUQ1oqYydVEG"]
-		expected := coin.FromFloat(6000)
+		expected := coin.FromFloat(60)
 		if projectPosPremine.AtomsValue != expected.AtomsValue {
 			t.Errorf("Premine mismatch: got %v expected %v ",
 				projectPosPremine,
@@ -51,7 +51,7 @@ func TestPremine(t *testing.T) {
 		)
 		t.Fail()
 	}
-	expected = coin.FromFloat(4000000).AtomsValue
+	expected = coin.FromFloat(20351).AtomsValue
 	if totalAtoms != expected {
 		t.Errorf("Premine mismatch: got %v expected %v ",
 			totalAtoms,

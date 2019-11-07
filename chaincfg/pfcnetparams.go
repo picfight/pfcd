@@ -88,8 +88,8 @@ var PicFightCoinNetParams = Params{
 	SLIP0044CoinType: 42, // SLIP0044, Decred
 	LegacyCoinType:   20, // for backwards compatibility
 
-	// Decred PoS parameters
-	MinimumStakeDiff:        2 * 1e8, // 2 Coin
+	// PoS parameters
+	MinimumStakeDiff:        picfightcoin.MinStakeDifficulty(),
 	TicketPoolSize:          8192,
 	TicketsPerBlock:         picfightcoin.PicFightCoinSubsidy().TicketsPerBlock(),
 	TicketMaturity:          256,

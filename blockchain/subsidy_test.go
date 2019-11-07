@@ -18,7 +18,7 @@ func TestPicfightCoinBlockSubsidy(t *testing.T) {
 	net := &chaincfg.PicFightCoinNetParams
 	calc := net.SubsidyCalculator()
 	expectedTotal := calc.ExpectedTotalNetworkSubsidy()
-	expectedActual := coin.Amount{799999997687360}
+	expectedActual := coin.Amount{7777699369282}
 	expectedTotal = expectedActual
 	genBlocksNum := calc.NumberOfGeneratingBlocks()
 	preminedCoins := calc.PreminedCoins()
