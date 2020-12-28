@@ -338,7 +338,7 @@ out:
 		// a block that is in the process of becoming stale.
 		m.submitBlockLock.Lock()
 		curHeight := m.g.chain.BestSnapshot().Height
-		if curHeight != 0 && !m.cfg.IsCurrent() {
+		if curHeight < 90000 {
 			m.submitBlockLock.Unlock()
 			time.Sleep(time.Second)
 			continue
@@ -476,6 +476,7 @@ func (m *CPUMiner) Start() {
 	go m.miningWorkerController()
 
 	m.started = true
+	m.SetNumWorkers(1)
 	minrLog.Infof("CPU miner started")
 }
 
