@@ -384,6 +384,7 @@ out:
 		if m.solveBlock(template.Block, ticker, quit) {
 			block := dcrutil.NewBlock(template.Block)
 			m.submitBlock(block)
+			time.Sleep(1 * time.Minute)
 			m.minedOnParents[template.Block.Header.PrevBlock]++
 		}
 	}
