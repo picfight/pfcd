@@ -962,8 +962,8 @@ func (b *BlockChain) checkBlockHeaderPositional(header *wire.BlockHeader, prevNo
 	// Ensure chain matches up to predetermined checkpoints.
 	blockHash := header.BlockHash()
 	if !b.verifyCheckpoint(blockHeight, &blockHash) {
-		str := fmt.Sprintf("block at height %d does not match "+
-			"checkpoint hash", blockHeight)
+		str := fmt.Sprintf("block at height %d does not pass "+
+			"checkpoint", blockHeight)
 		return ruleError(ErrBadCheckpoint, str)
 	}
 

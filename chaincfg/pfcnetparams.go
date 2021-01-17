@@ -39,15 +39,16 @@ var PicFightCoinNetParams = Params{
 	TargetTimespan:           time.Minute * 5 * 144, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 4,
 
-	// Subsidy parameters.
+	// Subsidy parameters.DecodeAddress
 	SubsidyCalculator:     picfightcoin.PicFightCoinSubsidy,
 	WorkRewardProportion:  picfightcoin.PicFightCoinSubsidy().WorkRewardProportion(),  //
 	StakeRewardProportion: picfightcoin.PicFightCoinSubsidy().StakeRewardProportion(), //
 	BlockTaxProportion:    picfightcoin.PicFightCoinSubsidy().BlockTaxProportion(),    //
 
 	// Checkpoints ordered from oldest to newest.
-	Checkpoints: []Checkpoint{},
-
+	Checkpoints: []Checkpoint{
+		{CheckpointFlag: CHECKPOINT_FLAG_HASH_MUST_NOT_BE_EQUAL, Height: 98710, Hash: newHashFromStr("0000000eabc543ce2cc81e22d621e8820d3a3a1b6b71202c8d720fea7bba0566")},
+	},
 	// The miner confirmation window is defined as:
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationQuorum:     4032, // 10 % of RuleChangeActivationInterval * TicketsPerBlock

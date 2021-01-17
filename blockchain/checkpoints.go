@@ -88,7 +88,11 @@ func (b *BlockChain) verifyCheckpoint(height int64, hash *chainhash.Hash) bool {
 		return true
 	}
 
-	if !checkpoint.Hash.IsEqual(hash) {
+	if !checkpoint.Hash.IsEqual(hash) && checkpoint.CheckpointFlag == chaincfg.CHECKPOINT_FLAG_HASH_MUST_BE_EQUAL {
+		return false
+	}
+
+	if checkpoint.Hash.IsEqual(hash) && checkpoint.CheckpointFlag == chaincfg.CHECKPOINT_FLAG_HASH_MUST_NOT_BE_EQUAL {
 		return false
 	}
 
