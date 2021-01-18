@@ -78,6 +78,16 @@ func (b *BlockChain) LatestCheckpoint() *chaincfg.Checkpoint {
 //
 // This function MUST be called with the chain lock held (for reads).
 func (b *BlockChain) verifyCheckpoint(height int64, hash *chainhash.Hash) bool {
+	rj := b.chainParams.RejectedBlocks[height]
+	if rj != nil {
+		checkpoint := rj
+		if rj.Hash.IsEqual(hash) {
+			log.Infof("Verified checkpoint at height %d/block %s", checkpoint.Height,
+				checkpoint.Hash)
+			return false
+		}
+	}
+
 	if b.noCheckpoints || len(b.chainParams.Checkpoints) == 0 {
 		return true
 	}
@@ -88,11 +98,7 @@ func (b *BlockChain) verifyCheckpoint(height int64, hash *chainhash.Hash) bool {
 		return true
 	}
 
-	if !checkpoint.Hash.IsEqual(hash) && checkpoint.CheckpointFlag == chaincfg.CHECKPOINT_FLAG_HASH_MUST_BE_EQUAL {
-		return false
-	}
-
-	if checkpoint.Hash.IsEqual(hash) && checkpoint.CheckpointFlag == chaincfg.CHECKPOINT_FLAG_HASH_MUST_NOT_BE_EQUAL {
+	if !checkpoint.Hash.IsEqual(hash) {
 		return false
 	}
 

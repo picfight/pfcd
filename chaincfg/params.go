@@ -72,12 +72,8 @@ var CPUMinerThreads = 1
 type Checkpoint struct {
 	Height         int64
 	Hash           *chainhash.Hash
-	CheckpointFlag string
 }
 
-const CHECKPOINT_FLAG_HASH_MUST_BE_EQUAL = "CHECKPOINT_FLAG_HASH_MUST_BE_EQUAL"
-
-const CHECKPOINT_FLAG_HASH_MUST_NOT_BE_EQUAL = "CHECKPOINT_FLAG_HASH_MUST_NOT_BE_EQUAL"
 
 // Vote describes a voting instance.  It is self-describing so that the UI can
 // be directly implemented using the fields.  Mask determines which bits can be
@@ -324,6 +320,7 @@ type Params struct {
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints []Checkpoint
+	RejectedBlocks map[int64]*Checkpoint
 
 	// These fields are related to voting on consensus rule changes as
 	// defined by BIP0009.
