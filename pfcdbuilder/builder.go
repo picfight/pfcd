@@ -19,10 +19,65 @@ func main() {
 	pin.D("output", output)
 	fileops.EngageDeleteSafeLock(true)
 	ClearProject(output, ignoredFiles())
+	ConvertFolders(input, output)
+}
+
+type FileFilter func(input string) bool
+
+const ALL_CHILDREN = true
+const DIRECT_CHILDREN = !ALL_CHILDREN
+
+var AllFiles = func(filePath string) bool { return true }
+var FoldersOnly = func(filePath string) bool {
+	return fileops.IsFolder(filePath)
+}
+
+func ConvertFolders(input string, output string) {
+	list := ListFiles(input, ignoredFiles(), ALL_CHILDREN, FoldersOnly)
+	pin.D("process", list)
+}
+
+func ListFiles(
+	target string,
+	IgnoredFiles map[string]bool,
+	children bool,
+	filter FileFilter) []string {
+	if fileops.IsFile(target) {
+		lang.ReportErr("This is not a folder: %v", target)
+	}
+
+	files, err := ioutil.ReadDir(target)
+	lang.CheckErr(err)
+	result := []string{}
+	for _, f := range files {
+		fileName := f.Name()
+		filePath := filepath.Join(target, fileName)
+
+		if !filter(filePath) {
+			continue
+		}
+
+		if IgnoredFiles[fileName] {
+			continue
+		}
+		if fileops.IsFolder(filePath) && children != DIRECT_CHILDREN {
+			children := ListFiles(filePath, IgnoredFiles, children,filter)
+			result = append(result, children...)
+			continue
+		}
+
+		if fileops.IsFile(filePath) {
+			result = append(result, filePath)
+			continue
+		}
+	}
+	result = append(result, target)
+	lang.CheckErr(err)
+	return result
 }
 
 func GoPath(git string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "src","github.com", git)
+	return filepath.Join(os.Getenv("GOPATH"), "src", "github.com", git)
 }
 
 func ClearProject(target string, ignore map[string]bool) {
@@ -103,6 +158,9 @@ func ignoredFiles() map[string]bool {
 	ignore["pfcdbuilder"] = true
 	//ignore["pfcregtest"] = true
 	//ignore["picfightcoin"] = true
+
+	ignore["go.mod"] = true
+	ignore["go.sum"] = true
 	return ignore
 }
 
