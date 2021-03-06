@@ -5,11 +5,47 @@ import (
 	"github.com/jfixby/pin"
 	"github.com/jfixby/pin/commandline"
 	"github.com/jfixby/pin/fileops"
+	"github.com/jfixby/pin/lang"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
 func main() {
+	input := GoPath("decred/dcrd")
+	output := GoPath("picfight/pfcd")
+	pin.D("input", input)
+	pin.D("output", output)
+	fileops.EngageDeleteSafeLock(true)
+	ClearProject(output, ignoredFiles())
+}
+
+func GoPath(git string) string {
+	return filepath.Join(os.Getenv("GOPATH"), "src","github.com", git)
+}
+
+func ClearProject(target string, ignore map[string]bool) {
+	pin.D("clear", target)
+	files, err := ioutil.ReadDir(target)
+	lang.CheckErr(err)
+
+	for _, f := range files {
+		fileName := f.Name()
+		filePath := filepath.Join(target, fileName)
+		if ignore[fileName] {
+			pin.D("  skip", filePath)
+			continue
+		}
+		pin.D("delete", filePath)
+		err := os.RemoveAll(filePath)
+		lang.CheckErr(err)
+	}
+	pin.D("")
+
+}
+
+func main_old() {
 	root := `D:\PICFIGHT\src\github.com\decred\dcrd`
 	ignored := ignoredFiles()
 	subfolders := fileops.ListFiles(root, fileops.FoldersOnly, fileops.DIRECT_CHILDREN)
@@ -57,16 +93,16 @@ func fileGenerator(data string) string {
 func ignoredFiles() map[string]bool {
 	ignore := make(map[string]bool)
 	ignore[".git"] = true
-	ignore[".github"] = true
+	//ignore[".github"] = true
 	ignore[".idea"] = true
-	ignore["rpctest"] = true
-	ignore["vendor"] = true
-	ignore["docs"] = true
-	ignore["cmd"] = true
-	ignore["builder"] = true
+	//ignore["rpctest"] = true
+	//ignore["vendor"] = true
+	//ignore["docs"] = true
+	//ignore["cmd"] = true
+	//ignore["builder"] = true
 	ignore["pfcdbuilder"] = true
-	ignore["pfcregtest"] = true
-	ignore["picfightcoin"] = true
+	//ignore["pfcregtest"] = true
+	//ignore["picfightcoin"] = true
 	return ignore
 }
 
