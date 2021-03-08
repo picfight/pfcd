@@ -33,16 +33,18 @@ func main() {
 	}
 
 	for k, _ := range inputs {
-		gomod := ReadGoMod(inputs[k])
-		gomod.Tag = k
+		gomod := ReadGoMod(inputs[k], k)
+		pin.S("gomod", gomod)
 	}
 
 	//pin.D("inputs ", inputs)
 	//pin.D("outputs", outputs)
 }
 
-func ReadGoMod(i string) *deps.GoModHandler {
+func ReadGoMod(i string, tag string) *deps.GoModHandler {
 	result := &deps.GoModHandler{}
+	result.Tag = tag
+
 	iData := fileops.ReadFileToString(i)
 	lines := strings.Split(iData, "\n")
 	index0 := findLineWith(lines, "require")
@@ -91,7 +93,6 @@ func ReadGoMod(i string) *deps.GoModHandler {
 		result.Dependencies = append(result.Dependencies, depp)
 	}
 
-	pin.S("result", result)
 	//for i:=0;i< len(tokens);i=i+2 {
 	//	dep := tokens[i]
 	//	ver := tokens[i+1][:len(tokens[i+1])-1]
@@ -143,7 +144,7 @@ func ListFiles(
 	for _, f := range files {
 		fileName := f.Name()
 		filePath := filepath.Join(target, fileName)
-
+		filePath = strings.ReplaceAll(filePath, "\\", "/")
 		if IgnoredFiles[fileName] {
 			continue
 		}
@@ -168,7 +169,7 @@ func ListFiles(
 }
 
 func GoPath(git string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "src", "github.com", git)
+	return strings.ReplaceAll(filepath.Join(os.Getenv("GOPATH"), "src", "github.com", git), "\\", "/")
 }
 
 func ClearProject(target string, ignore map[string]bool) {
