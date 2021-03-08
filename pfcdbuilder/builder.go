@@ -11,6 +11,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -44,7 +46,16 @@ func main() {
 
 func ReadGoMod(i string, tag string) *deps.GoModHandler {
 	result := &deps.GoModHandler{}
-	result.Tag = tag
+
+	mm := strings.Index(tag, "/go.mod")
+	if mm == -1 {
+		//pin.D("tag", tag)
+		result.Tag = ""
+
+	} else {
+		result.Tag = tag[:mm]
+	}
+	//pin.D("result.Tag", result.Tag)
 
 	iData := fileops.ReadFileToString(i)
 	lines := strings.Split(iData, "\n")
@@ -62,7 +73,8 @@ func ReadGoMod(i string, tag string) *deps.GoModHandler {
 		dep := tokens[0]
 		ver := tokens[1][:len(tokens[1])-1]
 		depp := deps.Dependency{
-			Import:  dep,
+			Import:  Dep(dep),
+			Fork:    Fork(dep),
 			Version: ver,
 		}
 		result.Dependencies = append(result.Dependencies, depp)
@@ -77,12 +89,47 @@ func ReadGoMod(i string, tag string) *deps.GoModHandler {
 		dep := tokens[0][1:]
 		ver := tokens[1][:len(tokens[1])]
 		depp := deps.Dependency{
-			Import:  dep,
+			Import:  Dep(dep),
+			Fork:    Fork(dep),
 			Version: ver,
 		}
 		result.Dependencies = append(result.Dependencies, depp)
 	}
 	return result
+}
+
+func Fork(dep string) int {
+	rxp := "v[0-9][0-9]*"
+	var validID = regexp.MustCompile(rxp)
+
+	i := strings.LastIndex(dep, "/")
+	//prefix := dep[:i]
+	postfix := dep[i+1:]
+
+	if validID.MatchString(postfix) {
+		ForkString := postfix[1:]
+		f, err := strconv.Atoi(ForkString)
+		lang.CheckErr(err)
+		//pin.D(dep, f)
+		return f
+	}
+	return 0
+}
+
+func Dep(dep string) string {
+	rxp := "v[0-9][0-9]*"
+	var validID = regexp.MustCompile(rxp)
+
+	i := strings.LastIndex(dep, "/")
+	prefix := dep[:i]
+	postfix := dep[i+1:]
+
+	if validID.MatchString(postfix) {
+		//pin.D(dep, prefix)
+		return prefix
+	}
+	//pin.D(dep)
+	return dep
 }
 
 func findLineWith(lines []string, s string) int {

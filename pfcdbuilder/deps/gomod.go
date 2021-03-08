@@ -8,6 +8,7 @@ import (
 
 type Dependency struct {
 	Import  string
+	Fork    int
 	Version string
 }
 
@@ -35,10 +36,16 @@ func (v DepsGraphVertex) ListChildren() []ut.Vertex {
 		if !strings.HasPrefix(im, PREF) {
 			continue
 		}
-		key := im[len(PREF)-1:] + "/go.mod"
+		key := im[len(PREF)-1:]
 		cv := v.g.Vertices[key]
-		pin.D("         key", key)
-		pin.D("v.g.Vertices", v.g.Vertices)
+		if cv == nil {
+
+			pin.D("missing key", key+" : "+dp.Version)
+			pin.D("v.g.Vertices", v.g.Vertices)
+			pin.AssertNotNil(key, cv)
+			continue
+		}
+		//pin.D("v.g.Vertices", v.g.Vertices)
 		pin.AssertNotNil(key, cv)
 		c := &DepsGraphVertex{v.g, cv}
 		result = append(result, c)
