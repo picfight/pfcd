@@ -3,23 +3,21 @@ package ut
 import "github.com/jfixby/pin"
 
 type Graph interface {
-	ListVertices() []Vertex
-}
-type Vertex interface {
-	ListChildren() []Vertex
+	ListVertices() []string
+	ListChildrenForVertex(vertexID string) []string
 }
 
-func SortGraph(g Graph) []Vertex {
-	result := []Vertex{}
-	remaning := map[Vertex]bool{}
+func SortGraph(g Graph) []string {
+	result := []string{}
+	remaning := map[string]bool{}
 	for _, e := range g.ListVertices() {
 		remaning[e] = true
 	}
 
-	visited := map[Vertex]bool{}
+	visited := &vertexset{map[string]bool{}}
 
 	for len(remaning) > 0 {
-		var last Vertex = nil
+		var last string = ""
 		for k, v := range remaning {
 			if v {
 				last = k
@@ -28,22 +26,29 @@ func SortGraph(g Graph) []Vertex {
 			}
 		}
 		delete(remaning, last)
-		dfs(g, last, visited, result)
+		result = append(result, dfs(g, last, visited)...)
 	}
 
 	return result
 }
 
-func dfs(g Graph, current Vertex, visited map[Vertex]bool, result []Vertex) {
-	if visited[current] {
-		return
+type vertexset struct {
+	set map[string]bool
+}
+
+func dfs(g Graph, currentVertex string, visited *vertexset) []string {
+	result := []string{}
+
+	if visited.set[currentVertex] {
+		return result
 	}
 
-	children := current.ListChildren()
+	children := g.ListChildrenForVertex(currentVertex)
 	for _, c := range children {
-		dfs(g, c, visited, result)
+		result = append(result, dfs(g, c, visited)...)
 	}
 
-	result = append(result, current)
-	visited[current] = true
+	result = append(result, currentVertex)
+	visited.set[currentVertex] = true
+	return result
 }

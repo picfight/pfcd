@@ -40,7 +40,11 @@ func main() {
 
 	sorted := ut.SortGraph(graph)
 
-	pin.D("sorted ", sorted)
+	//pin.D("sorted", sorted)
+	for _, tag := range sorted {
+		vx := graph.Vertices[tag]
+		pin.D(tag, vx.Dependencies)
+	}
 	//pin.D("outputs", outputs)
 }
 
@@ -48,9 +52,10 @@ func ReadGoMod(i string, tag string) *deps.GoModHandler {
 	result := &deps.GoModHandler{}
 
 	mm := strings.Index(tag, "/go.mod")
-	if mm == -1 {
+	//pin.D("tag", tag)
+	if mm == 0 {
 		//pin.D("tag", tag)
-		result.Tag = ""
+		result.Tag = "/"
 
 	} else {
 		result.Tag = tag[:mm]
@@ -113,7 +118,7 @@ func Fork(dep string) int {
 		//pin.D(dep, f)
 		return f
 	}
-	return 0
+	return -1
 }
 
 func Dep(dep string) string {
