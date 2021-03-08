@@ -6,6 +6,7 @@ import (
 	"github.com/jfixby/pin/commandline"
 	"github.com/jfixby/pin/fileops"
 	"github.com/jfixby/pin/lang"
+	"github.com/picfight/pfcd/pfcdbuilder/deps"
 	"github.com/picfight/pfcd/pfcdbuilder/ut"
 	"io/ioutil"
 	"os"
@@ -32,25 +33,78 @@ func main() {
 	}
 
 	for k, _ := range inputs {
-		ConvertGoMod(inputs[k], outputs[k])
+		gomod := ReadGoMod(inputs[k])
+		gomod.Tag = k
 	}
 
 	//pin.D("inputs ", inputs)
 	//pin.D("outputs", outputs)
 }
 
-func ConvertGoMod(i string, o string) {
+func ReadGoMod(i string) *deps.GoModHandler {
+	result := &deps.GoModHandler{}
 	iData := fileops.ReadFileToString(i)
 	lines := strings.Split(iData, "\n")
 	index0 := findLineWith(lines, "require")
-	if index0 == -1 {
-		pin.D(i, iData)
-		return
+	if index0 == -1 { // no dependencies
+		//pin.D(i, iData)
+		return result
 	}
+
+	sr := strings.Split(iData, "require")
+	pin.AssertTrue("", len(sr) == 2)
+
+	brBegin := strings.Index(sr[1], "(")
+	if brBegin == -1 {
+		tokens := strings.Split(sr[1][1:], " ")
+		//pin.D("sl", "<"+sr[1]+">")
+		//pin.D("tokens", tokens)
+		dep := tokens[0]
+		ver := tokens[1][:len(tokens[1])-1]
+		//pin.D("dep", "<"+dep+">")
+		//pin.D("ver", "<"+ver+">")
+		depp := deps.Dependency{
+			Import:  dep,
+			Version: ver,
+		}
+		result.Dependencies = append(result.Dependencies, depp)
+		return result
+	}
+	brEnd := strings.Index(sr[1], ")")
+	list := sr[1][brBegin+1+1 : brEnd]
+	lines = strings.Split(list, "\n")
+	lines = lines[0 : len(lines)-1]
+	//tokens := strings.Split(list, " ")
+	//pin.D("lines", lines)
+	for _, l := range lines {
+		tokens := strings.Split(l, " ")
+		//pin.D("sl", "<"+sr[1]+">")
+		//pin.D("tokens", tokens)
+		dep := tokens[0][1:]
+		ver := tokens[1][:len(tokens[1])]
+		//pin.D("dep", "<"+dep+">")
+		//pin.D("ver", "<"+ver+">")
+		depp := deps.Dependency{
+			Import:  dep,
+			Version: ver,
+		}
+		result.Dependencies = append(result.Dependencies, depp)
+	}
+
+	pin.S("result", result)
+	//for i:=0;i< len(tokens);i=i+2 {
+	//	dep := tokens[i]
+	//	ver := tokens[i+1][:len(tokens[i+1])-1]
+	//	pin.D("dep", "<"+dep+">")
+	//	pin.D("ver", "<"+ver+">")
+	//}
+
 	//sl := lines[index0]
 	//pin.D("sl", sl)
-	oData := iData
-	fileops.WriteStringToFile(o, oData)
+	//oData := iData
+	//fileops.WriteStringToFile(o, oData)
+
+	return result
 }
 
 func findLineWith(lines []string, s string) int {
