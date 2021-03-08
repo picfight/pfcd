@@ -3,6 +3,7 @@ module github.com/picfight/pfcd
 go 1.12
 
 require (
+	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd
 	github.com/btcsuite/goleveldb v1.0.0

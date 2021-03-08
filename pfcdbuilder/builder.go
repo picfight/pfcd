@@ -22,9 +22,6 @@ func main() {
 	fileops.EngageDeleteSafeLock(true)
 	//ClearProject(output, ignoredFiles())
 
-	//gomodlist := ListFiles(input, ignoredFiles(), ALL_CHILDREN, ut.FoldersOnly)
-	//pin.D("process", gomodlist)
-
 	gomodlist := ListFiles(input, nil, ALL_CHILDREN, ut.Ext("mod"))
 	inputs := Relatives(input, gomodlist)
 	outputs := map[string]string{}
@@ -32,12 +29,16 @@ func main() {
 		outputs[k] = output + k
 	}
 
+	graph := deps.DepsGraph{map[string]*deps.GoModHandler{}}
 	for k, _ := range inputs {
 		gomod := ReadGoMod(inputs[k], k)
-		pin.S("gomod", gomod)
+		//pin.S("gomod", gomod)
+		graph.Vertices[gomod.Tag] = gomod
 	}
 
-	//pin.D("inputs ", inputs)
+	sorted := ut.SortGraph(graph)
+
+	pin.D("sorted ", sorted)
 	//pin.D("outputs", outputs)
 }
 
@@ -49,7 +50,6 @@ func ReadGoMod(i string, tag string) *deps.GoModHandler {
 	lines := strings.Split(iData, "\n")
 	index0 := findLineWith(lines, "require")
 	if index0 == -1 { // no dependencies
-		//pin.D(i, iData)
 		return result
 	}
 
@@ -59,12 +59,8 @@ func ReadGoMod(i string, tag string) *deps.GoModHandler {
 	brBegin := strings.Index(sr[1], "(")
 	if brBegin == -1 {
 		tokens := strings.Split(sr[1][1:], " ")
-		//pin.D("sl", "<"+sr[1]+">")
-		//pin.D("tokens", tokens)
 		dep := tokens[0]
 		ver := tokens[1][:len(tokens[1])-1]
-		//pin.D("dep", "<"+dep+">")
-		//pin.D("ver", "<"+ver+">")
 		depp := deps.Dependency{
 			Import:  dep,
 			Version: ver,
@@ -76,35 +72,16 @@ func ReadGoMod(i string, tag string) *deps.GoModHandler {
 	list := sr[1][brBegin+1+1 : brEnd]
 	lines = strings.Split(list, "\n")
 	lines = lines[0 : len(lines)-1]
-	//tokens := strings.Split(list, " ")
-	//pin.D("lines", lines)
 	for _, l := range lines {
 		tokens := strings.Split(l, " ")
-		//pin.D("sl", "<"+sr[1]+">")
-		//pin.D("tokens", tokens)
 		dep := tokens[0][1:]
 		ver := tokens[1][:len(tokens[1])]
-		//pin.D("dep", "<"+dep+">")
-		//pin.D("ver", "<"+ver+">")
 		depp := deps.Dependency{
 			Import:  dep,
 			Version: ver,
 		}
 		result.Dependencies = append(result.Dependencies, depp)
 	}
-
-	//for i:=0;i< len(tokens);i=i+2 {
-	//	dep := tokens[i]
-	//	ver := tokens[i+1][:len(tokens[i+1])-1]
-	//	pin.D("dep", "<"+dep+">")
-	//	pin.D("ver", "<"+ver+">")
-	//}
-
-	//sl := lines[index0]
-	//pin.D("sl", sl)
-	//oData := iData
-	//fileops.WriteStringToFile(o, oData)
-
 	return result
 }
 
