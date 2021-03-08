@@ -6,6 +6,7 @@ import (
 	"github.com/jfixby/pin/commandline"
 	"github.com/jfixby/pin/fileops"
 	"github.com/jfixby/pin/lang"
+	"github.com/picfight/pfcd/pfcdbuilder/ut"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -19,29 +20,61 @@ func main() {
 	pin.D("output", output)
 	fileops.EngageDeleteSafeLock(true)
 	ClearProject(output, ignoredFiles())
-	ConvertFolders(input, output)
+
+	//gomodlist := ListFiles(input, ignoredFiles(), ALL_CHILDREN, ut.FoldersOnly)
+	//pin.D("process", gomodlist)
+
+	gomodlist := ListFiles(input, nil, ALL_CHILDREN, ut.Ext("mod"))
+	inputs := Relatives(input, gomodlist)
+	outputs := map[string]string{}
+	for k, _ := range inputs {
+		outputs[k] = output + k
+	}
+
+	for k, _ := range inputs {
+		ConvertGoMod(inputs[k], outputs[k])
+	}
+
+	//pin.D("inputs ", inputs)
+	//pin.D("outputs", outputs)
 }
 
-type FileFilter func(input string) bool
+func ConvertGoMod(i string, o string) {
+	iData := fileops.ReadFileToString(i)
+	lines := strings.Split(iData, "\n")
+	index0 := findLineWith(lines, "require(")
+	sl := lines[index0]
+	pin.D("sl", sl)
+	oData := iData
+	fileops.WriteStringToFile(o, oData)
+}
+
+func findLineWith(lines []string, s string) int {
+	for i, e := range lines {
+		if strings.Contains(e, s) {
+			return i
+		}
+	}
+	return -1
+}
+
+func Relatives(root string, subfiles []string) map[string]string {
+	result := map[string]string{}
+	for _, e := range subfiles {
+		key := e[len(root):len(e)]
+		result[key] = e
+	}
+	return result
+}
 
 const ALL_CHILDREN = true
 const DIRECT_CHILDREN = !ALL_CHILDREN
-
-var AllFiles = func(filePath string) bool { return true }
-var FoldersOnly = func(filePath string) bool {
-	return fileops.IsFolder(filePath)
-}
-
-func ConvertFolders(input string, output string) {
-	list := ListFiles(input, ignoredFiles(), ALL_CHILDREN, FoldersOnly)
-	pin.D("process", list)
-}
 
 func ListFiles(
 	target string,
 	IgnoredFiles map[string]bool,
 	children bool,
-	filter FileFilter) []string {
+	filter ut.FileFilter) []string {
 	if fileops.IsFile(target) {
 		lang.ReportErr("This is not a folder: %v", target)
 	}
@@ -53,25 +86,25 @@ func ListFiles(
 		fileName := f.Name()
 		filePath := filepath.Join(target, fileName)
 
-		if !filter(filePath) {
-			continue
-		}
-
 		if IgnoredFiles[fileName] {
 			continue
 		}
 		if fileops.IsFolder(filePath) && children != DIRECT_CHILDREN {
-			children := ListFiles(filePath, IgnoredFiles, children,filter)
+			children := ListFiles(filePath, IgnoredFiles, children, filter)
 			result = append(result, children...)
 			continue
 		}
 
 		if fileops.IsFile(filePath) {
-			result = append(result, filePath)
+			if filter(filePath) {
+				result = append(result, filePath)
+			}
 			continue
 		}
 	}
-	result = append(result, target)
+	if filter(target) {
+		result = append(result, target)
+	}
 	lang.CheckErr(err)
 	return result
 }
