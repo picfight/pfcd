@@ -42,7 +42,7 @@ func main() {
 func ConvertGoMod(i string, o string) {
 	iData := fileops.ReadFileToString(i)
 	lines := strings.Split(iData, "\n")
-	index0 := findLineWith(lines, "require (")
+	index0 := findLineWith(lines, "require")
 	if index0 == -1 {
 		pin.D(i, iData)
 		return
