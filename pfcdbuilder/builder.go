@@ -19,7 +19,7 @@ func main() {
 	pin.D("input", input)
 	pin.D("output", output)
 	fileops.EngageDeleteSafeLock(true)
-	ClearProject(output, ignoredFiles())
+	//ClearProject(output, ignoredFiles())
 
 	//gomodlist := ListFiles(input, ignoredFiles(), ALL_CHILDREN, ut.FoldersOnly)
 	//pin.D("process", gomodlist)
@@ -42,9 +42,13 @@ func main() {
 func ConvertGoMod(i string, o string) {
 	iData := fileops.ReadFileToString(i)
 	lines := strings.Split(iData, "\n")
-	index0 := findLineWith(lines, "require(")
-	sl := lines[index0]
-	pin.D("sl", sl)
+	index0 := findLineWith(lines, "require (")
+	if index0 == -1 {
+		pin.D(i, iData)
+		return
+	}
+	//sl := lines[index0]
+	//pin.D("sl", sl)
 	oData := iData
 	fileops.WriteStringToFile(o, oData)
 }
