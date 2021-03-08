@@ -26,24 +26,22 @@ func (v DepsGraph) ListChildrenForVertex(vertexID string) []string {
 	//dps := v.g.Vertices[v.Tag]
 	dps := v.Vertices[vertexID]
 	deps := dps.Dependencies
-	PREF := "github.com/decred/dcrd/"
+	DCRD_PREF := "github.com/decred/dcrd/"
 	for _, dp := range deps {
 		im := dp.Import
-		if !strings.HasPrefix(im, PREF) {
-			continue
-		}
-		key := im[len(PREF)-1:]
-		cv := v.Vertices[key]
-		if cv == nil {
-
-			pin.D("missing key", key+" : "+dp.Version)
-			pin.D("v.g.Vertices", v.Vertices)
+		if strings.HasPrefix(im, DCRD_PREF) {
+			key := im[len(DCRD_PREF)-1:]
+			cv := v.Vertices[key]
+			if cv == nil {
+				pin.D("missing key", key+" : "+dp.Version)
+				pin.D("v.g.Vertices", v.Vertices)
+				pin.AssertNotNil(key, cv)
+			}
+			//pin.D("v.g.Vertices", v.g.Vertices)
 			pin.AssertNotNil(key, cv)
+			result = append(result, cv.Tag)
 			continue
 		}
-		//pin.D("v.g.Vertices", v.g.Vertices)
-		pin.AssertNotNil(key, cv)
-		result = append(result, cv.Tag)
 	}
 	return result
 }

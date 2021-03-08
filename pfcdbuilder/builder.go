@@ -19,8 +19,8 @@ import (
 func main() {
 	input := GoPath("decred/dcrd")
 	output := GoPath("picfight/pfcd")
-	pin.D("input", input)
-	pin.D("output", output)
+	//pin.D("input", input)
+	//pin.D("output", output)
 	fileops.EngageDeleteSafeLock(true)
 	//ClearProject(output, ignoredFiles())
 
@@ -44,8 +44,35 @@ func main() {
 	for _, tag := range sorted {
 		vx := graph.Vertices[tag]
 		pin.D(tag, vx.Dependencies)
+		ConvertPackage(vx, input, output)
+		break
 	}
 	//pin.D("outputs", outputs)
+}
+
+func ConvertPackage(vx *deps.GoModHandler, input string, output string) {
+	//pin.D("   tag", vx.Tag)
+	//pin.D(" input", input+vx.Tag)
+	//pin.D("output", output+vx.Tag
+	//)
+	{
+		I := input + vx.Tag + "/go.mod"
+		//O := output + vx.Tag + "/go.mod"
+		//pin.D(I, O)
+		iData := fileops.ReadFileToString(I)
+		pin.D(I, iData)
+	}
+	{
+		I := input + vx.Tag
+		//O := output + vx.Tag
+		gofiles := ListFiles(I, nil, DIRECT_CHILDREN, ut.Ext("go"))
+		pin.D("gofiles", gofiles)
+		for _, i := range gofiles {
+			o := strings.ReplaceAll(i, input, output)
+			//iData := fileops.ReadFileToString(i)
+			pin.D(i, o)
+		}
+	}
 }
 
 func ReadGoMod(i string, tag string) *deps.GoModHandler {
