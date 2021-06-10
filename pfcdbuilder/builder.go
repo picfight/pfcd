@@ -22,7 +22,7 @@ func main() {
 	//pin.D("input", input)
 	//pin.D("output", output)
 	fileops.EngageDeleteSafeLock(true)
-	//ClearProject(output, ignoredFiles())
+	ClearProject(output, ignoredFiles())
 
 	gomodlist := ListFiles(input, nil, ALL_CHILDREN, ut.Ext("mod"))
 	inputs := Relatives(input, gomodlist)
@@ -45,7 +45,8 @@ func main() {
 		vx := graph.Vertices[tag]
 		pin.D(tag, vx.Dependencies)
 		ConvertPackage(vx, input, output)
-		break
+		pin.D("---------------------------------------------------------------------")
+
 	}
 	//pin.D("outputs", outputs)
 }
@@ -70,9 +71,20 @@ func ConvertPackage(vx *deps.GoModHandler, input string, output string) {
 		for _, i := range gofiles {
 			o := strings.ReplaceAll(i, input, output)
 			//iData := fileops.ReadFileToString(i)
-			pin.D(i, o)
+			ConvertFile(i,o)
+
 		}
 	}
+}
+
+func ConvertFile(i string, o string) {
+	//pin.D("Convert:")
+	pin.D(i, o)
+
+	iData := fileops.ReadFileToString(i)
+	fileops.WriteStringToFile(o, iData)
+
+
 }
 
 func ReadGoMod(i string, tag string) *deps.GoModHandler {
@@ -296,7 +308,7 @@ func fileGenerator(data string) string {
 func ignoredFiles() map[string]bool {
 	ignore := make(map[string]bool)
 	ignore[".git"] = true
-	//ignore[".github"] = true
+	ignore[".gitignore"] = true
 	ignore[".idea"] = true
 	//ignore["rpctest"] = true
 	//ignore["vendor"] = true
