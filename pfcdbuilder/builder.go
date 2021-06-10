@@ -16,9 +16,13 @@ import (
 	"strings"
 )
 
+const POLICY_FILE = "convert.plc"
+
 func main() {
 	input := GoPath("decred/dcrd")
 	output := GoPath("picfight/pfcd")
+	policies := "policies/dcrd/"
+
 	//pin.D("input", input)
 	//pin.D("output", output)
 	fileops.EngageDeleteSafeLock(true)
@@ -44,14 +48,14 @@ func main() {
 	for _, tag := range sorted {
 		vx := graph.Vertices[tag]
 		pin.D(tag, vx.Dependencies)
-		ConvertPackage(vx, input, output)
+		ConvertPackage(vx, input, output, policies)
 		pin.D("---------------------------------------------------------------------")
 
 	}
 	//pin.D("outputs", outputs)
 }
 
-func ConvertPackage(vx *deps.GoModHandler, input string, output string) {
+func ConvertPackage(vx *deps.GoModHandler, input string, output string, policies string) {
 	//pin.D("   tag", vx.Tag)
 	//pin.D(" input", input+vx.Tag)
 	//pin.D("output", output+vx.Tag
@@ -68,13 +72,28 @@ func ConvertPackage(vx *deps.GoModHandler, input string, output string) {
 		//O := output + vx.Tag
 		gofiles := ListFiles(I, nil, DIRECT_CHILDREN, ut.Ext("go"))
 		pin.D("gofiles", gofiles)
-		for _, i := range gofiles {
-			o := strings.ReplaceAll(i, input, output)
+		//for _, i := range gofiles
+		{
+			//o := strings.ReplaceAll(i, input, output)
 			//iData := fileops.ReadFileToString(i)
-			ConvertFile(i,o)
+			//ConvertFile(i,o)
 
 		}
 	}
+
+	{
+		P, err := filepath.Abs(policies + vx.Tag)
+		lang.CheckErr(err)
+		p := filepath.Join(P, POLICY_FILE)
+
+		if !fileops.FileExists(p) {
+			lang.ReportErr("policy file not found: %v", p)
+		}
+		iData := fileops.ReadFileToString(p)
+		pin.D(p, iData)
+
+	}
+
 }
 
 func ConvertFile(i string, o string) {
@@ -83,7 +102,6 @@ func ConvertFile(i string, o string) {
 
 	iData := fileops.ReadFileToString(i)
 	fileops.WriteStringToFile(o, iData)
-
 
 }
 
