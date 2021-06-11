@@ -1,0 +1,17 @@
+{
+  "PackageName": "github.com/decred/dcrd/chaincfg/chainhash",
+  "Files": [
+    {
+      "FileName": "hash_test.go"
+    },
+    {
+      "FileName": "hashfuncs.go"
+    },
+    {
+      "FileName": "hash.go"
+    },
+    {
+      "FileName": "hashfuncs_test.go"
+    }
+  ]
+}

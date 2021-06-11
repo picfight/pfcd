@@ -30,7 +30,8 @@ func (v DepsGraph) ListChildrenForVertex(vertexID string) []string {
 	for _, dp := range deps {
 		im := dp.Import
 		if strings.HasPrefix(im, DCRD_PREF) {
-			key := im[len(DCRD_PREF)-1:]
+			//key := im[len(DCRD_PREF)-1:]
+			key := im
 			cv := v.Vertices[key]
 			if cv == nil {
 				pin.D("missing key", key+" : "+dp.Version)

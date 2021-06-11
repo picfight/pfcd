@@ -1,0 +1,11 @@
+{
+	"PackageName": "test_pkg",
+	"Files": [
+		{
+			"FileName": "file_1.go"
+		},
+		{
+			"FileName": "file_2.go"
+		}
+	]
+}

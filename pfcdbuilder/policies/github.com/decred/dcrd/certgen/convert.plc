@@ -1,0 +1,8 @@
+{
+	"PackageName": "github.com/decred/dcrd/certgen",
+	"Files": [
+		{
+			"FileName": "hashfuncs.go"
+		}
+	]
+}

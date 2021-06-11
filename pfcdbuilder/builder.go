@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/jfixby/coinknife"
 	"github.com/jfixby/pin"
 	"github.com/jfixby/pin/commandline"
 	"github.com/jfixby/pin/fileops"
 	"github.com/jfixby/pin/lang"
 	"github.com/picfight/pfcd/pfcdbuilder/deps"
+	"github.com/picfight/pfcd/pfcdbuilder/policy"
 	"github.com/picfight/pfcd/pfcdbuilder/ut"
 	"io/ioutil"
 	"os"
@@ -19,9 +21,9 @@ import (
 const POLICY_FILE = "convert.plc"
 
 func main() {
-	input := GoPath("decred/dcrd")
-	output := GoPath("picfight/pfcd")
-	policies := "policies/dcrd/"
+	input := GoPath("github.com/decred/dcrd")
+	output := GoPath("github.com/picfight/pfcd")
+	policies := "policies/"
 
 	//pin.D("input", input)
 	//pin.D("output", output)
@@ -29,7 +31,8 @@ func main() {
 	ClearProject(output, ignoredFiles())
 
 	gomodlist := ListFiles(input, nil, ALL_CHILDREN, ut.Ext("mod"))
-	inputs := Relatives(input, gomodlist)
+	root := fileops.Parent(fileops.Parent(fileops.Parent(input)))
+	inputs := Relatives(root, gomodlist)
 	outputs := map[string]string{}
 	for k, _ := range inputs {
 		outputs[k] = output + k
@@ -44,7 +47,7 @@ func main() {
 
 	sorted := ut.SortGraph(graph)
 
-	//pin.D("sorted", sorted)
+	pin.D("sorted", sorted)
 	for _, tag := range sorted {
 		vx := graph.Vertices[tag]
 		pin.D(tag, vx.Dependencies)
@@ -61,24 +64,15 @@ func ConvertPackage(vx *deps.GoModHandler, input string, output string, policies
 	//pin.D("output", output+vx.Tag
 	//)
 	{
-		I := input + vx.Tag + "/go.mod"
+		I := GoPath(vx.Tag + "/go.mod")
 		//O := output + vx.Tag + "/go.mod"
 		//pin.D(I, O)
 		iData := fileops.ReadFileToString(I)
 		pin.D(I, iData)
 	}
 	{
-		I := input + vx.Tag
-		//O := output + vx.Tag
-		gofiles := ListFiles(I, nil, DIRECT_CHILDREN, ut.Ext("go"))
-		pin.D("gofiles", gofiles)
-		//for _, i := range gofiles
-		{
-			//o := strings.ReplaceAll(i, input, output)
-			//iData := fileops.ReadFileToString(i)
-			//ConvertFile(i,o)
 
-		}
+		//O := output + vx.Tag
 	}
 
 	{
@@ -87,21 +81,81 @@ func ConvertPackage(vx *deps.GoModHandler, input string, output string, policies
 		p := filepath.Join(P, POLICY_FILE)
 
 		if !fileops.FileExists(p) {
+			err := os.MkdirAll(P, 0x777)
+			lang.CheckErr(err)
+
 			lang.ReportErr("policy file not found: %v", p)
 		}
-		iData := fileops.ReadFileToString(p)
-		pin.D(p, iData)
 
+		file, err := ioutil.ReadFile(p)
+		lang.CheckErr(err)
+		plc := &policy.PackagePolicy{}
+		err = json.Unmarshal([]byte(file), &plc)
+		lang.CheckErr(err)
+		//pin.D(p, string(file))
+
+		lang.AssertValue("package name", plc.PackageName, vx.Tag)
+
+		I := GoPath(vx.Tag)
+
+		gofiles := ListFiles(I, nil, DIRECT_CHILDREN, ut.Ext("go"))
+		set, short2long := ShortenFileNames(gofiles)
+
+		pfiles := map[string]policy.FilePolicy{}
+
+		for _, f := range plc.Files {
+			if f.FileName == "" {
+				lang.ReportErr("Invalid policy: %v", f)
+			}
+			pfiles[f.FileName] = f
+			if !set[f.FileName] {
+				lang.ReportErr("File not found : %v", f.FileName)
+			}
+		}
+
+		for f, _ := range set {
+			x := pfiles[f]
+			if x.FileName == "" {
+				lang.ReportErr("No policy for file : %v", f)
+			}
+			//o := strings.ReplaceAll(i, input, output)
+			//iData := fileops.ReadFileToString(i)
+			//ConvertFile(i,o)
+		}
+
+		for s, _ := range set {
+			i := short2long[s]
+			o := strings.ReplaceAll(i, input, output)
+			//iData := fileops.ReadFileToString(i)
+			fp := pfiles[s]
+			ConvertFile(i, o, &fp)
+		}
 	}
 
 }
 
-func ConvertFile(i string, o string) {
-	//pin.D("Convert:")
-	pin.D(i, o)
+func ShortenFileNames(input map[string]bool) (set map[string]bool, short2long map[string]string) {
+	set = map[string]bool{}
+	short2long = map[string]string{}
+	for k, v := range input {
+		p := fileops.Parent(k)
+		s := k[len(p)+1:]
+		set[s] = v
+		short2long[s] = k
+	}
+	return
+}
 
-	iData := fileops.ReadFileToString(i)
-	fileops.WriteStringToFile(o, iData)
+func ConvertFile(i string, o string, policy *policy.FilePolicy) {
+	pin.D("Convert: ", policy.FileName)
+	pin.D(i, o)
+	si := filepath.Base(i)
+	so := filepath.Base(o)
+	lang.AssertValue("i", si, policy.FileName)
+	lang.AssertValue("o", so, policy.FileName)
+
+	//iData := fileops.ReadFileToString(i)
+	//fileops.WriteStringToFile(o, iData)
 
 }
 
@@ -203,10 +257,10 @@ func findLineWith(lines []string, s string) int {
 	return -1
 }
 
-func Relatives(root string, subfiles []string) map[string]string {
+func Relatives(root string, subfiles map[string]bool) map[string]string {
 	result := map[string]string{}
-	for _, e := range subfiles {
-		key := e[len(root):len(e)]
+	for e, _ := range subfiles {
+		key := e[len(root)+1 : len(e)]
 		result[key] = e
 	}
 	return result
@@ -219,14 +273,14 @@ func ListFiles(
 	target string,
 	IgnoredFiles map[string]bool,
 	children bool,
-	filter ut.FileFilter) []string {
+	filter ut.FileFilter) map[string]bool {
 	if fileops.IsFile(target) {
 		lang.ReportErr("This is not a folder: %v", target)
 	}
 
 	files, err := ioutil.ReadDir(target)
 	lang.CheckErr(err)
-	result := []string{}
+	result := map[string]bool{}
 	for _, f := range files {
 		fileName := f.Name()
 		filePath := filepath.Join(target, fileName)
@@ -236,26 +290,36 @@ func ListFiles(
 		}
 		if fileops.IsFolder(filePath) && children != DIRECT_CHILDREN {
 			children := ListFiles(filePath, IgnoredFiles, children, filter)
-			result = append(result, children...)
+			//result = append(result, children...)
+			result = putAll(result, children)
 			continue
 		}
 
 		if fileops.IsFile(filePath) {
 			if filter(filePath) {
-				result = append(result, filePath)
+				//result = append(result, filePath)
+				result[filePath] = true
 			}
 			continue
 		}
 	}
 	if filter(target) {
-		result = append(result, target)
+		//result = append(result, target)
+		result[target] = true
 	}
 	lang.CheckErr(err)
 	return result
 }
 
+func putAll(result map[string]bool, children map[string]bool) map[string]bool {
+	for k, v := range children {
+		result[k] = v
+	}
+	return result
+}
+
 func GoPath(git string) string {
-	return strings.ReplaceAll(filepath.Join(os.Getenv("GOPATH"), "src", "github.com", git), "\\", "/")
+	return strings.ReplaceAll(filepath.Join(os.Getenv("GOPATH"), "src", git), "\\", "/")
 }
 
 func ClearProject(target string, ignore map[string]bool) {

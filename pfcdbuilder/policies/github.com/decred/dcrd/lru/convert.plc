@@ -1,0 +1,14 @@
+{
+	"PackageName": "github.com/decred/dcrd/crypto/blake256",
+	"Files": [
+		{
+			"FileName": "blake256_test.go"
+		},
+		{
+			"FileName": "blake256.go"
+		},
+		{
+			"FileName": "blake256block.go"
+		}
+	]
+}
