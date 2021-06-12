@@ -7,7 +7,11 @@ import (
 
 type FileFilter func(input string) bool
 
-var AllFiles = func(filePath string) bool { return true }
+var All = func(filePath string) bool { return true }
+
+var FilesOnly = func(filePath string) bool {
+	return fileops.IsFile(filePath)
+}
 
 var FoldersOnly = func(filePath string) bool {
 	return fileops.IsFolder(filePath)

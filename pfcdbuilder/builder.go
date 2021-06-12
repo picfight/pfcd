@@ -98,13 +98,13 @@ func ConvertPackage(vx *deps.GoModHandler, input string, output string, policies
 
 		I := GoPath(vx.Tag)
 
-		gofiles := ListFiles(I, nil, DIRECT_CHILDREN, ut.Ext("go"))
+		gofiles := ListFiles(I, nil, DIRECT_CHILDREN, ut.FilesOnly)
 		set, short2long := ShortenFileNames(gofiles)
 
 		pfiles := map[string]policy.FilePolicy{}
 
 		for _, f := range plc.Files {
-			if f.FileName == "" {
+			if !f.IsValid() {
 				lang.ReportErr("Invalid policy: %v", f)
 			}
 			pfiles[f.FileName] = f
@@ -116,10 +116,13 @@ func ConvertPackage(vx *deps.GoModHandler, input string, output string, policies
 		for f, _ := range set {
 			x := pfiles[f]
 			if x.FileName == "" {
+				i := short2long[f]
+				iData := fileops.ReadFileToString(i)
+				pin.D(f, iData)
 				lang.ReportErr("No policy for file : %v", f)
 			}
 			//o := strings.ReplaceAll(i, input, output)
-			//iData := fileops.ReadFileToString(i)
+
 			//ConvertFile(i,o)
 		}
 
@@ -147,6 +150,10 @@ func ShortenFileNames(input map[string]bool) (set map[string]bool, short2long ma
 }
 
 func ConvertFile(i string, o string, policy *policy.FilePolicy) {
+	if !policy.IsValid() {
+		lang.ReportErr("Invalid policy: %v", policy)
+	}
+
 	pin.D("Convert: ", policy.FileName)
 	pin.D(i, o)
 	si := filepath.Base(i)
@@ -154,9 +161,11 @@ func ConvertFile(i string, o string, policy *policy.FilePolicy) {
 	lang.AssertValue("i", si, policy.FileName)
 	lang.AssertValue("o", so, policy.FileName)
 
-	//iData := fileops.ReadFileToString(i)
-	//fileops.WriteStringToFile(o, iData)
-
+	if policy.IsCopyAsIs() {
+		iData := fileops.ReadFileToString(i)
+		//pin.D(iData)
+		fileops.WriteStringToFile(o, iData)
+	}
 }
 
 func ReadGoMod(i string, tag string) *deps.GoModHandler {
