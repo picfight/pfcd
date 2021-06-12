@@ -15,7 +15,8 @@
     },
     {
       "FileName": "go.mod",
-      "CopyAsIs": "YES"
+      "CopyAsIs": "NO",
+      "UseAutoReplacer": "YES"
     },
     {
       "FileName": "README.md",

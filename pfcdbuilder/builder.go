@@ -9,6 +9,7 @@ import (
 	"github.com/jfixby/pin/lang"
 	"github.com/picfight/pfcd/pfcdbuilder/deps"
 	"github.com/picfight/pfcd/pfcdbuilder/policy"
+	"github.com/picfight/pfcd/pfcdbuilder/replacer"
 	"github.com/picfight/pfcd/pfcdbuilder/ut"
 	"io/ioutil"
 	"os"
@@ -166,7 +167,15 @@ func ConvertFile(i string, o string, policy *policy.FilePolicy) {
 		//pin.D(iData)
 		fileops.WriteStringToFile(o, iData)
 	}
+
+	if policy.IsUseAutoReplacer() {
+		iData := fileops.ReadFileToString(i)
+		iData = replacer.ReplaceAll(iData)
+		fileops.WriteStringToFile(o, iData)
+	}
 }
+
+
 
 func ReadGoMod(i string, tag string) *deps.GoModHandler {
 	result := &deps.GoModHandler{}
