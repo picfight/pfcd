@@ -46,7 +46,8 @@ func main() {
 		if plc == nil {
 			pin.D("no policy for", vx.Tag)
 			pin.D(tag, vx.Dependencies)
-			lang.ReportErr("no policy for %v", vx.Tag)
+			//lang.ReportErr("no policy for %v", vx.Tag)
+			return
 		}
 
 		if plc.IsSkipProcessing() {
@@ -202,7 +203,25 @@ func PolicyFor(tag string, vx *deps.GoModHandler) *policy.PackagePolicy {
 			UseInjectors: policy.YES,
 		}
 	}
-	if tag == "github.com/decred/dcrd/chaincfg/" {
+	if tag == "github.com/decred/dcrd/chaincfg" {
+		return &policy.PackagePolicy{
+			ConvertFiles: policy.YES,
+			UseInjectors: policy.YES,
+		}
+	}
+	if tag == "github.com/decred/dcrd/wire" {
+		return &policy.PackagePolicy{
+			ConvertFiles: policy.YES,
+			UseInjectors: policy.YES,
+		}
+	}
+	if tag == "github.com/decred/dcrd/dcrjson" {
+		return &policy.PackagePolicy{
+			ConvertFiles: policy.YES,
+			UseInjectors: policy.YES,
+		}
+	}
+	if tag == "github.com/decred/dcrd/dcrec/secp256k" {
 		return &policy.PackagePolicy{
 			ConvertFiles: policy.YES,
 			UseInjectors: policy.YES,
