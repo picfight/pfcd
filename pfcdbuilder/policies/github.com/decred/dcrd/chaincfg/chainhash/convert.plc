@@ -1,17 +1,36 @@
 {
   "PackageName": "github.com/decred/dcrd/chaincfg/chainhash",
+  "RedirectPackageTo": "github.com/picfight/chainhash",
+  "SkipProcessing": "YES",
   "Files": [
     {
-      "FileName": "hash_test.go"
+      "FileName": "hash.go",
+      "CopyAsIs": "YES"
     },
     {
-      "FileName": "hashfuncs.go"
+      "FileName": "hash_test.go",
+      "CopyAsIs": "YES"
     },
     {
-      "FileName": "hash.go"
+      "FileName": "hashfuncs.go",
+      "CopyAsIs": "YES"
     },
     {
-      "FileName": "hashfuncs_test.go"
+      "FileName": "hashfuncs_test.go",
+      "CopyAsIs": "YES"
+    },
+    {
+      "FileName": "doc.go",
+      "CopyAsIs": "YES"
+    },
+    {
+      "FileName": "README.md",
+      "CopyAsIs": "YES"
+    },
+    {
+      "FileName": "go.mod",
+      "CopyAsIs": "NO",
+      "UseAutoReplacer": "YES"
     }
   ]
 }

@@ -1,8 +1,16 @@
 {
-	"PackageName": "github.com/decred/dcrd/certgen",
-	"Files": [
-		{
-			"FileName": "hashfuncs.go"
-		}
-	]
+  "PackageName": "github.com/decred/dcrd/certgen",
+  "RedirectPackageTo": "github.com/picfight/certgen",
+  "SkipProcessing": "NO",
+  "Files": [
+    {
+      "FileName": "hash_test.go",
+      "CopyAsIs": "YES"
+    },
+    {
+      "FileName": "go.mod",
+      "CopyAsIs": "NO",
+      "UseAutoReplacer": "YES"
+    }
+  ]
 }

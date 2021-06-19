@@ -41,6 +41,8 @@ github.com/jrick/logrotate v1.0.0 h1:lQ1bL/n9mBNeIXoTUoYRlK4dHuNJVofX9oWqBtPnSzI
 github.com/jrick/logrotate v1.0.0/go.mod h1:LNinyqDIJnpAur+b8yyulnQw/wDuN1+BYKlTRt3OuAQ=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/gomega v1.4.1/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
+github.com/picfight/blake256 v0.0.0-20210612220812-3b3cc1f17287 h1:Csmdcfj5KrBrDollvGztSSwDggpCJfGBy1aL00Hh7q8=
+github.com/picfight/blake256 v0.0.0-20210612220812-3b3cc1f17287/go.mod h1:x2s97ybqojdlQXJRhqRT+35KfzShgpDm4FK4ysA6XOY=
 github.com/picfight/picfightcoin v0.0.0-20191107151210-0ab5c80ba5bc h1:40Fh7v29VEayd3PmWBQqqiDB0r2oXHjC3DpNkeIr49U=
 github.com/picfight/picfightcoin v0.0.0-20191107151210-0ab5c80ba5bc/go.mod h1:ha+rYP3z5+4VMMFtxAen2S0YKzVQeR5+B/gLkwAjx18=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=

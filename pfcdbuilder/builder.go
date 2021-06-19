@@ -7,6 +7,7 @@ import (
 	"github.com/jfixby/pin/commandline"
 	"github.com/jfixby/pin/fileops"
 	"github.com/jfixby/pin/lang"
+	"github.com/picfight/pfcd/pfcdbuilder/builder"
 	"github.com/picfight/pfcd/pfcdbuilder/deps"
 	"github.com/picfight/pfcd/pfcdbuilder/policy"
 	"github.com/picfight/pfcd/pfcdbuilder/replacer"
@@ -14,93 +15,112 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
 const POLICY_FILE = "convert.plc"
 
 func main() {
-	input := GoPath("github.com/decred/dcrd")
-	output := GoPath("github.com/picfight/pfcd")
-	policies := "policies/"
+	input := builder.GoPath("github.com/decred/dcrd")
+	output := builder.GoPath("github.com/picfight/pfcd")
+	//policies := "policies/"
 
 	//pin.D("input", input)
 	//pin.D("output", output)
 	fileops.EngageDeleteSafeLock(true)
-	ClearProject(output, ignoredFiles())
+	builder.ClearProject(output, ignoredFiles())
 
-	gomodlist := ListFiles(input, nil, ALL_CHILDREN, ut.Ext("mod"))
-	root := fileops.Parent(fileops.Parent(fileops.Parent(input)))
-	inputs := Relatives(root, gomodlist)
-	outputs := map[string]string{}
-	for k, _ := range inputs {
-		outputs[k] = output + k
-	}
+	sorted, graph := builder.SortPackages(input)
 
-	graph := deps.DepsGraph{map[string]*deps.GoModHandler{}}
-	for k, _ := range inputs {
-		gomod := ReadGoMod(inputs[k], k)
-		//pin.S("gomod", gomod)
-		graph.Vertices[gomod.Tag] = gomod
-	}
-
-	sorted := ut.SortGraph(graph)
+	processor := deps.NewProcessor()
 
 	pin.D("sorted", sorted)
+
 	for _, tag := range sorted {
 		vx := graph.Vertices[tag]
-		pin.D(tag, vx.Dependencies)
-		ConvertPackage(vx, input, output, policies)
-		pin.D("---------------------------------------------------------------------")
+		//pin.D(tag, vx.Dependencies)
+		plc := PolicyFor(tag, vx)
 
+		if plc == nil {
+			pin.D("no policy for", vx.Tag)
+			pin.D(tag, vx.Dependencies)
+			lang.ReportErr("no policy for %v", vx.Tag)
+		}
+
+		if plc.IsSkipProcessing() {
+			pin.D("skip", vx.Tag)
+			processor.AddSkippedPackage(vx.Tag)
+			continue
+		}
+
+		if plc.IsConvertFiles() {
+			ConvertPackage(input, output, tag, vx, plc, processor)
+		}
+		//plc := ReadPolicy(vx, policies)
+		//
+		//puotput := output
+		//if plc.RedirectPackageTo != "" {
+		//	processor.AddRedirect(vx.Tag, plc.RedirectPackageTo)
+		//}
+		//if !plc.IsSkipProcessing() {
+		//	if plc.RedirectPackageTo != "" {
+		//		puotput = GoPath(plc.RedirectPackageTo)
+		//		ClearProject(puotput, ignoredFiles())
+		//	}
+		//	ConvertPackage(vx, input, puotput, plc, processor)
+		//} else {
+		//	pin.D("skip", vx.Tag)
+		//}
+		pin.D("---------------------------------------------------------------------")
 	}
-	//pin.D("outputs", outputs)
 }
 
-func ConvertPackage(vx *deps.GoModHandler, input string, output string, policies string) {
+func ConvertGoFile(input string, output string, tag string, vx *deps.GoModHandler, plc *policy.PackagePolicy, proc *deps.Processor) {
+
+	I := builder.GoPath(vx.Tag + "/go.mod")
+	O := coinknife.Replace(I, input, output)
+	//output + vx.Tag + "/go.mod"
+	pin.D(I, O)
+	iData := fileops.ReadFileToString(I)
+	for pi, po := range proc.Redirects() {
+		iData = coinknife.Replace(iData, pi, po)
+		pin.D("   replace "+pi, po)
+	}
+
+	pin.D(I, iData)
+
+	fileops.WriteStringToFile(O, iData)
+
+}
+
+func ClearDestination(input string, output string, vx *deps.GoModHandler) {
+	I := builder.GoPath(vx.Tag)
+	O := coinknife.Replace(I, input, output)
+	//output + vx.Tag + "/go.mod"
+	os.MkdirAll(O, os.ModePerm)
+	builder.ClearProject(O, ignoredFiles())
+}
+
+func ConvertPackage(input string, output string, tag string, vx *deps.GoModHandler, plc *policy.PackagePolicy, proc *deps.Processor) {
+	ClearDestination(input, output, vx)
+	ConvertGoFile(input, output, tag, vx, plc, proc)
+	if 1 == 1 {
+		return
+	}
 	//pin.D("   tag", vx.Tag)
 	//pin.D(" input", input+vx.Tag)
 	//pin.D("output", output+vx.Tag
 	//)
-	{
-		I := GoPath(vx.Tag + "/go.mod")
-		//O := output + vx.Tag + "/go.mod"
-		//pin.D(I, O)
-		iData := fileops.ReadFileToString(I)
-		pin.D(I, iData)
-	}
-	{
-
-		//O := output + vx.Tag
-	}
 
 	{
-		P, err := filepath.Abs(policies + vx.Tag)
-		lang.CheckErr(err)
-		p := filepath.Join(P, POLICY_FILE)
-
-		if !fileops.FileExists(p) {
-			err := os.MkdirAll(P, 0x777)
-			lang.CheckErr(err)
-
-			lang.ReportErr("policy file not found: %v", p)
-		}
-
-		file, err := ioutil.ReadFile(p)
-		lang.CheckErr(err)
-		plc := &policy.PackagePolicy{}
-		err = json.Unmarshal([]byte(file), &plc)
-		lang.CheckErr(err)
 		//pin.D(p, string(file))
 
 		lang.AssertValue("package name", plc.PackageName, vx.Tag)
 
-		I := GoPath(vx.Tag)
+		I := builder.GoPath(vx.Tag)
 
-		gofiles := ListFiles(I, nil, DIRECT_CHILDREN, ut.FilesOnly)
-		set, short2long := ShortenFileNames(gofiles)
+		gofiles := builder.ListFiles(I, nil, builder.DIRECT_CHILDREN, ut.OR(ut.Ext("go"), ut.Name("README.md")))
+		short2long := builder.ShortenFileNames(gofiles)
 
 		pfiles := map[string]policy.FilePolicy{}
 
@@ -109,60 +129,120 @@ func ConvertPackage(vx *deps.GoModHandler, input string, output string, policies
 				lang.ReportErr("Invalid policy: %v", f)
 			}
 			pfiles[f.FileName] = f
-			if !set[f.FileName] {
+			if short2long[f.FileName] != "" && (f.FileName != "go.mod") {
 				lang.ReportErr("File not found : %v", f.FileName)
 			}
 		}
 
-		for f, _ := range set {
+		for f, _ := range short2long {
 			x := pfiles[f]
 			if x.FileName == "" {
-				i := short2long[f]
-				iData := fileops.ReadFileToString(i)
-				pin.D(f, iData)
-				lang.ReportErr("No policy for file : %v", f)
+				//i := short2long[f]
+				//iData := fileops.ReadFileToString(i)
+				//pin.D(f, iData)
+				//lang.ReportErr("No policy for file : %v", f)
 			}
 			//o := strings.ReplaceAll(i, input, output)
 
 			//ConvertFile(i,o)
 		}
 
-		for s, _ := range set {
-			i := short2long[s]
-			o := strings.ReplaceAll(i, input, output)
-			//iData := fileops.ReadFileToString(i)
-			fp := pfiles[s]
-			ConvertFile(i, o, &fp)
+		if plc.IsRedirectPackage() {
+			s := "go.mod"
+			{
+				i := filepath.Join(I, s)
+				//o := strings.ReplaceAll(i, input, output)
+				o := filepath.Join(output, s)
+				iData := fileops.ReadFileToString(i)
+				iData = coinknife.Replace(iData, vx.Tag, plc.RedirectPackageTo)
+				fileops.WriteStringToFile(o, iData)
+			}
+		}
+
+		//
+		{
+			//for s, i := range short2long {
+			//	//o := strings.ReplaceAll(i, input, output)
+			//	o := filepath.Join(output, s)
+			//	fp := pfiles[s]
+			//	ConvertFile(i, o, &fp, plc, vx)
+			//}
 		}
 	}
-
 }
 
-func ShortenFileNames(input map[string]bool) (set map[string]bool, short2long map[string]string) {
-	set = map[string]bool{}
-	short2long = map[string]string{}
-	for k, v := range input {
-		p := fileops.Parent(k)
-		s := k[len(p)+1:]
-		set[s] = v
-		short2long[s] = k
+func PolicyFor(tag string, vx *deps.GoModHandler) *policy.PackagePolicy {
+	if tag == "github.com/decred/dcrd/bech32" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
 	}
-	return
+	if tag == "github.com/decred/dcrd/certgen" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/crypto/blake256" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/crypto/ripemd160" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/dcrec" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/dcrec/edwards" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/lru" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/chaincfg/chainhash" {
+		return &policy.PackagePolicy{
+			ConvertFiles: policy.YES,
+			UseInjectors: policy.YES,
+		}
+	}
+	if tag == "github.com/decred/dcrd/chaincfg/" {
+		return &policy.PackagePolicy{
+			ConvertFiles: policy.YES,
+			UseInjectors: policy.YES,
+		}
+	}
+	return nil
 }
 
-func ConvertFile(i string, o string, policy *policy.FilePolicy) {
-	if !policy.IsValid() {
-		lang.ReportErr("Invalid policy: %v", policy)
+func ReadPolicy(vx *deps.GoModHandler, policies string) *policy.PackagePolicy {
+	P, err := filepath.Abs(policies + vx.Tag)
+	lang.CheckErr(err)
+	p := filepath.Join(P, POLICY_FILE)
+
+	if !fileops.FileExists(p) {
+		err := os.MkdirAll(P, 0x777)
+		lang.CheckErr(err)
+
+		lang.ReportErr("policy file not found: %v", p)
 	}
 
-	pin.D("Convert: ", policy.FileName)
-	pin.D(i, o)
-	si := filepath.Base(i)
-	so := filepath.Base(o)
-	lang.AssertValue("i", si, policy.FileName)
-	lang.AssertValue("o", so, policy.FileName)
+	file, err := ioutil.ReadFile(p)
+	lang.CheckErr(err)
+	plc := &policy.PackagePolicy{}
+	err = json.Unmarshal([]byte(file), &plc)
+	lang.CheckErr(err)
 
-	if policy.IsCopyAsIs() {
+	return plc
+}
+
+func ConvertFile(i string, o string, policy *policy.FilePolicy, P *policy.PackagePolicy, vx *deps.GoModHandler, proc *deps.Processor) {
+	//if !policy.IsValid() {
+	//	lang.ReportErr("Invalid policy: %v", policy)
+	//}
+
+	//pin.D("Convert: ", policy.FileName)
+	pin.D("Convert: ", i)
+	//pin.D(i, o)
+	//si := filepath.Base(i)
+	//so := filepath.Base(o)
+	//lang.AssertValue("i", si, policy.FileName)
+	//lang.AssertValue("o", so, policy.FileName)
+
+	{
 		iData := fileops.ReadFileToString(i)
 		//pin.D(iData)
 		fileops.WriteStringToFile(o, iData)
@@ -171,193 +251,13 @@ func ConvertFile(i string, o string, policy *policy.FilePolicy) {
 	if policy.IsUseAutoReplacer() {
 		iData := fileops.ReadFileToString(i)
 		iData = replacer.ReplaceAll(iData)
+
+		for k, v := range proc.Redirects() {
+			iData = coinknife.Replace(iData, k, v)
+		}
+
 		fileops.WriteStringToFile(o, iData)
 	}
-}
-
-
-
-func ReadGoMod(i string, tag string) *deps.GoModHandler {
-	result := &deps.GoModHandler{}
-
-	mm := strings.Index(tag, "/go.mod")
-	//pin.D("tag", tag)
-	if mm == 0 {
-		//pin.D("tag", tag)
-		result.Tag = "/"
-
-	} else {
-		result.Tag = tag[:mm]
-	}
-	//pin.D("result.Tag", result.Tag)
-
-	iData := fileops.ReadFileToString(i)
-	lines := strings.Split(iData, "\n")
-	index0 := findLineWith(lines, "require")
-	if index0 == -1 { // no dependencies
-		return result
-	}
-
-	sr := strings.Split(iData, "require")
-	pin.AssertTrue("", len(sr) == 2)
-
-	brBegin := strings.Index(sr[1], "(")
-	if brBegin == -1 {
-		tokens := strings.Split(sr[1][1:], " ")
-		dep := tokens[0]
-		ver := tokens[1][:len(tokens[1])-1]
-		depp := deps.Dependency{
-			Import:  Dep(dep),
-			Fork:    Fork(dep),
-			Version: ver,
-		}
-		result.Dependencies = append(result.Dependencies, depp)
-		return result
-	}
-	brEnd := strings.Index(sr[1], ")")
-	list := sr[1][brBegin+1+1 : brEnd]
-	lines = strings.Split(list, "\n")
-	lines = lines[0 : len(lines)-1]
-	for _, l := range lines {
-		tokens := strings.Split(l, " ")
-		dep := tokens[0][1:]
-		ver := tokens[1][:len(tokens[1])]
-		depp := deps.Dependency{
-			Import:  Dep(dep),
-			Fork:    Fork(dep),
-			Version: ver,
-		}
-		result.Dependencies = append(result.Dependencies, depp)
-	}
-	return result
-}
-
-func Fork(dep string) int {
-	rxp := "v[0-9][0-9]*"
-	var validID = regexp.MustCompile(rxp)
-
-	i := strings.LastIndex(dep, "/")
-	//prefix := dep[:i]
-	postfix := dep[i+1:]
-
-	if validID.MatchString(postfix) {
-		ForkString := postfix[1:]
-		f, err := strconv.Atoi(ForkString)
-		lang.CheckErr(err)
-		//pin.D(dep, f)
-		return f
-	}
-	return -1
-}
-
-func Dep(dep string) string {
-	rxp := "v[0-9][0-9]*"
-	var validID = regexp.MustCompile(rxp)
-
-	i := strings.LastIndex(dep, "/")
-	prefix := dep[:i]
-	postfix := dep[i+1:]
-
-	if validID.MatchString(postfix) {
-		//pin.D(dep, prefix)
-		return prefix
-	}
-	//pin.D(dep)
-	return dep
-}
-
-func findLineWith(lines []string, s string) int {
-	for i, e := range lines {
-		if strings.Contains(e, s) {
-			return i
-		}
-	}
-	return -1
-}
-
-func Relatives(root string, subfiles map[string]bool) map[string]string {
-	result := map[string]string{}
-	for e, _ := range subfiles {
-		key := e[len(root)+1 : len(e)]
-		result[key] = e
-	}
-	return result
-}
-
-const ALL_CHILDREN = true
-const DIRECT_CHILDREN = !ALL_CHILDREN
-
-func ListFiles(
-	target string,
-	IgnoredFiles map[string]bool,
-	children bool,
-	filter ut.FileFilter) map[string]bool {
-	if fileops.IsFile(target) {
-		lang.ReportErr("This is not a folder: %v", target)
-	}
-
-	files, err := ioutil.ReadDir(target)
-	lang.CheckErr(err)
-	result := map[string]bool{}
-	for _, f := range files {
-		fileName := f.Name()
-		filePath := filepath.Join(target, fileName)
-		filePath = strings.ReplaceAll(filePath, "\\", "/")
-		if IgnoredFiles[fileName] {
-			continue
-		}
-		if fileops.IsFolder(filePath) && children != DIRECT_CHILDREN {
-			children := ListFiles(filePath, IgnoredFiles, children, filter)
-			//result = append(result, children...)
-			result = putAll(result, children)
-			continue
-		}
-
-		if fileops.IsFile(filePath) {
-			if filter(filePath) {
-				//result = append(result, filePath)
-				result[filePath] = true
-			}
-			continue
-		}
-	}
-	if filter(target) {
-		//result = append(result, target)
-		result[target] = true
-	}
-	lang.CheckErr(err)
-	return result
-}
-
-func putAll(result map[string]bool, children map[string]bool) map[string]bool {
-	for k, v := range children {
-		result[k] = v
-	}
-	return result
-}
-
-func GoPath(git string) string {
-	return strings.ReplaceAll(filepath.Join(os.Getenv("GOPATH"), "src", git), "\\", "/")
-}
-
-func ClearProject(target string, ignore map[string]bool) {
-	pin.D("clear", target)
-	files, err := ioutil.ReadDir(target)
-	lang.CheckErr(err)
-
-	for _, f := range files {
-		fileName := f.Name()
-		filePath := filepath.Join(target, fileName)
-		if ignore[fileName] {
-			pin.D("  skip", filePath)
-			continue
-		}
-		pin.D("delete", filePath)
-		err := os.RemoveAll(filePath)
-		lang.CheckErr(err)
-	}
-	pin.D("")
-
 }
 
 func main_old() {

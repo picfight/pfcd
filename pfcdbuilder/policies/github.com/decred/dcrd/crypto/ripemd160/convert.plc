@@ -1,11 +1,7 @@
 {
-	"PackageName": "github.com/decred/dcrd/crypto/ripemd160",
-	"Files": [
-		{
-			"FileName": "file_1.go"
-		},
-		{
-			"FileName": "file_2.go"
-		}
-	]
+  "PackageName": "github.com/decred/dcrd/crypto/ripemd160",
+  "RedirectPackageTo": "github.com/picfight/ripemd160",
+  "SkipProcessing": "NO",
+  "Files": [
+  ]
 }

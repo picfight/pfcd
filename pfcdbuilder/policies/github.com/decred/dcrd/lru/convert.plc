@@ -1,14 +1,12 @@
 {
-	"PackageName": "github.com/decred/dcrd/crypto/blake256",
-	"Files": [
-		{
-			"FileName": "blake256_test.go"
-		},
-		{
-			"FileName": "blake256.go"
-		},
-		{
-			"FileName": "blake256block.go"
-		}
-	]
+  "PackageName": "github.com/decred/dcrd/lru",
+  "RedirectPackageTo": "github.com/picfight/lru",
+  "SkipProcessing": "NO",
+  "Files": [
+    {
+      "FileName": "go.mod",
+      "CopyAsIs": "NO",
+      "UseAutoReplacer": "YES"
+    }
+  ]
 }

@@ -2,6 +2,7 @@ package ut
 
 import (
 	"github.com/jfixby/pin/fileops"
+	"path/filepath"
 	"strings"
 )
 
@@ -23,8 +24,20 @@ func AND(a FileFilter, b FileFilter) FileFilter {
 	}
 }
 
+func OR(a FileFilter, b FileFilter) FileFilter {
+	return func(filePath string) bool {
+		return a(filePath) || b(filePath)
+	}
+}
+
 func Ext(ext string) FileFilter {
 	return func(filePath string) bool {
 		return strings.HasSuffix(filePath, "."+ext)
+	}
+}
+
+func Name(ext string) FileFilter {
+	return func(filePath string) bool {
+		return filepath.Base(filePath) == ext
 	}
 }

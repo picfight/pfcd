@@ -1,5 +1,7 @@
 {
   "PackageName": "github.com/decred/dcrd/crypto/blake256",
+  "RedirectPackageTo": "github.com/picfight/blake256",
+  "SkipProcessing": "YES",
   "Files": [
     {
       "FileName": "blake256_test.go",

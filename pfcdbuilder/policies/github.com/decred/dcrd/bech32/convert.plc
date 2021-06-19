@@ -1,0 +1,8 @@
+{
+  "PackageName": "github.com/decred/dcrd/bech32",
+  "RedirectPackageTo": "github.com/picfight/bech32",
+  "SkipProcessing": "YES",
+  "Files": [
+
+  ]
+}
