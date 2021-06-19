@@ -44,19 +44,54 @@ func GetXML(url string) (string, error) {
 	return string(data), nil
 }
 
-func ReadGoMod(tag GitTag) *GoModHandler {
+type UrlCache struct {
+	data map[string]string
+	set  map[string]bool
+}
+
+func (c *UrlCache) Get(url string) string {
+	return c.data[url]
+}
+
+func (c *UrlCache) Contains(url string) bool {
+	return c.set[url]
+}
+
+func (c *UrlCache) Put(url string, data string) {
+	if c.data == nil {
+		c.data = map[string]string{}
+	}
+	if c.set == nil {
+		c.set = map[string]bool{}
+	}
+	c.set[url] = true
+	c.data[url] = data
+}
+
+func ReadGoMod(tag *GitTag, cache *UrlCache) *GoModHandler {
 	result := &GoModHandler{}
 
 	//url := "https://" + tag.Package + "/releases/tag/" + tag.ReleaseTag + "/go.mod"
 
-	gitorg := tag.GitOrg()
-	repo := tag.GitRepo()
+	url := tag.ResolveFile("go.mod")
+	iData := ""
+	if cache.Contains(url) {
+		//pin.D("cached ", url)
+		iData = cache.Get(url)
+	} else {
+		pin.D("reading", url)
+		var err error
+		iData, err = GetXML(url)
 
-	url := "https://raw.githubusercontent.com/" + gitorg + "/" + repo + "/release-v1.6.2/go.mod"
+		if err != nil {
+			pin.D("failed url", url)
+			// https://raw.githubusercontent.com/decred/dcrd/chaincfg/chainhash/v1.0.2/chaincfg/chainhash/go.mod
+			// https://raw.githubusercontent.com/decred/dcrd/chainhash/v1.0.2/chaincfg/chainhash/go.mod
+		}
+		lang.CheckErr(err)
 
-	iData, err := GetXML(url)
-	lang.CheckErr(err)
-
+		cache.Put(url, iData)
+	}
 	//iData := fileops.ReadFileToString(i)
 	lines := strings.Split(iData, "\n")
 

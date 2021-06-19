@@ -12,34 +12,57 @@ import (
 	"strings"
 )
 
-func SortPackages(gomodresolver *deps.GoModResolver, rootd string, gomodfilepath *deps.GoModPath) []deps.Dependency {
-	result := &[]deps.Dependency{}
-	deps := map[string]*[]deps.Dependency{}
-	CollectPackage(gomodresolver, deps, rootd, gomodfilepath)
+//func SortPackages(gomodresolver *deps.GoModResolver, rootd string, gomodfilepath *deps.GoModPath) []deps.Dependency {
+//	result := &[]deps.Dependency{}
+//	deps := map[string]*[]deps.Dependency{}
+//	CollectImport(gomodresolver, deps, rootd, gomodfilepath)
+//
+//	for k, v := range deps {
+//		pin.D(k, v)
+//	}
+//
+//	return *result
+//}
 
-	for k, v := range deps {
+func LoadAllGoMods(target *deps.GitTag) {
+	ds := map[string]*[]deps.Dependency{}
+	cache := &deps.UrlCache{}
+	CollectImport(ds, target, target, cache)
+
+	for k, v := range ds {
 		pin.D(k, v)
 	}
-
-	return *result
 }
 
-func CollectImport(gomodresolver *deps.GoModResolver, deps map[string]*[]deps.Dependency, rootd string, dep deps.Dependency) {
-	gomodfilepath := gomodresolver.ResolveGoModPath(dep.Import)
-	CollectPackage(gomodresolver, deps, rootd, gomodfilepath)
-}
-
-func CollectPackage(gomodresolver *deps.GoModResolver, deps map[string]*[]deps.Dependency, rootd string, gomodfilepath *deps.GoModPath) {
-	gomod := gomodresolver.ReadGoMod(gomodfilepath)
+func CollectImport(ds map[string]*[]deps.Dependency, root, target *deps.GitTag, cache *deps.UrlCache) {
+	gomod := deps.ReadGoMod(target, cache)
 	for _, dep := range gomod.Dependencies {
-		if strings.HasPrefix(dep.Import, rootd) {
+		if strings.HasPrefix(dep.Import, root.Package()) {
 			//pin.D("", dep)
-			CollectImport(gomodresolver, deps, rootd, dep)
+			next := ResolveTarget(root, dep)
+			CollectImport(ds, root, next, cache)
 		}
 		//pin.D("", dep)
 
 	}
-	deps[gomod.Tag] = &gomod.Dependencies
+	ds[gomod.Tag] = &gomod.Dependencies
+}
+
+func ResolveTarget(root *deps.GitTag, dep deps.Dependency) *deps.GitTag {
+
+	subtag := strings.ReplaceAll(dep.Import, root.Package(), "")[1:]
+	//packagetag := path.Base(subtag)
+
+	target := &deps.GitTag{
+		GitOrg:     "decred",
+		GitRepo:    "dcrd",
+		SubPackage: subtag,
+		ReleaseTag: subtag + "/" + dep.Version,
+	}
+
+	//dcrjson%2Fv3.1.0
+
+	return target
 }
 
 func Swap(sorted []string, x int, y int) {

@@ -21,22 +21,50 @@ type DepsGraph struct {
 }
 
 type GitTag struct {
-	Package    string
+	GitOrg     string
+	GitRepo    string
+	SubPackage string
 	ReleaseTag string
 }
 
-func (t *GitTag) GitOrg() string {
-	//"github.com/decred/dcrd/"
-	array := strings.Split(t.Package,"/")
-	pin.AssertTrue("", len(array) == 3)
-	return array[1]
+func (tag *GitTag) ResolveFile(filename string) string {
+	if tag.SubPackage == "" {
+		return "https://raw.githubusercontent.com/" +
+			tag.GitOrg + "/" +
+			tag.GitRepo + "/" +
+			tag.ReleaseTag + "/" +
+			filename
+	} else {
+		//https://raw.githubusercontent.com/decred/dcrd/dcrjson/v3.1.0/addrmgr/go.mod
+		return "https://raw.githubusercontent.com/" +
+			tag.GitOrg + "/" +
+			tag.GitRepo + "/" +
+			tag.ReleaseTag + "/" +
+			tag.SubPackage + "/" +
+			filename
+	}
 }
 
-func (t *GitTag) GitRepo() string {
-	array := strings.Split(t.Package,"/")
-	pin.AssertTrue("", len(array) == 3)
-	return array[2]
+func (tag *GitTag) Package() string {
+	b := "github.com/" + tag.GitOrg + "/" + tag.GitRepo
+	if tag.SubPackage != "" {
+		b = b + "/" + tag.SubPackage
+	}
+	return b
 }
+
+//func (t *GitTag) GitOrg() string {
+//	//"github.com/decred/dcrd/"
+//	array := strings.Split(t.Package,"/")
+//	pin.AssertTrue("", len(array) == 3)
+//	return array[1]
+//}
+//
+//func (t *GitTag) GitRepo() string {
+//	array := strings.Split(t.Package,"/")
+//	pin.AssertTrue("", len(array) == 3)
+//	return array[2]
+//}
 
 func (v DepsGraph) ListChildrenForVertex(vertexID string) []string {
 	result := []string{}

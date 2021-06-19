@@ -22,13 +22,16 @@ const POLICY_FILE = "convert.plc"
 
 func main() {
 
-	target := deps.GitTag{
-		Package:    "github.com/decred/dcrd",
+	target := &deps.GitTag{
+		GitOrg:     "decred",
+		GitRepo:    "dcrd",
 		ReleaseTag: "release-v1.6.2",
 	}
 
-	gomod := deps.ReadGoMod(target)
+	gomod := deps.ReadGoMod(target, &deps.UrlCache{})
 	pin.D("gomod", gomod)
+
+	builder.LoadAllGoMods(target)
 
 	//ROOT_D := "github.com/decred/dcrd"
 	////ROOT_P := "github.com/picfight/pfcd"
