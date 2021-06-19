@@ -20,6 +20,24 @@ type DepsGraph struct {
 	Vertices map[string]*GoModHandler
 }
 
+type GitTag struct {
+	Package    string
+	ReleaseTag string
+}
+
+func (t *GitTag) GitOrg() string {
+	//"github.com/decred/dcrd/"
+	array := strings.Split(t.Package,"/")
+	pin.AssertTrue("", len(array) == 3)
+	return array[1]
+}
+
+func (t *GitTag) GitRepo() string {
+	array := strings.Split(t.Package,"/")
+	pin.AssertTrue("", len(array) == 3)
+	return array[2]
+}
+
 func (v DepsGraph) ListChildrenForVertex(vertexID string) []string {
 	result := []string{}
 

@@ -9,30 +9,37 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
-func SortPackages(input string) ([]string, deps.DepsGraph){
+func SortPackages(gomodresolver *deps.GoModResolver, rootd string, gomodfilepath *deps.GoModPath) []deps.Dependency {
+	result := &[]deps.Dependency{}
+	deps := map[string]*[]deps.Dependency{}
+	CollectPackage(gomodresolver, deps, rootd, gomodfilepath)
 
-	gomodlist := ListFiles(input, nil, ALL_CHILDREN, ut.Ext("mod"))
-	root := fileops.Parent(fileops.Parent(fileops.Parent(input)))
-	inputs := Relatives(root, gomodlist)
-
-
-	graph := deps.DepsGraph{map[string]*deps.GoModHandler{}}
-	for k, _ := range inputs {
-		gomod := ReadGoMod(inputs[k], k)
-		//pin.S("gomod", gomod)
-		graph.Vertices[gomod.Tag] = gomod
+	for k, v := range deps {
+		pin.D(k, v)
 	}
 
-	sorted := ut.SortGraph(graph)
+	return *result
+}
 
-	//sorted = Resort(sorted, graph)
+func CollectImport(gomodresolver *deps.GoModResolver, deps map[string]*[]deps.Dependency, rootd string, dep deps.Dependency) {
+	gomodfilepath := gomodresolver.ResolveGoModPath(dep.Import)
+	CollectPackage(gomodresolver, deps, rootd, gomodfilepath)
+}
 
-	return sorted, graph
+func CollectPackage(gomodresolver *deps.GoModResolver, deps map[string]*[]deps.Dependency, rootd string, gomodfilepath *deps.GoModPath) {
+	gomod := gomodresolver.ReadGoMod(gomodfilepath)
+	for _, dep := range gomod.Dependencies {
+		if strings.HasPrefix(dep.Import, rootd) {
+			//pin.D("", dep)
+			CollectImport(gomodresolver, deps, rootd, dep)
+		}
+		//pin.D("", dep)
+
+	}
+	deps[gomod.Tag] = &gomod.Dependencies
 }
 
 func Swap(sorted []string, x int, y int) {
@@ -74,106 +81,6 @@ func Resort(sorted []string, graph deps.DepsGraph) []string {
 
 	return sorted
 }
-
-func Fork(dep string) int {
-	rxp := "v[0-9][0-9]*"
-	var validID = regexp.MustCompile(rxp)
-
-	i := strings.LastIndex(dep, "/")
-	//prefix := dep[:i]
-	postfix := dep[i+1:]
-
-	if validID.MatchString(postfix) {
-		ForkString := postfix[1:]
-		f, err := strconv.Atoi(ForkString)
-		lang.CheckErr(err)
-		//pin.D(dep, f)
-		return f
-	}
-	return -1
-}
-
-func Dep(dep string) string {
-	rxp := "v[0-9][0-9]*"
-	var validID = regexp.MustCompile(rxp)
-
-	i := strings.LastIndex(dep, "/")
-	prefix := dep[:i]
-	postfix := dep[i+1:]
-
-	if validID.MatchString(postfix) {
-		//pin.D(dep, prefix)
-		return prefix
-	}
-	//pin.D(dep)
-	return dep
-}
-
-
-func ReadGoMod(i string, tag string) *deps.GoModHandler {
-	result := &deps.GoModHandler{}
-
-	mm := strings.Index(tag, "/go.mod")
-	//pin.D("tag", tag)
-	if mm == 0 {
-		//pin.D("tag", tag)
-		result.Tag = "/"
-
-	} else {
-		result.Tag = tag[:mm]
-	}
-	//pin.D("result.Tag", result.Tag)
-
-	iData := fileops.ReadFileToString(i)
-	lines := strings.Split(iData, "\n")
-	index0 := findLineWith(lines, "require")
-	if index0 == -1 { // no dependencies
-		return result
-	}
-
-	sr := strings.Split(iData, "require")
-	pin.AssertTrue("", len(sr) == 2)
-
-	brBegin := strings.Index(sr[1], "(")
-	if brBegin == -1 {
-		tokens := strings.Split(sr[1][1:], " ")
-		dep := tokens[0]
-		ver := tokens[1][:len(tokens[1])-1]
-		depp := deps.Dependency{
-			Import:  Dep(dep),
-			Fork:    Fork(dep),
-			Version: ver,
-		}
-		result.Dependencies = append(result.Dependencies, depp)
-		return result
-	}
-	brEnd := strings.Index(sr[1], ")")
-	list := sr[1][brBegin+1+1 : brEnd]
-	lines = strings.Split(list, "\n")
-	lines = lines[0 : len(lines)-1]
-	for _, l := range lines {
-		tokens := strings.Split(l, " ")
-		dep := tokens[0][1:]
-		ver := tokens[1][:len(tokens[1])]
-		depp := deps.Dependency{
-			Import:  Dep(dep),
-			Fork:    Fork(dep),
-			Version: ver,
-		}
-		result.Dependencies = append(result.Dependencies, depp)
-	}
-	return result
-}
-
-func findLineWith(lines []string, s string) int {
-	for i, e := range lines {
-		if strings.Contains(e, s) {
-			return i
-		}
-	}
-	return -1
-}
-
 
 const ALL_CHILDREN = true
 const DIRECT_CHILDREN = !ALL_CHILDREN
@@ -226,7 +133,6 @@ func putAll(result map[string]bool, children map[string]bool) map[string]bool {
 	}
 	return result
 }
-
 
 func GoPath(git string) string {
 	return strings.ReplaceAll(filepath.Join(os.Getenv("GOPATH"), "src", git), "\\", "/")

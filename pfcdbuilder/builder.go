@@ -21,62 +21,75 @@ import (
 const POLICY_FILE = "convert.plc"
 
 func main() {
-	ROOT_D := "github.com/decred/dcrd"
-	ROOT_P := "github.com/picfight/pfcd"
-	input := builder.GoPath(ROOT_D)
-	output := builder.GoPath(ROOT_P)
-	//policies := "policies/"
 
-	//pin.D("input", input)
-	//pin.D("output", output)
-	fileops.EngageDeleteSafeLock(true)
-	builder.ClearProject(output, ignoredFiles())
-
-	sorted, graph := builder.SortPackages(input)
-
-	processor := deps.NewProcessor()
-
-	pin.D("sorted", sorted)
-
-	for _, tag := range sorted {
-		vx := graph.Vertices[tag]
-		//pin.D(tag, vx.Dependencies)
-		plc := PolicyFor(tag, vx)
-
-		if plc == nil {
-			pin.D("no policy for", vx.Tag)
-			pin.D(tag, vx.Dependencies)
-			//lang.ReportErr("no policy for %v", vx.Tag)
-			return
-		}
-
-		if plc.IsSkipProcessing() {
-			pin.D("skip", vx.Tag)
-			processor.AddSkippedPackage(vx.Tag)
-			continue
-		}
-
-		if plc.IsConvertFiles() {
-			processor.AddRedirect(tag, coinknife.Replace(tag, ROOT_D, ROOT_P))
-			ConvertPackage(input, output, tag, vx, plc, processor)
-		}
-		//plc := ReadPolicy(vx, policies)
-		//
-		//puotput := output
-		//if plc.RedirectPackageTo != "" {
-		//	processor.AddRedirect(vx.Tag, plc.RedirectPackageTo)
-		//}
-		//if !plc.IsSkipProcessing() {
-		//	if plc.RedirectPackageTo != "" {
-		//		puotput = GoPath(plc.RedirectPackageTo)
-		//		ClearProject(puotput, ignoredFiles())
-		//	}
-		//	ConvertPackage(vx, input, puotput, plc, processor)
-		//} else {
-		//	pin.D("skip", vx.Tag)
-		//}
-		pin.D("---------------------------------------------------------------------")
+	target := deps.GitTag{
+		Package:    "github.com/decred/dcrd",
+		ReleaseTag: "release-v1.6.2",
 	}
+
+	gomod := deps.ReadGoMod(target)
+	pin.D("gomod", gomod)
+
+	//ROOT_D := "github.com/decred/dcrd"
+	////ROOT_P := "github.com/picfight/pfcd"
+	//input := builder.GoPath(ROOT_D)
+	////output := builder.GoPath(ROOT_P)
+	//
+	////policies := "policies/"
+	//
+	////pin.D("input", input)
+	////pin.D("output", output)
+	//gomodresolver := &deps.GoModResolver{}
+	//
+	//gomodfile := filepath.Join(input, "go.mod")
+	//builder.SortPackages(gomodresolver, ROOT_D, gomodfile)
+
+	//processor := deps.NewProcessor()
+
+	//pin.D("sorted", sorted)
+	//
+	//for _, tag := range sorted {
+	//	vx := graph.Vertices[tag]
+	//
+	//	vx.Dependencies
+	//
+	//	//pin.D(tag, vx.Dependencies)
+	//	plc := PolicyFor(tag, vx)
+	//
+	//	if plc == nil {
+	//		pin.D("no policy for", vx.Tag)
+	//		pin.D(tag, vx.Dependencies)
+	//		//lang.ReportErr("no policy for %v", vx.Tag)
+	//		return
+	//	}
+	//
+	//	if plc.IsSkipProcessing() {
+	//		pin.D("skip", vx.Tag)
+	//		processor.AddSkippedPackage(vx.Tag)
+	//		continue
+	//	}
+	//
+	//	if plc.IsConvertFiles() {
+	//		processor.AddRedirect(tag, coinknife.Replace(tag, ROOT_D, ROOT_P))
+	//		ConvertPackage(input, output, tag, vx, plc, processor)
+	//	}
+	//	//plc := ReadPolicy(vx, policies)
+	//	//
+	//	//puotput := output
+	//	//if plc.RedirectPackageTo != "" {
+	//	//	processor.AddRedirect(vx.Tag, plc.RedirectPackageTo)
+	//	//}
+	//	//if !plc.IsSkipProcessing() {
+	//	//	if plc.RedirectPackageTo != "" {
+	//	//		puotput = GoPath(plc.RedirectPackageTo)
+	//	//		ClearProject(puotput, ignoredFiles())
+	//	//	}
+	//	//	ConvertPackage(vx, input, puotput, plc, processor)
+	//	//} else {
+	//	//	pin.D("skip", vx.Tag)
+	//	//}
+	//	pin.D("---------------------------------------------------------------------")
+	//}
 }
 
 func ConvertGoFile(input string, output string, tag string, vx *deps.GoModHandler, plc *policy.PackagePolicy, proc *deps.Processor) {
@@ -198,10 +211,25 @@ func PolicyFor(tag string, vx *deps.GoModHandler) *policy.PackagePolicy {
 		return &policy.PackagePolicy{SkipProcessing: policy.YES}
 	}
 	if tag == "github.com/decred/dcrd/chaincfg/chainhash" {
-		return &policy.PackagePolicy{
-			ConvertFiles: policy.YES,
-			UseInjectors: policy.YES,
-		}
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/wire" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/dcrec/secp256k1" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/addrmgr" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/dcrutil" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/blockchain/standalone" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
+	}
+	if tag == "github.com/decred/dcrd/blockchain/connmgr" {
+		return &policy.PackagePolicy{SkipProcessing: policy.YES}
 	}
 	if tag == "github.com/decred/dcrd/chaincfg" {
 		return &policy.PackagePolicy{
@@ -209,7 +237,7 @@ func PolicyFor(tag string, vx *deps.GoModHandler) *policy.PackagePolicy {
 			UseInjectors: policy.YES,
 		}
 	}
-	if tag == "github.com/decred/dcrd/wire" {
+	if tag == "github.com/decred/dcrd/hdkeychain" {
 		return &policy.PackagePolicy{
 			ConvertFiles: policy.YES,
 			UseInjectors: policy.YES,
@@ -221,24 +249,44 @@ func PolicyFor(tag string, vx *deps.GoModHandler) *policy.PackagePolicy {
 			UseInjectors: policy.YES,
 		}
 	}
-	if tag == "github.com/decred/dcrd/dcrec/secp256k1" {
-		return &policy.PackagePolicy{
-			ConvertFiles: policy.YES,
-			UseInjectors: policy.YES,
-		}
-	}
-	if tag == "github.com/decred/dcrd/addrmgr" {
-		return &policy.PackagePolicy{
-			ConvertFiles: policy.YES,
-			UseInjectors: policy.YES,
-		}
-	}
-	if tag == "github.com/decred/dcrd/dcrutil" {
-		return &policy.PackagePolicy{
-			ConvertFiles: policy.YES,
-			UseInjectors: policy.YES,
-		}
-	}
+
+	//if tag == "github.com/decred/dcrd/chaincfg" {
+	//	return &policy.PackagePolicy{
+	//		ConvertFiles: policy.YES,
+	//		UseInjectors: policy.YES,
+	//	}
+	//}
+
+	//if tag == "github.com/decred/dcrd/wire" {
+	//	return &policy.PackagePolicy{
+	//		ConvertFiles: policy.YES,
+	//		UseInjectors: policy.YES,
+	//	}
+	//}
+	//if tag == "github.com/decred/dcrd/dcrjson" {
+	//	return &policy.PackagePolicy{
+	//		ConvertFiles: policy.YES,
+	//		UseInjectors: policy.YES,
+	//	}
+	//}
+	//if tag == "github.com/decred/dcrd/dcrec/secp256k1" {
+	//	return &policy.PackagePolicy{
+	//		ConvertFiles: policy.YES,
+	//		UseInjectors: policy.YES,
+	//	}
+	//}
+	//if tag == "github.com/decred/dcrd/addrmgr" {
+	//	return &policy.PackagePolicy{
+	//		ConvertFiles: policy.YES,
+	//		UseInjectors: policy.YES,
+	//	}
+	//}
+	//if tag == "github.com/decred/dcrd/dcrutil" {
+	//	return &policy.PackagePolicy{
+	//		ConvertFiles: policy.YES,
+	//		UseInjectors: policy.YES,
+	//	}
+	//}
 	return nil
 }
 
