@@ -21,8 +21,10 @@ import (
 const POLICY_FILE = "convert.plc"
 
 func main() {
-	input := builder.GoPath("github.com/decred/dcrd")
-	output := builder.GoPath("github.com/picfight/pfcd")
+	ROOT_D := "github.com/decred/dcrd"
+	ROOT_P := "github.com/picfight/pfcd"
+	input := builder.GoPath(ROOT_D)
+	output := builder.GoPath(ROOT_P)
 	//policies := "policies/"
 
 	//pin.D("input", input)
@@ -54,6 +56,7 @@ func main() {
 		}
 
 		if plc.IsConvertFiles() {
+			processor.AddRedirect(tag, coinknife.Replace(tag, ROOT_D, ROOT_P))
 			ConvertPackage(input, output, tag, vx, plc, processor)
 		}
 		//plc := ReadPolicy(vx, policies)
