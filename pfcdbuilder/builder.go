@@ -221,7 +221,19 @@ func PolicyFor(tag string, vx *deps.GoModHandler) *policy.PackagePolicy {
 			UseInjectors: policy.YES,
 		}
 	}
-	if tag == "github.com/decred/dcrd/dcrec/secp256k" {
+	if tag == "github.com/decred/dcrd/dcrec/secp256k1" {
+		return &policy.PackagePolicy{
+			ConvertFiles: policy.YES,
+			UseInjectors: policy.YES,
+		}
+	}
+	if tag == "github.com/decred/dcrd/addrmgr" {
+		return &policy.PackagePolicy{
+			ConvertFiles: policy.YES,
+			UseInjectors: policy.YES,
+		}
+	}
+	if tag == "github.com/decred/dcrd/dcrutil" {
 		return &policy.PackagePolicy{
 			ConvertFiles: policy.YES,
 			UseInjectors: policy.YES,
