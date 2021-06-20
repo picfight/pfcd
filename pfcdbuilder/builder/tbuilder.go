@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"fmt"
 	"github.com/jfixby/pin"
 	"github.com/jfixby/pin/fileops"
 	"github.com/jfixby/pin/lang"
@@ -24,28 +25,60 @@ import (
 //	return *result
 //}
 
-func LoadAllGoMods(target *deps.GitTag) {
-	ds := map[string]*[]deps.Dependency{}
+func LoadAllGoMods(root *deps.GitTag) {
 	cache := &deps.UrlCache{}
-	CollectImport(ds, target, target, cache)
+	LoadGoMods(root, root, cache)
 
-	for k, v := range ds {
-		pin.D(k, v)
+	//gomod := deps.ReadGoMod(root, cache)
+	//pin.D("gomod", gomod)
+	//
+	//for _, d := range gomod.Dependencies {
+	//	t := ResolveTarget(root, d)
+	//	LoadGoMods(root, t, cache)
+	//}
+
+}
+
+type DepCollector struct {
+	depsList []deps.Dependency
+	depsSet  map[deps.Dependency]int
+}
+
+func (c *DepCollector) Append(dep deps.Dependency) {
+	if c.depsSet[dep] == 0 {
+		c.depsList = append(c.depsList, dep)
+	}
+	c.depsSet[dep]++
+}
+
+func LoadGoMods(root *deps.GitTag, target *deps.GitTag, cache *deps.UrlCache) {
+
+	ds := &DepCollector{
+		[]deps.Dependency{},
+		map[deps.Dependency]int{},
+	}
+	CollectImport(ds, root, root, cache)
+
+	for _, v := range ds.depsList {
+		pin.D(fmt.Sprintf("%v", v), ds.depsSet[v])
+		//pin.D("", *v)
+		//ResolveTarget(root, v)
 	}
 }
 
-func CollectImport(ds map[string]*[]deps.Dependency, root, target *deps.GitTag, cache *deps.UrlCache) {
+func CollectImport(ds *DepCollector, root, target *deps.GitTag, cache *deps.UrlCache) {
 	gomod := deps.ReadGoMod(target, cache)
+
 	for _, dep := range gomod.Dependencies {
 		if strings.HasPrefix(dep.Import, root.Package()) {
 			//pin.D("", dep)
 			next := ResolveTarget(root, dep)
 			CollectImport(ds, root, next, cache)
+			ds.Append(dep)
 		}
 		//pin.D("", dep)
-
 	}
-	ds[gomod.Tag] = &gomod.Dependencies
+
 }
 
 func ResolveTarget(root *deps.GitTag, dep deps.Dependency) *deps.GitTag {

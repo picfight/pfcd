@@ -28,8 +28,7 @@ func main() {
 		ReleaseTag: "release-v1.6.2",
 	}
 
-	gomod := deps.ReadGoMod(target, &deps.UrlCache{})
-	pin.D("gomod", gomod)
+
 
 	builder.LoadAllGoMods(target)
 
