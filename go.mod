@@ -12,7 +12,10 @@ require (
 	github.com/dchest/siphash v1.2.1
 	github.com/decred/base58 v1.0.0
 	github.com/decred/slog v1.0.0
+	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gorilla/websocket v1.4.1
+	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jfixby/coin v0.0.0-20190927091650-385b78bc116b
 	github.com/jfixby/coinknife v0.0.0-20190926203656-03d129b9318a
@@ -20,5 +23,7 @@ require (
 	github.com/jrick/bitset v1.0.0
 	github.com/jrick/logrotate v1.0.0
 	github.com/picfight/picfightcoin v0.0.0-20191107151210-0ab5c80ba5bc
-	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
+	golang.org/x/crypto v0.1.0
+	gopkg.in/fsnotify.v1 v1.4.7 // indirect
+	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )
